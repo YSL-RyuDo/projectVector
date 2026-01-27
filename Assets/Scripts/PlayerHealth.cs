@@ -9,21 +9,15 @@ public class PlayerHealth : MonoBehaviour
 
     [Header("Respawn")]
     public float respawnDelay = 3f;
-    public Transform respawnPoint;
 
     private bool isDead = false;
 
     void Start()
     {
         currentHealth = maxHealth;
-
-        if (respawnPoint == null)
-        {
-            Debug.LogWarning("[PlayerHealth] Respawn Point not assigned!");
-        }
     }
 
-    // 외부에서 데미지 줄 때 호출
+    // 외부(무기, 서버 패킷 등)에서 호출
     public void TakeDamage(int damage)
     {
         if (isDead)
@@ -46,8 +40,7 @@ public class PlayerHealth : MonoBehaviour
         isDead = true;
         Debug.Log("[PlayerHealth] Player Died");
 
-        // 이동/입력 막고 싶으면 여기서 처리 가능
-        GetComponent<FPSPlayerMovement>().enabled = false;
+        gameObject.SetActive(false);
 
         StartCoroutine(RespawnCoroutine());
     }
@@ -63,15 +56,9 @@ public class PlayerHealth : MonoBehaviour
     {
         Debug.Log("[PlayerHealth] Respawn");
 
-        // 위치 이동
-        if (respawnPoint != null)
-            transform.position = respawnPoint.position;
-
-        // 체력 회복
         currentHealth = maxHealth;
         isDead = false;
 
-        // 다시 이동 가능
-        GetComponent<FPSPlayerMovement>().enabled = true;
+        gameObject.SetActive(true);
     }
 }
