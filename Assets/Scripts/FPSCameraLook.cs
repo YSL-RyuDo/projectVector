@@ -10,13 +10,17 @@ public class FPSCameraLook : MonoBehaviour
     [Header("Recoil")]
     public float recoilReturnSpeed = 10f;
 
-    private float xRotation = 0f;   // Ä«¸Þ¶ó Pitch
-    private float yaw = 0f;
+    private float xRotation = 0f;   // Camera Pitch
+    private float yaw = 0f;         // Player Yaw
     private float recoilOffset = 0f;
     private bool isADS = false;
 
+    Transform player;
+
     void Start()
     {
+        player = transform.parent;
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
@@ -30,6 +34,7 @@ public class FPSCameraLook : MonoBehaviour
         float mouseY = mouseDelta.y * sensitivity;
 
         yaw += mouseX;
+        player.rotation = Quaternion.Euler(0f, yaw, 0f);
 
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -80f, 80f);

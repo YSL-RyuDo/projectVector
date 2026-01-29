@@ -17,7 +17,10 @@ public class SimplePistol : MonoBehaviour
     private WeaponADS weaponADS;
 
     [Header("Drop")]
-    public Transform dropPoint;
+    [SerializeField] private Transform dropPoint;
+
+    private PlayerHP ownerHP;
+    private bool isLocalPlayer;
 
     private int currentAmmo;
     private int reserveAmmo;
@@ -27,6 +30,15 @@ public class SimplePistol : MonoBehaviour
 
     void Awake()
     {
+        ownerHP = GetComponentInParent<PlayerHP>();
+        isLocalPlayer = GetComponentInParent<LocalPlayerController>() != null;
+
+        if (!isLocalPlayer)
+        {
+            enabled = false;
+            return;
+        }
+
         cam = Camera.main;
         cameraLook = cam.GetComponent<FPSCameraLook>();
         weaponADS = GetComponent<WeaponADS>();
@@ -36,6 +48,8 @@ public class SimplePistol : MonoBehaviour
 
     void Start()
     {
+        if (!isLocalPlayer) return;
+
         currentAmmo = weaponData.magSize;
         reserveAmmo = weaponData.maxReserveAmmo;
 
@@ -45,16 +59,16 @@ public class SimplePistol : MonoBehaviour
 
     void Update()
     {
+        if (!isLocalPlayer)
+            return;
+
+        if (ownerHP != null && ownerHP.IsDead)
+            return;
+
         HandleADS();
 
         if (isReloading)
             return;
-
-        if (Keyboard.current.gKey.wasPressedThisFrame)
-        {
-            DropWeapon();
-            return;
-        }
 
         if (Keyboard.current.rKey.wasPressedThisFrame)
         {
@@ -92,6 +106,9 @@ public class SimplePistol : MonoBehaviour
         if (Time.time < nextFireTime || currentAmmo <= 0)
             return;
 
+        if (ownerHP != null && ownerHP.IsDead)
+            return;
+
         nextFireTime = Time.time + weaponData.fireRate;
         currentAmmo--;
         UpdateAmmoUI();
@@ -100,12 +117,53 @@ public class SimplePistol : MonoBehaviour
 
         Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f));
 
-        Debug.DrawRay(ray.origin, ray.direction * weaponData.range, Color.green, 1.0f);
+        Debug.DrawRay(
+            ray.origin,
+            ray.direction * weaponData.range,
+            Color.red,
+            1.0f
+        );
 
-        if (Physics.Raycast(ray, out RaycastHit hit, weaponData.range))
+        if (!Physics.Raycast(ray, out RaycastHit hit, weaponData.range))
         {
-            Debug.Log($"Hit: {hit.collider.name}");
+            Debug.Log("[HIT] Raycast hit nothing");
+            return;
         }
+
+        Debug.Log($"[HIT] Collider = {hit.collider.name}");
+
+        var hp = hit.collider.GetComponentInParent<PlayerHP>();
+        if (hp == null)
+        {
+            Debug.Log("[HIT] PlayerHP 없음 (플레이어 아님)");
+            return;
+        }
+
+        if (hp == ownerHP)
+        {
+            Debug.Log("[HIT] Self hit ignored");
+            return;
+        }
+
+        if (hp.IsDead)
+        {
+            Debug.Log("[HIT] Target already dead");
+            return;
+        }
+
+        var identity = hp.GetComponent<PlayerIdentity>();
+        if (identity == null)
+        {
+            Debug.Log("[HIT] PlayerIdentity 없음");
+            return;
+        }
+
+        Debug.Log($"[HIT] SEND → targetId={identity.PlayerId}");
+
+        NetworkManager.Instance.SendHit(
+            identity.PlayerId,
+            20
+        );
     }
 
 
@@ -137,6 +195,13 @@ public class SimplePistol : MonoBehaviour
         ammoText.text = $"{currentAmmo} / {reserveAmmo}";
     }
 
+    public void ReloadFull()
+    {
+        currentAmmo = weaponData.magSize;
+        reserveAmmo = weaponData.maxReserveAmmo;
+        UpdateAmmoUI();
+    }
+    
     public void SetAmmo(int mag, int reserve)
     {
         currentAmmo = mag;
@@ -151,6 +216,12 @@ public class SimplePistol : MonoBehaviour
 
     public void DropWeapon()
     {
+        if (dropPoint == null || weaponData == null)
+        {
+            Debug.LogWarning("[SimplePistol] Drop failed: missing data");
+            return;
+        }
+
         GameObject dropped = Instantiate(
             weaponData.dropPrefab,
             dropPoint.position,
@@ -158,10 +229,14 @@ public class SimplePistol : MonoBehaviour
         );
 
         DroppedWeapon dw = dropped.GetComponent<DroppedWeapon>();
-        dw.weaponData = weaponData;
-        dw.magAmmo = currentAmmo;
-        dw.reserveAmmo = reserveAmmo;
+        if (dw != null)
+        {
+            dw.weaponData = weaponData;
+            dw.magAmmo = currentAmmo;
+            dw.reserveAmmo = reserveAmmo;
+        }
 
         Destroy(gameObject);
     }
+
 }

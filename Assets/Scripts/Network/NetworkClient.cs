@@ -1,4 +1,3 @@
-// NetworkClient.cs
 using System;
 using System.Net.Sockets;
 using System.Threading;
@@ -22,7 +21,7 @@ public class NetworkClient
         recvThread.IsBackground = true;
         recvThread.Start();
 
-        Debug.Log("[Network] Connected to server");
+        Debug.Log("[Network] Connected");
     }
 
     public void Send(byte[] data)
@@ -39,7 +38,7 @@ public class NetworkClient
             {
                 byte[] header = new byte[4];
                 int read = stream.Read(header, 0, 4);
-                if (read == 0) break;
+                if (read <= 0) break;
 
                 ushort size = BitConverter.ToUInt16(header, 0);
                 ushort type = BitConverter.ToUInt16(header, 2);
@@ -50,16 +49,18 @@ public class NetworkClient
                 int received = 0;
                 while (received < bodySize)
                 {
-                    received += stream.Read(
-                        body, received, bodySize - received);
+                    int r = stream.Read(body, received, bodySize - received);
+                    if (r <= 0) break;
+                    received += r;
                 }
 
-                NetworkManager.Instance.EnqueuePacket(type, body);
+                if (NetworkManager.Instance != null)
+                    NetworkManager.Instance.EnqueuePacket(type, body);
             }
         }
         catch (Exception e)
         {
-            Debug.LogError($"[Network] Disconnected: {e.Message}");
+            Debug.LogWarning($"[Network] Disconnected: {e.Message}");
         }
     }
 }

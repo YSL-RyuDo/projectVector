@@ -29,10 +29,15 @@ public class PlayerWeaponManager : MonoBehaviour
         }
     }
 
-    void SpawnStartWeapon()
+    public void SpawnStartWeapon()
     {
         if (startWeaponData == null)
             return;
+
+        for (int i = weaponHolder.childCount - 1; i >= 0; i--)
+        {
+            Destroy(weaponHolder.GetChild(i).gameObject);
+        }
 
         currentWeapon = Instantiate(
             startWeaponData.weaponPrefab,
@@ -42,7 +47,7 @@ public class PlayerWeaponManager : MonoBehaviour
         currentWeapon.transform.localPosition = Vector3.zero;
         currentWeapon.transform.localRotation = Quaternion.identity;
 
-        SimplePistol pistol = currentWeapon.GetComponent<SimplePistol>();
+        var pistol = currentWeapon.GetComponent<SimplePistol>();
         pistol.SetAmmo(
             startWeaponData.magSize,
             startWeaponData.maxReserveAmmo
