@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class PlayerHP : MonoBehaviour
 {
-    public int MaxHP = 100;
+    [SerializeField] private int MaxHP = 100;
     public int CurrentHP { get; private set; }
 
     public bool IsDead => CurrentHP <= 0;

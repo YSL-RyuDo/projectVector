@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerWeaponManager : MonoBehaviour
+public class PlayerWeapon : MonoBehaviour
 {
     [Header("References")]
     public Transform weaponHolder;
