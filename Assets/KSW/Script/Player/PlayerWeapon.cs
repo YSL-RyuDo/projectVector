@@ -4,24 +4,30 @@ using UnityEngine.InputSystem;
 public class PlayerWeapon : MonoBehaviour
 {
     [Header("References")]
-    public Transform weaponHolder;
-    public Transform dropPoint;
+    // 무기가 장착될 위치
+    [SerializeField] private Transform _weaponHolder;
+    // 무기 드롭 시 생성될 위치
+    [SerializeField] private Transform _dropPoint;
 
     [Header("Pickup")]
-    public float pickupRange = 2.5f;
-    public LayerMask weaponLayer;
+    // 무기 줍기 가능한 반경
+    [SerializeField] private float _pickupRange = 2.5f;
+    // 무기 오브젝트만 감지하기 위한 레이어
+    [SerializeField] private LayerMask _weaponLayer;
 
     [Header("Start Weapon")]
-    public WeaponData startWeaponData;
+    // 게임 시작 시 지급할 무기 데이터
+    [SerializeField] private WeaponData _startWeaponData;
 
-    private GameObject currentWeapon;
+    // 현재 장착 중인 무기 오브젝트
+    private GameObject _currentWeapon;
 
-    void Start()
+    private void Start()
     {
         SpawnStartWeapon();
     }
 
-    void Update()
+    private void Update()
     {
         if (Keyboard.current.eKey.wasPressedThisFrame)
         {
@@ -31,41 +37,38 @@ public class PlayerWeapon : MonoBehaviour
 
     public void SpawnStartWeapon()
     {
-        if (startWeaponData == null)
+        if (_startWeaponData == null)
             return;
 
-        for (int i = weaponHolder.childCount - 1; i >= 0; i--)
+        // 기존 무기 제거
+        for (int i = _weaponHolder.childCount - 1; i >= 0; i--)
         {
-            Destroy(weaponHolder.GetChild(i).gameObject);
+            Destroy(_weaponHolder.GetChild(i).gameObject);
         }
 
-        currentWeapon = Instantiate(
-            startWeaponData.weaponPrefab,
-            weaponHolder
-        );
+        // 시작 무기 생성
+        _currentWeapon = Instantiate(_startWeaponData.weaponPrefab, _weaponHolder);
 
-        currentWeapon.transform.localPosition = Vector3.zero;
-        currentWeapon.transform.localRotation = Quaternion.identity;
+        // 위치/회전 초기화
+        _currentWeapon.transform.localPosition = Vector3.zero;
+        _currentWeapon.transform.localRotation = Quaternion.identity;
 
-        var pistol = currentWeapon.GetComponent<SimplePistol>();
-        pistol.SetAmmo(
-            startWeaponData.magSize,
-            startWeaponData.maxReserveAmmo
-        );
-        pistol.SetDropPoint(dropPoint);
+        // 탄약 세팅
+        var pistol = _currentWeapon.GetComponent<SimplePistol>();
+        pistol.SetAmmo(_startWeaponData.magSize, _startWeaponData.maxReserveAmmo);
+        // 드롭 위치 설정
+        pistol.SetDropPoint(_dropPoint);
     }
 
-    void TryPickupWeapon()
+    private void TryPickupWeapon()
     {
-        Collider[] hits = Physics.OverlapSphere(
-            transform.position,
-            pickupRange,
-            weaponLayer
-        );
+        // 주변에서 무기 레이어에 해당하는 콜라이더 탐색
+        Collider[] hits = Physics.OverlapSphere(transform.position, _pickupRange, _weaponLayer);
 
         DroppedWeapon nearest = null;
         float minDist = float.MaxValue;
 
+        // 가장 가까운 무기 찾기
         foreach (var hit in hits)
         {
             DroppedWeapon dw = hit.GetComponent<DroppedWeapon>();
@@ -80,38 +83,41 @@ public class PlayerWeapon : MonoBehaviour
             }
         }
 
+        // 가까운 무기가 있으면 줍기
         if (nearest != null)
         {
             PickupWeapon(nearest);
         }
     }
 
-    void PickupWeapon(DroppedWeapon dropped)
+    private void PickupWeapon(DroppedWeapon dropped)
     {
-        if (currentWeapon != null)
+        // 이미 무기를 들고 있다면 기존 무기 드롭
+        if (_currentWeapon != null)
         {
-            SimplePistol old = currentWeapon.GetComponent<SimplePistol>();
+            SimplePistol old = _currentWeapon.GetComponent<SimplePistol>();
             old?.DropWeapon();
         }
 
-        currentWeapon = Instantiate(
-            dropped.weaponData.weaponPrefab,
-            weaponHolder
-        );
+        // 새로운 무기 생성
+        _currentWeapon = Instantiate(dropped.weaponData.weaponPrefab, _weaponHolder);
 
-        currentWeapon.transform.localPosition = Vector3.zero;
-        currentWeapon.transform.localRotation = Quaternion.identity;
+        // 탄약 정보 복원
+        _currentWeapon.transform.localPosition = Vector3.zero;
+        _currentWeapon.transform.localRotation = Quaternion.identity;
 
-        SimplePistol pistol = currentWeapon.GetComponent<SimplePistol>();
+        SimplePistol pistol = _currentWeapon.GetComponent<SimplePistol>();
         pistol.SetAmmo(dropped.magAmmo, dropped.reserveAmmo);
-        pistol.SetDropPoint(dropPoint);
+        pistol.SetDropPoint(_dropPoint);
 
+        // 바닥에 있던 무기 제거
         Destroy(dropped.gameObject);
     }
 
-    void OnDrawGizmosSelected()
+    // 씬에서 선택했을 때 픽업 범위 표시
+    private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, pickupRange);
+        Gizmos.DrawWireSphere(transform.position, _pickupRange);
     }
 }

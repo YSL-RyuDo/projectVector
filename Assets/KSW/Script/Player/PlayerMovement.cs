@@ -3,22 +3,20 @@ using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("Movement")]
     [SerializeField] private float _speed = 5f;
     [SerializeField] private float _gravity = -20f;
     [SerializeField] private float _jumpPower = 8f;
-
-    [Header("Network")]
-    [SerializeField] private float _sendInterval = 0.05f; // 20Hz
 
     private CharacterController _controller;
     private FPSCameraLook _camera;
 
     private float _verticalVelocity;
 
+    private float _sendInterval = 0.05f; // 20Hz
+    private float _sendTimer;
+
     private Vector3 _lastSentPos;
     private float _lastSentYaw;
-    private float _sendTimer;
 
     private void Awake()
     {
@@ -31,11 +29,11 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        handleMovement();
-        handleNetworkSend();
+        move();
+        networkSend();
     }
 
-    private void handleMovement()
+    private void move()
     {
         Vector2 input = Vector2.zero;
         var kb = Keyboard.current;
@@ -43,8 +41,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (kb.aKey.isPressed) input.x -= 1;
         if (kb.dKey.isPressed) input.x += 1;
-        if (kb.sKey.isPressed) input.y -= 1;
         if (kb.wKey.isPressed) input.y += 1;
+        if (kb.sKey.isPressed) input.y -= 1;
 
         Vector3 move = transform.right * input.x + transform.forward * input.y;
 
@@ -61,7 +59,7 @@ public class PlayerMovement : MonoBehaviour
         _controller.Move(velocity * Time.deltaTime);
     }
 
-    private void handleNetworkSend()
+    private void networkSend()
     {
         _sendTimer += Time.deltaTime;
 

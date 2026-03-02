@@ -328,9 +328,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76b8f4f3c43949043b0e1aa530aacba5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FPSCameraLook
-  baseSensitivity: 0.2
-  adsSensitivityMultiplier: 0.5
-  recoilReturnSpeed: 10
+  _baseSensitivity: 0.2
+  _adsSensitivityMultiplier: 0.5
+  _recoilReturnSpeed: 10
 --- !u!1 &9177276548501388304
 GameObject:
   m_ObjectHideFlags: 0
@@ -464,7 +464,6 @@ MonoBehaviour:
   _speed: 5
   _gravity: -20
   _jumpPower: 8
-  _sendInterval: 0.05
 --- !u!114 &1671254314366744237
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -477,13 +476,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa2eeb5f54f62cc45b87675db0d2f057, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponManager
-  weaponHolder: {fileID: 5545481228220658964}
-  dropPoint: {fileID: 5577265537592965401}
-  pickupRange: 2.5
-  weaponLayer:
+  _weaponHolder: {fileID: 5545481228220658964}
+  _dropPoint: {fileID: 5577265537592965401}
+  _pickupRange: 2.5
+  _weaponLayer:
     serializedVersion: 2
     m_Bits: 8
-  startWeaponData: {fileID: 11400000, guid: d27b88a161774bc43b797ae0fd59076d, type: 2}
+  _startWeaponData: {fileID: 11400000, guid: d27b88a161774bc43b797ae0fd59076d, type: 2}
 --- !u!114 &9082266197653193063
 MonoBehaviour:
   m_ObjectHideFlags: 0
