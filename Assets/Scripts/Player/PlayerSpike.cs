@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 public class PlayerSpike : MonoBehaviour
 {
@@ -16,15 +17,24 @@ public class PlayerSpike : MonoBehaviour
     [Header("Zone")]
     private bool isInsidePlantZone;
 
+    [Header("UI")]
+    public GameObject spikeSlider;
+    private Slider slider;
+
+    void Start()
+    {
+        slider = spikeSlider.GetComponent<Slider>();
+    }
+
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.F))
+        if (Keyboard.current.fKey.wasPressedThisFrame)
             TryStartPlant();
 
-        if (Input.GetKey(KeyCode.F) && isPlanting)
+        if (Keyboard.current.fKey.isPressed && isPlanting)
             Planting();
 
-        if (Input.GetKeyUp(KeyCode.F))
+        if (Keyboard.current.fKey.wasReleasedThisFrame)
             CancelPlant();
     }
 
@@ -42,6 +52,8 @@ public class PlayerSpike : MonoBehaviour
 
         isPlanting = true;
         currentPlantTime = 0f;
+
+        spikeSlider.SetActive(true);
     }
 
     void Planting()
@@ -54,6 +66,8 @@ public class PlayerSpike : MonoBehaviour
         {
             PlantSpike();
         }
+
+        slider.value = currentPlantTime / plantTime;
     }
 
     void PlantSpike()
@@ -62,6 +76,9 @@ public class PlayerSpike : MonoBehaviour
         hasSpike = false;
 
         Instantiate(spikePrefab, transform.position, Quaternion.identity);
+
+        spikeSlider.GetComponent<Slider>().value = 0f;
+        spikeSlider.SetActive(false);
 
         Debug.Log("Spike Planted");
     }
@@ -72,5 +89,8 @@ public class PlayerSpike : MonoBehaviour
 
         isPlanting = false;
         currentPlantTime = 0f;
+
+        spikeSlider.GetComponent<Slider>().value = 0f;
+        spikeSlider.SetActive(false);
     }
 }

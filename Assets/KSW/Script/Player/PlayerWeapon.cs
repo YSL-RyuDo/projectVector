@@ -54,7 +54,7 @@ public class PlayerWeapon : MonoBehaviour
         _currentWeapon.transform.localRotation = Quaternion.identity;
 
         // 탄약 세팅
-        var pistol = _currentWeapon.GetComponent<SimplePistol>();
+        var pistol = _currentWeapon.GetComponent<Weapon>();
         pistol.SetAmmo(_startWeaponData.magSize, _startWeaponData.maxReserveAmmo);
         // 드롭 위치 설정
         pistol.SetDropPoint(_dropPoint);
@@ -95,7 +95,7 @@ public class PlayerWeapon : MonoBehaviour
         // 이미 무기를 들고 있다면 기존 무기 드롭
         if (_currentWeapon != null)
         {
-            SimplePistol old = _currentWeapon.GetComponent<SimplePistol>();
+            Weapon old = _currentWeapon.GetComponent<Weapon>();
             old?.DropWeapon();
         }
 
@@ -106,7 +106,7 @@ public class PlayerWeapon : MonoBehaviour
         _currentWeapon.transform.localPosition = Vector3.zero;
         _currentWeapon.transform.localRotation = Quaternion.identity;
 
-        SimplePistol pistol = _currentWeapon.GetComponent<SimplePistol>();
+        Weapon pistol = _currentWeapon.GetComponent<Weapon>();
         pistol.SetAmmo(dropped.magAmmo, dropped.reserveAmmo);
         pistol.SetDropPoint(_dropPoint);
 
