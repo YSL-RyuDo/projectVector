@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -62,5 +63,16 @@ public class FPSCameraLook : MonoBehaviour
     public void SetADS(bool ads)
     {
         isADS = ads;
+    }
+
+    public void AddPitch(float amount)
+    {
+        xRotation += amount;
+    }
+
+    internal void AddYaw(float amount)
+    {
+        yaw += amount;
+        //throw new NotImplementedException();
     }
 }

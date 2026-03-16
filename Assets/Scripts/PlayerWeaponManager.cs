@@ -14,7 +14,7 @@ public class PlayerWeaponManager : MonoBehaviour
     [Header("Start Weapon")]
     public WeaponData startWeaponData;
 
-    private GameObject currentWeapon;
+    private Weapon currentWeapon;
 
     void Start()
     {
@@ -34,25 +34,27 @@ public class PlayerWeaponManager : MonoBehaviour
         if (startWeaponData == null)
             return;
 
-        for (int i = weaponHolder.childCount - 1; i >= 0; i--)
+        EquipWeapon(startWeaponData,
+            startWeaponData.magSize,
+            startWeaponData.maxReserveAmmo);
+    }
+
+    void EquipWeapon(WeaponData data, int mag, int reserve)
+    {
+        if (currentWeapon != null)
         {
-            Destroy(weaponHolder.GetChild(i).gameObject);
+            currentWeapon.DropWeapon();
         }
 
-        currentWeapon = Instantiate(
-            startWeaponData.weaponPrefab,
-            weaponHolder
-        );
+        ClearHolder();
 
-        currentWeapon.transform.localPosition = Vector3.zero;
-        currentWeapon.transform.localRotation = Quaternion.identity;
+        GameObject obj = Instantiate(data.weaponPrefab, weaponHolder);
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
 
-        var pistol = currentWeapon.GetComponent<SimplePistol>();
-        pistol.SetAmmo(
-            startWeaponData.magSize,
-            startWeaponData.maxReserveAmmo
-        );
-        pistol.SetDropPoint(dropPoint);
+        currentWeapon = obj.GetComponent<Weapon>();
+
+        currentWeapon.Initialize(data, dropPoint, mag, reserve);
     }
 
     void TryPickupWeapon()
@@ -82,31 +84,22 @@ public class PlayerWeaponManager : MonoBehaviour
 
         if (nearest != null)
         {
-            PickupWeapon(nearest);
+            EquipWeapon(
+                nearest.weaponData,
+                nearest.magAmmo,
+                nearest.reserveAmmo
+            );
+
+            Destroy(nearest.gameObject);
         }
     }
 
-    void PickupWeapon(DroppedWeapon dropped)
+    void ClearHolder()
     {
-        if (currentWeapon != null)
+        for (int i = weaponHolder.childCount - 1; i >= 0; i--)
         {
-            SimplePistol old = currentWeapon.GetComponent<SimplePistol>();
-            old?.DropWeapon();
+            Destroy(weaponHolder.GetChild(i).gameObject);
         }
-
-        currentWeapon = Instantiate(
-            dropped.weaponData.weaponPrefab,
-            weaponHolder
-        );
-
-        currentWeapon.transform.localPosition = Vector3.zero;
-        currentWeapon.transform.localRotation = Quaternion.identity;
-
-        SimplePistol pistol = currentWeapon.GetComponent<SimplePistol>();
-        pistol.SetAmmo(dropped.magAmmo, dropped.reserveAmmo);
-        pistol.SetDropPoint(dropPoint);
-
-        Destroy(dropped.gameObject);
     }
 
     void OnDrawGizmosSelected()
