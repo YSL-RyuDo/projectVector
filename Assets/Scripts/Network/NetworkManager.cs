@@ -131,11 +131,11 @@ public class NetworkManager : MonoBehaviour
 
         if (isLocal)
         {
-            var controller = player.GetComponent<LocalPlayerController>();
+            var controller = player.GetComponent<PlayerMovement>();
             if (controller != null)
                 controller.enabled = true;
 
-            var weaponMgr = player.GetComponent<PlayerWeaponManager>();
+            var weaponMgr = player.GetComponent<PlayerWeapon>();
             if (weaponMgr != null)
             {
                 weaponMgr.SpawnStartWeapon();
@@ -194,7 +194,7 @@ public class NetworkManager : MonoBehaviour
 
         if (id == localPlayerId)
         {
-            var controller = player.GetComponent<LocalPlayerController>();
+            var controller = player.GetComponent<PlayerMovement>();
             if (controller != null)
                 controller.enabled = false;
         }

@@ -31,7 +31,7 @@ public class SimplePistol : MonoBehaviour
     void Awake()
     {
         ownerHP = GetComponentInParent<PlayerHP>();
-        isLocalPlayer = GetComponentInParent<LocalPlayerController>() != null;
+        isLocalPlayer = GetComponentInParent<PlayerMovement>() != null;
 
         if (!isLocalPlayer)
         {
