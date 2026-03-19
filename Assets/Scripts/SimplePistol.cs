@@ -160,10 +160,10 @@ public class SimplePistol : MonoBehaviour
 
         Debug.Log($"[HIT] SEND ¡æ targetId={identity.PlayerId}");
 
-        NetworkManager.Instance.SendHit(
-            identity.PlayerId,
-            20
-        );
+        //NetworkManager.Instance.SendHit(
+        //    identity.PlayerId,
+        //    20
+        //);
     }
 
 

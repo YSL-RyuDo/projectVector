@@ -44,11 +44,11 @@ public class PlayerStateSender : MonoBehaviour
         lastSentPos = pos;
         lastSentYaw = yaw;
 
-        NetworkManager.Instance.SendMoveState(
-            pos.x,
-            pos.y,
-            pos.z,
-            yaw
-        );
+        //NetworkManager.Instance.SendMoveState(
+        //    pos.x,
+        //    pos.y,
+        //    pos.z,
+        //    yaw
+        //);
     }
 }

@@ -9,58 +9,43 @@ public class NetworkClient
     NetworkStream stream;
     Thread recvThread;
 
-    public bool IsConnected => client != null && client.Connected;
+    public Action<ushort, byte[]> OnPacket;
 
     public void Connect(string ip, int port)
     {
-        client = new TcpClient();
-        client.Connect(ip, port);
+        client = new TcpClient(ip, port);
         stream = client.GetStream();
 
         recvThread = new Thread(ReceiveLoop);
         recvThread.IsBackground = true;
         recvThread.Start();
 
-        Debug.Log("[Network] Connected");
+        Debug.Log("¼­¹ö ¿¬°áµÊ");
     }
 
-    public void Send(byte[] data)
+    public void Send(byte[] buffer)
     {
-        if (!IsConnected) return;
-        stream.Write(data, 0, data.Length);
+        stream.Write(buffer, 0, buffer.Length);
     }
 
     void ReceiveLoop()
     {
-        try
+        byte[] buffer = new byte[1024];
+
+        while (true)
         {
-            while (true)
-            {
-                byte[] header = new byte[4];
-                int read = stream.Read(header, 0, 4);
-                if (read <= 0) break;
+            int bytes = stream.Read(buffer, 0, buffer.Length);
 
-                ushort size = BitConverter.ToUInt16(header, 0);
-                ushort type = BitConverter.ToUInt16(header, 2);
+            if (bytes <= 0)
+                break;
 
-                int bodySize = size - 4;
-                byte[] body = new byte[bodySize];
+            ushort size = BitConverter.ToUInt16(buffer, 0);
+            ushort type = BitConverter.ToUInt16(buffer, 2);
 
-                int received = 0;
-                while (received < bodySize)
-                {
-                    int r = stream.Read(body, received, bodySize - received);
-                    if (r <= 0) break;
-                    received += r;
-                }
+            byte[] body = new byte[size - 4];
+            Array.Copy(buffer, 4, body, 0, body.Length);
 
-                if (NetworkManager.Instance != null)
-                    NetworkManager.Instance.EnqueuePacket(type, body);
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.LogWarning($"[Network] Disconnected: {e.Message}");
+            OnPacket?.Invoke(type, body);
         }
     }
 }

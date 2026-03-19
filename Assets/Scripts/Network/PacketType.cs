@@ -1,13 +1,25 @@
 public enum PacketType : ushort
-{ 
-    PKT_SC_HELLO = 1,
-    PKT_SC_SPAWN_PLAYER = 2,
-    PKT_SC_DESPAWN_PLAYER = 3,
+{
+    // 회원가입 / 로그인
+    PKT_CS_REGISTER = 0,
+    PKT_SC_REGISTER_RESULT = 1,
 
-    PKT_CS_MOVE_STATE = 10,
-    PKT_SC_MOVE_STATE = 11,
+    PKT_CS_LOGIN = 2,
+    PKT_SC_LOGIN_RESULT = 3,
 
-    PKT_CS_HIT = 20,
-    PKT_SC_HP_UPDATE = 21,
-    PKT_SC_DIE = 22,
+    // (선택)
+    PKT_CS_LOBBY_CHAT = 4,
+    PKT_SC_LOBBY_CHAT = 5,
+
+    // 게임
+    PKT_SC_HELLO = 100,
+    PKT_SC_SPAWN_PLAYER = 101,
+    PKT_SC_DESPAWN_PLAYER = 102,
+
+    PKT_CS_MOVE_STATE = 110,
+    PKT_SC_MOVE_STATE = 111,
+
+    PKT_CS_HIT = 120,
+    PKT_SC_HP_UPDATE = 121,
+    PKT_SC_DIE = 122,
 }

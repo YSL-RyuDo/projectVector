@@ -1,34 +1,34 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
+using System.Text;
+using System;
 
 public class NetworkManager : MonoBehaviour
 {
-    public static NetworkManager Instance { get; private set; }
+    public static NetworkManager Instance;
 
     NetworkClient client = new NetworkClient();
 
     Queue<(ushort, byte[])> packetQueue = new();
-    Dictionary<uint, GameObject> players = new();
 
-    [SerializeField] GameObject localPlayerPrefab;
-    [SerializeField] GameObject remotePlayerPrefab;
-    [SerializeField] HPTextUI hpUI;
-    uint localPlayerId;
+    LoginUI loginUI;
 
     void Awake()
     {
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-            return;
-        }
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
 
     void Start()
     {
+        client.OnPacket += (type, body) =>
+        {
+            lock (packetQueue)
+            {
+                packetQueue.Enqueue((type, body));
+            }
+        };
+
         client.Connect("127.0.0.1", 9000);
     }
 
@@ -41,183 +41,94 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    public void EnqueuePacket(ushort type, byte[] body)
+    public void SetLoginUI(LoginUI ui)
     {
-        lock (packetQueue)
-        {
-            packetQueue.Enqueue((type, body));
-        }
+        loginUI = ui;
     }
 
-    public void SendMoveState(float x, float y, float z, float yaw)
+    public void SendRegister(string id, string nick, string pw, string confirm)
     {
-        byte[] buffer = new byte[20];
+        byte[] buffer = new byte[4 + 20 + 20 + 64 + 64];
 
-        BitConverter.GetBytes((ushort)20).CopyTo(buffer, 0);
-        BitConverter.GetBytes((ushort)PacketType.PKT_CS_MOVE_STATE).CopyTo(buffer, 2);
-        BitConverter.GetBytes(x).CopyTo(buffer, 4);
-        BitConverter.GetBytes(y).CopyTo(buffer, 8);
-        BitConverter.GetBytes(z).CopyTo(buffer, 12);
-        BitConverter.GetBytes(yaw).CopyTo(buffer, 16);
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)0).CopyTo(buffer, 2);
+
+        WriteString(buffer, 4, id, 20);
+        WriteString(buffer, 24, nick, 20);
+        WriteString(buffer, 44, pw, 64);
+        WriteString(buffer, 108, confirm, 64);
+
+        client.Send(buffer);
+    }
+
+    public void SendLogin(string id, string pw)
+    {
+        byte[] buffer = new byte[4 + 20 + 64];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)2).CopyTo(buffer, 2);
+
+        WriteString(buffer, 4, id, 20);
+        WriteString(buffer, 24, pw, 64);
 
         client.Send(buffer);
     }
 
     void HandlePacket(ushort type, byte[] body)
     {
-        switch ((PacketType)type)
+        switch (type)
         {
-            case PacketType.PKT_SC_HELLO:
-                OnHello(body);
+            case 1:
+                HandleRegister(body);
                 break;
 
-            case PacketType.PKT_SC_SPAWN_PLAYER:
-                OnSpawn(body);
-                break;
-
-            case PacketType.PKT_SC_MOVE_STATE:
-                OnMoveState(body);
-                break;
-
-            case PacketType.PKT_SC_HP_UPDATE:
-                OnHPUpdate(body);
-                break;
-
-            case PacketType.PKT_SC_DIE:
-                OnDie(body);
+            case 3:
+                HandleLogin(body);
                 break;
         }
     }
-
-    void OnHello(byte[] body)
+    void WriteString(byte[] buffer, int offset, string str, int size)
     {
-        localPlayerId = BitConverter.ToUInt32(body, 0);
-        Debug.Log($"[HELLO] localPlayerId={localPlayerId}");
+        byte[] bytes = Encoding.UTF8.GetBytes(str);
+        int len = Mathf.Min(bytes.Length, size);
+        System.Array.Copy(bytes, 0, buffer, offset, len);
     }
 
-    void OnSpawn(byte[] body)
+    void HandleRegister(byte[] body)
     {
-        uint id = BitConverter.ToUInt32(body, 0);
+        byte result = body[0];
 
-        Vector3 pos = new Vector3(
-            BitConverter.ToSingle(body, 4),
-            BitConverter.ToSingle(body, 8),
-            BitConverter.ToSingle(body, 12)
-        );
-
-        int hp = BitConverter.ToInt32(body, 16);
-
-        bool isLocal = id == localPlayerId;
-
-        if (!players.TryGetValue(id, out var player))
+        string msg = result switch
         {
-            GameObject prefab =
-                isLocal ? localPlayerPrefab : remotePlayerPrefab;
+            0 => "Registration successful",
+            1 => "Account already exists",
+            2 => "Nickname already exists",
+            3 => "Passwords do not match",
+            4 => "Invalid input",
+            _ => "Registration failed"
+        };
 
-            player = Instantiate(prefab, pos, Quaternion.identity);
-            players[id] = player;
-        }
+        loginUI?.SetResult(msg);
+    }
 
-        player.transform.position = pos;
-        player.SetActive(true);
+    void HandleLogin(byte[] body)
+    {
+        byte result = body[0];
 
-        var identity = player.GetComponent<PlayerIdentity>();
-        if (identity != null)
-            identity.PlayerId = id;
-
-        var hpComp = player.GetComponent<PlayerHP>();
-        if (hpComp != null)
-            hpComp.SetHP(hp);
-
-        if (isLocal)
+        string msg = result switch
         {
-            var controller = player.GetComponent<PlayerMovement>();
-            if (controller != null)
-                controller.enabled = true;
+            0 => "Login successful",
+            1 => "Account not found",
+            2 => "Incorrect password",
+            3 => "Invalid input",
+            _ => "Login failed"
+        };
 
-            var weaponMgr = player.GetComponent<PlayerWeapon>();
-            if (weaponMgr != null)
-            {
-                weaponMgr.SpawnStartWeapon();
-                Debug.Log("[SPAWN] 무기 리셋 완료");
-            }
+        loginUI?.SetResult(msg);
 
-            if (hpComp != null)
-            {
-                hpUI.Bind(hpComp);
-                Debug.Log($"[SPAWN] Local Player Respawn HP={hp}");
-            }
-        }
-        else
+        if (result == 0)
         {
-            // 상대 플레이어: 그냥 다시 보이기만 하면 됨
-            Debug.Log($"[SPAWN] Remote Player Respawn id={id} HP={hp}");
+            Debug.Log("Login success → move to next scene");
         }
     }
-
-    void OnMoveState(byte[] body)
-    {
-        uint id = BitConverter.ToUInt32(body, 0);
-        if (id == localPlayerId) return;
-
-        if (!players.TryGetValue(id, out var player))
-            return;
-
-        Vector3 pos = new Vector3(
-            BitConverter.ToSingle(body, 4),
-            BitConverter.ToSingle(body, 8),
-            BitConverter.ToSingle(body, 12)
-        );
-        float yaw = BitConverter.ToSingle(body, 16);
-
-        player.GetComponent<RemotePlayerMovement>()
-              ?.ApplyNetworkState(pos, yaw);
-    }
-
-    void OnHPUpdate(byte[] body)
-    {
-        uint id = BitConverter.ToUInt32(body, 0);
-        int hp = BitConverter.ToInt32(body, 4);
-
-        if (!players.TryGetValue(id, out var player))
-            return;
-
-        player.GetComponent<PlayerHP>()?.SetHP(hp);
-    }
-
-    void OnDie(byte[] body)
-    {
-        uint id = BitConverter.ToUInt32(body, 0);
-
-        if (!players.TryGetValue(id, out var player))
-            return;
-
-        if (id == localPlayerId)
-        {
-            var controller = player.GetComponent<PlayerMovement>();
-            if (controller != null)
-                controller.enabled = false;
-        }
-
-        player.SetActive(false);
-    }
-
-
-
-    public void SendHit(uint targetId, int damage)
-    {
-        byte[] buffer = new byte[12];
-
-        // 패킷 크기
-        BitConverter.GetBytes((ushort)12).CopyTo(buffer, 0);
-        // 패킷 타입
-        BitConverter.GetBytes((ushort)PacketType.PKT_CS_HIT).CopyTo(buffer, 2);
-        // 대상 플레이어 ID
-        BitConverter.GetBytes(targetId).CopyTo(buffer, 4);
-        // 데미지
-        BitConverter.GetBytes(damage).CopyTo(buffer, 8);
-
-        client.Send(buffer);
-    }
-
 }
