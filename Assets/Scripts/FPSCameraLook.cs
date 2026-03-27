@@ -16,7 +16,7 @@ public class FPSCameraLook : MonoBehaviour
     private float xRotation = 0f;   // Camera Pitch
     private float yaw = 0f;         // Player Yaw
     private float recoilOffset = 0f;
-    private bool isADS = false;
+    private bool _isADS = false;
 
     Transform player;
 
@@ -83,7 +83,7 @@ public class FPSCameraLook : MonoBehaviour
 
     public void SetADS(bool ads)
     {
-        isADS = ads;
+        _isADS = ads;
     }
 
     public void AddPitch(float amount)
