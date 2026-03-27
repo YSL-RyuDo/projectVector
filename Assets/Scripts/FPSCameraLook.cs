@@ -5,8 +5,10 @@ using UnityEngine.InputSystem;
 public class FPSCameraLook : MonoBehaviour
 {
     [Header("Mouse")]
-    public float baseSensitivity = 0.02f;
-    public float adsSensitivityMultiplier = 0.5f;
+    // 기본 마우스 감도
+    [SerializeField] private float _baseSensitivity = 0.2f;
+    // ADS(조준) 상태일 때 감도 배율 (0.5면 절반으로 감소)
+    [SerializeField] private float _adsSensitivityMultiplier = 0.5f;
 
     [Header("Recoil")]
     public float recoilReturnSpeed = 10f;
@@ -18,7 +20,22 @@ public class FPSCameraLook : MonoBehaviour
 
     Transform player;
 
-    void Start()
+    public bool CanMove = true;
+
+    public static FPSCameraLook Instance { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
+    private void Start()
     {
         player = transform.parent;
 
@@ -28,8 +45,12 @@ public class FPSCameraLook : MonoBehaviour
 
     void Update()
     {
-        float sensitivity = baseSensitivity * (isADS ? adsSensitivityMultiplier : 1f);
+        if (!CanMove) return;
 
+        // ADS(조준) 상태면 감도 낮춤
+        float sensitivity = _baseSensitivity * (_isADS ? _adsSensitivityMultiplier : 1f);
+        
+        // 마우스 이동값 읽기
         Vector2 mouseDelta = Mouse.current.delta.ReadValue();
         float mouseX = mouseDelta.x * sensitivity;
         float mouseY = mouseDelta.y * sensitivity;
