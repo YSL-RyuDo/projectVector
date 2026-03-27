@@ -1,28 +1,24 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class FPSCameraLook : MonoBehaviour
 {
     [Header("Mouse")]
-    // ±âº» ¸¶¿ì½º °¨µµ
+    // ê¸°ë³¸ ë§ˆìš°ìŠ¤ ê°ë„
     [SerializeField] private float _baseSensitivity = 0.2f;
-    // ADS(Á¶ÁØ) »óÅÂÀÏ ¶§ °¨µµ ¹èÀ² (0.5¸é Àı¹İÀ¸·Î °¨¼Ò)
+    // ADS(ì¡°ì¤€) ìƒíƒœì¼ ë•Œ ê°ë„ ë°°ìœ¨ (0.5ë©´ ì ˆë°˜ìœ¼ë¡œ ê°ì†Œ)
     [SerializeField] private float _adsSensitivityMultiplier = 0.5f;
 
     [Header("Recoil")]
-    // ¹İµ¿ÀÌ ¿ø·¡ À§Ä¡·Î µ¹¾Æ¿À´Â ¼Óµµ
-    [SerializeField] private float _recoilReturnSpeed = 10f;
+    public float recoilReturnSpeed = 10f;
 
-    // Ä«¸Ş¶ó »óÇÏ È¸Àü°ª
-    private float _xRotation = 0f;
-    // ÇÃ·¹ÀÌ¾î ÁÂ¿ì È¸Àü°ª
-    private float _yaw = 0f;
-    // ¹İµ¿À¸·Î ÀÎÇØ Ãß°¡µÇ´Â »óÇÏ È¸Àü°ª
-    private float _recoilOffset = 0f;
-    // ÇöÀç ADS(Á¶ÁØ) »óÅÂÀÎÁö ¿©ºÎ
-    private bool _isADS = false;
+    private float xRotation = 0f;   // Camera Pitch
+    private float yaw = 0f;         // Player Yaw
+    private float recoilOffset = 0f;
+    private bool isADS = false;
 
-    private Transform _target;
+    Transform player;
 
     public bool CanMove = true;
 
@@ -41,63 +37,63 @@ public class FPSCameraLook : MonoBehaviour
 
     private void Start()
     {
-        _target = transform.parent;
+        player = transform.parent;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
-    private void Update()
+    void Update()
     {
         if (!CanMove) return;
 
-        // ADS(Á¶ÁØ) »óÅÂ¸é °¨µµ ³·Ãã
+        // ADS(ì¡°ì¤€) ìƒíƒœë©´ ê°ë„ ë‚®ì¶¤
         float sensitivity = _baseSensitivity * (_isADS ? _adsSensitivityMultiplier : 1f);
         
-        // ¸¶¿ì½º ÀÌµ¿°ª ÀĞ±â
+        // ë§ˆìš°ìŠ¤ ì´ë™ê°’ ì½ê¸°
         Vector2 mouseDelta = Mouse.current.delta.ReadValue();
         float mouseX = mouseDelta.x * sensitivity;
         float mouseY = mouseDelta.y * sensitivity;
 
-        // ÁÂ¿ì È¸Àü
-        _yaw += mouseX;
-        _target.rotation = Quaternion.Euler(0f, _yaw, 0f);
+        yaw += mouseX;
+        player.rotation = Quaternion.Euler(0f, yaw, 0f);
 
-        // »óÇÏ È¸Àü
-        _xRotation -= mouseY;
-        _xRotation = Mathf.Clamp(_xRotation, -80f, 80f);
+        xRotation -= mouseY;
+        xRotation = Mathf.Clamp(xRotation, -80f, 80f);
 
-        // À§¾Æ·¡ °¢µµ Á¦ÇÑ
-        _recoilOffset = Mathf.Lerp(_recoilOffset, 0f, _recoilReturnSpeed * Time.deltaTime);
+        recoilOffset = Mathf.Lerp(
+            recoilOffset,
+            0f,
+            recoilReturnSpeed * Time.deltaTime
+        );
 
-        // ¹İµ¿ º¹±¸ Ã³¸®
-        transform.localRotation = Quaternion.Euler(_xRotation + _recoilOffset, 0f, 0f);
+        transform.localRotation =
+            Quaternion.Euler(xRotation + recoilOffset, 0f, 0f);
     }
 
-    /// <summary>
-    /// ÁÂ¿ì È¸Àü°ª ¹İÈ¯
-    /// </summary>
-    /// <returns></returns>
     public float GetYaw()
     {
-        return _yaw;
+        return yaw;
     }
 
-    /// <summary>
-    /// ÃÑ ¹ß»ç ½Ã È£Ãâ
-    /// </summary>
-    /// <param name="amount"></param>
     public void AddRecoil(float amount)
     {
-        _recoilOffset -= amount;
+        recoilOffset -= amount;
     }
 
-    /// <summary>
-    /// ADS(Á¶ÁØ) »óÅÂ ¼³Á¤
-    /// </summary>
-    /// <param name="ads"></param>
     public void SetADS(bool ads)
     {
-        _isADS = ads;
+        isADS = ads;
+    }
+
+    public void AddPitch(float amount)
+    {
+        xRotation += amount;
+    }
+
+    internal void AddYaw(float amount)
+    {
+        yaw += amount;
+        //throw new NotImplementedException();
     }
 }

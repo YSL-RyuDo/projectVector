@@ -4,23 +4,21 @@ using UnityEngine.InputSystem;
 public class PlayerWeapon : MonoBehaviour
 {
     [Header("References")]
-    // 무기가 장착될 위치
     [SerializeField] private Transform _weaponHolder;
-    // 무기 드롭 시 생성될 위치
     [SerializeField] private Transform _dropPoint;
 
     [Header("Pickup")]
-    // 무기 줍기 가능한 반경
     [SerializeField] private float _pickupRange = 2.5f;
-    // 무기 오브젝트만 감지하기 위한 레이어
     [SerializeField] private LayerMask _weaponLayer;
 
-    [Header("Start Weapon")]
-    // 게임 시작 시 지급할 무기 데이터
-    [SerializeField] private WeaponData _startWeaponData;
+    [Header("Start Weapons")]
+    [SerializeField] private WeaponData _startPrimary; // (선택) 주무기
+    [SerializeField] private WeaponData _startPistol;  // 피스톨
+    [SerializeField] private WeaponData _startKnife;   // 칼
 
-    // 현재 장착 중인 무기 오브젝트
-    private GameObject _currentWeapon;
+    // 슬롯 시스템
+    private GameObject[] _weapons = new GameObject[3]; // 0: 주무기, 1: 피스톨, 2: 근접
+    private int _currentSlot = 0;
 
     private void Start()
     {
@@ -29,46 +27,148 @@ public class PlayerWeapon : MonoBehaviour
 
     private void Update()
     {
+        // 무기 줍기
         if (Keyboard.current.eKey.wasPressedThisFrame)
         {
             TryPickupWeapon();
         }
+
+        // 무기 전환
+        if (Keyboard.current.digit1Key.wasPressedThisFrame)
+            SwitchWeapon(0);
+
+        if (Keyboard.current.digit2Key.wasPressedThisFrame)
+            SwitchWeapon(1);
+
+        if (Keyboard.current.digit3Key.wasPressedThisFrame)
+            SwitchWeapon(2);
     }
 
+    // =========================
+    // 시작 무기
+    // =========================
     public void SpawnStartWeapon()
     {
-        if (_startWeaponData == null)
-            return;
-
-        // 기존 무기 제거
-        for (int i = _weaponHolder.childCount - 1; i >= 0; i--)
+        // 1. 피스톨 장착 (슬롯 1)
+        if (_startPistol != null)
         {
-            Destroy(_weaponHolder.GetChild(i).gameObject);
+            EquipToSlot(
+                1,
+                _startPistol,
+                _startPistol.magSize,
+                _startPistol.maxReserveAmmo
+            );
         }
 
-        // 시작 무기 생성
-        _currentWeapon = Instantiate(_startWeaponData.weaponPrefab, _weaponHolder);
+        // 2. 칼 장착 (슬롯 2)
+        if (_startKnife != null)
+        {
+            EquipToSlot(
+                2,
+                _startKnife,
+                0,
+                0
+            );
+        }
 
-        // 위치/회전 초기화
-        _currentWeapon.transform.localPosition = Vector3.zero;
-        _currentWeapon.transform.localRotation = Quaternion.identity;
+        // 3. (선택) 주무기
+        if (_startPrimary != null)
+        {
+            EquipToSlot(
+                0,
+                _startPrimary,
+                _startPrimary.magSize,
+                _startPrimary.maxReserveAmmo
+            );
+        }
 
-        // 탄약 세팅
-        var pistol = _currentWeapon.GetComponent<SimplePistol>();
-        pistol.SetAmmo(_startWeaponData.magSize, _startWeaponData.maxReserveAmmo);
-        // 드롭 위치 설정
-        pistol.SetDropPoint(_dropPoint);
+        //  핵심: 시작은 피스톨
+        SwitchWeapon(1);
     }
 
+    // =========================
+    // 슬롯 판별
+    // =========================
+    int GetSlotIndex(WeaponData data)
+    {
+        switch (data.weaponType)
+        {
+            case WeaponData.WeaponType.Pistol:
+                return 1;
+
+            case WeaponData.WeaponType.AR:
+            case WeaponData.WeaponType.SMG:
+            case WeaponData.WeaponType.LMG:
+            case WeaponData.WeaponType.SR:
+            case WeaponData.WeaponType.DMR:
+                return 0;
+
+            case WeaponData.WeaponType.Shotgun:
+                return 2; // 근접 대신 사용 (Knife 만들면 바꾸기)
+
+            default:
+                return 0;
+        }
+    }
+
+    // =========================
+    // 무기 장착
+    // =========================
+    void EquipToSlot(int slot, WeaponData data, int mag, int reserve)
+    {
+        // 기존 무기 드랍
+        if (_weapons[slot] != null)
+        {
+            Weapon old = _weapons[slot].GetComponent<Weapon>();
+            old?.DropWeapon();
+            Destroy(_weapons[slot]);
+        }
+
+        // 새 무기 생성
+        GameObject obj = Instantiate(data.weaponPrefab, _weaponHolder);
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
+
+        Weapon weapon = obj.GetComponent<Weapon>();
+        weapon.SetAmmo(mag, reserve);
+        weapon.SetDropPoint(_dropPoint);
+
+        _weapons[slot] = obj;
+
+        // 바로 장착
+        SwitchWeapon(slot);
+    }
+
+    // =========================
+    // 무기 전환
+    // =========================
+    void SwitchWeapon(int slot)
+    {
+        _currentSlot = slot;
+
+        for (int i = 0; i < _weapons.Length; i++)
+        {
+            if (_weapons[i] != null)
+            {
+                _weapons[i].SetActive(i == slot);
+            }
+        }
+    }
+
+    // =========================
+    // 무기 줍기
+    // =========================
     private void TryPickupWeapon()
     {
-        // 주변에서 무기 레이어에 해당하는 콜라이더 탐색
-        Collider[] hits = Physics.OverlapSphere(transform.position, _pickupRange, _weaponLayer);
+        Collider[] hits = Physics.OverlapSphere(
+            transform.position,
+            _pickupRange,
+            _weaponLayer
+        );
 
         DroppedWeapon nearest = null;
         float minDist = float.MaxValue;
 
-        // 가장 가까운 무기 찾기
         foreach (var hit in hits)
         {
             DroppedWeapon dw = hit.GetComponent<DroppedWeapon>();
@@ -83,7 +183,6 @@ public class PlayerWeapon : MonoBehaviour
             }
         }
 
-        // 가까운 무기가 있으면 줍기
         if (nearest != null)
         {
             PickupWeapon(nearest);
@@ -92,29 +191,21 @@ public class PlayerWeapon : MonoBehaviour
 
     private void PickupWeapon(DroppedWeapon dropped)
     {
-        // 이미 무기를 들고 있다면 기존 무기 드롭
-        if (_currentWeapon != null)
-        {
-            SimplePistol old = _currentWeapon.GetComponent<SimplePistol>();
-            old?.DropWeapon();
-        }
+        int slot = GetSlotIndex(dropped.weaponData);
 
-        // 새로운 무기 생성
-        _currentWeapon = Instantiate(dropped.weaponData.weaponPrefab, _weaponHolder);
+        EquipToSlot(
+            slot,
+            dropped.weaponData,
+            dropped.magAmmo,
+            dropped.reserveAmmo
+        );
 
-        // 탄약 정보 복원
-        _currentWeapon.transform.localPosition = Vector3.zero;
-        _currentWeapon.transform.localRotation = Quaternion.identity;
-
-        SimplePistol pistol = _currentWeapon.GetComponent<SimplePistol>();
-        pistol.SetAmmo(dropped.magAmmo, dropped.reserveAmmo);
-        pistol.SetDropPoint(_dropPoint);
-
-        // 바닥에 있던 무기 제거
         Destroy(dropped.gameObject);
     }
 
-    // 씬에서 선택했을 때 픽업 범위 표시
+    // =========================
+    // 디버그용
+    // =========================
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;
