@@ -11,7 +11,8 @@ public class WeaponData : ScriptableObject
         LMG,
         DMR,
         Pistol,
-        SR
+        SR,
+        Knife
     }
 
     [Header("Type")]

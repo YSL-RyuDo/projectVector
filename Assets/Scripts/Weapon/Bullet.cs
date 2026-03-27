@@ -64,22 +64,6 @@ public class Bullet : MonoBehaviour
         Destroy(gameObject);
     }
 
-    void OnTriggerEnter(Collider other)
-    {
-        var hp = other.GetComponentInParent<PlayerHP>();
-
-        if (hp == null || hp == owner || hp.IsDead)
-            return;
-
-        var identity = hp.GetComponent<PlayerIdentity>();
-        if (identity != null)
-        {
-            NetworkManager.Instance.SendHit(identity.PlayerId, damage);
-        }
-
-        Destroy(gameObject);
-    }
-
     void SpawnBulletHole(Vector3 point, Vector3 normal)
     {
         if (bulletHolePrefab == null)

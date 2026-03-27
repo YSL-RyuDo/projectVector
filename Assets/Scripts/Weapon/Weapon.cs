@@ -116,6 +116,17 @@ public class Weapon : MonoBehaviour
         ApplyVisualKickOnly();
     }
 
+    void OnEnable()
+    {
+        UpdateAmmoUI();
+    }
+
+    void OnDisable()
+    {
+        isReloading = false;
+        StopAllCoroutines();
+    }
+
     void HandleADS()
     {
         bool adsInput = Mouse.current.rightButton.isPressed;
