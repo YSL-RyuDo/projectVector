@@ -57,7 +57,7 @@ public class Bullet : MonoBehaviour
             var identity = hp.GetComponent<PlayerIdentity>();
             if (identity != null)
             {
-                NetworkManager.Instance.SendHit(identity.PlayerId, damage);
+                //NetworkManager.Instance.SendHit(identity.PlayerId, damage);
             }
         }
 

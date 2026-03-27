@@ -272,10 +272,10 @@ public class Weapon : MonoBehaviour
 
         Debug.Log($"[HIT] SEND ¡æ targetId={identity.PlayerId}");
 
-        NetworkManager.Instance.SendHit(
-            identity.PlayerId,
-            weaponData.damage
-        );
+        //NetworkManager.Instance.SendHit(
+        //    identity.PlayerId,
+        //    weaponData.damage
+        //);
     }
 
     void FireProjectile()
