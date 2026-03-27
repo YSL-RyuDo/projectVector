@@ -18,6 +18,8 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _lastSentPos;
     private float _lastSentYaw;
 
+    public bool CanMove = true;
+
     private void Awake()
     {
         _controller = GetComponent<CharacterController>();
@@ -35,6 +37,8 @@ public class PlayerMovement : MonoBehaviour
 
     private void move()
     {
+        if (!CanMove) return;
+
         Vector2 input = Vector2.zero;
         var kb = Keyboard.current;
         if (kb == null) return;

@@ -1,17 +1,13 @@
 public enum PacketType : ushort
 {
-    // 회원가입 / 로그인
+    // 회원가입
     PKT_CS_REGISTER = 0,
     PKT_SC_REGISTER_RESULT = 1,
 
+    // 로그인
     PKT_CS_LOGIN = 2,
     PKT_SC_LOGIN_RESULT = 3,
 
-    // (선택)
-    PKT_CS_LOBBY_CHAT = 4,
-    PKT_SC_LOBBY_CHAT = 5,
-
-    // 게임
     PKT_SC_HELLO = 100,
     PKT_SC_SPAWN_PLAYER = 101,
     PKT_SC_DESPAWN_PLAYER = 102,
@@ -23,3 +19,20 @@ public enum PacketType : ushort
     PKT_SC_HP_UPDATE = 121,
     PKT_SC_DIE = 122,
 }
+
+public enum RegisterResult : byte
+{
+    SUCCESS = 0,
+    ID_DUPLICATE = 1,
+    NICK_DUPLICATE = 2,
+    PASSWORD_MISMATCH = 3,
+    INVALID_INPUT = 4
+};
+
+public enum LoginResult : byte
+{
+    SUCCESS = 0,
+    NO_ID = 1,
+    WRONG_PASSWORD = 2,
+    INVALID_INPUT = 3
+};

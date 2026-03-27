@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a113197788b404382fd982bd930936, type: 3}
+  m_Name: AWM
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponData
+  weaponType: 6
+  weaponPrefab: {fileID: 627053856383357715, guid: 0a73ff2a711ae7943a08ff3ecc34e259, type: 3}
+  dropPrefab: {fileID: 3044507183025465451, guid: b97e4209708093c43b2e1af13e3e7fb4, type: 3}
+  fireRate: 3
+  range: 1500
+  recoil: 15
+  damage: 150
+  muzzleVelocity: 0
+  bulletHolePrefab: {fileID: 3341232432629068302, guid: b145402b672ee314e9bbbceeabeacce8, type: 3}
+  magSize: 5
+  maxReserveAmmo: 10
+  reloadTime: 3.5
+  normalFOV: 60
+  adsFOV: 20
+  adsSpeed: 8
+  recoilPattern:
+  - {x: 0, y: 15}
+  recoilMultiplier: 1
+  hipFireSpread: 0.03
+  adsSpread: 0
