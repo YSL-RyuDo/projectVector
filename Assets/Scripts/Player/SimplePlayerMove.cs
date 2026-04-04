@@ -12,6 +12,10 @@ public class LocalPlayerController : MonoBehaviour
     [Header("Network")]
     public float sendInterval = 0.05f; // 20hz
 
+    [Header("Animator")]
+    [SerializeField] private Animator _mainAnimator;
+    [SerializeField] private Animator _shadowAnimator;
+
     CharacterController cc;
     FPSCameraLook cam;
 
@@ -40,7 +44,15 @@ public class LocalPlayerController : MonoBehaviour
 
     void HandleMovement()
     {
-        if (!CanMove) return; 
+        if (!CanMove)
+        {
+            if (_mainAnimator != null && _shadowAnimator != null)
+            {
+                _mainAnimator.SetBool("Walk", false);
+                _shadowAnimator.SetBool("Walk", false);
+            }
+            return;
+        }
 
         Vector2 input = Vector2.zero;
         var kb = Keyboard.current;
@@ -51,9 +63,7 @@ public class LocalPlayerController : MonoBehaviour
         if (kb.sKey.isPressed) input.y -= 1;
         if (kb.wKey.isPressed) input.y += 1;
 
-        Vector3 move =
-            transform.right * input.x +
-            transform.forward * input.y;
+        Vector3 move = transform.right * input.x + transform.forward * input.y;
 
         if (cc.isGrounded)
         {
@@ -68,11 +78,16 @@ public class LocalPlayerController : MonoBehaviour
             verticalVelocity += gravity * Time.deltaTime;
         }
 
-        Vector3 velocity =
-            move.normalized * speed +
-            Vector3.up * verticalVelocity;
+        bool isWalking = input.sqrMagnitude > 0;
 
+        Vector3 velocity = move.normalized * speed + Vector3.up * verticalVelocity;
         cc.Move(velocity * Time.deltaTime);
+
+        if (_mainAnimator != null && _shadowAnimator != null)
+        {
+            _mainAnimator.SetBool("Walk", isWalking && cc.isGrounded);
+            _shadowAnimator.SetBool("Walk", isWalking && cc.isGrounded);
+        }
     }
 
     void HandleNetworkSend()
