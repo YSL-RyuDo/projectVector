@@ -15,35 +15,45 @@ public class Initiator : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current.tKey.wasPressedThisFrame) taserDrone();
-        //electricMagneticWave();
-        //scanner();
-        //dischargeOfElectricity();
+        if (Keyboard.current.qKey.wasPressedThisFrame) SetDroneMode(!_isDroneMode); // 테이저 드론 (Q키)
+        if (Keyboard.current.cKey.wasPressedThisFrame) scanner(); // 스캐너 (C키)
+        if (Keyboard.current.eKey.wasPressedThisFrame) electricMagneticWave(); // 전기자석파 (E키)
+        if (Keyboard.current.xKey.wasPressedThisFrame) dischargeOfElectricity(); // 방전 (X키)
     }
 
     /// <summary>
     /// 테이저 드론
     /// </summary>
-    private void taserDrone()
+    public void SetDroneMode(bool active)
     {
-        if (!_isDroneMode)
-        {
-            Vector3 spwanPos = Player.Instance.transform.position + Player.Instance.transform.forward * 1.5f + Vector3.up * 1.5f;
-            Quaternion spawnRot = Quaternion.LookRotation(Player.Instance.transform.forward);
-            _currentTaserDrone = Instantiate(_taserDronePrefab, spwanPos, spawnRot);
-            _isDroneMode = true;
+        _isDroneMode = active;
 
-            Player.Instance.Movement.CanMove = false;
+        if (_isDroneMode)
+        {
+            // 드론 소환 로직
+            if (_currentTaserDrone == null)
+            {
+                Vector3 spwanPos = Player.Instance.transform.position + Player.Instance.transform.forward * 1.5f + Vector3.up * 1.5f;
+                Quaternion spawnRot = Quaternion.LookRotation(Player.Instance.transform.forward);
+                _currentTaserDrone = Instantiate(_taserDronePrefab, spwanPos, spawnRot);
+            }
+
+            Player.Instance.localPlayerController.CanMove = false;
             FPSCameraLook.Instance.CanMove = false;
         }
-
         else
         {
-            Destroy(_currentTaserDrone.gameObject);
-            _isDroneMode = false;
+            // 드론 해제 로직
+            if (_currentTaserDrone != null)
+            {
+                Destroy(_currentTaserDrone.gameObject);
+                _currentTaserDrone = null; // 참조 초기화 필수
+            }
 
-            Player.Instance.Movement.CanMove = true;
+            Player.Instance.localPlayerController.CanMove = true;
             FPSCameraLook.Instance.CanMove = true;
+
+            Cursor.lockState = CursorLockMode.Locked;
         }
     }
 

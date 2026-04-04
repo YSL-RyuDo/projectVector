@@ -21,6 +21,8 @@ public class LocalPlayerController : MonoBehaviour
     float lastSentYaw;
     float sendTimer;
 
+    public bool CanMove = true;
+
     void Awake()
     {
         cc = GetComponent<CharacterController>();
@@ -38,6 +40,8 @@ public class LocalPlayerController : MonoBehaviour
 
     void HandleMovement()
     {
+        if (!CanMove) return; 
+
         Vector2 input = Vector2.zero;
         var kb = Keyboard.current;
         if (kb == null) return;

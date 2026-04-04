@@ -330,7 +330,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FPSCameraLook
   _baseSensitivity: 0.2
   _adsSensitivityMultiplier: 0.5
-  _recoilReturnSpeed: 10
+  recoilReturnSpeed: 10
   CanMove: 1
 --- !u!1 &9177276548501388304
 GameObject:
@@ -345,7 +345,7 @@ GameObject:
   - component: {fileID: 473258276864748123}
   - component: {fileID: 233681482861718817}
   - component: {fileID: 7582658150936631896}
-  - component: {fileID: 2013930125157605106}
+  - component: {fileID: 7934437860907652099}
   - component: {fileID: 1671254314366744237}
   - component: {fileID: 9082266197653193063}
   - component: {fileID: 1275202334242850848}
@@ -451,7 +451,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerState
   MaxHP: 100
---- !u!114 &2013930125157605106
+--- !u!114 &7934437860907652099
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -460,12 +460,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 9177276548501388304}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 39777574204be064fb2357a6c06f255f, type: 3}
+  m_Script: {fileID: 11500000, guid: 22f8514aa91cf5c4dacde656ef28094f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  _speed: 5
-  _gravity: -20
-  _jumpPower: 8
+  m_EditorClassIdentifier: Assembly-CSharp::LocalPlayerController
+  speed: 5
+  gravity: -20
+  jumpPower: 8
+  sendInterval: 0.05
   CanMove: 1
 --- !u!114 &1671254314366744237
 MonoBehaviour:
@@ -485,7 +486,9 @@ MonoBehaviour:
   _weaponLayer:
     serializedVersion: 2
     m_Bits: 8
-  _startWeaponData: {fileID: 11400000, guid: d27b88a161774bc43b797ae0fd59076d, type: 2}
+  _startPrimary: {fileID: 11400000, guid: d27b88a161774bc43b797ae0fd59076d, type: 2}
+  _startPistol: {fileID: 11400000, guid: 2063512ced6a4b74c904aa23d4cf5da7, type: 2}
+  _startKnife: {fileID: 0}
 --- !u!114 &9082266197653193063
 MonoBehaviour:
   m_ObjectHideFlags: 0

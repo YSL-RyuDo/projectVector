@@ -93,7 +93,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2252486769976939705}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!114 &1727292348306478657
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -214,7 +214,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b097548b98552644813d8072ddc8827, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  _droneCamera: {fileID: 2707042843511564201}
+  _cameraTransform: {fileID: 3622549689034301469}
   _moveSpeed: 8
   _acceleration: 20
   _deceleration: 10
@@ -273,7 +273,7 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3

@@ -7,6 +7,8 @@ public class Player : MonoBehaviour
     public PlayerState State { get; private set; }
     public PlayerMovement Movement { get; private set; }
     public PlayerWeapon Weapon { get; private set; }
+    
+    public LocalPlayerController localPlayerController { get; private set; }
 
     private void Awake()
     {
@@ -19,7 +21,8 @@ public class Player : MonoBehaviour
         Instance = this;
 
         State = GetComponent<PlayerState>();
-        Movement = GetComponent<PlayerMovement>();
+        //Movement = GetComponent<PlayerMovement>();
         Weapon = GetComponent<PlayerWeapon>();
+        localPlayerController = GetComponent<LocalPlayerController>();
     }
 }
