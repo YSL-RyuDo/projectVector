@@ -8,56 +8,50 @@ public class TaserDroneSkill : MonoBehaviour
     private Drone _currentTaserDrone;
     private bool _isDroneMode = false;
 
-    private void Start()
-    {
-        
-    }
-
     private void Update()
     {
-        if (Keyboard.current.qKey.wasPressedThisFrame) SetDroneMode(!_isDroneMode); // 테이저 드론 (Q키)
-        if (Keyboard.current.eKey.wasPressedThisFrame) electricMagneticWave(); // 전기자석파 (E키)
-        if (Keyboard.current.xKey.wasPressedThisFrame) dischargeOfElectricity(); // 방전 (X키)
+        if (Keyboard.current.qKey.wasPressedThisFrame) SetDroneMode(!_isDroneMode);
     }
 
     public void SetDroneMode(bool active)
     {
         _isDroneMode = active;
 
-        if (_isDroneMode)
+        switch(active)
         {
-            if (_currentTaserDrone == null)
-            {
-                Vector3 spwanPos = Player.Instance.transform.position + Player.Instance.transform.forward * 1.5f + Vector3.up * 1.5f;
-                Quaternion spawnRot = Quaternion.LookRotation(Player.Instance.transform.forward);
-                _currentTaserDrone = Instantiate(_taserDronePrefab, spwanPos, spawnRot);
-            }
+            case true:
+                if (_isDroneMode)
+                {
+                    if (_currentTaserDrone == null)
+                    {
+                        Vector3 spwanPos = Player.Instance.transform.position + Player.Instance.transform.forward * 2.5f + Vector3.up * 2.5f;
+                        Quaternion spawnRot = Quaternion.LookRotation(Player.Instance.transform.forward);
+                        _currentTaserDrone = Instantiate(_taserDronePrefab, spwanPos, spawnRot);
 
-            Player.Instance.localPlayerController.CanMove = false;
-            FPSCameraLook.Instance.CanMove = false;
+                        TaserGun gun = _currentTaserDrone.GetComponentInChildren<TaserGun>();
+                        if (gun != null)
+                        {
+                            gun.Setup(this);
+                        }
+                    }
+
+                    Player.Instance.localPlayerController.CanMove = false;
+                    FPSCameraLook.Instance.CanMove = false;
+                }
+                break;
+
+             case false:
+                if (_currentTaserDrone != null)
+                {
+                    Destroy(_currentTaserDrone.gameObject);
+                    _currentTaserDrone = null;
+                }
+
+                Player.Instance.localPlayerController.CanMove = true;
+                FPSCameraLook.Instance.CanMove = true;
+
+                Cursor.lockState = CursorLockMode.Locked;
+                break;
         }
-        else
-        {
-            if (_currentTaserDrone != null)
-            {
-                Destroy(_currentTaserDrone.gameObject);
-                _currentTaserDrone = null;
-            }
-
-            Player.Instance.localPlayerController.CanMove = true;
-            FPSCameraLook.Instance.CanMove = true;
-
-            Cursor.lockState = CursorLockMode.Locked;
-        }
-    }
-
-    private void electricMagneticWave()
-    {
-
-    }
-
-    private void dischargeOfElectricity()
-    {
-
     }
 }

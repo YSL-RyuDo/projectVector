@@ -6,17 +6,17 @@ public class TaserGun : MonoBehaviour
     [SerializeField] private DroneCamera _droneCamera;
     private TaserDroneSkill _taserDroneSkill;
 
-    private void Start()
-    {
-        _taserDroneSkill = FindFirstObjectByType<TaserDroneSkill>();
-    }
-
     private void Update()
     {
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
             taserHit();
         }
+    }
+
+    public void Setup(TaserDroneSkill skill)
+    {
+        _taserDroneSkill = skill;
     }
 
     private void taserHit()
@@ -36,6 +36,9 @@ public class TaserGun : MonoBehaviour
             }
         }
 
-        _taserDroneSkill.SetDroneMode(false);
+        if (_taserDroneSkill != null)
+        {
+            _taserDroneSkill.SetDroneMode(false);
+        }
     }
 }
