@@ -4,11 +4,11 @@ using UnityEngine.InputSystem;
 public class TaserGun : MonoBehaviour
 {
     [SerializeField] private DroneCamera _droneCamera;
-    private Initiator initiator;
+    private TaserDroneSkill _taserDroneSkill;
 
     private void Start()
     {
-        initiator = FindFirstObjectByType<Initiator>();
+        _taserDroneSkill = FindFirstObjectByType<TaserDroneSkill>();
     }
 
     private void Update()
@@ -36,6 +36,6 @@ public class TaserGun : MonoBehaviour
             }
         }
 
-        initiator.SetDroneMode(false);
+        _taserDroneSkill.SetDroneMode(false);
     }
 }
