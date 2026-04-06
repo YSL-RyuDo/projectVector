@@ -64,7 +64,6 @@ public class EMPWaveSkill : MonoBehaviour
         yield return new WaitForSeconds(0.15f);
         _lineRenderer.enabled = false;
 
-        // 후딜레이 (나머지 0.1 정도 더 대기해서 총 0.25 맞춤)
         yield return new WaitForSeconds(0.1f);
         _isCasting = false;
     }
