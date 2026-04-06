@@ -237,6 +237,7 @@ GameObject:
   - component: {fileID: 1275202334242850848}
   - component: {fileID: 6644194911831367189}
   - component: {fileID: 5148223354640960863}
+  - component: {fileID: 3417935745254168854}
   - component: {fileID: 3165811004819219101}
   m_Layer: 14
   m_Name: Initiator
@@ -434,6 +435,22 @@ MonoBehaviour:
   _scannerPrefab: {fileID: 3937076750133015356, guid: 9ba2acf52657cac49afc8b71244e8419, type: 3}
   _throwForce: 10
   _upwardForce: 3
+--- !u!114 &3417935745254168854
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9177276548501388304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49b96c1d24fbb65479ae1ad971e2e4a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EMPWaveSkill
+  _radius: 7
+  _enemyLayer:
+    serializedVersion: 2
+    m_Bits: 4096
 --- !u!114 &3165811004819219101
 MonoBehaviour:
   m_ObjectHideFlags: 0
