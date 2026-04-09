@@ -46,9 +46,12 @@ public class LocalPlayerController : MonoBehaviour
     {
         if (!CanMove)
         {
-            if (_mainAnimator != null && _shadowAnimator != null)
+            if (_mainAnimator != null)
             {
                 _mainAnimator.SetBool("Walk", false);
+            }
+            if (_shadowAnimator != null)
+            {
                 _shadowAnimator.SetBool("Walk", false);
             }
             return;
@@ -83,9 +86,12 @@ public class LocalPlayerController : MonoBehaviour
         Vector3 velocity = move.normalized * speed + Vector3.up * verticalVelocity;
         cc.Move(velocity * Time.deltaTime);
 
-        if (_mainAnimator != null && _shadowAnimator != null)
+        if (_mainAnimator != null)
         {
             _mainAnimator.SetBool("Walk", isWalking && cc.isGrounded);
+        }
+        if (_shadowAnimator != null)
+        {
             _shadowAnimator.SetBool("Walk", isWalking && cc.isGrounded);
         }
     }
