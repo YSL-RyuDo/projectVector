@@ -1,43 +1,61 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
-    [SerializeField] private float _speed = 5f;
-    [SerializeField] private float _gravity = -20f;
-    [SerializeField] private float _jumpPower = 8f;
+    [Header("Movement")]
+    public float speed = 5f;
+    public float gravity = -20f;
+    public float jumpPower = 8f;
 
-    private CharacterController _controller;
-    private FPSCameraLook _camera;
+    [Header("Network")]
+    public float sendInterval = 0.05f; // 20hz
 
-    private float _verticalVelocity;
+    [Header("Animator")]
+    [SerializeField] private Animator _mainAnimator;
+    [SerializeField] private Animator _shadowAnimator;
 
-    private float _sendInterval = 0.05f; // 20Hz
-    private float _sendTimer;
+    CharacterController cc;
+    FPSCameraLook cam;
 
-    private Vector3 _lastSentPos;
-    private float _lastSentYaw;
+    float verticalVelocity;
+
+    Vector3 lastSentPos;
+    float lastSentYaw;
+    float sendTimer;
 
     public bool CanMove = true;
 
-    private void Awake()
+    void Awake()
     {
-        _controller = GetComponent<CharacterController>();
-        _camera = GetComponentInChildren<FPSCameraLook>();
+        cc = GetComponent<CharacterController>();
+        cam = GetComponentInChildren<FPSCameraLook>();
 
-        _lastSentPos = transform.position;
-        _lastSentYaw = _camera.GetYaw();
+        lastSentPos = transform.position;
+        lastSentYaw = cam.GetYaw();
     }
 
-    private void Update()
+    void Update()
     {
-        move();
-        networkSend();
+        HandleMovement();
+        HandleNetworkSend();
     }
 
-    private void move()
+    void HandleMovement()
     {
-        if (!CanMove) return;
+        if (!CanMove)
+        {
+            if (_mainAnimator != null)
+            {
+                _mainAnimator.SetBool("Walk", false);
+            }
+            if (_shadowAnimator != null)
+            {
+                _shadowAnimator.SetBool("Walk", false);
+            }
+            return;
+        }
 
         Vector2 input = Vector2.zero;
         var kb = Keyboard.current;
@@ -45,47 +63,70 @@ public class PlayerMovement : MonoBehaviour
 
         if (kb.aKey.isPressed) input.x -= 1;
         if (kb.dKey.isPressed) input.x += 1;
-        if (kb.wKey.isPressed) input.y += 1;
         if (kb.sKey.isPressed) input.y -= 1;
+        if (kb.wKey.isPressed) input.y += 1;
 
         Vector3 move = transform.right * input.x + transform.forward * input.y;
 
-        if (_controller.isGrounded)
+        if (cc.isGrounded)
         {
-            if (_verticalVelocity < 0f) _verticalVelocity = -2f;
-            if (kb.spaceKey.wasPressedThisFrame) _verticalVelocity = _jumpPower;
+            if (verticalVelocity < 0f)
+                verticalVelocity = -2f;
+
+            if (kb.spaceKey.wasPressedThisFrame)
+                verticalVelocity = jumpPower;
+        }
+        else
+        {
+            verticalVelocity += gravity * Time.deltaTime;
         }
 
-        else _verticalVelocity += _gravity * Time.deltaTime;
+        bool isWalking = input.sqrMagnitude > 0;
 
-        Vector3 velocity = move.normalized * _speed + Vector3.up * _verticalVelocity;
+        Vector3 velocity = move.normalized * speed + Vector3.up * verticalVelocity;
+        cc.Move(velocity * Time.deltaTime);
 
-        _controller.Move(velocity * Time.deltaTime);
+        if (_mainAnimator != null)
+        {
+            _mainAnimator.SetBool("Walk", isWalking && cc.isGrounded);
+        }
+        if (_shadowAnimator != null)
+        {
+            _shadowAnimator.SetBool("Walk", isWalking && cc.isGrounded);
+        }
     }
 
-    private void networkSend()
+    void HandleNetworkSend()
     {
-        _sendTimer += Time.deltaTime;
+        sendTimer += Time.deltaTime;
+        if (sendTimer < sendInterval)
+            return;
 
-        if (_sendTimer < _sendInterval) return;
-
-        _sendTimer = 0f;
+        sendTimer = 0f;
 
         Vector3 pos = transform.position;
-        float yaw = _camera.GetYaw();
+        float yaw = cam.GetYaw();
 
         Vector2 curXZ = new Vector2(pos.x, pos.z);
-        Vector2 lastXZ = new Vector2(_lastSentPos.x, _lastSentPos.z);
+        Vector2 lastXZ = new Vector2(lastSentPos.x, lastSentPos.z);
 
-        bool movedXZ = (curXZ - lastXZ).sqrMagnitude > 0.0004f;
-        bool movedY = Mathf.Abs(pos.y - _lastSentPos.y) > 0.01f;
-        bool rotated = Mathf.Abs(yaw - _lastSentYaw) > 0.5f;
+        bool movedXZ =
+            (curXZ - lastXZ).sqrMagnitude > 0.0004f;
 
-        if (!movedXZ && !movedY && !rotated) return;
+        bool movedY =
+            Mathf.Abs(pos.y - lastSentPos.y) > 0.01f;
 
-        _lastSentPos = pos;
-        _lastSentYaw = yaw;
+        bool rotated =
+            Mathf.Abs(yaw - lastSentYaw) > 0.5f;
 
-        //NetworkManager.Instance.SendMoveState(pos.x, pos.y, pos.z, yaw);
+        if (!movedXZ && !movedY && !rotated)
+            return;
+
+        lastSentPos = pos;
+        lastSentYaw = yaw;
+
+        //NetworkManager.Instance.SendMoveState(
+        //    pos.x, pos.y, pos.z, yaw
+        //);
     }
 }

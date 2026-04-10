@@ -24,7 +24,7 @@ public class Weapon : MonoBehaviour
     [SerializeField] private Transform dropPoint;
 
     private PlayerHP ownerHP;
-    private bool isLocalPlayer;
+    private bool isPlayer;
 
     private int currentAmmo;
     private int reserveAmmo;
@@ -53,9 +53,9 @@ public class Weapon : MonoBehaviour
     void Awake()
     {
         ownerHP = GetComponentInParent<PlayerHP>();
-        isLocalPlayer = GetComponentInParent<LocalPlayerController>() != null;
+        isPlayer = Player.Instance != null;
 
-        if (!isLocalPlayer)
+        if (!Player.Instance)
         {
             enabled = false;
             return;
@@ -83,7 +83,7 @@ public class Weapon : MonoBehaviour
 
     void Update()
     {
-        if (!isLocalPlayer)
+        if (!isPlayer)
             return;
 
         if (ownerHP != null && ownerHP.IsDead)
