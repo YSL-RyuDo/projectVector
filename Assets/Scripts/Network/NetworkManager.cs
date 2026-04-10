@@ -108,7 +108,7 @@ public class NetworkManager : MonoBehaviour
             _ => "Registration failed"
         };
 
-        //loginUI?.SetResult(msg);
+        loginUI?.SetResult(msg);
     }
 
     void HandleLogin(byte[] body)
@@ -124,7 +124,7 @@ public class NetworkManager : MonoBehaviour
             _ => "Login failed"
         };
 
-        //loginUI?.SetResult(msg);
+        loginUI?.SetResult(msg);
 
         if (result == 0)
         {
