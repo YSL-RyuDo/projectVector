@@ -35,7 +35,7 @@ public class TaserDroneSkill : MonoBehaviour
                         }
                     }
 
-                    Player.Instance.localPlayerController.CanMove = false;
+                    Player.Instance.Movement.CanMove = false;
                     FPSCameraLook.Instance.CanMove = false;
                 }
                 break;
@@ -47,7 +47,7 @@ public class TaserDroneSkill : MonoBehaviour
                     _currentTaserDrone = null;
                 }
 
-                Player.Instance.localPlayerController.CanMove = true;
+                Player.Instance.Movement.CanMove = true;
                 FPSCameraLook.Instance.CanMove = true;
 
                 Cursor.lockState = CursorLockMode.Locked;

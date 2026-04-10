@@ -231,7 +231,7 @@ GameObject:
   - component: {fileID: 473258276864748123}
   - component: {fileID: 233681482861718817}
   - component: {fileID: 7582658150936631896}
-  - component: {fileID: 7934437860907652099}
+  - component: {fileID: 2208983547156800768}
   - component: {fileID: 1671254314366744237}
   - component: {fileID: 9082266197653193063}
   - component: {fileID: 1275202334242850848}
@@ -343,7 +343,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerState
   MaxHP: 100
---- !u!114 &7934437860907652099
+--- !u!114 &2208983547156800768
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -352,15 +352,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 9177276548501388304}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 22f8514aa91cf5c4dacde656ef28094f, type: 3}
+  m_Script: {fileID: 11500000, guid: 39777574204be064fb2357a6c06f255f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LocalPlayerController
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   speed: 5
   gravity: -20
   jumpPower: 8
   sendInterval: 0.05
   _mainAnimator: {fileID: 2394164600388698986}
-  _shadowAnimator: {fileID: 1279683899135361790}
+  _shadowAnimator: {fileID: 0}
   CanMove: 1
 --- !u!114 &1671254314366744237
 MonoBehaviour:
@@ -465,7 +465,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2b7a7ab04e03df14b84b70da27623a4e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DischargeSkill
-  _boltPrefab: {fileID: 0}
   _range: 13
   _width: 8
   _enemyLayer:
@@ -2714,11 +2713,6 @@ PrefabInstance:
 --- !u!4 &1279683899128474712 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400326, guid: 8f0565f23a2b58541a475bd3c1393052, type: 3}
-  m_PrefabInstance: {fileID: 1279683899128084382}
-  m_PrefabAsset: {fileID: 0}
---- !u!95 &1279683899135361790 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 9500000, guid: 8f0565f23a2b58541a475bd3c1393052, type: 3}
   m_PrefabInstance: {fileID: 1279683899128084382}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2394164600379225610
