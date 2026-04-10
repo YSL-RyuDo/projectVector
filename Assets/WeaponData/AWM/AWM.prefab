@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 3421269124482545939}
   - component: {fileID: 5449850607712500102}
   - component: {fileID: -5084653585918405479}
-  m_Layer: 3
+  m_Layer: 11
   m_Name: AWM
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -143,13 +143,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Weapon
   weaponData: {fileID: 11400000, guid: e9e2adb5df70a2c43b6f2193b45c483c, type: 2}
+  recoilSystem: {fileID: 0}
   bulletPrefab: {fileID: 0}
   firePoint: {fileID: 0}
+  ammoText: {fileID: 0}
   dropPoint: {fileID: 0}
-  snappiness: 20
-  returnSpeed: 10
-  kickMultiplier: 0.5
-  moveSpreadMultiplier: 10
 --- !u!1 &5309574802637498985
 GameObject:
   m_ObjectHideFlags: 0
@@ -159,7 +157,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7255398836787819491}
-  m_Layer: 3
+  m_Layer: 11
   m_Name: FirePoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}

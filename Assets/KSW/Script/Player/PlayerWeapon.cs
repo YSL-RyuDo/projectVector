@@ -33,6 +33,11 @@ public class PlayerWeapon : MonoBehaviour
             TryPickupWeapon();
         }
 
+        if (Keyboard.current.gKey.wasPressedThisFrame)
+        {
+            DropCurrentWeapon();
+        }
+
         // 무기 전환
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
             SwitchWeapon(0);
@@ -210,5 +215,52 @@ public class PlayerWeapon : MonoBehaviour
     {
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, _pickupRange);
+    }
+
+    void DropCurrentWeapon()
+    {
+        if (_currentSlot == 2)
+            return;
+
+        GameObject current = _weapons[_currentSlot];
+
+        if (current == null)
+            return;
+
+        Weapon weapon = current.GetComponent<Weapon>();
+
+        // 무기 드랍 실행
+        weapon?.DropWeapon();
+
+        // 슬롯 비우기
+        Destroy(current);
+        _weapons[_currentSlot] = null;
+
+        //  다음 무기로 자동 전환 (우선순위)
+        for (int i = 0; i < _weapons.Length; i++)
+        {
+            if (_weapons[i] != null)
+            {
+                SwitchWeapon(i);
+                return;
+            }
+        }
+
+        // 모든 무기 없으면 아무것도 안 들기
+        _currentSlot = -1;
+    }
+
+    public void SetWeaponVisibility(bool visible)
+    {
+        // 현재 들고 있는 슬롯의 무기만 껐다 켬
+        if (_currentSlot != -1 && _weapons[_currentSlot] != null)
+        {
+            _weapons[_currentSlot].SetActive(visible);
+        }
+    }
+
+    public int GetCurrentSlotIndex()
+    {
+        return _currentSlot;
     }
 }

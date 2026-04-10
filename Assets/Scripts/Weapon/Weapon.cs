@@ -2,20 +2,19 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
 using System.Collections;
+using Unity.Cinemachine;
 
-public class Weapon : MonoBehaviour
+public class Weapon : Item
 {
-    [Header("Weapon Data")]
+    [Header("References")]
     [SerializeField] private WeaponData weaponData;
-
-    [Header("Bullet")]
+    [SerializeField] private WeaponRecoil recoilSystem;
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private Transform firePoint;
-
-    [Header("UI")]
-    private TMP_Text ammoText;
+    [SerializeField] private TMP_Text ammoText;
 
     [Header("Camera")]
+    private CinemachineCamera vCam;
     private Camera cam;
     private FPSCameraLook cameraLook;
     private WeaponADS weaponADS;
@@ -34,21 +33,9 @@ public class Weapon : MonoBehaviour
 
     [Header("Recoil Logic")]
     private int currentShotIndex = 0;
-    private int shotsInCurrentSway = 0;
+    private CinemachineImpulseSource impulseSource;
 
-    [Header("Visual Kick States")]
-    // 카메라가 일시적으로 돌아갈 목표 위치와 현재 위치
-    private Vector2 targetVisualKick;
-    private Vector2 currentVisualKick;
-    private Vector2 lastKickApplied;
-
-    [Header("Settings")]
-    [SerializeField] private float snappiness = 20f;
-    [SerializeField] private float returnSpeed = 10f;
-    [SerializeField] private float kickMultiplier = 0.5f;
-
-    [Header("Movement Spread")]
-    [SerializeField] private float moveSpreadMultiplier = 2.5f;
+    private IFireStrategy fireStrategy;
 
     void Awake()
     {
@@ -62,10 +49,17 @@ public class Weapon : MonoBehaviour
         }
 
         cam = Camera.main;
-        cameraLook = cam.GetComponent<FPSCameraLook>();
+        vCam = FindFirstObjectByType<CinemachineCamera>();
+        cameraLook = cam.GetComponentInParent<FPSCameraLook>();
         weaponADS = GetComponent<WeaponADS>();
 
         ammoText = FindFirstObjectByType<TMP_Text>();
+
+        if (recoilSystem == null) recoilSystem = GetComponentInParent<WeaponRecoil>();
+
+        impulseSource = GetComponentInParent<CinemachineImpulseSource>();
+
+        SetupStrategy();
     }
 
     public void Initialize(WeaponData data, Transform dp, int mag, int reserve)
@@ -79,23 +73,23 @@ public class Weapon : MonoBehaviour
 
         if (cam != null)
             cam.fieldOfView = weaponData.normalFOV;
+
+        if (vCam != null)
+            vCam.Lens.FieldOfView = weaponData.normalFOV;
     }
 
     void Update()
     {
-        if (!isLocalPlayer)
-            return;
-
-        if (ownerHP != null && ownerHP.IsDead)
-            return;
+        if (!isLocalPlayer) return;
+        if (ownerHP != null && ownerHP.IsDead) return;
 
         HandleADS();
 
-        if (isReloading)
-            return;
+        if (isReloading) return;
 
-        bool isFiringInput = IsAutomatic() ? Mouse.current.leftButton.isPressed : Mouse.current.leftButton.wasPressedThisFrame;
-        bool canFire = isFiringInput && currentAmmo > 0 && !isReloading;
+        bool isFiringInput = IsAutomatic()
+            ? Mouse.current.leftButton.isPressed
+            : Mouse.current.leftButton.wasPressedThisFrame;
 
         if (Keyboard.current.rKey.wasPressedThisFrame)
         {
@@ -103,17 +97,17 @@ public class Weapon : MonoBehaviour
             return;
         }
 
-        if (canFire)
+        if (isFiringInput)
         {
-            TryFire();
+            OnUse();
         }
         else
         {
-            // 탄이 다 떨어졌거나 마우스를 뗐을 때 회복 모드
-            StopFiring();
+            // 사격 중지 시 인덱스 초기화
+            currentShotIndex = 0;
+            recoilSystem?.StopRecoil();
         }
 
-        ApplyVisualKickOnly();
     }
 
     void OnEnable()
@@ -138,50 +132,23 @@ public class Weapon : MonoBehaviour
             weaponADS?.SetADS(isADS);
         }
 
-        float targetFOV = isADS ? weaponData.adsFOV : weaponData.normalFOV;
-        cam.fieldOfView = Mathf.Lerp(
-            cam.fieldOfView,
-            targetFOV,
-            weaponData.adsSpeed * Time.deltaTime
-        );
-    }
-
-    void StopFiring()
-    {
-        currentShotIndex = 0;
-        shotsInCurrentSway = 0;
-
-        // 사격 중지 시 카메라 목표 오프셋을 0으로 서서히 되돌림
-        targetVisualKick = Vector2.Lerp(targetVisualKick, Vector2.zero, returnSpeed * Time.deltaTime);
-    }
-
-    void ApplyVisualKickOnly()
-    {
-        // 1. 현재 킥 값을 목표값으로 부드럽게 이동 (Snappiness)
-        currentVisualKick = Vector2.Lerp(currentVisualKick, targetVisualKick, snappiness * Time.deltaTime);
-
-        // 2. 지난 프레임과의 차이(Delta)를 구함
-        Vector2 kickDelta = currentVisualKick - lastKickApplied;
-        lastKickApplied = currentVisualKick;
-
-        // 3. 카메라에 델타만큼만 회전 적용
-        if (cameraLook != null)
+        if (vCam != null)
         {
-            cameraLook.AddYaw(kickDelta.x);
-            cameraLook.AddPitch(-kickDelta.y);
-        }
+            // [핵심 수정] cam.fieldOfView 대신 vCam.Lens.FieldOfView를 수정합니다.
+            float targetFOV = isADS ? weaponData.adsFOV : weaponData.normalFOV;
 
-        // 사격 중이 아니고 회복이 거의 끝났다면 정밀 초기화
-        if (!Mouse.current.leftButton.isPressed && currentVisualKick.magnitude < 0.001f)
-        {
-            targetVisualKick = Vector2.zero;
-            currentVisualKick = Vector2.zero;
-            lastKickApplied = Vector2.zero;
+            vCam.Lens.FieldOfView = Mathf.Lerp(
+                vCam.Lens.FieldOfView,
+                targetFOV,
+                weaponData.adsSpeed * Time.deltaTime
+            );
         }
     }
 
-    void TryFire()
+    public override void OnUse()
     {
+        base.OnUse();
+
         if (Time.time < nextFireTime || currentAmmo <= 0)
             return;
 
@@ -189,33 +156,29 @@ public class Weapon : MonoBehaviour
             return;
 
         nextFireTime = Time.time + weaponData.fireRate;
+
         currentAmmo--;
         UpdateAmmoUI();
 
-        Vector2 kickAmount = GetVisualKickAmount();
-
-        float randomSpringForce = Random.Range(0.9f, 1.1f);
-        targetVisualKick += kickAmount * randomSpringForce;
-
-        switch (weaponData.weaponType)
+        // [반동 호출] 분리된 스크립트로 패턴 전달
+        if (recoilSystem != null && weaponData.recoilPattern.Length > 0)
         {
-            case WeaponData.WeaponType.SR:
-            case WeaponData.WeaponType.Pistol:
-                FireRaycast();   // 히트스캔
-                break;
-
-            case WeaponData.WeaponType.AR:
-            case WeaponData.WeaponType.SMG:
-            case WeaponData.WeaponType.LMG:
-            case WeaponData.WeaponType.DMR:
-                FireProjectile();   // 탄 발사
-                break;
+            int index = Mathf.Min(currentShotIndex, weaponData.recoilPattern.Length - 1);
+            recoilSystem.FireRecoil(weaponData.recoilPattern[index], weaponData.recoilMultiplier);
+            impulseSource.GenerateImpulse();
         }
+
+        fireStrategy?.Fire();
 
         currentShotIndex++;
     }
 
-    void FireRaycast()
+    public override void OnDrop()
+    {
+        DropWeapon();
+    }
+
+    public void FireRaycast()
     {
         Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f));
 
@@ -241,7 +204,7 @@ public class Weapon : MonoBehaviour
         Instantiate(
         weaponData.bulletHolePrefab,
         hit.point + hit.normal * 0.01f,
-        Quaternion.identity
+        Quaternion.LookRotation(hit.normal) * Quaternion.Euler(0, 180f, 0)
         );
 
         var hp = hit.collider.GetComponentInParent<PlayerHP>();
@@ -278,7 +241,7 @@ public class Weapon : MonoBehaviour
         //);
     }
 
-    void FireProjectile()
+    public void FireProjectile()
     {
         if (bulletPrefab == null || firePoint == null)
             return;
@@ -317,6 +280,23 @@ public class Weapon : MonoBehaviour
                 weaponData.muzzleVelocity,
                 shootDir      // 방향 전달
             );
+        }
+    }
+
+    void SetupStrategy()
+    {
+        switch (weaponData.weaponType)
+        {
+            case WeaponData.WeaponType.Pistol:
+            case WeaponData.WeaponType.SR:
+                fireStrategy = new RaycastFire(this);
+                break;
+
+            case WeaponData.WeaponType.AR:
+            case WeaponData.WeaponType.SMG:
+            case WeaponData.WeaponType.LMG:
+                fireStrategy = new ProjectileFire(this);
+                break;
         }
     }
 
@@ -371,7 +351,7 @@ public class Weapon : MonoBehaviour
     {
         if (dropPoint == null || weaponData == null)
         {
-            Debug.LogWarning("[SimplePistol] Drop failed: missing data");
+            Debug.LogWarning("[Weapon] Drop failed: missing data");
             return;
         }
 
@@ -381,13 +361,15 @@ public class Weapon : MonoBehaviour
             Quaternion.identity
         );
 
-        DroppedWeapon dw = dropped.GetComponent<DroppedWeapon>();
+        DroppedItem dw = dropped.GetComponent<DroppedItem>();
         if (dw != null)
         {
             dw.weaponData = weaponData;
             dw.magAmmo = currentAmmo;
             dw.reserveAmmo = reserveAmmo;
         }
+
+        dropped.GetComponent<Rigidbody>()?.AddForce(transform.forward * 1f, ForceMode.Impulse);
 
         Destroy(gameObject);
     }
@@ -411,25 +393,13 @@ public class Weapon : MonoBehaviour
             Keyboard.current.dKey.isPressed;
     }
 
-    Vector2 GetVisualKickAmount()
-    {
-        if (weaponData.recoilPattern == null || weaponData.recoilPattern.Length == 0)
-            return Vector2.zero;
-
-        int index = Mathf.Min(currentShotIndex, weaponData.recoilPattern.Length - 1);
-
-        Vector2 recoil = weaponData.recoilPattern[index];
-
-        return recoil * weaponData.recoilMultiplier;
-    }
-
     Vector3 GetSpreadDirection(Vector3 baseDirection)
     {
         float spread = isADS ? weaponData.adsSpread : weaponData.hipFireSpread;
 
         if (IsMoving())
         {
-            spread *= moveSpreadMultiplier;
+            spread *= weaponData.moveSpreadMultiplier;
         }
 
         Vector2 randomCircle = Random.insideUnitCircle * spread;
@@ -440,5 +410,10 @@ public class Weapon : MonoBehaviour
             cam.transform.up * randomCircle.y;
 
         return spreadDir.normalized;
+    }
+
+    public WeaponData.WeaponType GetWeaponType()
+    {
+        return weaponData.weaponType;
     }
 }

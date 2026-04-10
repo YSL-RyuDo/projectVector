@@ -8,6 +8,7 @@ public class LocalPlayerController : MonoBehaviour
     public float speed = 5f;
     public float gravity = -20f;
     public float jumpPower = 8f;
+    public bool canMove = true;
 
     [Header("Network")]
     public float sendInterval = 0.05f; // 20hz
@@ -32,6 +33,8 @@ public class LocalPlayerController : MonoBehaviour
 
     void Update()
     {
+        if (!canMove) return;
+
         HandleMovement();
         HandleNetworkSend();
     }
