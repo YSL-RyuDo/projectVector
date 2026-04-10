@@ -215,7 +215,7 @@ public class Weapon : MonoBehaviour
         currentShotIndex++;
     }
 
-    void FireRaycast()
+    public void FireRaycast()
     {
         Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f));
 
@@ -278,7 +278,7 @@ public class Weapon : MonoBehaviour
         //);
     }
 
-    void FireProjectile()
+    public void FireProjectile()
     {
         if (bulletPrefab == null || firePoint == null)
             return;

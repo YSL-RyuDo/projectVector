@@ -5,7 +5,7 @@ using UnityEngine.UI;
 public class PlayerSpike : MonoBehaviour
 {
     [SerializeField] private PlayerWeapon playerWeapon;
-    [SerializeField] private LocalPlayerController playerMove;
+    [SerializeField] private PlayerMovement playerMove;
 
     [Header("Spike")]
     public bool hasSpike = true;
@@ -29,7 +29,7 @@ public class PlayerSpike : MonoBehaviour
     {
         slider = spikeSlider.GetComponent<Slider>();
         playerWeapon = GetComponent<PlayerWeapon>();
-        playerMove = GetComponent<LocalPlayerController>();
+        playerMove = GetComponent<PlayerMovement>();
     }
 
     void Update()
@@ -86,7 +86,7 @@ public class PlayerSpike : MonoBehaviour
         currentPlantTime = 0f;
 
         playerWeapon.SetWeaponVisibility(false); // 무기 숨기기
-        playerMove.canMove = false;             // 이동 불가
+        playerMove.CanMove = false;             // 이동 불가
 
         spikeSlider.SetActive(true);
     }
@@ -115,7 +115,7 @@ public class PlayerSpike : MonoBehaviour
         slider.value = 0f;
 
         playerWeapon.SetWeaponVisibility(true);  // 무기 다시 꺼내기
-        playerMove.canMove = true;               // 이동 가능
+        playerMove.CanMove = true;               // 이동 가능
 
         Debug.Log("Spike Planted");
     }
@@ -133,7 +133,7 @@ public class PlayerSpike : MonoBehaviour
         spikeSlider.SetActive(false);
 
         playerWeapon.SetWeaponVisibility(true);  // 무기 다시 꺼내기
-        playerMove.canMove = true;               // 이동 가능
+        playerMove.CanMove = true;               // 이동 가능
     }
 
     //  Drop 요청
