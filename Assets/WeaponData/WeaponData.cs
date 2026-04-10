@@ -25,7 +25,6 @@ public class WeaponData : ScriptableObject
     [Header("Fire")]
     public float fireRate;  // 발사 속도
     public float range;     // 사정 거리
-    public float recoil;    // 반동
     public int damage;
 
     [Header("Bullet")]
@@ -49,4 +48,5 @@ public class WeaponData : ScriptableObject
     [Header("Spread")]
     public float hipFireSpread = 0.02f;   // 일반 사격 탄퍼짐
     public float adsSpread = 0.005f;      // ADS 탄퍼짐
+    public float moveSpreadMultiplier;    // 움직일 시 탄퍼짐 배율
 }

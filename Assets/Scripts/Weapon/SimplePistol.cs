@@ -113,7 +113,7 @@ public class SimplePistol : MonoBehaviour
         currentAmmo--;
         UpdateAmmoUI();
 
-        cameraLook?.AddRecoil(weaponData.recoil);
+        //cameraLook?.AddRecoil(weaponData.recoil);
 
         Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f));
 

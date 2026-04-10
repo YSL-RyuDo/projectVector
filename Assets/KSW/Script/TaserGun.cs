@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 public class TaserGun : MonoBehaviour
 {
     [SerializeField] private DroneCamera _droneCamera;
+    private TaserDroneSkill _taserDroneSkill;
 
     private void Update()
     {
@@ -11,6 +12,11 @@ public class TaserGun : MonoBehaviour
         {
             taserHit();
         }
+    }
+
+    public void Setup(TaserDroneSkill skill)
+    {
+        _taserDroneSkill = skill;
     }
 
     private void taserHit()
@@ -28,6 +34,11 @@ public class TaserGun : MonoBehaviour
             {
                 shock.Shock(3f);
             }
+        }
+
+        if (_taserDroneSkill != null)
+        {
+            _taserDroneSkill.SetDroneMode(false);
         }
     }
 }

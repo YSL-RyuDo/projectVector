@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5766270978043621926}
   - component: {fileID: 1953020041841018868}
-  m_Layer: 3
+  m_Layer: 11
   m_Name: PickupTrigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -67,7 +67,8 @@ GameObject:
   - component: {fileID: 904601187238364260}
   - component: {fileID: 237206395840834172}
   - component: {fileID: -8435062827166265023}
-  m_Layer: 3
+  - component: {fileID: -3928651297000509668}
+  m_Layer: 11
   m_Name: DropAK47
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -175,12 +176,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3044507183025465451}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f3801433ed8a6754fbb9b900f8e92019, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DroppedWeapon
-  weaponPrefab: {fileID: 627053856383357715, guid: 87d0c9d2b19f82a46930c104c3651599, type: 3}
+  weaponData: {fileID: 0}
   magAmmo: 0
   reserveAmmo: 0
 --- !u!54 &-8435062827166265023
@@ -210,3 +211,18 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &-3928651297000509668
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3044507183025465451}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ccf4fea846ef87479554155d2c6a02f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroppedItem
+  itemPrefab: {fileID: 0}
+  magAmmo: 0
+  reserveAmmo: 0

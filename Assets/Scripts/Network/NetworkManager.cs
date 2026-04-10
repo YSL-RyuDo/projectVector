@@ -21,9 +21,6 @@ public class NetworkManager : MonoBehaviour
 
     void Start()
     {
-
-        loginUI?.SetStatus("서버 연결중...");
-
         client.OnPacket += (type, body) =>
         {
             lock (packetQueue)
@@ -33,8 +30,6 @@ public class NetworkManager : MonoBehaviour
         };
 
         client.Connect("127.0.0.1", 9000);
-
-        loginUI?.SetStatus("서버 연결됨");
     }
 
     void Update()
@@ -101,46 +96,32 @@ public class NetworkManager : MonoBehaviour
 
     void HandleRegister(byte[] body)
     {
-        loginUI?.SetLoading(false);
-
         byte result = body[0];
 
         string msg = result switch
         {
-            0 => "회원가입이 완료되었습니다.",
-            1 => "이미 존재하는 아이디입니다.",
-            2 => "닉네임이 이미 존재합니다.",
-            3 => "비밀번호가 일치하지 않습니다.",
-            4 => "입력값 형식이 올바르지 않습니다.",
-            _ => "회원가입 실패"
+            0 => "Registration successful",
+            1 => "Account already exists",
+            2 => "Nickname already exists",
+            3 => "Passwords do not match",
+            4 => "Invalid input",
+            _ => "Registration failed"
         };
 
         loginUI?.SetResult(msg);
-        
-        if (result == 0)
-        {
-            loginUI?.ClearInputs();
-            loginUI?.SetResult("회원가입이 완료되었습니다.");
-
-            loginUI?.SwitchToLoginMode();
-        }
-
-        
     }
 
     void HandleLogin(byte[] body)
     {
         byte result = body[0];
 
-        loginUI?.SetLoading(false);
-
         string msg = result switch
         {
-            0 => "로그인 성공",
-            1 => "존재하지 않는 계정입니다.",
-            2 => "비밀번호가 올바르지 않습니다.",
-            3 => "입력값 형식이 올바르지 않습니다.",
-            _ => "로그인 실패"
+            0 => "Login successful",
+            1 => "Account not found",
+            2 => "Incorrect password",
+            3 => "Invalid input",
+            _ => "Login failed"
         };
 
         loginUI?.SetResult(msg);
@@ -148,14 +129,6 @@ public class NetworkManager : MonoBehaviour
         if (result == 0)
         {
             Debug.Log("Login success → move to next scene");
-            loginUI?.SetResult("로그인 성공");
-            loginUI?.MoveToLobby();
         }
-
-        else
-        {
-            loginUI?.ClearInputs();
-        }
-        
     }
 }
