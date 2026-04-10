@@ -138,7 +138,7 @@ Camera:
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 6143
+    m_Bits: 6079
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -241,7 +241,7 @@ GameObject:
   - component: {fileID: 7571627229527556630}
   - component: {fileID: 3165811004819219101}
   - component: {fileID: 6008646111598099427}
-  m_Layer: 14
+  m_Layer: 0
   m_Name: Initiator
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -452,7 +452,7 @@ MonoBehaviour:
   _radius: 7
   _enemyLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
 --- !u!114 &7571627229527556630
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -469,7 +469,7 @@ MonoBehaviour:
   _width: 8
   _enemyLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
   _decalPrefab: {fileID: 2477321541663650629, guid: c51411efa162a024abcc6fb7899cbb1a, type: 3}
 --- !u!114 &3165811004819219101
 MonoBehaviour:
@@ -483,8 +483,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30aa1829781e5ee4b875164bd837c991, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSpike
-  playerWeapon: {fileID: 0}
-  playerMove: {fileID: 0}
+  playerWeapon: {fileID: 1671254314366744237}
+  playerMove: {fileID: 2208983547156800768}
   hasSpike: 1
   plantTime: 3
   spikeSlider: {fileID: 0}
