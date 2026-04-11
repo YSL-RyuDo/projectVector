@@ -14,7 +14,6 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Animator")]
     [SerializeField] private Animator _mainAnimator;
-    [SerializeField] private Animator _shadowAnimator;
 
     CharacterController cc;
     FPSCameraLook cam;
@@ -49,10 +48,6 @@ public class PlayerMovement : MonoBehaviour
             if (_mainAnimator != null)
             {
                 _mainAnimator.SetBool("Walk", false);
-            }
-            if (_shadowAnimator != null)
-            {
-                _shadowAnimator.SetBool("Walk", false);
             }
             return;
         }
@@ -89,10 +84,6 @@ public class PlayerMovement : MonoBehaviour
         if (_mainAnimator != null)
         {
             _mainAnimator.SetBool("Walk", isWalking && cc.isGrounded);
-        }
-        if (_shadowAnimator != null)
-        {
-            _shadowAnimator.SetBool("Walk", isWalking && cc.isGrounded);
         }
     }
 
