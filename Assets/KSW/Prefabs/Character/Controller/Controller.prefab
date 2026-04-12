@@ -19,6 +19,7 @@ GameObject:
   - component: {fileID: 7216266375788512170}
   - component: {fileID: 7833144095358929135}
   - component: {fileID: 4129952115456279280}
+  - component: {fileID: 1804956782191041523}
   m_Layer: 0
   m_Name: Controller
   m_TagString: Untagged
@@ -41,6 +42,7 @@ Transform:
   m_Children:
   - {fileID: 8949458732004751952}
   - {fileID: 291219796056453791}
+  - {fileID: 6807480680044733491}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!143 &4584169188797959001
@@ -216,9 +218,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   _smokePrefab: {fileID: 104829970813648393, guid: d3015b7eea383f64d8b81f965cc466e7, type: 3}
   _pingPrefab: {fileID: 8989380966646054412, guid: 6b7b0582adb07534cb1a2b877cac06e0, type: 3}
-  _mapRect: {fileID: 0}
-  _pingContainer: {fileID: 0}
   _miniMapCamera: {fileID: 0}
+--- !u!114 &1804956782191041523
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 635509965751519011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ad227bca6be8b64ebaf1fc747c4c11a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SwampTrapSkill
+  _trapPrefab: {fileID: 2617453428572898263, guid: 9b9fe0b320a058c4e91c4c4109f53e20, type: 3}
+  _throwPoint: {fileID: 6807480680044733491}
+  _throwForce: 15
+  _upwardForce: 2
 --- !u!1 &947071967254865188
 GameObject:
   m_ObjectHideFlags: 0
@@ -294,7 +310,7 @@ Camera:
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 6079
+    m_Bits: 8127
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -436,6 +452,37 @@ Transform:
   m_Children:
   - {fileID: 6050253508307961173}
   m_Father: {fileID: 8949458732004751952}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7418409165851707817
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6807480680044733491}
+  m_Layer: 0
+  m_Name: TrapPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6807480680044733491
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7418409165851707817}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 2.5, z: 2}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5692838109374247965}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &4715315066891147653
 PrefabInstance:

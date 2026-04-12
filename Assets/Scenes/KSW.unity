@@ -12119,9 +12119,11 @@ GameObject:
   - component: {fileID: 258976267}
   - component: {fileID: 258976266}
   - component: {fileID: 258976265}
+  - component: {fileID: 258976270}
   - component: {fileID: 258976264}
   - component: {fileID: 258976263}
   - component: {fileID: 258976268}
+  - component: {fileID: 258976269}
   m_Layer: 8
   m_Name: Enemy_A
   m_TagString: Enemy
@@ -12159,7 +12161,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -12261,6 +12263,46 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &258976269
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 258976262}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 827250e7117990e44899d638ffdc238e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  _slowColor: {r: 0.22352941, g: 0, b: 1, a: 1}
+--- !u!54 &258976270
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 258976262}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 112
+  m_CollisionDetection: 1
 --- !u!1001 &259331871
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -28570,9 +28612,11 @@ GameObject:
   - component: {fileID: 599330018}
   - component: {fileID: 599330017}
   - component: {fileID: 599330016}
+  - component: {fileID: 599330021}
   - component: {fileID: 599330015}
   - component: {fileID: 599330014}
   - component: {fileID: 599330019}
+  - component: {fileID: 599330020}
   m_Layer: 8
   m_Name: Enemy_C
   m_TagString: Enemy
@@ -28610,7 +28654,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -28712,6 +28756,46 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &599330020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 599330013}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 827250e7117990e44899d638ffdc238e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Slow
+  _slowColor: {r: 0.22352941, g: 0, b: 1, a: 1}
+--- !u!54 &599330021
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 599330013}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 112
+  m_CollisionDetection: 1
 --- !u!1001 &601296334
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -28856,6 +28940,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Road_06 (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 82984187858141434, guid: 724a63feefa37b849a1928bbc7731895, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 82984187858377946, guid: 724a63feefa37b849a1928bbc7731895, type: 3}
       propertyPath: m_RootOrder
       value: 9
@@ -28898,6 +28986,26 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 82984187858377946, guid: 724a63feefa37b849a1928bbc7731895, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 82984187860147770, guid: 724a63feefa37b849a1928bbc7731895, type: 3}
+      propertyPath: m_RayTraceProcedural
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 82984187860147770, guid: 724a63feefa37b849a1928bbc7731895, type: 3}
+      propertyPath: m_StaticShadowCaster
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 82984187860147770, guid: 724a63feefa37b849a1928bbc7731895, type: 3}
+      propertyPath: m_RayTracingAccelStructBuildFlagsOverride
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8048707867741269018, guid: 724a63feefa37b849a1928bbc7731895, type: 3}
+      propertyPath: m_Convex
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8048707867741269018, guid: 724a63feefa37b849a1928bbc7731895, type: 3}
+      propertyPath: m_ProvidesContacts
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -36661,9 +36769,11 @@ GameObject:
   - component: {fileID: 763530336}
   - component: {fileID: 763530335}
   - component: {fileID: 763530334}
+  - component: {fileID: 763530339}
   - component: {fileID: 763530333}
   - component: {fileID: 763530332}
   - component: {fileID: 763530337}
+  - component: {fileID: 763530338}
   m_Layer: 8
   m_Name: Enemy_B
   m_TagString: Enemy
@@ -36701,7 +36811,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -36803,6 +36913,46 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &763530338
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 763530331}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 827250e7117990e44899d638ffdc238e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Slow
+  _slowColor: {r: 0.22167921, g: 0, b: 1, a: 1}
+--- !u!54 &763530339
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 763530331}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 112
+  m_CollisionDetection: 1
 --- !u!1001 &763937537
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -49148,6 +49298,11 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 6351356574047621928, guid: e39aec687a117e643833dce52bbbe5be, type: 3}
   m_PrefabInstance: {fileID: 1045464720}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1046556557 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6807480680044733491, guid: d80e6f1b9cf471544875a20bab47633a, type: 3}
+  m_PrefabInstance: {fileID: 2713044993679471206}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1049273122
 PrefabInstance:
@@ -99490,6 +99645,10 @@ PrefabInstance:
       propertyPath: spikeSlider
       value: 
       objectReference: {fileID: 1850883863}
+    - target: {fileID: 1804956782191041523, guid: d80e6f1b9cf471544875a20bab47633a, type: 3}
+      propertyPath: _throwPoint
+      value: 
+      objectReference: {fileID: 1046556557}
     - target: {fileID: 4129952115456279280, guid: d80e6f1b9cf471544875a20bab47633a, type: 3}
       propertyPath: _mapRect
       value: 
