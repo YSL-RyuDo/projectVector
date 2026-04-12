@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 760373917617045981}
   - component: {fileID: 7216266375788512170}
   - component: {fileID: 7833144095358929135}
+  - component: {fileID: 4129952115456279280}
   m_Layer: 0
   m_Name: Controller
   m_TagString: Untagged
@@ -92,7 +93,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 112
   m_CollisionDetection: 0
 --- !u!114 &2297169635503607393
 MonoBehaviour:
@@ -135,7 +136,7 @@ MonoBehaviour:
   gravity: -20
   jumpPower: 8
   sendInterval: 0.05
-  _mainAnimator: {fileID: 7674306513482358757}
+  _mainAnimator: {fileID: 0}
   CanMove: 1
 --- !u!114 &5089428446548619016
 MonoBehaviour:
@@ -170,8 +171,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30aa1829781e5ee4b875164bd837c991, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSpike
-  playerWeapon: {fileID: 0}
-  playerMove: {fileID: 0}
+  playerWeapon: {fileID: 5089428446548619016}
+  playerMove: {fileID: 4206006752771187243}
   hasSpike: 1
   plantTime: 3
   spikeSlider: {fileID: 0}
@@ -201,6 +202,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerIdentity
   PlayerId: 0
+--- !u!114 &4129952115456279280
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 635509965751519011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29e7782674cc6d84db0cd690b204eeca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  _smokePrefab: {fileID: 104829970813648393, guid: d3015b7eea383f64d8b81f965cc466e7, type: 3}
+  _pingPrefab: {fileID: 8989380966646054412, guid: 6b7b0582adb07534cb1a2b877cac06e0, type: 3}
+  _mapRect: {fileID: 0}
+  _pingContainer: {fileID: 0}
+  _miniMapCamera: {fileID: 0}
 --- !u!1 &947071967254865188
 GameObject:
   m_ObjectHideFlags: 0
@@ -268,7 +286,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
+  near clip plane: 0.1
   far clip plane: 1000
   field of view: 60
   orthographic: 0
@@ -1223,7 +1241,8 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: -6057140222963153312, guid: f2c836f3e5c029140a0cc913d7df766a, type: 3}
     m_RemovedGameObjects:
     - {fileID: -3671105809796305521, guid: f2c836f3e5c029140a0cc913d7df766a, type: 3}
     m_AddedGameObjects: []
@@ -1232,10 +1251,5 @@ PrefabInstance:
 --- !u!4 &291219796056453791 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -4216859302048453862, guid: f2c836f3e5c029140a0cc913d7df766a, type: 3}
-  m_PrefabInstance: {fileID: 4715315066891147653}
-  m_PrefabAsset: {fileID: 0}
---- !u!95 &7674306513482358757 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: -6057140222963153312, guid: f2c836f3e5c029140a0cc913d7df766a, type: 3}
   m_PrefabInstance: {fileID: 4715315066891147653}
   m_PrefabAsset: {fileID: 0}
