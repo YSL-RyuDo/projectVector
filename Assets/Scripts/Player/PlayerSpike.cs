@@ -4,8 +4,9 @@ using UnityEngine.UI;
 
 public class PlayerSpike : MonoBehaviour
 {
-    [SerializeField] private PlayerWeapon playerWeapon;
+    [SerializeField] private PlayerItem playerItem;
     [SerializeField] private PlayerMovement playerMove;
+    [SerializeField] private Transform dropPoint;
 
     [Header("Spike")]
     public bool hasSpike = true;
@@ -28,7 +29,7 @@ public class PlayerSpike : MonoBehaviour
     void Start()
     {
         slider = spikeSlider.GetComponent<Slider>();
-        playerWeapon = GetComponent<PlayerWeapon>();
+        playerItem = GetComponent<PlayerItem>();
         playerMove = GetComponent<PlayerMovement>();
     }
 
@@ -85,8 +86,7 @@ public class PlayerSpike : MonoBehaviour
         isPlanting = true;
         currentPlantTime = 0f;
 
-        playerWeapon.SetWeaponVisibility(false); // 무기 숨기기
-        playerMove.CanMove = false;             // 이동 불가
+        SetPlayerControl(false); // 제어권 뺏기
 
         spikeSlider.SetActive(true);
     }
@@ -111,11 +111,7 @@ public class PlayerSpike : MonoBehaviour
         //  Spike 생성 (현재는 로컬, 나중엔 서버에서 처리)
         SpikeSpawner.Instance.SpawnPlanted(transform.position);
 
-        spikeSlider.SetActive(false);
-        slider.value = 0f;
-
-        playerWeapon.SetWeaponVisibility(true);  // 무기 다시 꺼내기
-        playerMove.CanMove = true;               // 이동 가능
+        SetPlayerControl(true); // 제어권 돌려주기
 
         Debug.Log("Spike Planted");
     }
@@ -129,11 +125,7 @@ public class PlayerSpike : MonoBehaviour
         isPlanting = false;
         currentPlantTime = 0f;
 
-        slider.value = 0f;
-        spikeSlider.SetActive(false);
-
-        playerWeapon.SetWeaponVisibility(true);  // 무기 다시 꺼내기
-        playerMove.CanMove = true;               // 이동 가능
+        SetPlayerControl(true); // 제어권 돌려주기
     }
 
     //  Drop 요청
@@ -145,6 +137,20 @@ public class PlayerSpike : MonoBehaviour
 
         hasSpike = false;
 
-        SpikeSpawner.Instance.SpawnDropped(transform.position);
+        SpikeSpawner.Instance.SpawnDropped(dropPoint);
+    }
+
+    public void SetPlayerControl(bool canControl)
+    {
+        // true면 무기 보이고 이동 가능, false면 무기 숨기고 이동 불가
+        playerItem.SetWeaponVisibility(canControl);
+        playerMove.CanMove = canControl;
+
+        // 만약 컨트롤을 되돌려받을 때 슬라이더가 켜져있다면 꺼주는 안전장치
+        if (canControl)
+        {
+            spikeSlider.SetActive(false);
+            slider.value = 0f;
+        }
     }
 }
