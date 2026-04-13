@@ -20,6 +20,7 @@ GameObject:
   - component: {fileID: 7833144095358929135}
   - component: {fileID: 4129952115456279280}
   - component: {fileID: 1804956782191041523}
+  - component: {fileID: 5602496806845326062}
   m_Layer: 0
   m_Name: Controller
   m_TagString: Untagged
@@ -235,6 +236,20 @@ MonoBehaviour:
   _throwPoint: {fileID: 6807480680044733491}
   _throwForce: 15
   _upwardForce: 2
+--- !u!114 &5602496806845326062
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 635509965751519011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 506aac0ef6f00b049b58bd5c059c4d34, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DecoyTrapSkill
+  _decoyProjectilePrefab: {fileID: 2617453428572898263, guid: 5b39dfe1b341130498bd92f31a9a6a4a, type: 3}
+  _decoyAreaPrefab: {fileID: 952130952703785157, guid: 91e916bb4333b2249b4a67c5091032f6, type: 3}
 --- !u!1 &947071967254865188
 GameObject:
   m_ObjectHideFlags: 0
