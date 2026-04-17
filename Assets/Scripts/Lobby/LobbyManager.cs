@@ -130,6 +130,9 @@ public class LobbyManager : MonoBehaviour
 
     public void OnRecvLobbyCharacterList(List<LobbyCharacterData> list, int currentCharacterModelId)
     {
+
+        Debug.Log("로비매니저 캐릭터 목록 도착");
+
         currentlobbyCharacterId = currentCharacterModelId;
 
         for (int i = 0; i < characterSlots.Count; i++)
@@ -172,6 +175,8 @@ public class LobbyManager : MonoBehaviour
 
     public void OnClickOpenCharacterSelect()
     {
+        Debug.Log("캐릭터 팝업 버튼 눌림");
+
         NetworkManager.Instance.SendLobbyCharacterList();
     }
 
@@ -208,6 +213,11 @@ public class LobbyManager : MonoBehaviour
     // Update is called once per frame
     void Update()  
     {
-        
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            backgroundSelectPopup.SetActive(false);
+            characterSelectPopup.SetActive(false);
+           
+        }
     }
 }
