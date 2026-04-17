@@ -20,6 +20,12 @@ public class NetworkManager : MonoBehaviour
 
     void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
@@ -139,8 +145,6 @@ public class NetworkManager : MonoBehaviour
     public void SendLobbyCharacterList()
     {
 
-        Debug.Log("캐릭터 목록 요청 보냄");
-
         byte[] bytes = new byte[4];
 
         BitConverter.GetBytes((ushort)bytes.Length).CopyTo(bytes, 0);
@@ -248,14 +252,16 @@ public class NetworkManager : MonoBehaviour
         string nickname = Packet.ReadFixedString(body, 4, 20);
         string message = Packet.ReadFixedString(body, 24, 128);
 
-        //lobbyManager?.OnRecvLobbyChat(playerId, nickname, message);
+        lobbyManager?.OnRecvLobbyChat(playerId, nickname, message);
     }
 
     void HandleLobbyCharacterSelectResult(byte[] body)
     {
+
         byte result = body[0];
         int modelId = BitConverter.ToInt32(body, 1);
 
+        
         lobbyManager?.OnRecvLobbyCharacterSelectResult(result, modelId);
     }
 
@@ -269,8 +275,6 @@ public class NetworkManager : MonoBehaviour
 
     void HandleLobbyCharacterList(byte[] body)
     {
-        Debug.Log("캐릭터 목록 응답 받음");
-
         ushort count = BitConverter.ToUInt16(body, 0);
         int currentCharacterModelId = BitConverter.ToInt32(body, 2);
 

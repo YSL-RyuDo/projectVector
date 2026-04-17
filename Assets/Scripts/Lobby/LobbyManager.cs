@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using TMPro;
+using UnityEditor.VersionControl;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.TextCore.Text;
@@ -42,6 +43,10 @@ public class LobbyManager : MonoBehaviour
 
     [Header("Background Popup")]
     [SerializeField] private GameObject backgroundSelectPopup;
+
+    [SerializeField] private GameObject ChatPrefeb;
+    [SerializeField] private Transform ChatSlotContent;
+    [SerializeField] private TMP_InputField ChatInputField;
 
     private GameObject currentcharacter;
     private readonly List<GameObject> characterSlots = new();
@@ -105,7 +110,7 @@ public class LobbyManager : MonoBehaviour
 
     public void OnRecvLobbyCharacterSelectResult(byte result, int modelId)
     {
-        if (result != 0)
+        if (result != 1)
             return;
 
         currentlobbyCharacterId = modelId;
@@ -118,7 +123,7 @@ public class LobbyManager : MonoBehaviour
 
     public void OnRecvLobbyBackgroundSelectResult(byte result, int backgroundId)
     {
-        if (result != 0)
+        if (result != 1)
             return;
 
         currentlobbyBackgroundId = backgroundId;
@@ -130,8 +135,6 @@ public class LobbyManager : MonoBehaviour
 
     public void OnRecvLobbyCharacterList(List<LobbyCharacterData> list, int currentCharacterModelId)
     {
-
-        Debug.Log("로비매니저 캐릭터 목록 도착");
 
         currentlobbyCharacterId = currentCharacterModelId;
 
@@ -175,13 +178,13 @@ public class LobbyManager : MonoBehaviour
 
     public void OnClickOpenCharacterSelect()
     {
-        Debug.Log("캐릭터 팝업 버튼 눌림");
-
+        
         NetworkManager.Instance.SendLobbyCharacterList();
     }
 
     public void OnClickCharacterSelect(int characterId)
     {
+       
         NetworkManager.Instance.SendLobbyCharacterSelect(characterId);
     }
 
@@ -195,6 +198,23 @@ public class LobbyManager : MonoBehaviour
         NetworkManager.Instance.SendLobbyBackgroundSelect(backgroundId);
     }
 
+    public void OnRecvLobbyChat (uint playerId, string nickname, string message)
+    {
+        GameObject Item = Instantiate(ChatPrefeb, ChatSlotContent);
+        TMP_Text text = Item.GetComponentInChildren<TMP_Text>();
+        text.text = nickname + " : " + message;
+    }
+
+    public void OnClickLobbyChat ()
+    {
+        string msg = ChatInputField.text.Trim();
+
+        if (msg == "")
+            return;
+
+        NetworkManager.Instance.SendLobbyChat(msg);
+        ChatInputField.text = "";
+    }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
