@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: 4129952115456279280}
   - component: {fileID: 1804956782191041523}
   - component: {fileID: 5602496806845326062}
+  - component: {fileID: 4302921389843108573}
   m_Layer: 0
   m_Name: Controller
   m_TagString: Untagged
@@ -217,7 +218,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29e7782674cc6d84db0cd690b204eeca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  _smokePrefab: {fileID: 104829970813648393, guid: d3015b7eea383f64d8b81f965cc466e7, type: 3}
+  _smokePrefab: {fileID: 7021023906734013752, guid: ffb63aae75a395c4da91ff8871a03f76, type: 3}
   _pingPrefab: {fileID: 8989380966646054412, guid: 6b7b0582adb07534cb1a2b877cac06e0, type: 3}
   _miniMapCamera: {fileID: 0}
 --- !u!114 &1804956782191041523
@@ -250,6 +251,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DecoyTrapSkill
   _decoyProjectilePrefab: {fileID: 2617453428572898263, guid: 5b39dfe1b341130498bd92f31a9a6a4a, type: 3}
   _decoyAreaPrefab: {fileID: 952130952703785157, guid: 91e916bb4333b2249b4a67c5091032f6, type: 3}
+--- !u!114 &4302921389843108573
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 635509965751519011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8985809e9897334eb3aa6703ba4bd27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DreamForestSkill
+  _dreamForestPrefab: {fileID: 7558807253562860058, guid: 77c403d80e3c37d4cbdcf95e3798e7fc, type: 3}
 --- !u!1 &947071967254865188
 GameObject:
   m_ObjectHideFlags: 0
