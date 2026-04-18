@@ -1,40 +1,110 @@
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class PlayerItem : MonoBehaviour
 {
+    [Header("References")]
+    [SerializeField] private WeaponData primary;
+    [SerializeField] private WeaponData secondary;
+    [SerializeField] private WeaponData melee;
+    [SerializeField] private WeaponData thrown;
+    [SerializeField] private GameObject spike;
+
+    [Header("others")]
     [SerializeField] private Transform itemHolder;
     [SerializeField] private Transform dropPoint;
     [SerializeField] private float pickupRange = 2.5f;
     [SerializeField] private LayerMask itemLayer;
 
-    private Item[] items = new Item[4]; // 0~3 (4번 = Spike)
+    private Item[] items = new Item[5]; // 0~4 (5번 = Spike)
     private PlayerSpike playerSpike;
     private int currentIndex = 0;
 
     private void Start()
     {
         playerSpike = GetComponent<PlayerSpike>();
+
+        InitializeDefaultItems();
+
+        if (items[0] != null) Switch(0);
+        else if (items[1] != null) Switch(1);
     }
 
     void Update()
     {
         if (Mouse.current.leftButton.wasPressedThisFrame)
+        {
             items[currentIndex]?.OnUse();
-
+            Debug.Log("leftbutton");
+        }
         if (Mouse.current.rightButton.wasPressedThisFrame)
+        {
             items[currentIndex]?.OnAltUse();
-
+            Debug.Log("rightbutton");
+        }
         if (Keyboard.current.gKey.wasPressedThisFrame)
+        {
             DropCurrentItem();
-
+            Debug.Log("g");
+        }
         if (Keyboard.current.eKey.wasPressedThisFrame)
+        {
             TryPickup();
+            Debug.Log("e");
+        }
 
         if (Keyboard.current.digit1Key.wasPressedThisFrame) Switch(0);
         if (Keyboard.current.digit2Key.wasPressedThisFrame) Switch(1);
         if (Keyboard.current.digit3Key.wasPressedThisFrame) Switch(2);
         if (Keyboard.current.digit4Key.wasPressedThisFrame) Switch(3);
+        if (Keyboard.current.digit5Key.wasPressedThisFrame) Switch(4);
+    }
+
+    private void InitializeDefaultItems()
+    {
+        // 각 슬롯에 해당하는 WeaponData가 Inspector에서 할당되어 있는지 확인 후 생성
+        if (primary != null) CreateStartingItem(primary, 0);
+        if (secondary != null) CreateStartingItem(secondary, 1);
+        if (melee != null) CreateStartingItem(melee, 2);
+        if (thrown != null) CreateStartingItem(thrown, 3);
+
+        if (spike != null)
+        {
+            GameObject obj = Instantiate(spike, itemHolder);
+            obj.transform.localPosition = new Vector3(0.75f, -0.2f, 1f);
+            obj.transform.localRotation = Quaternion.identity;
+
+            Item item = obj.GetComponent<Item>();
+            items[4] = item;
+
+            obj.SetActive(false); // 일단 비활성화
+        }
+    }
+
+    private void CreateStartingItem(WeaponData data, int slot)
+    {
+        // 프리팹 생성 및 부모 설정
+        GameObject obj = Instantiate(data.weaponPrefab, itemHolder);
+
+        // 위치 및 회전 초기화
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
+
+        // Item 컴포넌트 할당
+        Item item = obj.GetComponent<Item>();
+        items[slot] = item;
+
+        // Weapon 컴포넌트 초기화 (기본 탄약 정보 등)
+        Weapon weapon = obj.GetComponent<Weapon>();
+        if (weapon != null)
+        {
+            // 초기 생성 시에는 최대 탄약으로 설정
+            weapon.Initialize(data, dropPoint, data.magSize, data.maxReserveAmmo);
+        }
+
+        // 일단 모두 비활성화 (나중에 Switch에서 활성화됨)
+        obj.SetActive(false);
     }
 
     void TryPickup()
@@ -100,8 +170,7 @@ public class PlayerItem : MonoBehaviour
         // 무기 컴포넌트 설정 (탄약 및 데이터 초기화)
         Weapon weapon = obj.GetComponent<Weapon>();
         weapon?.Initialize(dropped.weaponData, dropPoint, dropped.magAmmo, dropped.reserveAmmo);
-
-        // 주운 무기로 즉시 교체
+        
         Switch(slot);
 
         Destroy(dropped.gameObject);
@@ -113,8 +182,12 @@ public class PlayerItem : MonoBehaviour
         if (currentIndex == 2) return;
 
         items[currentIndex].OnDrop();
-        Destroy(items[currentIndex].gameObject); // .gameObject 파괴
-        items[currentIndex] = null;
+
+        if (currentIndex != 4)
+        {
+            Destroy(items[currentIndex].gameObject); // .gameObject 파괴
+            items[currentIndex] = null;
+        }
 
         for (int i = 0; i < items.Length; i++)
         {
@@ -130,6 +203,12 @@ public class PlayerItem : MonoBehaviour
     {
         if (currentIndex == index || items[index] == null) return;
 
+        if (index == 4 && !playerSpike.hasSpike)
+        {
+            Debug.Log("스파이크가 없어서 5번 슬롯으로 전환할 수 없습니다.");
+            return;
+        }
+
         items[currentIndex]?.OnUnequip();
 
         currentIndex = index;
@@ -137,7 +216,7 @@ public class PlayerItem : MonoBehaviour
         items[currentIndex]?.OnEquip();
     }
 
-    int GetSlotIndex(WeaponData data)
+    public int GetSlotIndex(WeaponData data)
     {
         if (data == null) return 0;
 
@@ -145,10 +224,43 @@ public class PlayerItem : MonoBehaviour
         {
             case WeaponData.WeaponType.Pistol:
                 return 1;
-            case WeaponData.WeaponType.Shotgun: // Knife 대용으로 사용 중인 경우
+            case WeaponData.WeaponType.Knife: // Knife 대용으로 사용 중인 경우
                 return 2;
             default: // AR, SMG, SR 등은 모두 0번 슬롯
                 return 0;
+        }
+    }
+
+    public void SetWeaponVisibility(bool visibility)
+    {
+        if (visibility)
+        {
+            // 만약 현재 인덱스가 스파이크(4번)인데, 스파이크를 더 이상 가지고 있지 않다면
+            if (currentIndex == 4 && !playerSpike.hasSpike)
+            {
+                // 0번(주무기)부터 순서대로 검사해서 있는 무기를 장착
+                int fallbackIndex = -1;
+                for (int i = 0; i < items.Length; i++)
+                {
+                    if (items[i] != null && i != 4) // 스파이크 제외하고 있는 무기 찾기
+                    {
+                        fallbackIndex = i;
+                        break;
+                    }
+                }
+
+                // 바꿀 무기를 찾았다면 해당 무기로 스위치
+                if (fallbackIndex != -1)
+                {
+                    Switch(fallbackIndex);
+                    return; // Switch 함수 내부에서 SetActive(true)를 해주므로 여기서 종료
+                }
+            }
+        }
+
+        if (items[currentIndex] != null)
+        {
+            items[currentIndex].gameObject.SetActive(visibility);
         }
     }
 }

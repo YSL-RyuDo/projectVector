@@ -44,6 +44,7 @@ public class WeaponData : ScriptableObject
     [Header("Recoil")]
     public Vector2[] recoilPattern;
     public float recoilMultiplier = 1f;
+    public float adsRecoilMultiplier = 1f;
 
     [Header("Spread")]
     public float hipFireSpread = 0.02f;   // ÀÏ¹İ »ç°İ ÅºÆÛÁü

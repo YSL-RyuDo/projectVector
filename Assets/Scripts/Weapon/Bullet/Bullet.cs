@@ -72,7 +72,7 @@ public class Bullet : MonoBehaviour
         GameObject hole = Instantiate(
             bulletHolePrefab,
             point + normal * 0.001f,
-            Quaternion.LookRotation(normal) * Quaternion.Euler(0, 180f, 0)
+            Quaternion.LookRotation(normal) * Quaternion.Euler(0f, 180f, 0f)
         );
 
         hole.transform.SetParent(null);
