@@ -248,9 +248,13 @@ public class NetworkManager : MonoBehaviour
 
     void HandleLobbyChat(byte[] body)
     {
+        Debug.Log($"[CLIENT HANDLE LOBBY CHAT] bodyLen={body.Length}");
+
         uint playerId = BitConverter.ToUInt32(body, 0);
         string nickname = Packet.ReadFixedString(body, 4, 20);
         string message = Packet.ReadFixedString(body, 24, 128);
+
+        Debug.Log($"[CLIENT CHAT PARSED] playerId={playerId} nickname={nickname} message={message}");
 
         lobbyManager?.OnRecvLobbyChat(playerId, nickname, message);
     }

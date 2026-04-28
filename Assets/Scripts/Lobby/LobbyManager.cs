@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using TMPro;
-using UnityEditor.VersionControl;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.TextCore.Text;
@@ -15,12 +14,8 @@ public struct LobbyBackgroundPreset
     public Vector3 cameraRotation;
 }
 
-
 public class LobbyManager : MonoBehaviour
 {
-
-    
-
     [Header("Profile")]
     [SerializeField] private TMP_Text nicknameText;
     [SerializeField] private TMP_Text levelText;
@@ -30,7 +25,6 @@ public class LobbyManager : MonoBehaviour
     private GameObject currentCharacter;
     [Header("Character")]
     [SerializeField] private GameObject[] CharacterPrefebs;
-    [SerializeField] private Transform characterRoot;
     [SerializeField] private Camera lobbyCamera;
 
     [Header("Background")]
@@ -57,9 +51,6 @@ public class LobbyManager : MonoBehaviour
     private int currentlobbyCharacterId;
     private int currentlobbyBackgroundId;
 
-
-
-
     public static LobbyManager Instance;
 
     void Awake()
@@ -67,6 +58,28 @@ public class LobbyManager : MonoBehaviour
         Instance = this;
     }
 
+    void Start()
+    {
+        NetworkManager.Instance.SetLobbyManager(this);
+        NetworkManager.Instance.SendLobbyEnter();
+
+        if (characterSelectPopup != null)
+            characterSelectPopup.SetActive(false);
+
+        if (backgroundSelectPopup != null)
+            backgroundSelectPopup.SetActive(false);
+
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            backgroundSelectPopup.SetActive(false);
+            characterSelectPopup.SetActive(false);
+
+        }
+    }
     public void OnRecvLobbyEnter(string nickname, int level, int playerIconId, int lobbyCharacterModelId, int lobbyBackgroundId)
     {
         currentNickname = nickname;
@@ -88,12 +101,7 @@ public class LobbyManager : MonoBehaviour
         if (currentCharacter != null)
             Destroy(currentCharacter);
 
-        currentCharacter = Instantiate(
-            CharacterPrefebs[characterId],
-            characterRoot.position,
-            characterRoot.rotation,
-            characterRoot
-        );
+        currentCharacter = Instantiate(CharacterPrefebs[characterId]);
     }
 
     private void ApplyBackgroundPreset(int backgroundId)
@@ -198,10 +206,31 @@ public class LobbyManager : MonoBehaviour
         NetworkManager.Instance.SendLobbyBackgroundSelect(backgroundId);
     }
 
-    public void OnRecvLobbyChat (uint playerId, string nickname, string message)
+    public void OnRecvLobbyChat(uint playerId, string nickname, string message)
     {
-        GameObject Item = Instantiate(ChatPrefeb, ChatSlotContent);
-        TMP_Text text = Item.GetComponentInChildren<TMP_Text>();
+        Debug.Log($"[LOBBY CHAT UI] {nickname} : {message}");
+
+        if (ChatPrefeb == null)
+        {
+            Debug.LogError("ChatPrefeb is null");
+            return;
+        }
+
+        if (ChatSlotContent == null)
+        {
+            Debug.LogError("ChatSlotContent is null");
+            return;
+        }
+
+        GameObject item = Instantiate(ChatPrefeb, ChatSlotContent);
+        TMP_Text text = item.GetComponentInChildren<TMP_Text>();
+
+        if (text == null)
+        {
+            Debug.LogError("ChatPrefeb 안에 TMP_Text가 없음");
+            return;
+        }
+
         text.text = nickname + " : " + message;
     }
 
@@ -214,30 +243,5 @@ public class LobbyManager : MonoBehaviour
 
         NetworkManager.Instance.SendLobbyChat(msg);
         ChatInputField.text = "";
-    }
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        NetworkManager.Instance.SetLobbyManager(this);
-        NetworkManager.Instance.SendLobbyEnter();
-
-        if (characterSelectPopup != null)
-            characterSelectPopup.SetActive(false);
-
-        if (backgroundSelectPopup != null)
-            backgroundSelectPopup.SetActive(false);
-    
-}
-
-    // Update is called once per frame
-    void Update()  
-    {
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            backgroundSelectPopup.SetActive(false);
-            characterSelectPopup.SetActive(false);
-           
-        }
     }
 }
