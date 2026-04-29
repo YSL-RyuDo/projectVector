@@ -8,6 +8,15 @@ public class LobbyCharacterData
     public bool owned;
 }
 
+public class TempGamePlayerData
+{
+    public int slotIndex;
+    public string nickname;
+    public int playerIconId;
+    public int logoBorderId;
+    public int rankImageId;
+}
+
 public class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance;
@@ -185,6 +194,14 @@ public class NetworkManager : MonoBehaviour
                 HandleLobbyCharacterList(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_TEMP_GAME_ROOM_ENTER:
+                HandleTempGameRoomEnter(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_TEMP_GAME_START_RESULT:
+                HandleTempGameStartResult(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -232,20 +249,27 @@ public class NetworkManager : MonoBehaviour
     void HandleLobbyEnter(byte[] body)
     {
         string nickname = Packet.ReadFixedString(body, 0, 20);
+
         int level = BitConverter.ToInt32(body, 20);
-        int playerIconId = BitConverter.ToInt32(body, 24);
-        int lobbyCharacterModelId = BitConverter.ToInt32(body, 28);
-        int lobbyBackgroundId = BitConverter.ToInt32(body, 32);
+        int currentExp = BitConverter.ToInt32(body, 24);
+        int requiredExp = BitConverter.ToInt32(body, 28);
+
+        int playerIconId = BitConverter.ToInt32(body, 32);
+        int lobbyCharacterModelId = BitConverter.ToInt32(body, 36);
+        int lobbyBackgroundId = BitConverter.ToInt32(body, 40);
+
+        Debug.Log($"[CLIENT LOBBY ENTER] nickname={nickname}, level={level}, exp={currentExp}/{requiredExp}, icon={playerIconId}, char={lobbyCharacterModelId}, bg={lobbyBackgroundId}");
 
         lobbyManager?.OnRecvLobbyEnter(
             nickname,
             level,
+            currentExp,
+            requiredExp,
             playerIconId,
             lobbyCharacterModelId,
             lobbyBackgroundId
         );
     }
-
     void HandleLobbyChat(byte[] body)
     {
         Debug.Log($"[CLIENT HANDLE LOBBY CHAT] bodyLen={body.Length}");
@@ -298,5 +322,69 @@ public class NetworkManager : MonoBehaviour
         }
 
         lobbyManager?.OnRecvLobbyCharacterList(list, currentCharacterModelId);
+    }
+
+    public void SendTempGameRoomEnter()
+    {
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_TEMP_GAME_ROOM_ENTER).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    public void SendTempGameStart()
+    {
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_TEMP_GAME_START).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    void HandleTempGameRoomEnter(byte[] body)
+    {
+        byte result = body[0];
+        byte playerCount = body[1];
+
+        if (result != 0)
+        {
+            Debug.LogWarning("[TEMP GAME ROOM] enter fail");
+            return;
+        }
+
+        List<TempGamePlayerData> players = new List<TempGamePlayerData>();
+
+        int offset = 2;
+        for (int i = 0; i < 3; i++)
+        {
+            TempGamePlayerData data = new TempGamePlayerData();
+            data.slotIndex = body[offset];
+            offset += 1;
+
+            data.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            data.playerIconId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            data.logoBorderId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            data.rankImageId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            players.Add(data);
+        }
+
+        lobbyManager?.OnRecvTempGameRoomEnter(playerCount, players);
+    }
+
+    void HandleTempGameStartResult(byte[] body)
+    {
+        byte result = body[0];
+        lobbyManager?.OnRecvTempGameStartResult(result);
     }
 }
