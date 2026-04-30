@@ -17,6 +17,17 @@ public class TempGamePlayerData
     public int rankImageId;
 }
 
+public class RoomListData
+{
+    public uint roomId;
+    public string roomName;
+    public string mapName;
+    public string hostName;
+    public ushort currentPlayerCount;
+    public ushort maxPlayerCount;
+    public byte state;
+}
+
 public class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance;
@@ -201,6 +212,10 @@ public class NetworkManager : MonoBehaviour
             case (ushort)PacketType.PKT_SC_TEMP_GAME_START_RESULT:
                 HandleTempGameStartResult(body);
                 break;
+            
+            case (ushort)PacketType.PKT_SC_ROOM_LIST:
+                HandleRoomList(body);
+                break;
 
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
@@ -212,40 +227,50 @@ public class NetworkManager : MonoBehaviour
     {
         byte result = body[0];
 
-        string msg = result switch
-        {
-            (byte)RegisterResult.SUCCESS => "Registration successful",
-            (byte)RegisterResult.ID_DUPLICATE => "Account already exists",
-            (byte)RegisterResult.NICK_DUPLICATE => "Nickname already exists",
-            (byte)RegisterResult.PASSWORD_MISMATCH => "Passwords do not match",
-            (byte)RegisterResult.INVALID_INPUT => "Invalid input",
-            _ => "Registration failed"
-        };
+        bool success = (result == (byte)RegisterResult.SUCCESS);
 
-        loginUI?.SetResult(msg);
+        Debug.Log($"[REGISTER RESULT] success={success}");
+
+        loginUI?.OnRegisterResult(success);
+
+        if (!success)
+        {
+            string msg = result switch
+            {
+                (byte)RegisterResult.ID_DUPLICATE => "아이디 중복",
+                (byte)RegisterResult.NICK_DUPLICATE => "닉네임 중복",
+                (byte)RegisterResult.PASSWORD_MISMATCH => "비밀번호 불일치",
+                (byte)RegisterResult.INVALID_INPUT => "입력 오류",
+                _ => "회원가입 실패"
+            };
+
+            loginUI?.ShowError(msg);
+        }
     }
 
     void HandleLogin(byte[] body)
     {
         byte result = body[0];
 
-        string msg = result switch
-        {
-            (byte)LoginResult.SUCCESS => "Login successful",
-            (byte)LoginResult.NO_ID => "Account not found",
-            (byte)LoginResult.WRONG_PASSWORD => "Incorrect password",
-            (byte)LoginResult.INVALID_INPUT => "Invalid input",
-            _ => "Login failed"
-        };
+        bool success = (result == (byte)LoginResult.SUCCESS);
 
-        loginUI?.SetResult(msg);
+        Debug.Log($"[LOGIN RESULT] success={success}");
 
-        if (result == (byte)LoginResult.SUCCESS)
+        loginUI?.OnLoginResult(success);
+
+        if (!success)
         {
-            loginUI?.MoveToLobby();
+            string msg = result switch
+            {
+                (byte)LoginResult.NO_ID => "아이디 없음",
+                (byte)LoginResult.WRONG_PASSWORD => "비밀번호 틀림",
+                (byte)LoginResult.INVALID_INPUT => "입력 오류",
+                _ => "로그인 실패"
+            };
+
+            loginUI?.ShowError(msg);
         }
     }
-
     void HandleLobbyEnter(byte[] body)
     {
         string nickname = Packet.ReadFixedString(body, 0, 20);
@@ -386,5 +411,69 @@ public class NetworkManager : MonoBehaviour
     {
         byte result = body[0];
         lobbyManager?.OnRecvTempGameStartResult(result);
+    }
+
+    public void SendRoomList()
+    {
+        Debug.Log("[CLIENT] SendRoomList");
+
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_LIST).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    void HandleRoomList(byte[] body)
+    {
+        Debug.Log($"[ROOMLIST] bodyLength={body.Length}");
+
+        int offset = 0;
+
+        ushort roomCount = BitConverter.ToUInt16(body, offset);
+        offset += 2;
+
+        Debug.Log($"[ROOMLIST] roomCount={roomCount}");
+
+        List<RoomListData> rooms = new();
+
+        for (int i = 0; i < roomCount; i++)
+        {
+            Debug.Log($"[ROOM PARSE START] index={i} offset={offset}");
+
+            RoomListData room = new RoomListData();
+
+            room.roomId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            // 문자열 raw 바이트 확인
+            Debug.Log($"[RAW roomName bytes] {BitConverter.ToString(body, offset, 32)}");
+            room.roomName = Packet.ReadFixedString(body, offset, 32);
+            offset += 32;
+
+            Debug.Log($"[RAW mapName bytes] {BitConverter.ToString(body, offset, 32)}");
+            room.mapName = Packet.ReadFixedString(body, offset, 32);
+            offset += 32;
+
+            Debug.Log($"[RAW hostName bytes] {BitConverter.ToString(body, offset, 20)}");
+            room.hostName = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            room.currentPlayerCount = BitConverter.ToUInt16(body, offset);
+            offset += 2;
+
+            room.maxPlayerCount = BitConverter.ToUInt16(body, offset);
+            offset += 2;
+
+            room.state = body[offset];
+            offset += 1;
+
+            Debug.Log($"[ROOM PARSED] id={room.roomId}, name={room.roomName}, map={room.mapName}, host={room.hostName}");
+
+            rooms.Add(room);
+        }
+
+        LobbyManager.Instance.OnRecvRoomList(rooms);
     }
 }

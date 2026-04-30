@@ -45,12 +45,23 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private Transform ChatSlotContent;
     [SerializeField] private TMP_InputField ChatInputField;
 
+    [Header("Game UI Root")]
+    [SerializeField] private GameObject gamePanel;
+
     [Header("Temp Game Room")]
     [SerializeField] private GameObject tempGameRoomPanel;
-    [SerializeField] private TempGamePlayerSlotUI[] tempGamePlayerSlots; // 0,1,2
+    [SerializeField] private TempGamePlayerSlotUI[] tempGamePlayerSlots;
     [SerializeField] private Sprite[] tempRoomIconSprites;
     [SerializeField] private Sprite[] tempRoomBorderSprites;
     [SerializeField] private Sprite[] tempRoomRankSprites;
+
+    [Header("Room List")]
+    [SerializeField] private GameObject roomListPanel;
+    [SerializeField] private Transform roomListContent;   // Content
+    [SerializeField] private GameObject roomSlotPrefab;   // 프리팹
+
+    private List<GameObject> roomSlotObjects = new();
+
 
     private readonly List<GameObject> characterSlots = new();
 
@@ -78,8 +89,14 @@ public class LobbyManager : MonoBehaviour
         if (backgroundSelectPopup != null)
             backgroundSelectPopup.SetActive(false);
 
+        if (gamePanel != null)
+            gamePanel.SetActive(false);
+
         if (tempGameRoomPanel != null)
             tempGameRoomPanel.SetActive(false);
+
+        if (roomListPanel != null)
+            roomListPanel.SetActive(false);
 
         HideAllTempGameSlots();
     }
@@ -314,15 +331,40 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
-    private void OpenTempGamePanel()
+    private void ShowGamePanel()
     {
-        if (tempGameRoomPanel == null)
-        {
-            Debug.LogError("[TEMP GAME ROOM] tempGameRoomPanel is null");
-            return;
-        }
+        if (gamePanel != null)
+            gamePanel.SetActive(true);
+    }
 
-        tempGameRoomPanel.SetActive(true);
+    private void HideGamePanel()
+    {
+        if (gamePanel != null)
+            gamePanel.SetActive(false);
+    }
+
+    private void ShowRoomListPanel()
+    {
+        ShowGamePanel();
+
+        if (tempGameRoomPanel != null)
+            tempGameRoomPanel.SetActive(false);
+
+        HideAllTempGameSlots();
+
+        if (roomListPanel != null)
+            roomListPanel.SetActive(true);
+    }
+
+    private void ShowTempGameRoomPanel()
+    {
+        ShowGamePanel();
+
+        if (roomListPanel != null)
+            roomListPanel.SetActive(false);
+
+        if (tempGameRoomPanel != null)
+            tempGameRoomPanel.SetActive(true);
     }
 
     private void FillLocalTempGameSlot0()
@@ -347,15 +389,30 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
-    public void OnClickGameButton()
+    private void EnterTempGameRoom()
     {
-        Debug.Log("[TEMP GAME ROOM] GameButton Click");
-
-        OpenTempGamePanel();
+        ShowTempGameRoomPanel();
         HideAllTempGameSlots();
         FillLocalTempGameSlot0();
-
         NetworkManager.Instance.SendTempGameRoomEnter();
+    }
+
+    public void OnClickGameButton()
+    {
+        Debug.Log("[GAME PANEL] GameButton Click -> default normal");
+        EnterTempGameRoom();
+    }
+
+    public void OnClickNormalGameButton()
+    {
+        Debug.Log("[TEMP GAME ROOM] NormalButton Click");
+        EnterTempGameRoom();
+    }
+
+    public void OnClickRankGameButton()
+    {
+        Debug.Log("[TEMP GAME ROOM] RankButton Click");
+        EnterTempGameRoom();
     }
 
     public void OnClickTempGameStart()
@@ -375,7 +432,7 @@ public class LobbyManager : MonoBehaviour
     {
         Debug.Log($"[TEMP GAME ROOM] enter success, playerCount={playerCount}");
 
-        OpenTempGamePanel();
+        ShowTempGameRoomPanel();
         HideAllTempGameSlots();
 
         for (int i = 0; i < players.Count; i++)
@@ -414,5 +471,70 @@ public class LobbyManager : MonoBehaviour
             return sprites[0];
 
         return sprites[index];
+    }
+
+    public void OnClickUserRoomButton()
+    {
+        Debug.Log("[ROOM LIST] UserRoomButton Click");
+        ShowRoomListPanel();
+        NetworkManager.Instance.SendRoomList();
+    }
+
+    public void OnRecvRoomList(List<RoomListData> rooms)
+    {
+        Debug.Log($"[ROOM LIST UI] count={rooms.Count}");
+
+        for (int i = 0; i < rooms.Count; i++)
+        {
+            RoomListData room = rooms[i];
+
+            Debug.Log(
+                $"[ROOM RAW] " +
+                $"index={i} " +
+                $"roomId={room.roomId} " +
+                $"roomName={room.roomName} " +
+                $"mapName={room.mapName} " +
+                $"hostName={room.hostName} " +
+                $"players={room.currentPlayerCount}/{room.maxPlayerCount} " +
+                $"state={room.state}"
+            );
+        }
+
+        // 기존 UI 처리 그대로
+        ShowRoomListPanel();
+
+        for (int i = 0; i < roomSlotObjects.Count; i++)
+            Destroy(roomSlotObjects[i]);
+
+        roomSlotObjects.Clear();
+
+        for (int i = 0; i < rooms.Count; i++)
+        {
+            RoomListData room = rooms[i];
+
+            GameObject slotObj = Instantiate(roomSlotPrefab, roomListContent);
+            roomSlotObjects.Add(slotObj);
+
+            RoomSlotUI slotUI = slotObj.GetComponent<RoomSlotUI>();
+            slotUI.SetData(room);
+        }
+    }
+
+    public void OnClickCloseRoomListPanel()
+    {
+        if (roomListPanel != null)
+            roomListPanel.SetActive(false);
+    }
+
+    public void OnClickCloseGamePanel()
+    {
+        if (tempGameRoomPanel != null)
+            tempGameRoomPanel.SetActive(false);
+
+        if (roomListPanel != null)
+            roomListPanel.SetActive(false);
+
+        HideAllTempGameSlots();
+        HideGamePanel();
     }
 }
