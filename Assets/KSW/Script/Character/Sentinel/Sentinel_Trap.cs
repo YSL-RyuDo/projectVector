@@ -1,30 +1,35 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 public class Sentinel_Trap : MonoBehaviour
 {
-    [SerializeField] private GameObject trapModel;
-    [SerializeField] private GameObject scanSphereVisual;
+    [Header("--- 프리팹 연결 ---")]
+    [SerializeField] private GameObject trapModel;          // 회전할 머리 부분
+    [SerializeField] private GameObject scanSphereVisual;   // 커지는 구체 이펙트
+    [SerializeField] private Slider _hpUI;                  // 체력바 UI
+
+    [Header("--- 설정 수치 ---")]
     [SerializeField] private LayerMask enemyLayer;
-
+    [SerializeField] private float maxHealth = 40f;
+    [SerializeField] private float currentHealth = 40f;
     [SerializeField] private float detectRadius = 10f;
-    [SerializeField] private float scanDelay = 0.5f;
-    [SerializeField] private float scanSpeed = 35f;
+    [SerializeField] private float scanDelay = 1.0f;        // 발동 전 대기 시간
+    [SerializeField] private float scanSpeed = 35f;         // 구체 확장 속도
 
-    private bool isPlaced = false;
-    private bool isUsed = false;
-    
+    private bool _isPlaced = false;
+    private bool _isScanning = false;
+
     private Rigidbody rb;
     private Collider myCollider;
 
     void Awake()
     {
+        currentHealth = maxHealth;
         rb = GetComponent<Rigidbody>();
         myCollider = GetComponent<Collider>();
-
         if (scanSphereVisual) scanSphereVisual.SetActive(false);
-
         StartCoroutine(IgnoreCollisionRoutine());
     }
 
@@ -37,7 +42,6 @@ public class Sentinel_Trap : MonoBehaviour
 
     public void Launch(Vector3 direction, float force)
     {
-        isPlaced = false;
         rb.isKinematic = false;
         rb.useGravity = true;
         rb.AddForce(direction * force, ForceMode.Impulse);
@@ -45,34 +49,84 @@ public class Sentinel_Trap : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (isPlaced || other.CompareTag("Player")) return;
+        if (_isPlaced || other.CompareTag("Player")) return;
 
-        isPlaced = true;
+        _isPlaced = true;
+        _hpUI.gameObject.SetActive(true);
         rb.isKinematic = true;
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
+
+        // 바닥에 붙을 때 각도 정렬 (수직으로 세우기)
         transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y, 0);
+    }
+
+    private void Start()
+    {
+        _hpUI.maxValue = maxHealth;
+        _hpUI.gameObject.SetActive(false);
     }
 
     void Update()
     {
-        if (!isPlaced || isUsed) return;
+        if (!_isPlaced) return;
 
+        // 적 감지
         Collider[] enemies = Physics.OverlapSphere(transform.position, detectRadius, enemyLayer);
+
+        // HP UI 실시간 업데이트
+        _hpUI.value = currentHealth;
+
+        if (currentHealth <= 0) Destroy(this.gameObject);
+
         if (enemies.Length > 0)
         {
-            isUsed = true;
-            StartCoroutine(SingleScanSequence());
+            // 1. 적을 향해 모델 회전 (추적)
+            RotateTowardsTarget(enemies[0].transform);
+
+            // 2. 적 발견 시퀀스 시작 (알림 포함)
+            if (!_isScanning)
+            {
+                StartCoroutine(RepeatScanSequence());
+            }
         }
     }
 
-    IEnumerator SingleScanSequence()
+    void RotateTowardsTarget(Transform target)
     {
-        yield return new WaitForSeconds(scanDelay);
-        yield return StartCoroutine(ExpandWaveOnce());
+        Vector3 targetDir = target.position - transform.position;
+        targetDir.y = 0; // 수평 회전만
+
+        if (targetDir != Vector3.zero && trapModel != null)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(targetDir);
+            trapModel.transform.rotation = Quaternion.Slerp(trapModel.transform.rotation, targetRotation, Time.deltaTime * 15f);
+        }
     }
 
-    IEnumerator ExpandWaveOnce()
+    IEnumerator RepeatScanSequence()
+    {
+        _isScanning = true;
+
+        CharacterSkillUI.Instance.SentinelSkillText(true, "Enemy 감지"); 
+
+        // ★ [충전 단계] 1초 카운트다운
+        yield return new WaitForSeconds(scanDelay);
+
+        // 여전히 적이 있는지 재확인
+        if (Physics.CheckSphere(transform.position, detectRadius, enemyLayer))
+        {
+            // ★ [발생 단계] 에너지 구체 확장 및 실루엣 노출
+            yield return StartCoroutine(ExpandWave());
+            CharacterSkillUI.Instance.SentinelSkillText(false, "");
+        }
+
+        // 스캔 후 1.5초 대기 (재충전 시간)
+        yield return new WaitForSeconds(1.5f);
+        _isScanning = false;
+    }
+
+    IEnumerator ExpandWave()
     {
         if (!scanSphereVisual) yield break;
 
@@ -91,8 +145,6 @@ public class Sentinel_Trap : MonoBehaviour
                 if (!detectedEnemies.Contains(hit.gameObject))
                 {
                     detectedEnemies.Add(hit.gameObject);
-
-                    // 실루엣 효과 코드
                     ShowSilhouette(hit.gameObject);
                 }
             }
@@ -108,7 +160,17 @@ public class Sentinel_Trap : MonoBehaviour
         if (outline != null)
         {
             outline.enabled = true;
-            // StartCoroutine(DisableOutline(outline, 2.0f));
+            // 필요하다면 일정 시간 뒤에 끄는 로직 추가 가능
+        }
+    }
+
+    public void TakeDamage(float amount)
+    {
+        currentHealth -= amount;
+        if (currentHealth <= 0)
+        {
+            Debug.Log("함정 파괴됨");
+            Destroy(gameObject);
         }
     }
 }
