@@ -91,6 +91,7 @@ public class Sentinel_Trap : MonoBehaviour
                 if (!detectedEnemies.Contains(hit.gameObject))
                 {
                     detectedEnemies.Add(hit.gameObject);
+
                     // 실루엣 효과 코드
                     ShowSilhouette(hit.gameObject);
                 }
@@ -103,6 +104,11 @@ public class Sentinel_Trap : MonoBehaviour
 
     void ShowSilhouette(GameObject enemy)
     {
-        Debug.Log($"<color=yellow>{enemy.name}</color> 실루엣 표시");
+        var outline = enemy.GetComponent<Outline>();
+        if (outline != null)
+        {
+            outline.enabled = true;
+            // StartCoroutine(DisableOutline(outline, 2.0f));
+        }
     }
 }
