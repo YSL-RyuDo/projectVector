@@ -19,19 +19,19 @@ public class C_Skill : MonoBehaviour
             if (Input.GetMouseButtonDown(0))
             {
                 CharacterSkillUI.Instance.SentinelSkillText(false, "");
-                ThrowTrap(22f);
+                throwTrap(22f);
                 isReady = false;
             }
             else if (Input.GetMouseButtonDown(1))
             {
                 CharacterSkillUI.Instance.SentinelSkillText(false, "");
-                ThrowTrap(12f);
+                throwTrap(12f);
                 isReady = false;
             }
         }
     }
 
-    void ThrowTrap(float force)
+    private void throwTrap(float force)
     {
         Vector3 spawnPos = throwPoint != null ? throwPoint.position : transform.position + transform.forward;
         GameObject obj = Instantiate(trapPrefab, spawnPos, transform.rotation);
@@ -39,7 +39,6 @@ public class C_Skill : MonoBehaviour
         Sentinel_Trap trapScript = obj.GetComponent<Sentinel_Trap>();
         if (trapScript != null)
         {
-            // 전방 + 살짝 위쪽 방향
             Vector3 throwDir = (Camera.main.transform.forward + Vector3.up * 0.2f).normalized;
             trapScript.Launch(throwDir, force);
         }
