@@ -60877,7 +60877,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2662626554352696185, guid: e5fe6785d4ec47d4590f2379d8abecdb, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.511
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2662626554352696185, guid: e5fe6785d4ec47d4590f2379d8abecdb, type: 3}
       propertyPath: m_LocalPosition.z
@@ -60924,6 +60924,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1162152223}
     - target: {fileID: 5148223354640960863, guid: e5fe6785d4ec47d4590f2379d8abecdb, type: 3}
+      propertyPath: _lineRenderer
+      value: 
+      objectReference: {fileID: 1282122816}
+    - target: {fileID: 5148223354640960863, guid: e5fe6785d4ec47d4590f2379d8abecdb, type: 3}
       propertyPath: _scannerPrefab
       value: 
       objectReference: {fileID: 3937076750133015356, guid: 9ba2acf52657cac49afc8b71244e8419, type: 3}
@@ -60933,7 +60937,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9177276548501388304, guid: e5fe6785d4ec47d4590f2379d8abecdb, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -60965,6 +60969,11 @@ MonoBehaviour:
   hasSpike: 1
   plantTime: 3
   spikeSlider: {fileID: 1850883863}
+--- !u!120 &1282122816 stripped
+LineRenderer:
+  m_CorrespondingSourceObject: {fileID: 6008646111598099427, guid: e5fe6785d4ec47d4590f2379d8abecdb, type: 3}
+  m_PrefabInstance: {fileID: 1282122813}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1283922987
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -99639,7 +99648,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 635509965751519011, guid: d80e6f1b9cf471544875a20bab47633a, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 760373917617045981, guid: d80e6f1b9cf471544875a20bab47633a, type: 3}
       propertyPath: spikeSlider

@@ -8,6 +8,26 @@ public class LobbyCharacterData
     public bool owned;
 }
 
+public class TempGamePlayerData
+{
+    public int slotIndex;
+    public string nickname;
+    public int playerIconId;
+    public int logoBorderId;
+    public int rankImageId;
+}
+
+public class RoomListData
+{
+    public uint roomId;
+    public string roomName;
+    public string mapName;
+    public string hostName;
+    public ushort currentPlayerCount;
+    public ushort maxPlayerCount;
+    public byte state;
+}
+
 public class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance;
@@ -185,6 +205,18 @@ public class NetworkManager : MonoBehaviour
                 HandleLobbyCharacterList(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_TEMP_GAME_ROOM_ENTER:
+                HandleTempGameRoomEnter(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_TEMP_GAME_START_RESULT:
+                HandleTempGameStartResult(body);
+                break;
+            
+            case (ushort)PacketType.PKT_SC_ROOM_LIST:
+                HandleRoomList(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -195,62 +227,83 @@ public class NetworkManager : MonoBehaviour
     {
         byte result = body[0];
 
-        string msg = result switch
-        {
-            (byte)RegisterResult.SUCCESS => "Registration successful",
-            (byte)RegisterResult.ID_DUPLICATE => "Account already exists",
-            (byte)RegisterResult.NICK_DUPLICATE => "Nickname already exists",
-            (byte)RegisterResult.PASSWORD_MISMATCH => "Passwords do not match",
-            (byte)RegisterResult.INVALID_INPUT => "Invalid input",
-            _ => "Registration failed"
-        };
+        bool success = (result == (byte)RegisterResult.SUCCESS);
 
-        loginUI?.SetResult(msg);
+        Debug.Log($"[REGISTER RESULT] success={success}");
+
+        loginUI?.OnRegisterResult(success);
+
+        if (!success)
+        {
+            string msg = result switch
+            {
+                (byte)RegisterResult.ID_DUPLICATE => "아이디 중복",
+                (byte)RegisterResult.NICK_DUPLICATE => "닉네임 중복",
+                (byte)RegisterResult.PASSWORD_MISMATCH => "비밀번호 불일치",
+                (byte)RegisterResult.INVALID_INPUT => "입력 오류",
+                _ => "회원가입 실패"
+            };
+
+            loginUI?.ShowError(msg);
+        }
     }
 
     void HandleLogin(byte[] body)
     {
         byte result = body[0];
 
-        string msg = result switch
-        {
-            (byte)LoginResult.SUCCESS => "Login successful",
-            (byte)LoginResult.NO_ID => "Account not found",
-            (byte)LoginResult.WRONG_PASSWORD => "Incorrect password",
-            (byte)LoginResult.INVALID_INPUT => "Invalid input",
-            _ => "Login failed"
-        };
+        bool success = (result == (byte)LoginResult.SUCCESS);
 
-        loginUI?.SetResult(msg);
+        Debug.Log($"[LOGIN RESULT] success={success}");
 
-        if (result == (byte)LoginResult.SUCCESS)
+        loginUI?.OnLoginResult(success);
+
+        if (!success)
         {
-            loginUI?.MoveToLobby();
+            string msg = result switch
+            {
+                (byte)LoginResult.NO_ID => "아이디 없음",
+                (byte)LoginResult.WRONG_PASSWORD => "비밀번호 틀림",
+                (byte)LoginResult.INVALID_INPUT => "입력 오류",
+                _ => "로그인 실패"
+            };
+
+            loginUI?.ShowError(msg);
         }
     }
-
     void HandleLobbyEnter(byte[] body)
     {
         string nickname = Packet.ReadFixedString(body, 0, 20);
+
         int level = BitConverter.ToInt32(body, 20);
-        int playerIconId = BitConverter.ToInt32(body, 24);
-        int lobbyCharacterModelId = BitConverter.ToInt32(body, 28);
-        int lobbyBackgroundId = BitConverter.ToInt32(body, 32);
+        int currentExp = BitConverter.ToInt32(body, 24);
+        int requiredExp = BitConverter.ToInt32(body, 28);
+
+        int playerIconId = BitConverter.ToInt32(body, 32);
+        int lobbyCharacterModelId = BitConverter.ToInt32(body, 36);
+        int lobbyBackgroundId = BitConverter.ToInt32(body, 40);
+
+        Debug.Log($"[CLIENT LOBBY ENTER] nickname={nickname}, level={level}, exp={currentExp}/{requiredExp}, icon={playerIconId}, char={lobbyCharacterModelId}, bg={lobbyBackgroundId}");
 
         lobbyManager?.OnRecvLobbyEnter(
             nickname,
             level,
+            currentExp,
+            requiredExp,
             playerIconId,
             lobbyCharacterModelId,
             lobbyBackgroundId
         );
     }
-
     void HandleLobbyChat(byte[] body)
     {
+        Debug.Log($"[CLIENT HANDLE LOBBY CHAT] bodyLen={body.Length}");
+
         uint playerId = BitConverter.ToUInt32(body, 0);
         string nickname = Packet.ReadFixedString(body, 4, 20);
         string message = Packet.ReadFixedString(body, 24, 128);
+
+        Debug.Log($"[CLIENT CHAT PARSED] playerId={playerId} nickname={nickname} message={message}");
 
         lobbyManager?.OnRecvLobbyChat(playerId, nickname, message);
     }
@@ -294,5 +347,133 @@ public class NetworkManager : MonoBehaviour
         }
 
         lobbyManager?.OnRecvLobbyCharacterList(list, currentCharacterModelId);
+    }
+
+    public void SendTempGameRoomEnter()
+    {
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_TEMP_GAME_ROOM_ENTER).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    public void SendTempGameStart()
+    {
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_TEMP_GAME_START).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    void HandleTempGameRoomEnter(byte[] body)
+    {
+        byte result = body[0];
+        byte playerCount = body[1];
+
+        if (result != 0)
+        {
+            Debug.LogWarning("[TEMP GAME ROOM] enter fail");
+            return;
+        }
+
+        List<TempGamePlayerData> players = new List<TempGamePlayerData>();
+
+        int offset = 2;
+        for (int i = 0; i < 3; i++)
+        {
+            TempGamePlayerData data = new TempGamePlayerData();
+            data.slotIndex = body[offset];
+            offset += 1;
+
+            data.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            data.playerIconId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            data.logoBorderId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            data.rankImageId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            players.Add(data);
+        }
+
+        lobbyManager?.OnRecvTempGameRoomEnter(playerCount, players);
+    }
+
+    void HandleTempGameStartResult(byte[] body)
+    {
+        byte result = body[0];
+        lobbyManager?.OnRecvTempGameStartResult(result);
+    }
+
+    public void SendRoomList()
+    {
+        Debug.Log("[CLIENT] SendRoomList");
+
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_LIST).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    void HandleRoomList(byte[] body)
+    {
+        Debug.Log($"[ROOMLIST] bodyLength={body.Length}");
+
+        int offset = 0;
+
+        ushort roomCount = BitConverter.ToUInt16(body, offset);
+        offset += 2;
+
+        Debug.Log($"[ROOMLIST] roomCount={roomCount}");
+
+        List<RoomListData> rooms = new();
+
+        for (int i = 0; i < roomCount; i++)
+        {
+            Debug.Log($"[ROOM PARSE START] index={i} offset={offset}");
+
+            RoomListData room = new RoomListData();
+
+            room.roomId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            // 문자열 raw 바이트 확인
+            Debug.Log($"[RAW roomName bytes] {BitConverter.ToString(body, offset, 32)}");
+            room.roomName = Packet.ReadFixedString(body, offset, 32);
+            offset += 32;
+
+            Debug.Log($"[RAW mapName bytes] {BitConverter.ToString(body, offset, 32)}");
+            room.mapName = Packet.ReadFixedString(body, offset, 32);
+            offset += 32;
+
+            Debug.Log($"[RAW hostName bytes] {BitConverter.ToString(body, offset, 20)}");
+            room.hostName = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            room.currentPlayerCount = BitConverter.ToUInt16(body, offset);
+            offset += 2;
+
+            room.maxPlayerCount = BitConverter.ToUInt16(body, offset);
+            offset += 2;
+
+            room.state = body[offset];
+            offset += 1;
+
+            Debug.Log($"[ROOM PARSED] id={room.roomId}, name={room.roomName}, map={room.mapName}, host={room.hostName}");
+
+            rooms.Add(room);
+        }
+
+        LobbyManager.Instance.OnRecvRoomList(rooms);
     }
 }

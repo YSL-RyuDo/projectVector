@@ -20,6 +20,12 @@ public enum PacketType : ushort
     PKT_CS_LOBBY_CHARACTER_LIST = 12,
     PKT_SC_LOBBY_CHARACTER_LIST = 13,
 
+    //임시 게임 입장
+    PKT_CS_TEMP_GAME_ROOM_ENTER = 14,
+    PKT_SC_TEMP_GAME_ROOM_ENTER = 15,
+    PKT_CS_TEMP_GAME_START = 16,
+    PKT_SC_TEMP_GAME_START_RESULT = 17,
+
     //룸 리스트
     PKT_CS_ROOM_LIST = 20,
     PKT_SC_ROOM_LIST = 21,
