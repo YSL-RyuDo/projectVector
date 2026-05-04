@@ -143,6 +143,8 @@ public class Spike : Item
     {
         isExploded = true;
 
+        RoundManager.Instance.EndRound(false);
+
         // 해체 성공 시에도 제어권 돌려주기
         playerSpike?.SetPlayerControl(true);
 

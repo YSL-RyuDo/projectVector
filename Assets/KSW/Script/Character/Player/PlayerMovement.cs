@@ -26,8 +26,12 @@ public class PlayerMovement : MonoBehaviour
 
     public bool CanMove = true;
 
+    public bool isControllable = false; // 임시 코드
+
     void Awake()
     {
+        if (!isControllable) return;
+
         cc = GetComponent<CharacterController>();
         cam = GetComponentInChildren<FPSCameraLook>();
 
@@ -37,6 +41,8 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        if (!isControllable) return;
+
         HandleMovement();
         HandleNetworkSend();
     }

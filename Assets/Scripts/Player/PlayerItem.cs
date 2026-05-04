@@ -33,13 +33,19 @@ public class PlayerItem : MonoBehaviour
 
     void Update()
     {
+        if (!gameObject.CompareTag("Player")) return;
+
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
+            if (!RoundManager.Instance.CanAttack || currentIndex == 0 || currentIndex == 1) return;
+
             items[currentIndex]?.OnUse();
             Debug.Log("leftbutton");
         }
         if (Mouse.current.rightButton.wasPressedThisFrame)
         {
+            if (!RoundManager.Instance.CanAttack || currentIndex == 0 || currentIndex == 1) return;
+
             items[currentIndex]?.OnAltUse();
             Debug.Log("rightbutton");
         }
@@ -262,5 +268,45 @@ public class PlayerItem : MonoBehaviour
         {
             items[currentIndex].gameObject.SetActive(visibility);
         }
+    }
+
+    public void ResetAllAmmo()
+    {
+        // 0번(주무기)부터 1번(권총)까지만 반복
+        for (int i = 0; i <= 1; i++)
+        {
+            if (items[i] != null)
+            {
+                Weapon weapon = items[i].GetComponent<Weapon>();
+
+                if (weapon == null) continue;
+
+                weapon.ReloadFull(); // 탄약 풀 리필
+            }
+        }
+
+        // 모든 리필이 끝나면 권총(1번)으로 스위치
+        Switch(1);
+    }
+
+    public void ResetToDefault()
+    {
+        // 기존 모든 무기 파괴
+        for (int i = 0; i < items.Length; i++)
+        {
+            if (items[i] != null)
+            {
+                Destroy(items[i].gameObject);
+                items[i] = null;
+            }
+        }
+
+        // 권총 및 근접무기 등 기본 장비 재생성 (기존 InitializeDefaultItems 활용)
+        // Start 시점의 생성 로직을 별도 함수로 빼서 호출해도 됌
+        if (secondary != null) CreateStartingItem(secondary, 1);
+        if (melee != null) CreateStartingItem(melee, 2);
+
+        // 권총 장착
+        Switch(1);
     }
 }

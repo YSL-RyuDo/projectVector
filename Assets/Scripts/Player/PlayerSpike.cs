@@ -38,6 +38,8 @@ public class PlayerSpike : MonoBehaviour
         // F 눌렀을 때
         if (Keyboard.current.fKey.wasPressedThisFrame)
         {
+            if (RoundManager.Instance.currentState == RoundManager.RoundState.Preparation) return;
+
             if (hasSpike)
                 TryStartPlant();
             else if (spikeInRange != null)
@@ -47,6 +49,8 @@ public class PlayerSpike : MonoBehaviour
         // F 누르고 있는 동안
         if (Keyboard.current.fKey.isPressed)
         {
+            if (RoundManager.Instance.currentState == RoundManager.RoundState.Preparation) return;
+
             if (isPlanting)
                 Planting();
 
@@ -57,6 +61,8 @@ public class PlayerSpike : MonoBehaviour
         // F 떼면
         if (Keyboard.current.fKey.wasReleasedThisFrame)
         {
+            if (RoundManager.Instance.currentState == RoundManager.RoundState.Preparation) return;
+
             CancelPlant();
 
             if (spikeInRange != null)
@@ -110,6 +116,8 @@ public class PlayerSpike : MonoBehaviour
 
         //  Spike 생성 (현재는 로컬, 나중엔 서버에서 처리)
         SpikeSpawner.Instance.SpawnPlanted(transform.position);
+
+        RoundManager.Instance.OnSpikePlanted();
 
         SetPlayerControl(true); // 제어권 돌려주기
 

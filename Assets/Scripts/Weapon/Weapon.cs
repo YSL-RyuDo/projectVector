@@ -53,7 +53,8 @@ public class Weapon : Item
         vCam = FindFirstObjectByType<CinemachineCamera>();
         cameraLook = cam.GetComponent<FPSCameraLook>();
         weaponADS = GetComponent<WeaponADS>();
-        ammoText = FindFirstObjectByType<TMP_Text>();
+        //ammoText = FindFirstObjectByType<TMP_Text>();
+        ammoText = GameObject.Find("AmmoText").GetComponent<TMP_Text>();
         impulseSource = GetComponentInParent<CinemachineImpulseSource>();
 
         if (recoilSystem == null)
@@ -103,6 +104,7 @@ public class Weapon : Item
 
         if (isFiringInput)
         {
+            if (!RoundManager.Instance.CanAttack) return;
             OnUse();
         }
         else
@@ -219,8 +221,8 @@ public class Weapon : Item
 
         Instantiate(
         weaponData.bulletHolePrefab,
-        hit.point + hit.normal * 0.01f,
-        Quaternion.identity
+        hit.point + hit.normal * 0.001f,
+        Quaternion.LookRotation(hit.normal) * Quaternion.Euler(0f, 180f, 0f)
         );
 
         var hp = hit.collider.GetComponentInParent<PlayerHP>();
