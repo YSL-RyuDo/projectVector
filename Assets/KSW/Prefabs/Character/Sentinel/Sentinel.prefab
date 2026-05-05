@@ -1645,6 +1645,7 @@ GameObject:
   - component: {fileID: 8919230973912769970}
   - component: {fileID: 1191234149131399422}
   - component: {fileID: 6847561979809482290}
+  - component: {fileID: 3256994066224296914}
   m_Layer: 0
   m_Name: Sentinel
   m_TagString: Untagged
@@ -1833,6 +1834,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Q_Skill
   _trapPrefab: {fileID: 6472310157036607655, guid: a934e7d50f14a4940a267ef682b66ecf, type: 3}
   _throwRange: 10
+--- !u!114 &3256994066224296914
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6886427744864830309}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dc55f7f9459944408f43bf75da113c9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::E_Skill
+  trapPrefab: {fileID: 12654924886907039, guid: b44de988e9e287e4d9178a6f1842a514, type: 3}
+  maxDistance: 10
+  wallLayer:
+    serializedVersion: 2
+    m_Bits: 1
 --- !u!1 &7035400687790684767
 GameObject:
   m_ObjectHideFlags: 0

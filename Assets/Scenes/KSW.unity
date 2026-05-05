@@ -9066,6 +9066,8 @@ MonoBehaviour:
   _miniMapUIPanel: {fileID: 821229876}
   _background: {fileID: 349296314}
   _smokeSkill: {fileID: 2050920805}
+  _targetMiniMapCamera: {fileID: 0}
+  _mapRect: {fileID: 0}
 --- !u!1001 &180566166
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12126,6 +12128,7 @@ GameObject:
   - component: {fileID: 258976269}
   - component: {fileID: 258976271}
   - component: {fileID: 258976272}
+  - component: {fileID: 258976273}
   m_Layer: 8
   m_Name: Enemy_A
   m_TagString: Enemy
@@ -12337,6 +12340,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ColorController
   _yellow: {fileID: 2100000, guid: 76daca888fcb801438a177b5643a71a1, type: 2}
   _purple: {fileID: 2100000, guid: 3a250f2c57fe39c40acf811f783d2edc, type: 2}
+--- !u!114 &258976273
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 258976262}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02047a38227841a43bab606f81c08704, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  hp: 100
+  isSlowed: 0
+  _normalMat: {fileID: 2100000, guid: e9031bdb19068644e81ae56c1861a90c, type: 2}
+  _slowMat: {fileID: 2100000, guid: 3a250f2c57fe39c40acf811f783d2edc, type: 2}
+  _concussionMat: {fileID: 2100000, guid: 76daca888fcb801438a177b5643a71a1, type: 2}
+  _renderer: {fileID: 258976265}
 --- !u!1001 &259331871
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -28768,6 +28789,7 @@ GameObject:
   - component: {fileID: 599330020}
   - component: {fileID: 599330022}
   - component: {fileID: 599330023}
+  - component: {fileID: 599330024}
   m_Layer: 8
   m_Name: Enemy_C
   m_TagString: Enemy
@@ -28979,6 +29001,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ColorController
   _yellow: {fileID: 2100000, guid: 76daca888fcb801438a177b5643a71a1, type: 2}
   _purple: {fileID: 2100000, guid: 3a250f2c57fe39c40acf811f783d2edc, type: 2}
+--- !u!114 &599330024
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 599330013}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02047a38227841a43bab606f81c08704, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyStatus
+  hp: 100
+  isSlowed: 0
+  _normalMat: {fileID: 2100000, guid: e9031bdb19068644e81ae56c1861a90c, type: 2}
+  _slowMat: {fileID: 2100000, guid: 3a250f2c57fe39c40acf811f783d2edc, type: 2}
+  _concussionMat: {fileID: 2100000, guid: 76daca888fcb801438a177b5643a71a1, type: 2}
+  _renderer: {fileID: 599330016}
 --- !u!1001 &601296334
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -37075,6 +37115,7 @@ GameObject:
   - component: {fileID: 763530338}
   - component: {fileID: 763530340}
   - component: {fileID: 763530341}
+  - component: {fileID: 763530342}
   m_Layer: 8
   m_Name: Enemy_B
   m_TagString: Enemy
@@ -37286,6 +37327,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ColorController
   _yellow: {fileID: 2100000, guid: 76daca888fcb801438a177b5643a71a1, type: 2}
   _purple: {fileID: 2100000, guid: 3a250f2c57fe39c40acf811f783d2edc, type: 2}
+--- !u!114 &763530342
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 763530331}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02047a38227841a43bab606f81c08704, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyStatus
+  hp: 100
+  isSlowed: 0
+  _normalMat: {fileID: 2100000, guid: e9031bdb19068644e81ae56c1861a90c, type: 2}
+  _slowMat: {fileID: 2100000, guid: 3a250f2c57fe39c40acf811f783d2edc, type: 2}
+  _concussionMat: {fileID: 2100000, guid: 76daca888fcb801438a177b5643a71a1, type: 2}
+  _renderer: {fileID: 763530334}
 --- !u!1001 &763937537
 PrefabInstance:
   m_ObjectHideFlags: 0
