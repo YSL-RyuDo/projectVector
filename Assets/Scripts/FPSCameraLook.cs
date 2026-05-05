@@ -22,27 +22,20 @@ public class FPSCameraLook : MonoBehaviour
 
     public bool CanMove = true;
 
-    public static FPSCameraLook Instance { get; private set; }
-
-    private void Awake()
-    {
-        /*
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        */
-
-        Instance = this;
-    }
-
-    private void Start()
+    void Start()
     {
         player = transform.parent;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        MiniMapUI ui = FindFirstObjectByType<MiniMapUI>();
+
+        if (ui != null)
+        {
+            ui.RegisterLocalPlayerCamera(this);
+            ui.RegisterPlayer(this.gameObject);
+        }
     }
 
     void Update()

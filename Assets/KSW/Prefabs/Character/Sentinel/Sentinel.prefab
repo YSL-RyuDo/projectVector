@@ -1638,10 +1638,10 @@ GameObject:
   - component: {fileID: 593350853178283803}
   - component: {fileID: 9095901964489468934}
   - component: {fileID: 6704828943575367137}
-  - component: {fileID: 8415083538319727277}
   - component: {fileID: 4794858652514534123}
   - component: {fileID: 2584416420426174873}
   - component: {fileID: 7179143017235550764}
+  - component: {fileID: 6070252394421899679}
   - component: {fileID: 8919230973912769970}
   - component: {fileID: 1191234149131399422}
   - component: {fileID: 6847561979809482290}
@@ -1722,18 +1722,6 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0.81, z: 0}
---- !u!114 &8415083538319727277
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6886427744864830309}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2af249ce5a39f6240810fd7c6427208c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Player
 --- !u!114 &4794858652514534123
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1746,11 +1734,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39777574204be064fb2357a6c06f255f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  speed: 5
-  gravity: -20
-  jumpPower: 8
-  sendInterval: 0.05
-  _mainAnimator: {fileID: 2070772629346009364}
+  _speed: 5
+  _gravity: -20
+  _jumpPower: 8
   CanMove: 1
 --- !u!114 &2584416420426174873
 MonoBehaviour:
@@ -1778,6 +1764,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerIdentity
   PlayerId: 0
+--- !u!114 &6070252394421899679
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6886427744864830309}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30aa1829781e5ee4b875164bd837c991, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSpike
+  playerItem: {fileID: 8919230973912769970}
+  playerMove: {fileID: 4794858652514534123}
+  dropPoint: {fileID: 8739758115065057743}
+  hasSpike: 1
+  plantTime: 3
+  spikeSlider: {fileID: 0}
 --- !u!114 &8919230973912769970
 MonoBehaviour:
   m_ObjectHideFlags: 0

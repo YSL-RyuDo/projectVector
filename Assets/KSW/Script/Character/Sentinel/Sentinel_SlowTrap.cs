@@ -12,6 +12,14 @@ public class Sentinel_SlowTrap : MonoBehaviour
     private Dictionary<GameObject, GameObject> _activeLines = new Dictionary<GameObject, GameObject>();
     private List<GameObject> _slowedEnemies = new List<GameObject>();
 
+    void OnDestroy()
+    {
+        foreach (var line in _activeLines.Values)
+        {
+            if (line != null) Destroy(line);
+        }
+    }
+
     void Update()
     {
         if (_health <= 0) Destroy(gameObject);
@@ -67,13 +75,5 @@ public class Sentinel_SlowTrap : MonoBehaviour
     {
         if (target.TryGetComponent(out Animator anim)) anim.speed = 1f;
         if (target.TryGetComponent(out ColorController colorCtrl)) colorCtrl.GetColor("original");
-    }
-
-    private void OnDestroy()
-    {
-        foreach (var line in _activeLines.Values)
-        {
-            if (line != null) Destroy(line);
-        }
     }
 }

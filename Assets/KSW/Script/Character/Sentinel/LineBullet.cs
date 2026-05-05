@@ -2,14 +2,14 @@ using UnityEngine;
 
 public class LineBullet : MonoBehaviour
 {
-    private LineRenderer lr;
+    private LineRenderer _lr;
     private Transform _target;
     private Transform _trap;
 
     void Awake()
     {
-        lr = GetComponent<LineRenderer>();
-        lr.useWorldSpace = true;
+        _lr = GetComponent<LineRenderer>();
+        _lr.useWorldSpace = true;
     }
 
     void LateUpdate()
@@ -20,8 +20,8 @@ public class LineBullet : MonoBehaviour
             return;
         }
 
-        lr.SetPosition(0, _trap.position);
-        lr.SetPosition(1, _target.position);
+        _lr.SetPosition(0, _trap.position);
+        _lr.SetPosition(1, _target.position);
     }
 
     public void Setup(Transform trap, Transform target)

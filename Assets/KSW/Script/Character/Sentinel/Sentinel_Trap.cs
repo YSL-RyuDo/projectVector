@@ -5,18 +5,16 @@ using UnityEngine.UI;
 
 public class Sentinel_Trap : MonoBehaviour
 {
-    [Header("--- 프리팹 연결 ---")]
     [SerializeField] private GameObject trapModel;
     [SerializeField] private GameObject scanSphereVisual;
     [SerializeField] private Slider _hpUI;
-
-    [Header("--- 설정 수치 ---")]
-    [SerializeField] private LayerMask enemyLayer;
-    [SerializeField] private float maxHealth = 40f;
-    [SerializeField] private float currentHealth = 40f;
+    [SerializeField] private float maxHp = 40f;
+    [SerializeField] private float currentHp = 40f;
     [SerializeField] private float detectRadius = 10f;
     [SerializeField] private float scanDelay = 1.0f;
     [SerializeField] private float scanSpeed = 35f;
+
+    [SerializeField] private LayerMask _enemyLayer;
 
     private bool _isPlaced = false;
     private bool _isScanning = false;
@@ -24,29 +22,29 @@ public class Sentinel_Trap : MonoBehaviour
     private Rigidbody rb;
     private Collider myCollider;
 
-    private void Awake()
+    void Awake()
     {
-        currentHealth = maxHealth;
+        currentHp = maxHp;
         rb = GetComponent<Rigidbody>();
         myCollider = GetComponent<Collider>();
         if (scanSphereVisual) scanSphereVisual.SetActive(false);
         StartCoroutine(ignoreCollisionRoutine());
     }
 
-    private void Start()
+    void Start()
     {
-        _hpUI.maxValue = maxHealth;
+        _hpUI.maxValue = maxHp;
         _hpUI.gameObject.SetActive(false);
     }
 
-    private void Update()
+    void Update()
     {
         if (!_isPlaced) return;
 
-        _hpUI.value = currentHealth;
-        if (currentHealth <= 0) { Destroy(this.gameObject); return; }
+        _hpUI.value = currentHp;
+        if (currentHp <= 0) { Destroy(this.gameObject); return; }
 
-        Collider[] enemies = Physics.OverlapSphere(transform.position, detectRadius, enemyLayer);
+        Collider[] enemies = Physics.OverlapSphere(transform.position, detectRadius, _enemyLayer);
         if (enemies.Length > 0)
         {
             rotateTowardsTarget(enemies[0].transform);
@@ -54,7 +52,7 @@ public class Sentinel_Trap : MonoBehaviour
         }
     }
 
-    private void OnTriggerEnter(Collider other)
+    void OnTriggerEnter(Collider other)
     {
         if (_isPlaced || other.CompareTag("Player")) return;
         _isPlaced = true;
@@ -96,7 +94,7 @@ public class Sentinel_Trap : MonoBehaviour
         CharacterSkillUI.Instance.SentinelSkillText(true, "Enemy 감지");
         yield return new WaitForSeconds(scanDelay);
 
-        if (Physics.CheckSphere(transform.position, detectRadius, enemyLayer))
+        if (Physics.CheckSphere(transform.position, detectRadius, _enemyLayer))
         {
             yield return StartCoroutine(ExpandWave());
         }
@@ -119,7 +117,7 @@ public class Sentinel_Trap : MonoBehaviour
             currentRadius += (Time.deltaTime * scanSpeed) / 2f;
             scanSphereVisual.transform.localScale = Vector3.one * (currentRadius * 2f);
 
-            Collider[] enemies = Physics.OverlapSphere(transform.position, detectRadius, enemyLayer);
+            Collider[] enemies = Physics.OverlapSphere(transform.position, detectRadius, _enemyLayer);
 
             foreach (var enemy in enemies)
             {
@@ -140,7 +138,7 @@ public class Sentinel_Trap : MonoBehaviour
             yield return null;
         }
 
-        Collider[] finalClean = Physics.OverlapSphere(transform.position, detectRadius, enemyLayer);
+        Collider[] finalClean = Physics.OverlapSphere(transform.position, detectRadius, _enemyLayer);
         foreach (var e in finalClean)
         {
             var o = e.GetComponent<Outline>();
@@ -152,7 +150,7 @@ public class Sentinel_Trap : MonoBehaviour
 
     public void TakeDamage(float amount)
     {
-        currentHealth -= amount;
-        if (currentHealth <= 0) Destroy(this.gameObject);
+        currentHp -= amount;
+        if (currentHp <= 0) Destroy(this.gameObject);
     }
 }

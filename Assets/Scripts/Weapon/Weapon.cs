@@ -41,14 +41,14 @@ public class Weapon : Item
     void Awake()
     {
         ownerHP = GetComponentInParent<PlayerHP>();
-        isPlayer = Player.Instance != null;
+        isPlayer = GetComponentInParent<PlayerMovement>();
 
-        if (!Player.Instance)
+        if (!isPlayer)
         {
             enabled = false;
             return;
         }
-
+        
         cam = Camera.main;
         vCam = FindFirstObjectByType<CinemachineCamera>();
         cameraLook = cam.GetComponent<FPSCameraLook>();

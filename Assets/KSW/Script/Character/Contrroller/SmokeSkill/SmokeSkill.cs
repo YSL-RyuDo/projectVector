@@ -10,8 +10,7 @@ public class SmokeSkill : MonoBehaviour
     private RectTransform _mapRect;
     private RectTransform _pingContainer;
 
-    [Header("Settings")]
-    [SerializeField] private Camera _miniMapCamera;
+    private Camera _miniMapCamera;
 
     private List<Vector3> _targetLocations = new List<Vector3>();
     private bool _isSelecting = false;
@@ -20,10 +19,6 @@ public class SmokeSkill : MonoBehaviour
 
     private void Start()
     {
-        GameObject uiRoot = GameObject.FindWithTag("MiniMap");
-
-        _mapRect = uiRoot.transform.Find("MiniMap").GetComponent<RectTransform>();
-        _pingContainer = uiRoot.transform.Find("MiniMap").GetComponent<RectTransform>();
     }
 
     private void Update()
@@ -44,6 +39,13 @@ public class SmokeSkill : MonoBehaviour
                 dropSmokes();
             }
         }
+    }
+
+    public void SetupMiniMapReferences(Camera miniMapCam, RectTransform mapRect)
+    {
+        _miniMapCamera = miniMapCam;
+        _mapRect = mapRect;
+        _pingContainer = mapRect;
     }
 
     public void SetSelectingState(bool state)

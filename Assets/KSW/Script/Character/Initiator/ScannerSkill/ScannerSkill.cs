@@ -3,22 +3,18 @@ using UnityEngine.InputSystem;
 
 public class ScannerSkill : MonoBehaviour
 {
-    [Header("Prefabs")]
-    [SerializeField] private GameObject _scannerPrefab;
-
-    [Header("Physics Settings")]
-    [SerializeField] private float _baseForce = 12f;    // 힘을 살짝 낮춤 (곡선이 더 잘 보임)
-    [SerializeField] private float _forceMultiplier = 1.0f;
-
-    [Header("Trajectory Settings")]
-    [SerializeField] private LineRenderer _lineRenderer;
+    [SerializeField] private float _baseForce = 12f;
     [SerializeField] private int _lineResolution = 30;
-    [SerializeField] private float _lineSpacing = 0.12f; // 간격을 좀 늘려야 멀리까지 보임
+    [SerializeField] private float _lineSpacing = 0.12f;
+
+    [SerializeField] private GameObject _scannerPrefab;
+    
+    private LineRenderer _lineRenderer;
 
     private bool _isAiming = false;
     private Camera _mainCam;
 
-    private void Start()
+    void Start()
     {
         _mainCam = Camera.main;
         if (_lineRenderer != null)
@@ -28,9 +24,8 @@ public class ScannerSkill : MonoBehaviour
         }
     }
 
-    private void Update()
+    void Update()
     {
-        // 1. C키 토글
         if (Keyboard.current.cKey.wasPressedThisFrame)
         {
             _isAiming = !_isAiming;
@@ -39,7 +34,6 @@ public class ScannerSkill : MonoBehaviour
 
         if (_isAiming)
         {
-            // 2. 발사 및 취소
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {
                 ThrowScanner();
@@ -52,7 +46,7 @@ public class ScannerSkill : MonoBehaviour
         }
     }
 
-    private void LateUpdate()
+    void LateUpdate()
     {
         if (_isAiming)
         {

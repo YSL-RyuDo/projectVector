@@ -4,11 +4,20 @@ using UnityEngine.InputSystem;
 
 public class TaserDroneSkill : MonoBehaviour
 {
+    private PlayerMovement _playerMovement;
+    private FPSCameraLook _camera;
+
     [SerializeField] private Drone _taserDronePrefab;
     private Drone _currentTaserDrone;
     private bool _isDroneMode = false;
 
-    private void Update()
+    void Start()
+    {
+        _playerMovement = GetComponent<PlayerMovement>();
+        _camera = GetComponentInChildren<FPSCameraLook>();
+    }
+
+    void Update()
     {
         if (Keyboard.current.qKey.wasPressedThisFrame) SetDroneMode(!_isDroneMode);
     }
@@ -24,8 +33,8 @@ public class TaserDroneSkill : MonoBehaviour
                 {
                     if (_currentTaserDrone == null)
                     {
-                        Vector3 spwanPos = Player.Instance.transform.position + Player.Instance.transform.forward * 2.5f + Vector3.up * 2.5f;
-                        Quaternion spawnRot = Quaternion.LookRotation(Player.Instance.transform.forward);
+                        Vector3 spwanPos = _playerMovement.transform.position + _playerMovement.transform.forward * 2.5f + Vector3.up * 2.5f;
+                        Quaternion spawnRot = Quaternion.LookRotation(_playerMovement.transform.forward);
                         _currentTaserDrone = Instantiate(_taserDronePrefab, spwanPos, spawnRot);
 
                         TaserGun gun = _currentTaserDrone.GetComponentInChildren<TaserGun>();
@@ -35,8 +44,8 @@ public class TaserDroneSkill : MonoBehaviour
                         }
                     }
 
-                    Player.Instance.Movement.CanMove = false;
-                    FPSCameraLook.Instance.CanMove = false;
+                    _playerMovement.CanMove = false;
+                    _camera.CanMove = false;
                 }
                 break;
 
@@ -47,8 +56,8 @@ public class TaserDroneSkill : MonoBehaviour
                     _currentTaserDrone = null;
                 }
 
-                Player.Instance.Movement.CanMove = true;
-                FPSCameraLook.Instance.CanMove = true;
+                _playerMovement.CanMove = true;
+                _camera.CanMove = true;
 
                 Cursor.lockState = CursorLockMode.Locked;
                 break;
