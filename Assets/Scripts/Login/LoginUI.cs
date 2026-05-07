@@ -2,266 +2,275 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
 using UnityEngine.UI;
-using UnityEngine.InputSystem.Controls;
-using System.Text.RegularExpressions;
-using System.Collections;
 
+public enum LoginMode
+{
+    Login,
+    Register
+}
 
 public class LoginUI : MonoBehaviour
 {
+    // =========================
+    // 1. 변수
+    // =========================
 
-    [Header("Panels")]
-    public GameObject LoginPanel;
-    public GameObject RegisterPanel;
+    public LoginMode mode = LoginMode.Login;
 
-    [Header("Login")]
-    public TMP_InputField loginIdInput;
-    public TMP_InputField loginPasswordInput;
+    public GameObject loginImagePanel;
 
-    [Header("Register")]
-    public TMP_InputField RegisterIdInput;
-    public TMP_InputField RegisterNicknameInput;
-    public TMP_InputField RegisterPasswordInput;
-    public TMP_InputField RegisterConfirmPasswordInput;
+    [Header("Inputs")]
+    public TMP_InputField idInput;
+    public TMP_InputField nicknameInput;
+    public TMP_InputField passwordInput;
+    public TMP_InputField confirmPasswordInput;
 
-    [Header("Texts")]
-    public TMP_Text resultText;
-    public TMP_Text statusText;
+    [Header("Buttons")]
+    public Button sendButton;
+    public Button switchButton;
+    public Button enterButton;
 
-    [Header("Loading")]
-    public GameObject loadingObject;
+    [Header("Images")]
+    public Image sendImage;
+    public Sprite loginSendSprite;
+    public Sprite registerSendSprite;
 
-    public void SetResult(string message)
+    public Image switchImage;
+    public Sprite toRegisterSprite;
+    public Sprite toLoginSprite;
+
+    [Header("Popup")]
+    public GameObject popupImage;
+    public TMP_Text errorText;
+
+    private bool isLoginSuccess = false;
+
+    // =========================
+    // 2. 초기화
+    // =========================
+
+    void Start()
     {
-        resultText.text = message;
+        NetworkManager.Instance.SetLoginUI(this);
+
+        SetMode(LoginMode.Login);
+
+        enterButton.gameObject.SetActive(false);
+        errorText.gameObject.SetActive(false);
     }
 
-    public void SetStatus(string message)
+    // =========================
+    // 3. 입력 처리
+    // =========================
+
+    void Update()
     {
-        statusText.text = message;
-    }
+        // TAB 이동
+        if (Input.GetKeyDown(KeyCode.Tab))
+            HandleTab();
 
-    public void OnClickLogin()
-    {
-
-
-        string ID = loginIdInput.text.Trim();
-        string PW = loginPasswordInput.text; //공백여부 몰름아직 
-
-        if (ID == "")
+        // ENTER 실행
+        if (Input.GetKeyDown(KeyCode.Return))
         {
-            resultText.text = "아이디를 입력해주세요.";
-            return;
+            if (!isLoginSuccess)
+                OnClickSend();
+            else
+                OnClickEnter();
         }
 
-        if (PW == "")
+        // ESC 팝업 닫기
+        if (Input.GetKeyDown(KeyCode.Escape))
         {
-            resultText.text = "비밀번호를 입력해주세요.";
-            return;
-        }
-
-        if (ID.Length < 4)
-        {
-            resultText.text = "입력값이 올바르지 않습니다";
-            return;
-        }
-
-        if (PW.Length < 8 || PW.Length > 64)
-        {
-            resultText.text = "입력값이 올바르지 않습니다.";
-            return;
-        }
-
-        if (!(Regex.IsMatch(PW, @"[a-zA-Z]")))
-        {
-            resultText.text = "입력값이 올바르지 않습니다.";
-            return;
-        }
-
-        if (!(Regex.IsMatch(PW, @"[0-9]")))
-        {
-            resultText.text = "입력값이 올바르지 않습니다.";
-            return;
-        }
-
-
-        //형식 검사 부분
-        if (ID.Length < 4 || ID.Length > 20)
-        {
-            resultText.text = "입력값이 올바르지 않습니다.";
-            return;
-        }
-
-        for (int i = 0; i < ID.Length; i++)
-        {
-            char c = ID[i];
-
-            bool ABC = (c >= 'A' && c <= 'Z');
-            bool abc = (c >= 'a' && c <= 'z');
-            bool number = (c >= '0' && c <= '9');
-            bool underbar = (c == '_');
-
-            if (!(ABC || abc || number || underbar))
-            {
-                resultText.text = "입력값이 올바르지 않습니다.";
-                return;
-            }
-        }
-
-        SetLoading(true);
-        NetworkManager.Instance.SendLogin(ID, PW);
-    }
-
-    public void OnClickRegister()
-    {
-
-        string ID = RegisterIdInput.text.Trim();
-        string Nickname = RegisterNicknameInput.text.Trim();
-        string Password = RegisterPasswordInput.text;   //공백여부몰름
-        string Confirm = RegisterConfirmPasswordInput.text;
-
-
-        if (ID == "")
-        {
-            resultText.text = "아이디를 입력해주세요.";
-            return;
-        }
-
-        if (Nickname == "")
-        {
-            resultText.text = "닉네임을 입력해주세요.";
-            return;
-        }
-
-        if (Password == "")
-        {
-            resultText.text = "비밀번호를 입력해주세요.";
-            return;
-        }
-
-        if (Confirm == "")
-        {
-            resultText.text = "비밀번호 확인을 입력해주세요.";
-            return;
-        }
-
-        if (Confirm != Password)
-        {
-            resultText.text = "비밀번호가 일치하지 않습니다.";
-            return;
-        }
-
-        //형식 검사 부분
-        if (ID.Length < 4 || ID.Length > 20)
-        {
-            resultText.text = "입력값이 올바르지 않습니다.";
-            return;
-        }
-
-        for (int i = 0; i < ID.Length; i++)
-        {
-            char c = ID[i];
-
-            bool ABC = (c >= 'A' && c <= 'Z');
-            bool abc = (c >= 'a' && c <= 'z');
-            bool number = (c >= '0' && c <= '9');
-            bool underbar = (c == '_');
-
-            if (!(ABC || abc || number || underbar))
-            {
-                resultText.text = "입력값이 올바르지 않습니다.";
-                return;
-            }
-        }
-
-        if (Nickname.Length < 2 || Nickname.Length > 16)
-        {
-            resultText.text = "입력값이 올바르지 않습니다.";
-            return;
-        }
-
-        if (Password.Length < 8 || Password.Length > 64)
-        {
-            resultText.text = "입력값이 올바르지 않습니다.";
-            return;
-        }
-
-        if (!(Regex.IsMatch(Password, @"[a-zA-Z]")))
-        {
-            resultText.text = "입력값이 올바르지 않습니다.";
-            return;
-        }
-
-        if (!(Regex.IsMatch(Password, @"[0-9]")))
-        {
-            resultText.text = "입력값이 올바르지 않습니다.";
-            return;
-        }
-
-        SetLoading(true);
-        NetworkManager.Instance.SendRegister(ID, Nickname, Password, Confirm);
-
-    }
-
-    public void SwitchToLoginMode()
-    {
-        LoginPanel.SetActive(true);
-        RegisterPanel.SetActive(false);
-        statusText.text = "로그인모드";
-        //SetResult("");
-    }
-
-    public void SwitchToRegisterMode()
-    {
-        LoginPanel.SetActive(false);
-        RegisterPanel.SetActive(true);
-        statusText.text = "회원가입 모드";
-        //SetResult("");
-    }
-
-
-    public void SetLoading(bool active)
-    {
-        
-        if (loadingObject != null)
-        {
-            loadingObject.SetActive(active);
+            if (popupImage.activeSelf)
+                OnClickClosePopup();
         }
     }
 
-    public void ClearInputs()
+    // =========================
+    // 4. 모드 제어
+    // =========================
+
+    public void SetMode(LoginMode newMode)
     {
-        loginIdInput.text = "";
-        loginPasswordInput.text = "";
-        RegisterIdInput.text = "";
-        RegisterNicknameInput.text = "";
-        RegisterPasswordInput.text = "";
-        RegisterConfirmPasswordInput.text = "";
+        mode = newMode;
+
+        bool isRegister = (mode == LoginMode.Register);
+
+        nicknameInput.gameObject.SetActive(isRegister);
+        confirmPasswordInput.gameObject.SetActive(isRegister);
+
+        sendImage.sprite = isRegister ? registerSendSprite : loginSendSprite;
+        switchImage.sprite = isRegister ? toLoginSprite : toRegisterSprite;
+
+        errorText.gameObject.SetActive(false);
+
+        FocusFirstInput();
     }
 
-    public void MoveToLobby()
+    public void OnClickSwitch()
     {
+        SetMode(mode == LoginMode.Login ? LoginMode.Register : LoginMode.Login);
+    }
+
+    // =========================
+    // 5. 버튼 동작
+    // =========================
+
+    public void OnClickSend()
+    {
+        if (mode == LoginMode.Login)
+            TryLogin();
+        else
+            TryRegister();
+    }
+
+    public void OnClickEnter()
+    {
+        if (!isLoginSuccess)
+            return;
+
         SceneManager.LoadScene("Lobby");
     }
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public void OnClickClosePopup()
     {
-        LoginPanel.SetActive(false);
-        RegisterPanel.SetActive(false);
-        Debug.Log("LoginUI Start, SetLoginUI 호출");
-        NetworkManager.Instance.SetLoginUI(this);
+        popupImage.SetActive(false);
     }
 
-    // Update is called once per frame
-    void Update()
+    // =========================
+    // 6. 서버 요청
+    // =========================
+
+    void TryLogin()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+        string id = idInput.text.Trim();
+        string pw = passwordInput.text;
+
+        if (id == "" || pw == "")
         {
-            LoginPanel.SetActive(false);
-            RegisterPanel.SetActive(false);
-            statusText.text = "";
-            resultText.text = "";
+            ShowError("아이디 / 비밀번호 입력");
+            return;
+        }
+
+        NetworkManager.Instance.SendLogin(id, pw);
+    }
+
+    void TryRegister()
+    {
+        string id = idInput.text.Trim();
+        string nick = nicknameInput.text.Trim();
+        string pw = passwordInput.text;
+        string confirm = confirmPasswordInput.text;
+
+        if (pw != confirm)
+        {
+            ShowError("비밀번호 불일치");
+            return;
+        }
+
+        NetworkManager.Instance.SendRegister(id, nick, pw, confirm);
+    }
+
+    // =========================
+    // 7. 서버 응답
+    // =========================
+
+    public void OnLoginResult(bool success)
+    {
+        if (!success)
+        {
+            ShowError("로그인 실패");
+            return;
+        }
+
+        if (popupImage != null)
+            popupImage.SetActive(false);
+
+        isLoginSuccess = true;
+        enterButton.gameObject.SetActive(true);
+
+        if (loginImagePanel != null)
+            loginImagePanel.SetActive(false);
+    }
+
+    public void OnRegisterResult(bool success)
+    {
+        if (!success)
+        {
+            ShowError("회원가입 실패");
+            return;
+        }
+
+        ClearInputs();
+        SetMode(LoginMode.Login);
+    }
+
+    // =========================
+    // 8. UI 처리
+    // =========================
+
+    public void ShowError(string msg)
+    {
+        popupImage.SetActive(true);
+        errorText.text = msg;
+        errorText.gameObject.SetActive(true);
+    }
+
+    void ClearInputs()
+    {
+        idInput.text = "";
+        nicknameInput.text = "";
+        passwordInput.text = "";
+        confirmPasswordInput.text = "";
+    }
+
+    void FocusFirstInput()
+    {
+        idInput.Select();
+        idInput.ActivateInputField();
+    }
+
+    // =========================
+    // 9. TAB 이동
+    // =========================
+
+    void HandleTab()
+    {
+        if (mode == LoginMode.Login)
+        {
+            if (idInput.isFocused)
+            {
+                passwordInput.Select();
+                passwordInput.ActivateInputField();
+            }
+            else
+            {
+                idInput.Select();
+                idInput.ActivateInputField();
+            }
+        }
+        else
+        {
+            if (idInput.isFocused)
+            {
+                nicknameInput.Select();
+                nicknameInput.ActivateInputField();
+            }
+            else if (nicknameInput.isFocused)
+            {
+                passwordInput.Select();
+                passwordInput.ActivateInputField();
+            }
+            else if (passwordInput.isFocused)
+            {
+                confirmPasswordInput.Select();
+                confirmPasswordInput.ActivateInputField();
+            }
+            else
+            {
+                idInput.Select();
+                idInput.ActivateInputField();
+            }
         }
     }
 }
