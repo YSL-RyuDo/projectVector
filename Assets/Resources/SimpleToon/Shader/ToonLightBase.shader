@@ -142,6 +142,7 @@ Shader "Lpk/LightModel/ToonLightBase"
             #pragma vertex vert
             #pragma fragment frag
             #pragma multi_compile_fog
+            //#pragma multi_compile DECALS_OFF DECALS_3RT DECALS_4RT
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             
             struct Attributes

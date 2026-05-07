@@ -181,7 +181,7 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 1
+  m_RenderPostProcessing: 0
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
@@ -433,9 +433,9 @@ MonoBehaviour:
   _maxBonusForce: 6
   _waitBeforeDischarge: 2
   _camera: {fileID: 8246343841070073015}
-  _crouchHeight: 0.75
-  _normalHeight: 1.2
-  _heightSmoothSpeed: 5
+  _crouchY: 0.75
+  _standY: 1.2
+  _smoothSpeed: 10
 --- !u!1001 &5226665221230326517
 PrefabInstance:
   m_ObjectHideFlags: 0
