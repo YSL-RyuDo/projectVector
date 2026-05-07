@@ -57,13 +57,52 @@ public class LobbyManager : MonoBehaviour
 
     [Header("Room List")]
     [SerializeField] private GameObject roomListPanel;
-    [SerializeField] private Transform roomListContent;   // Content
-    [SerializeField] private GameObject roomSlotPrefab;   // 프리팹
+    [SerializeField] private Transform roomListContent;
+    [SerializeField] private GameObject roomSlotPrefab;
 
-    private List<GameObject> roomSlotObjects = new();
+    [Header("Room Panel")]
+    [SerializeField] private RoomPanelUI roomPanelUI;
 
+    [Header("Game Mode Buttons")]
+    [SerializeField] private Button normalGameButton;
+    [SerializeField] private Button rankGameButton;
+    [SerializeField] private Button customRoomButton;
+
+    [SerializeField] private Color unselectedModeButtonColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+    [SerializeField] private Color selectedModeButtonColor = new Color(0.75f, 1f, 0.35f, 1f);
 
     private readonly List<GameObject> characterSlots = new();
+    private readonly List<GameObject> roomSlotObjects = new();
+
+    private enum GamePanelView
+    {
+        None,
+        RoomList,
+        TempGameRoom,
+        RoomPanel
+    }
+
+    private enum GameMode
+    {
+        None,
+        Normal,
+        Rank,
+        Custom
+    }
+
+    private enum AfterRoomLeaveAction
+    {
+        OpenRoomList,
+        EnterNormal,
+        EnterRank
+    }
+
+    private GamePanelView currentGamePanelView = GamePanelView.None;
+    private GameMode currentGameMode = GameMode.Normal;
+    private GameMode previousModeBeforeCustom = GameMode.Normal;
+    private AfterRoomLeaveAction afterRoomLeaveAction = AfterRoomLeaveAction.OpenRoomList;
+
+    private RoomStateData currentRoomState;
 
     private string currentNickname;
     private int currentLevel;
@@ -98,19 +137,42 @@ public class LobbyManager : MonoBehaviour
         if (roomListPanel != null)
             roomListPanel.SetActive(false);
 
+        if (roomPanelUI != null)
+        {
+            roomPanelUI.HideRoom();
+            roomPanelUI.OnConfirmLeave = OnConfirmRoomLeave;
+        }
+
         HideAllTempGameSlots();
+
+        SelectGameMode(GameMode.Normal);
     }
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            if (backgroundSelectPopup != null)
-                backgroundSelectPopup.SetActive(false);
+        if (!Input.GetKeyDown(KeyCode.Escape))
+            return;
 
-            if (characterSelectPopup != null)
-                characterSelectPopup.SetActive(false);
+        if (roomPanelUI != null && roomPanelUI.IsRoomOpen())
+        {
+            if (roomPanelUI.IsLeaveConfirmOpen())
+            {
+                roomPanelUI.HideLeaveConfirmPanel();
+            }
+            else
+            {
+                afterRoomLeaveAction = AfterRoomLeaveAction.OpenRoomList;
+                roomPanelUI.ShowLeaveConfirmPanel();
+            }
+
+            return;
         }
+
+        if (backgroundSelectPopup != null)
+            backgroundSelectPopup.SetActive(false);
+
+        if (characterSelectPopup != null)
+            characterSelectPopup.SetActive(false);
     }
 
     public void OnRecvLobbyEnter(
@@ -343,6 +405,18 @@ public class LobbyManager : MonoBehaviour
             gamePanel.SetActive(false);
     }
 
+    private void HideAllGameSubPanels()
+    {
+        if (tempGameRoomPanel != null)
+            tempGameRoomPanel.SetActive(false);
+
+        if (roomListPanel != null)
+            roomListPanel.SetActive(false);
+
+        if (roomPanelUI != null)
+            roomPanelUI.HideRoom();
+    }
+
     private void ShowRoomListPanel()
     {
         ShowGamePanel();
@@ -350,10 +424,15 @@ public class LobbyManager : MonoBehaviour
         if (tempGameRoomPanel != null)
             tempGameRoomPanel.SetActive(false);
 
+        if (roomPanelUI != null)
+            roomPanelUI.HideRoom();
+
         HideAllTempGameSlots();
 
         if (roomListPanel != null)
             roomListPanel.SetActive(true);
+
+        currentGamePanelView = GamePanelView.RoomList;
     }
 
     private void ShowTempGameRoomPanel()
@@ -363,8 +442,45 @@ public class LobbyManager : MonoBehaviour
         if (roomListPanel != null)
             roomListPanel.SetActive(false);
 
+        if (roomPanelUI != null)
+            roomPanelUI.HideRoom();
+
         if (tempGameRoomPanel != null)
             tempGameRoomPanel.SetActive(true);
+
+        currentGamePanelView = GamePanelView.TempGameRoom;
+    }
+
+    private void ShowTempGameRoomPanelOnly()
+    {
+        ShowGamePanel();
+
+        if (roomListPanel != null)
+            roomListPanel.SetActive(false);
+
+        if (roomPanelUI != null)
+            roomPanelUI.HideRoom();
+
+        if (tempGameRoomPanel != null)
+            tempGameRoomPanel.SetActive(true);
+
+        currentGamePanelView = GamePanelView.TempGameRoom;
+    }
+
+    private void ShowRoomPanelOnly()
+    {
+        ShowGamePanel();
+
+        if (roomListPanel != null)
+            roomListPanel.SetActive(false);
+
+        if (tempGameRoomPanel != null)
+            tempGameRoomPanel.SetActive(false);
+
+        if (roomPanelUI != null && currentRoomState != null)
+            roomPanelUI.OpenRoom(currentRoomState);
+
+        currentGamePanelView = GamePanelView.RoomPanel;
     }
 
     private void FillLocalTempGameSlot0()
@@ -399,20 +515,90 @@ public class LobbyManager : MonoBehaviour
 
     public void OnClickGameButton()
     {
-        Debug.Log("[GAME PANEL] GameButton Click -> default normal");
-        EnterTempGameRoom();
+        Debug.Log($"[GAME PANEL] GameButton Click currentView={currentGamePanelView}");
+
+        if (currentGamePanelView == GamePanelView.None)
+        {
+            SelectGameMode(GameMode.Normal);
+            EnterTempGameRoom();
+            return;
+        }
+
+        if (currentGamePanelView == GamePanelView.TempGameRoom)
+        {
+            ShowTempGameRoomPanelOnly();
+            return;
+        }
+
+        if (currentGamePanelView == GamePanelView.RoomPanel)
+        {
+            ShowRoomPanelOnly();
+            return;
+        }
+
+        if (currentGamePanelView == GamePanelView.RoomList)
+        {
+            ShowRoomListPanel();
+            return;
+        }
     }
 
     public void OnClickNormalGameButton()
     {
-        Debug.Log("[TEMP GAME ROOM] NormalButton Click");
+        Debug.Log("[GAME MODE] NormalButton Click");
+
+        if (currentGameMode == GameMode.Normal)
+        {
+            Debug.Log("[GAME MODE] already normal");
+            return;
+        }
+
+        if (IsInCustomRoom())
+        {
+            RequestRoomLeave(AfterRoomLeaveAction.EnterNormal);
+            return;
+        }
+
+        SelectGameMode(GameMode.Normal);
         EnterTempGameRoom();
     }
 
     public void OnClickRankGameButton()
     {
-        Debug.Log("[TEMP GAME ROOM] RankButton Click");
+        Debug.Log("[GAME MODE] RankButton Click");
+
+        if (currentGameMode == GameMode.Rank)
+        {
+            Debug.Log("[GAME MODE] already rank");
+            return;
+        }
+
+        if (IsInCustomRoom())
+        {
+            RequestRoomLeave(AfterRoomLeaveAction.EnterRank);
+            return;
+        }
+
+        SelectGameMode(GameMode.Rank);
         EnterTempGameRoom();
+    }
+
+    public void OnClickUserRoomButton()
+    {
+        Debug.Log("[ROOM LIST] UserRoomButton Click");
+
+        if (currentGameMode == GameMode.Custom)
+        {
+            Debug.Log("[GAME MODE] already custom");
+            return;
+        }
+
+        previousModeBeforeCustom = currentGameMode;
+
+        SelectGameMode(GameMode.Custom);
+
+        ShowRoomListPanel();
+        NetworkManager.Instance.SendRoomList();
     }
 
     public void OnClickTempGameStart()
@@ -426,6 +612,9 @@ public class LobbyManager : MonoBehaviour
             tempGameRoomPanel.SetActive(false);
 
         HideAllTempGameSlots();
+
+        currentGamePanelView = GamePanelView.None;
+        SelectGameMode(GameMode.Normal);
     }
 
     public void OnRecvTempGameRoomEnter(int playerCount, List<TempGamePlayerData> players)
@@ -473,16 +662,16 @@ public class LobbyManager : MonoBehaviour
         return sprites[index];
     }
 
-    public void OnClickUserRoomButton()
-    {
-        Debug.Log("[ROOM LIST] UserRoomButton Click");
-        ShowRoomListPanel();
-        NetworkManager.Instance.SendRoomList();
-    }
-
     public void OnRecvRoomList(List<RoomListData> rooms)
     {
         Debug.Log($"[ROOM LIST UI] count={rooms.Count}");
+
+        ShowRoomListPanel();
+
+        for (int i = 0; i < roomSlotObjects.Count; i++)
+            Destroy(roomSlotObjects[i]);
+
+        roomSlotObjects.Clear();
 
         for (int i = 0; i < rooms.Count; i++)
         {
@@ -498,25 +687,13 @@ public class LobbyManager : MonoBehaviour
                 $"players={room.currentPlayerCount}/{room.maxPlayerCount} " +
                 $"state={room.state}"
             );
-        }
-
-        // 기존 UI 처리 그대로
-        ShowRoomListPanel();
-
-        for (int i = 0; i < roomSlotObjects.Count; i++)
-            Destroy(roomSlotObjects[i]);
-
-        roomSlotObjects.Clear();
-
-        for (int i = 0; i < rooms.Count; i++)
-        {
-            RoomListData room = rooms[i];
 
             GameObject slotObj = Instantiate(roomSlotPrefab, roomListContent);
             roomSlotObjects.Add(slotObj);
 
             RoomSlotUI slotUI = slotObj.GetComponent<RoomSlotUI>();
-            slotUI.SetData(room);
+            if (slotUI != null)
+                slotUI.SetData(room);
         }
     }
 
@@ -524,17 +701,151 @@ public class LobbyManager : MonoBehaviour
     {
         if (roomListPanel != null)
             roomListPanel.SetActive(false);
+
+        if (currentGamePanelView == GamePanelView.RoomList)
+            currentGamePanelView = GamePanelView.None;
+
+        if (currentRoomState == null)
+        {
+            if (previousModeBeforeCustom == GameMode.None || previousModeBeforeCustom == GameMode.Custom)
+                previousModeBeforeCustom = GameMode.Normal;
+
+            SelectGameMode(previousModeBeforeCustom);
+        }
     }
 
     public void OnClickCloseGamePanel()
     {
-        if (tempGameRoomPanel != null)
-            tempGameRoomPanel.SetActive(false);
-
-        if (roomListPanel != null)
-            roomListPanel.SetActive(false);
-
-        HideAllTempGameSlots();
+        HideAllGameSubPanels();
         HideGamePanel();
+    }
+
+    public void OnRecvRoomCreateResult(RoomStateData roomState)
+    {
+        Debug.Log(
+            $"[ROOM CREATE UI] " +
+            $"roomId={roomState.roomId} " +
+            $"roomName={roomState.roomName} " +
+            $"mapName={roomState.mapName} " +
+            $"isLeader={roomState.isLeader} " +
+            $"canStart={roomState.canStart} " +
+            $"memberCount={roomState.members.Count}"
+        );
+
+        currentRoomState = roomState;
+        currentGamePanelView = GamePanelView.RoomPanel;
+
+        SelectGameMode(GameMode.Custom);
+
+        ShowGamePanel();
+
+        if (roomPanelUI != null)
+            roomPanelUI.OpenRoom(roomState);
+        else
+            Debug.LogWarning("[ROOM CREATE UI] roomPanelUI is null");
+    }
+
+    private void OnConfirmRoomLeave()
+    {
+        Debug.Log($"[ROOM LEAVE] confirm afterAction={afterRoomLeaveAction}");
+        NetworkManager.Instance.SendRoomLeave();
+    }
+
+    public void OnRecvRoomLeaveResult(byte result, uint roomId, bool roomDeleted)
+    {
+        Debug.Log($"[ROOM LEAVE UI] result={result}, roomId={roomId}, roomDeleted={roomDeleted}, afterAction={afterRoomLeaveAction}");
+
+        if (result != 0)
+        {
+            Debug.LogWarning($"[ROOM LEAVE UI] fail result={result}");
+            return;
+        }
+
+        currentRoomState = null;
+
+        if (roomPanelUI != null)
+            roomPanelUI.HideRoom();
+
+        AfterRoomLeaveAction action = afterRoomLeaveAction;
+        afterRoomLeaveAction = AfterRoomLeaveAction.OpenRoomList;
+
+        if (action == AfterRoomLeaveAction.EnterNormal)
+        {
+            SelectGameMode(GameMode.Normal);
+            EnterTempGameRoom();
+            return;
+        }
+
+        if (action == AfterRoomLeaveAction.EnterRank)
+        {
+            SelectGameMode(GameMode.Rank);
+            EnterTempGameRoom();
+            return;
+        }
+
+        currentGamePanelView = GamePanelView.RoomList;
+        SelectGameMode(GameMode.Custom);
+
+        ShowRoomListPanel();
+        NetworkManager.Instance.SendRoomList();
+    }
+
+    private bool IsInCustomRoom()
+    {
+        return currentGamePanelView == GamePanelView.RoomPanel && currentRoomState != null;
+    }
+
+    private void RequestRoomLeave(AfterRoomLeaveAction action)
+    {
+        afterRoomLeaveAction = action;
+
+        Debug.Log($"[ROOM LEAVE REQUEST UI] afterAction={afterRoomLeaveAction}");
+
+        if (roomPanelUI == null || currentRoomState == null)
+        {
+            Debug.LogWarning("[ROOM LEAVE REQUEST UI] roomPanelUI or currentRoomState is null");
+            return;
+        }
+
+        ShowGamePanel();
+        roomPanelUI.OpenRoom(currentRoomState);
+        roomPanelUI.ShowLeaveConfirmPanel();
+    }
+
+    private void SelectGameMode(GameMode mode)
+    {
+        currentGameMode = mode;
+        ApplyGameModeButtonState();
+
+        Debug.Log($"[GAME MODE SELECT] mode={currentGameMode}");
+    }
+
+    private void ApplyGameModeButtonState()
+    {
+        SetModeButtonState(normalGameButton, currentGameMode == GameMode.Normal);
+        SetModeButtonState(rankGameButton, currentGameMode == GameMode.Rank);
+        SetModeButtonState(customRoomButton, currentGameMode == GameMode.Custom);
+    }
+
+    private void SetModeButtonState(Button button, bool selected)
+    {
+        if (button == null)
+            return;
+
+        Color targetColor = selected ? selectedModeButtonColor : unselectedModeButtonColor;
+
+        Image image = button.GetComponent<Image>();
+        if (image != null)
+            image.color = targetColor;
+
+        ColorBlock colors = button.colors;
+        colors.normalColor = targetColor;
+        colors.highlightedColor = targetColor;
+        colors.pressedColor = targetColor;
+        colors.selectedColor = targetColor;
+        colors.disabledColor = targetColor;
+        button.colors = colors;
+
+        button.interactable = !selected;
     }
 }

@@ -28,6 +28,37 @@ public class RoomListData
     public byte state;
 }
 
+public enum RoomSlotTeam : byte
+{
+    A = 0,
+    B = 1,
+    Observer = 2
+}
+
+public class RoomMemberData
+{
+    public uint playerId;
+    public string nickname;
+    public int level;
+    public int playerIconId;
+
+    public RoomSlotTeam team;
+    public byte slotIndex;
+    public bool isLeader;
+}
+
+public class RoomStateData
+{
+    public uint roomId;
+    public string roomName;
+    public string mapName;
+
+    public bool isLeader;
+    public bool canStart;
+
+    public List<RoomMemberData> members = new List<RoomMemberData>();
+}
+
 public class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance;
@@ -215,6 +246,14 @@ public class NetworkManager : MonoBehaviour
             
             case (ushort)PacketType.PKT_SC_ROOM_LIST:
                 HandleRoomList(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROOM_CREATE_RESULT:
+                HandleRoomCreateResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROOM_LEAVE_RESULT:
+                HandleRoomLeaveResult(body);
                 break;
 
             default:
@@ -475,5 +514,113 @@ public class NetworkManager : MonoBehaviour
         }
 
         LobbyManager.Instance.OnRecvRoomList(rooms);
+    }
+
+    public void SendRoomCreate()
+    {
+        Debug.Log("[CLIENT] SendRoomCreate");
+
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_CREATE).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    void HandleRoomCreateResult(byte[] body)
+    {
+        Debug.Log($"[ROOM CREATE RESULT] bodyLength={body.Length}");
+
+        int offset = 0;
+
+        byte result = body[offset];
+        offset += 1;
+
+        if (result != 0)
+        {
+            Debug.LogWarning($"[ROOM CREATE FAIL] result={result}");
+            return;
+        }
+
+        RoomStateData roomState = new RoomStateData();
+
+        roomState.roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        roomState.roomName = Packet.ReadFixedString(body, offset, 32);
+        offset += 32;
+
+        roomState.mapName = Packet.ReadFixedString(body, offset, 32);
+        offset += 32;
+
+        roomState.isLeader = body[offset] != 0;
+        offset += 1;
+
+        roomState.canStart = body[offset] != 0;
+        offset += 1;
+
+        byte memberCount = body[offset];
+        offset += 1;
+
+        for (int i = 0; i < memberCount; i++)
+        {
+            RoomMemberData member = new RoomMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.level = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.playerIconId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.team = (RoomSlotTeam)body[offset];
+            offset += 1;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.isLeader = body[offset] != 0;
+            offset += 1;
+
+            roomState.members.Add(member);
+        }
+
+        lobbyManager?.OnRecvRoomCreateResult(roomState);
+    }
+
+    public void SendRoomLeave()
+    {
+        Debug.Log("[CLIENT] SendRoomLeave");
+
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_LEAVE).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    void HandleRoomLeaveResult(byte[] body)
+    {
+        int offset = 0;
+
+        byte result = body[offset];
+        offset += 1;
+
+        uint roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        byte roomDeleted = body[offset];
+        offset += 1;
+
+        Debug.Log($"[ROOM LEAVE RESULT] result={result}, roomId={roomId}, roomDeleted={roomDeleted}");
+
+        lobbyManager?.OnRecvRoomLeaveResult(result, roomId, roomDeleted != 0);
     }
 }
