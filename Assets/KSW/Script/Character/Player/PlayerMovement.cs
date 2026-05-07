@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -24,6 +25,8 @@ public class PlayerMovement : MonoBehaviour
 
     private float _verticalVelocity;
 
+    public event Action OnJumpEvent;
+
     void Awake()
     {
         _cc = GetComponent<CharacterController>();
@@ -42,43 +45,69 @@ public class PlayerMovement : MonoBehaviour
 
     private void movement()
     {
-        if (!CanMove)
-        {
-            if (_animator != null)
-            {
-                _animator.SetBool("Walk", false);
-            }
-            return;
-        }
+        if (!CanMove) return;
 
-        Vector2 input = Vector2.zero;
-        var kb = Keyboard.current;
-        if (kb == null) return;
-
-        if (kb.aKey.isPressed) input.x -= 1;
-        if (kb.dKey.isPressed) input.x += 1;
-        if (kb.sKey.isPressed) input.y -= 1;
-        if (kb.wKey.isPressed) input.y += 1;
-
+        Vector2 input = getInput();
         Vector3 move = transform.right * input.x + transform.forward * input.y;
 
         if (_cc.isGrounded)
         {
-            if (_verticalVelocity < 0f)
-                _verticalVelocity = -2f;
-            if (kb.spaceKey.wasPressedThisFrame)
+            if (_verticalVelocity < -2f) _verticalVelocity = -2f;
+
+            if (_animator != null) _animator.SetBool("Down", false);
+
+            if (Keyboard.current.spaceKey.wasPressedThisFrame)
+            {
                 _verticalVelocity = _jumpPower;
+
+                OnJumpEvent?.Invoke();
+
+                if (_animator != null) _animator.SetTrigger("Jump");
+            }
         }
-        else _verticalVelocity += _gravity * Time.deltaTime;
+        else
+        {
+            _verticalVelocity += _gravity * Time.deltaTime;
+            if (_animator != null && _verticalVelocity < 0 && !_animator.GetBool("Down"))
+            {
+                _animator.SetBool("Down", true);
+            }
+        }
 
-        bool isWalking = input.sqrMagnitude > 0;
-
-        Vector3 velocity = move.normalized * _speed + Vector3.up * _verticalVelocity;
+        Vector3 velocity = (move.normalized * _speed) + (Vector3.up * _verticalVelocity);
         _cc.Move(velocity * Time.deltaTime);
 
         if (_animator != null)
+            _animator.SetBool("Walk", input.sqrMagnitude > 0 && _cc.isGrounded);
+    }
+
+    public void SetVerticalVelocity(float force)
+    {
+        _verticalVelocity = force;
+    }
+
+    private Vector2 getInput()
+    {
+        var kb = Keyboard.current;
+        if (kb == null) return Vector2.zero;
+        Vector2 input = Vector2.zero;
+        if (kb.aKey.isPressed) input.x -= 1;
+        if (kb.dKey.isPressed) input.x += 1;
+        if (kb.sKey.isPressed) input.y -= 1;
+        if (kb.wKey.isPressed) input.y += 1;
+        return input;
+    }
+
+    public void ApplyJumpForce(float force)
+    {
+        if (_cc.isGrounded)
         {
-            _animator.SetBool("Walk", isWalking && _cc.isGrounded);
+            _verticalVelocity = force;
+            if (_animator != null)
+            {
+                _animator.SetBool("Crouch", false);
+                _animator.SetTrigger("Jump");
+            }
         }
     }
 

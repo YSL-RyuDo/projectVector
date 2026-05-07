@@ -235,6 +235,7 @@ GameObject:
   - component: {fileID: 8686546304118897734}
   - component: {fileID: 3339773911071748933}
   - component: {fileID: 5754477062383331201}
+  - component: {fileID: 5451113489913816011}
   m_Layer: 0
   m_Name: Entry
   m_TagString: Untagged
@@ -415,6 +416,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerIdentity
   PlayerId: 0
+--- !u!114 &5451113489913816011
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7286507536929022138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbe26983fae28d34b93d0ee79522dd19, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  _chargeSpeed: 50
+  _dischargeSpeed: 30
+  _maxBonusForce: 6
+  _waitBeforeDischarge: 2
+  _camera: {fileID: 8246343841070073015}
+  _crouchHeight: 0.75
+  _normalHeight: 1.2
+  _heightSmoothSpeed: 5
 --- !u!1001 &5226665221230326517
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -990,6 +1011,14 @@ PrefabInstance:
     - target: {fileID: 5804441988401049373, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
       propertyPath: m_Layer
       value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: e87877696d54cac4c9ab136179561b73, type: 2}
+    - target: {fileID: 5866666021909216657, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
+      propertyPath: m_ApplyRootMotion
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5951478778442215736, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
       propertyPath: m_Layer
