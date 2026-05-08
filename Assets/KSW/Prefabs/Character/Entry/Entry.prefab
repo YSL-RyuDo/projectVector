@@ -31,6 +31,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 662517312268330067}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1001441557248924150
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8092479215126171755}
+  m_Layer: 0
+  m_Name: ThrowPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8092479215126171755
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1001441557248924150}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.2, z: 0.3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3365465223917956775}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2338200729686973055
 GameObject:
   m_ObjectHideFlags: 0
@@ -236,6 +267,7 @@ GameObject:
   - component: {fileID: 3339773911071748933}
   - component: {fileID: 5754477062383331201}
   - component: {fileID: 5451113489913816011}
+  - component: {fileID: 5703506062973416802}
   m_Layer: 0
   m_Name: Entry
   m_TagString: Untagged
@@ -258,6 +290,7 @@ Transform:
   m_Children:
   - {fileID: 8246343841070073015}
   - {fileID: 5693219732936660254}
+  - {fileID: 8092479215126171755}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &2657882953500266673
@@ -431,10 +464,26 @@ MonoBehaviour:
   _dashWaitTime: 3
   _dashForce: 15
   _dashDuration: 0.4
-  _camera: {fileID: 8246343841070073015}
   _crouchY: 0.75
   _standY: 1.2
   _smoothSpeed: 10
+  _camera: {fileID: 8246343841070073015}
+--- !u!114 &5703506062973416802
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7286507536929022138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e9d1db3906d40a4282c11776d48e45d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EntrySkill_Q
+  _smokeGrenadePrefab: {fileID: 7249112274535753710, guid: fb287fb772e12234b8b31cb9b6a291f9, type: 3}
+  _throwPoint: {fileID: 8092479215126171755}
+  _playerCamera: {fileID: 8608318700385792321}
+  _throwForce: 15
 --- !u!1001 &5226665221230326517
 PrefabInstance:
   m_ObjectHideFlags: 0
