@@ -27,6 +27,12 @@ public class PlayerMovement : MonoBehaviour
 
     public event Action OnJumpEvent;
 
+    public float Speed
+    {
+        get => _speed;
+        set => _speed = value;
+    }
+
     void Awake()
     {
         _cc = GetComponent<CharacterController>();
@@ -78,7 +84,10 @@ public class PlayerMovement : MonoBehaviour
         _cc.Move(velocity * Time.deltaTime);
 
         if (_animator != null)
-            _animator.SetBool("Walk", input.sqrMagnitude > 0 && _cc.isGrounded);
+        {
+            bool isMoving = input.sqrMagnitude > 0;
+            _animator.SetBool("Forward", isMoving);
+        }
     }
 
     public void SetVerticalVelocity(float force)

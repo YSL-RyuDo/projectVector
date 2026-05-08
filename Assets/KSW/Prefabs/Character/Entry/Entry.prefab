@@ -268,6 +268,7 @@ GameObject:
   - component: {fileID: 5754477062383331201}
   - component: {fileID: 5451113489913816011}
   - component: {fileID: 5703506062973416802}
+  - component: {fileID: 5686896472883070561}
   m_Layer: 0
   m_Name: Entry
   m_TagString: Untagged
@@ -484,6 +485,25 @@ MonoBehaviour:
   _throwPoint: {fileID: 8092479215126171755}
   _playerCamera: {fileID: 8608318700385792321}
   _throwForce: 15
+--- !u!114 &5686896472883070561
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7286507536929022138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02ca7804cf4f12e4cb68a66902788635, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  _duration: 5
+  _speedMultiplier: 1.5
+  _detectionRange: 3
+  _characterModel: {fileID: 4920659241852686244}
+  _enemyLayer:
+    serializedVersion: 2
+    m_Bits: 256
 --- !u!1001 &5226665221230326517
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1185,6 +1205,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
+--- !u!1 &4920659241852686244 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
+  m_PrefabInstance: {fileID: 5226665221230326517}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &5693219732936660254 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
