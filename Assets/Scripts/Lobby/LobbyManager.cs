@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -74,6 +75,39 @@ public class LobbyManager : MonoBehaviour
     private readonly List<GameObject> characterSlots = new();
     private readonly List<GameObject> roomSlotObjects = new();
 
+    [Header("Slot Change Confirm Popup")]
+    [SerializeField] private GameObject slotChangeConfirmPanel;
+    [SerializeField] private TMP_Text slotChangeConfirmText;
+    [SerializeField] private Button slotChangeConfirmButton;
+    [SerializeField] private Button slotChangeCancelButton;
+
+    private RoomSlotTeam pendingSlotChangeTeam;
+    private byte pendingSlotChangeIndex;
+
+    [Header("Room Slot Swap Popup")]
+    [SerializeField] private GameObject slotSwapRequestPanel;
+    [SerializeField] private TMP_Text slotSwapRequestText;
+    [SerializeField] private Button slotSwapAcceptButton;
+    [SerializeField] private Button slotSwapRejectButton;
+
+    [Header("Room Message")]
+    [SerializeField] private GameObject roomMessagePanel;
+    [SerializeField] private TMP_Text roomMessageText;
+    [SerializeField] private float roomMessageDuration = 2.0f;
+
+    private Coroutine roomMessageCoroutine;
+
+    private uint pendingSwapRequesterPlayerId = 0;
+
+    [Header("Room Slot Admin Menu")]
+    [SerializeField] private GameObject slotAdminMenuPanel;
+    [SerializeField] private TMP_Text slotAdminTargetText;
+    [SerializeField] private Button transferLeaderButton;
+    [SerializeField] private Button kickButton;
+
+    private uint selectedAdminTargetPlayerId = 0;
+    private string selectedAdminTargetNickname = "";
+
     private enum GamePanelView
     {
         None,
@@ -141,6 +175,64 @@ public class LobbyManager : MonoBehaviour
         {
             roomPanelUI.HideRoom();
             roomPanelUI.OnConfirmLeave = OnConfirmRoomLeave;
+        }
+
+        if (roomPanelUI != null)
+        {
+            roomPanelUI.OnSlotClicked = OnClickRoomSlot;
+        }
+
+        if (slotSwapRequestPanel != null)
+            slotSwapRequestPanel.SetActive(false);
+
+        if (slotSwapAcceptButton != null)
+        {
+            slotSwapAcceptButton.onClick.RemoveAllListeners();
+            slotSwapAcceptButton.onClick.AddListener(OnClickAcceptSlotSwap);
+        }
+
+        if (slotSwapRejectButton != null)
+        {
+            slotSwapRejectButton.onClick.RemoveAllListeners();
+            slotSwapRejectButton.onClick.AddListener(OnClickRejectSlotSwap);
+        }
+
+        if (roomMessagePanel != null)
+            roomMessagePanel.SetActive(false);
+
+        if (slotChangeConfirmPanel != null)
+            slotChangeConfirmPanel.SetActive(false);
+
+        if (slotChangeConfirmButton != null)
+        {
+            slotChangeConfirmButton.onClick.RemoveAllListeners();
+            slotChangeConfirmButton.onClick.AddListener(OnClickConfirmSlotChange);
+        }
+
+        if (slotChangeCancelButton != null)
+        {
+            slotChangeCancelButton.onClick.RemoveAllListeners();
+            slotChangeCancelButton.onClick.AddListener(OnClickCancelSlotChange);
+        }
+
+        if (roomPanelUI != null)
+        {
+            roomPanelUI.OnSlotRightClicked = OnRightClickRoomSlot;
+        }
+
+        if (slotAdminMenuPanel != null)
+            slotAdminMenuPanel.SetActive(false);
+
+        if (transferLeaderButton != null)
+        {
+            transferLeaderButton.onClick.RemoveAllListeners();
+            transferLeaderButton.onClick.AddListener(OnClickTransferLeader);
+        }
+
+        if (kickButton != null)
+        {
+            kickButton.onClick.RemoveAllListeners();
+            kickButton.onClick.AddListener(OnClickKickMember);
         }
 
         HideAllTempGameSlots();
@@ -694,6 +786,93 @@ public class LobbyManager : MonoBehaviour
             RoomSlotUI slotUI = slotObj.GetComponent<RoomSlotUI>();
             if (slotUI != null)
                 slotUI.SetData(room);
+
+            Button button = slotObj.GetComponent<Button>();
+            if (button == null)
+                button = slotObj.GetComponentInChildren<Button>(true);
+
+            if (button != null)
+            {
+                uint roomId = room.roomId;
+
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(() =>
+                {
+                    Debug.Log($"[ROOM SLOT CLICK] roomId={roomId}");
+                    NetworkManager.Instance.SendRoomEnter(roomId);
+                });
+            }
+            else
+            {
+                Debug.LogWarning("[ROOM LIST UI] RoomSlot prefab has no Button component");
+            }
+        }
+    }
+
+    public void OnRecvRoomEnterResult(byte result, uint roomId)
+    {
+        Debug.Log($"[ROOM ENTER UI] result={result}, roomId={roomId}");
+
+        if (result == (byte)RoomEnterResult.SUCCESS)
+        {
+            Debug.Log("[ROOM ENTER UI] success. wait for room state packet");
+            return;
+        }
+
+        string msg = result switch
+        {
+            (byte)RoomEnterResult.ROOM_NOT_FOUND => "방을 찾을 수 없습니다.",
+            (byte)RoomEnterResult.ROOM_FULL => "방이 가득 찼습니다.",
+            (byte)RoomEnterResult.ALREADY_IN_ROOM => "이미 방에 들어가 있습니다.",
+            (byte)RoomEnterResult.PLAYER_DATA_NOT_FOUND => "플레이어 정보를 찾을 수 없습니다.",
+            (byte)RoomEnterResult.NOT_IN_LOBBY => "로비 상태가 아닙니다.",
+            _ => "방 입장에 실패했습니다."
+        };
+
+        Debug.LogWarning($"[ROOM ENTER UI] fail: {msg}");
+
+        ShowRoomListPanel();
+        NetworkManager.Instance.SendRoomList();
+    }
+
+    public void OnRecvRoomState(RoomStateData roomState)
+    {
+        Debug.Log(
+            $"[ROOM STATE UI] " +
+            $"roomId={roomState.roomId}, " +
+            $"roomName={roomState.roomName}, " +
+            $"memberCount={roomState.members.Count}"
+        );
+
+        bool myLeader = false;
+
+        for (int i = 0; i < roomState.members.Count; i++)
+        {
+            RoomMemberData member = roomState.members[i];
+
+            if (member.nickname == currentNickname && member.isLeader)
+            {
+                myLeader = true;
+                break;
+            }
+        }
+
+        roomState.isLeader = myLeader;
+
+        currentRoomState = roomState;
+        currentGamePanelView = GamePanelView.RoomPanel;
+
+        SelectGameMode(GameMode.Custom);
+
+        ShowGamePanel();
+
+        if (roomPanelUI != null)
+        {
+            roomPanelUI.OpenRoom(roomState);
+        }
+        else
+        {
+            Debug.LogWarning("[ROOM STATE UI] roomPanelUI is null");
         }
     }
 
@@ -847,5 +1026,352 @@ public class LobbyManager : MonoBehaviour
         button.colors = colors;
 
         button.interactable = !selected;
+    }
+
+    private void OnClickRoomSlot(RoomSlotTeam team, byte slotIndex)
+    {
+        Debug.Log($"[ROOM SLOT CLICK] team={team}, slot={slotIndex}");
+
+        if (currentGamePanelView != GamePanelView.RoomPanel || currentRoomState == null)
+        {
+            Debug.LogWarning("[ROOM SLOT CLICK] not in room panel");
+            return;
+        }
+
+        RoomMemberData targetMember = FindRoomMemberBySlot(team, slotIndex);
+
+        pendingSlotChangeTeam = team;
+        pendingSlotChangeIndex = slotIndex;
+
+        if (slotChangeConfirmText != null)
+        {
+            if (targetMember == null)
+            {
+                slotChangeConfirmText.text = "이 자리로 이동하시겠습니까?";
+            }
+            else
+            {
+                slotChangeConfirmText.text =
+                    targetMember.nickname + "님과 자리 변경을 요청하시겠습니까?";
+            }
+        }
+
+        if (slotChangeConfirmPanel != null)
+            slotChangeConfirmPanel.SetActive(true);
+    }
+
+    public void OnRecvRoomSlotChangeResult(
+        byte result,
+        RoomSlotTeam targetTeam,
+        byte targetSlotIndex,
+        string targetNickname)
+    {
+        Debug.Log(
+            $"[ROOM SLOT CHANGE UI] " +
+            $"result={result}, targetTeam={targetTeam}, slot={targetSlotIndex}, targetNickname={targetNickname}"
+        );
+
+        if (result == (byte)RoomSlotChangeResult.SUCCESS)
+        {
+            ShowRoomMessage("자리를 변경했습니다.");
+            return;
+        }
+
+        if (result == (byte)RoomSlotChangeResult.REQUEST_SENT)
+        {
+            ShowRoomMessage(targetNickname + "님에게 자리 변경 요청을 보냈습니다.");
+            return;
+        }
+
+        if (result == (byte)RoomSlotChangeResult.REJECTED)
+        {
+            ShowRoomMessage(targetNickname + "님이 자리 변경 요청을 거절했습니다.");
+            return;
+        }
+
+        if (result == (byte)RoomSlotChangeResult.SAME_SLOT)
+        {
+            ShowRoomMessage("이미 해당 자리에 있습니다.");
+            return;
+        }
+
+        if (result == (byte)RoomSlotChangeResult.REQUEST_ALREADY_EXISTS)
+        {
+            ShowRoomMessage("상대방에게 이미 처리 중인 요청이 있습니다.");
+            return;
+        }
+
+        ShowRoomMessage("자리 변경에 실패했습니다.");
+    }
+
+    public void OnRecvRoomSlotSwapRequest(RoomSlotSwapRequestData data)
+    {
+        Debug.Log(
+            $"[ROOM SLOT SWAP POPUP] requester={data.requesterNickname}, requesterId={data.requesterPlayerId}"
+        );
+
+        pendingSwapRequesterPlayerId = data.requesterPlayerId;
+
+        if (slotSwapRequestText != null)
+        {
+            slotSwapRequestText.text =
+                data.requesterNickname + "님과 자리를 변경하시겠습니까?";
+        }
+
+        if (slotSwapRequestPanel != null)
+            slotSwapRequestPanel.SetActive(true);
+    }
+
+    private void OnClickAcceptSlotSwap()
+    {
+        Debug.Log($"[ROOM SLOT SWAP ACCEPT] requester={pendingSwapRequesterPlayerId}");
+
+        if (pendingSwapRequesterPlayerId == 0)
+            return;
+
+        NetworkManager.Instance.SendRoomSlotSwapResponse(
+            pendingSwapRequesterPlayerId,
+            true
+        );
+
+        pendingSwapRequesterPlayerId = 0;
+
+        if (slotSwapRequestPanel != null)
+            slotSwapRequestPanel.SetActive(false);
+    }
+
+    private void OnClickRejectSlotSwap()
+    {
+        Debug.Log($"[ROOM SLOT SWAP REJECT] requester={pendingSwapRequesterPlayerId}");
+
+        if (pendingSwapRequesterPlayerId == 0)
+            return;
+
+        NetworkManager.Instance.SendRoomSlotSwapResponse(
+            pendingSwapRequesterPlayerId,
+            false
+        );
+
+        pendingSwapRequesterPlayerId = 0;
+
+        if (slotSwapRequestPanel != null)
+            slotSwapRequestPanel.SetActive(false);
+    }
+
+    private void ShowRoomMessage(string message)
+    {
+        Debug.Log("[ROOM MESSAGE] " + message);
+
+        if (roomMessageText != null)
+            roomMessageText.text = message;
+
+        if (roomMessagePanel != null)
+            roomMessagePanel.SetActive(true);
+
+        if (roomMessageCoroutine != null)
+            StopCoroutine(roomMessageCoroutine);
+
+        roomMessageCoroutine = StartCoroutine(HideRoomMessageAfterSeconds());
+    }
+
+    private IEnumerator HideRoomMessageAfterSeconds()
+    {
+        yield return new WaitForSeconds(roomMessageDuration);
+
+        if (roomMessagePanel != null)
+            roomMessagePanel.SetActive(false);
+
+        roomMessageCoroutine = null;
+    }
+
+    private RoomMemberData FindRoomMemberBySlot(RoomSlotTeam team, byte slotIndex)
+    {
+        if (currentRoomState == null || currentRoomState.members == null)
+            return null;
+
+        for (int i = 0; i < currentRoomState.members.Count; i++)
+        {
+            RoomMemberData member = currentRoomState.members[i];
+
+            if (member.team == team && member.slotIndex == slotIndex)
+                return member;
+        }
+
+        return null;
+    }
+
+    private void OnClickConfirmSlotChange()
+    {
+        Debug.Log(
+            $"[ROOM SLOT CHANGE CONFIRM] " +
+            $"team={pendingSlotChangeTeam}, slot={pendingSlotChangeIndex}"
+        );
+
+        if (slotChangeConfirmPanel != null)
+            slotChangeConfirmPanel.SetActive(false);
+
+        NetworkManager.Instance.SendRoomSlotChange(
+            pendingSlotChangeTeam,
+            pendingSlotChangeIndex
+        );
+    }
+
+    private void OnClickCancelSlotChange()
+    {
+        Debug.Log("[ROOM SLOT CHANGE CANCEL]");
+
+        if (slotChangeConfirmPanel != null)
+            slotChangeConfirmPanel.SetActive(false);
+    }
+
+    private void OnRightClickRoomSlot(RoomSlotTeam team, byte slotIndex)
+    {
+        Debug.Log($"[ROOM ADMIN RIGHT CLICK] team={team}, slot={slotIndex}");
+
+        if (currentGamePanelView != GamePanelView.RoomPanel || currentRoomState == null)
+            return;
+
+        if (!currentRoomState.isLeader)
+        {
+            ShowRoomMessage("방장만 사용할 수 있습니다.");
+            return;
+        }
+
+        RoomMemberData targetMember = FindRoomMemberBySlot(team, slotIndex);
+        if (targetMember == null)
+        {
+            HideSlotAdminMenu();
+            return;
+        }
+
+        if (targetMember.nickname == currentNickname)
+        {
+            ShowRoomMessage("자기 자신에게는 사용할 수 없습니다.");
+            HideSlotAdminMenu();
+            return;
+        }
+
+        selectedAdminTargetPlayerId = targetMember.playerId;
+        selectedAdminTargetNickname = targetMember.nickname;
+
+        if (slotAdminTargetText != null)
+            slotAdminTargetText.text = targetMember.nickname;
+
+        if (slotAdminMenuPanel != null)
+        {
+            slotAdminMenuPanel.SetActive(true);
+            slotAdminMenuPanel.transform.position = Input.mousePosition;
+        }
+    }
+
+    private void HideSlotAdminMenu()
+    {
+        selectedAdminTargetPlayerId = 0;
+        selectedAdminTargetNickname = "";
+
+        if (slotAdminMenuPanel != null)
+            slotAdminMenuPanel.SetActive(false);
+    }
+
+    private void OnClickTransferLeader()
+    {
+        if (selectedAdminTargetPlayerId == 0)
+            return;
+
+        Debug.Log($"[ROOM ADMIN] transfer leader target={selectedAdminTargetPlayerId}");
+
+        NetworkManager.Instance.SendRoomTransferLeader(selectedAdminTargetPlayerId);
+
+        HideSlotAdminMenu();
+    }
+
+    private void OnClickKickMember()
+    {
+        if (selectedAdminTargetPlayerId == 0)
+            return;
+
+        Debug.Log($"[ROOM ADMIN] kick target={selectedAdminTargetPlayerId}");
+
+        NetworkManager.Instance.SendRoomKick(selectedAdminTargetPlayerId);
+
+        HideSlotAdminMenu();
+    }
+
+    public void OnRecvRoomTransferLeaderResult(
+    byte result,
+    uint targetPlayerId,
+    string targetNickname)
+    {
+        Debug.Log(
+            $"[ROOM TRANSFER LEADER UI] result={result}, target={targetPlayerId}, nickname={targetNickname}"
+        );
+
+        if (result == (byte)RoomAdminResult.SUCCESS)
+        {
+            ShowRoomMessage(targetNickname + "님에게 방장을 넘겼습니다.");
+            return;
+        }
+
+        if (result == (byte)RoomAdminResult.NOT_LEADER)
+        {
+            ShowRoomMessage("방장만 사용할 수 있습니다.");
+            return;
+        }
+
+        if (result == (byte)RoomAdminResult.CANNOT_TARGET_SELF)
+        {
+            ShowRoomMessage("자기 자신에게는 사용할 수 없습니다.");
+            return;
+        }
+
+        ShowRoomMessage("방장 넘기기에 실패했습니다.");
+    }
+
+    public void OnRecvRoomKickResult(
+        byte result,
+        uint targetPlayerId,
+        string targetNickname)
+    {
+        Debug.Log(
+            $"[ROOM KICK UI] result={result}, target={targetPlayerId}, nickname={targetNickname}"
+        );
+
+        if (result == (byte)RoomAdminResult.SUCCESS)
+        {
+            ShowRoomMessage(targetNickname + "님을 강퇴했습니다.");
+            return;
+        }
+
+        if (result == (byte)RoomAdminResult.NOT_LEADER)
+        {
+            ShowRoomMessage("방장만 사용할 수 있습니다.");
+            return;
+        }
+
+        if (result == (byte)RoomAdminResult.CANNOT_TARGET_SELF)
+        {
+            ShowRoomMessage("자기 자신은 강퇴할 수 없습니다.");
+            return;
+        }
+
+        ShowRoomMessage("강퇴에 실패했습니다.");
+    }
+
+    public void OnRecvRoomKicked(uint roomId, string kickerNickname)
+    {
+        Debug.Log($"[ROOM KICKED UI] roomId={roomId}, kicker={kickerNickname}");
+
+        currentRoomState = null;
+        currentGamePanelView = GamePanelView.RoomList;
+
+        if (roomPanelUI != null)
+            roomPanelUI.HideRoom();
+
+        SelectGameMode(GameMode.Custom);
+
+        ShowRoomListPanel();
+        NetworkManager.Instance.SendRoomList();
+
+        ShowRoomMessage(kickerNickname + "님에 의해 방에서 강퇴되었습니다.");
     }
 }
