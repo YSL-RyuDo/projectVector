@@ -29,6 +29,9 @@ public class RoomPanelUI : MonoBehaviour
     [SerializeField] private Button leaveCancelButton;
 
     public Action OnConfirmLeave;
+    public Action<RoomSlotTeam, byte> OnSlotClicked;
+    public Action<RoomSlotTeam, byte> OnSlotRightClicked;
+    public Action OnGameStartClicked;
 
     private void Awake()
     {
@@ -54,7 +57,18 @@ public class RoomPanelUI : MonoBehaviour
             leaveCancelButton.onClick.AddListener(HideLeaveConfirmPanel);
         }
 
+        if (gameStartButton != null)
+        {
+            gameStartButton.onClick.RemoveAllListeners();
+            gameStartButton.onClick.AddListener(() =>
+            {
+                Debug.Log("[ROOM PANEL] GameStartButton Click");
+                OnGameStartClicked?.Invoke();
+            });
+        }
+
         HideLeaveConfirmPanel();
+        InitSlotButtons();
     }
 
     public void OpenRoom(RoomStateData data)
@@ -155,5 +169,46 @@ public class RoomPanelUI : MonoBehaviour
     {
         if (leaveConfirmPanel != null)
             leaveConfirmPanel.SetActive(false);
+    }
+
+    private void InitSlotButtons()
+    {
+        if (aTeamSlots != null)
+        {
+            for (int i = 0; i < aTeamSlots.Length; i++)
+            {
+                if (aTeamSlots[i] != null)
+                    aTeamSlots[i].InitSlot(RoomSlotTeam.A, (byte)i, HandleSlotClicked, HandleSlotRightClicked);
+            }
+        }
+
+        if (bTeamSlots != null)
+        {
+            for (int i = 0; i < bTeamSlots.Length; i++)
+            {
+                if (bTeamSlots[i] != null)
+                    bTeamSlots[i].InitSlot(RoomSlotTeam.B, (byte)i, HandleSlotClicked, HandleSlotRightClicked);
+            }
+        }
+
+        if (observerSlots != null)
+        {
+            for (int i = 0; i < observerSlots.Length; i++)
+            {
+                if (observerSlots[i] != null)
+                    observerSlots[i].InitSlot(RoomSlotTeam.Observer, (byte)i, HandleSlotClicked, HandleSlotRightClicked);
+            }
+        }
+    }
+    private void HandleSlotClicked(RoomSlotTeam team, byte slotIndex)
+    {
+        Debug.Log($"[ROOM PANEL SLOT CLICK] team={team}, slot={slotIndex}");
+        OnSlotClicked?.Invoke(team, slotIndex);
+    }
+
+    private void HandleSlotRightClicked(RoomSlotTeam team, byte slotIndex)
+    {
+        Debug.Log($"[ROOM PANEL SLOT RIGHT CLICK] team={team}, slot={slotIndex}");
+        OnSlotRightClicked?.Invoke(team, slotIndex);
     }
 }
