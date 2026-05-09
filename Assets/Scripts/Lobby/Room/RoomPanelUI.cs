@@ -31,6 +31,7 @@ public class RoomPanelUI : MonoBehaviour
     public Action OnConfirmLeave;
     public Action<RoomSlotTeam, byte> OnSlotClicked;
     public Action<RoomSlotTeam, byte> OnSlotRightClicked;
+    public Action OnGameStartClicked;
 
     private void Awake()
     {
@@ -54,6 +55,16 @@ public class RoomPanelUI : MonoBehaviour
         {
             leaveCancelButton.onClick.RemoveAllListeners();
             leaveCancelButton.onClick.AddListener(HideLeaveConfirmPanel);
+        }
+
+        if (gameStartButton != null)
+        {
+            gameStartButton.onClick.RemoveAllListeners();
+            gameStartButton.onClick.AddListener(() =>
+            {
+                Debug.Log("[ROOM PANEL] GameStartButton Click");
+                OnGameStartClicked?.Invoke();
+            });
         }
 
         HideLeaveConfirmPanel();

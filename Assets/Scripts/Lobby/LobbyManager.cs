@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 [System.Serializable]
 public struct LobbyBackgroundPreset
@@ -175,6 +176,7 @@ public class LobbyManager : MonoBehaviour
         {
             roomPanelUI.HideRoom();
             roomPanelUI.OnConfirmLeave = OnConfirmRoomLeave;
+            roomPanelUI.OnGameStartClicked = OnClickRoomGameStart;
         }
 
         if (roomPanelUI != null)
@@ -1373,5 +1375,61 @@ public class LobbyManager : MonoBehaviour
         NetworkManager.Instance.SendRoomList();
 
         ShowRoomMessage(kickerNickname + "님에 의해 방에서 강퇴되었습니다.");
+    }
+
+    private void OnClickRoomGameStart()
+    {
+        Debug.Log("[ROOM GAME START] button click");
+
+        if (currentRoomState == null)
+        {
+            ShowRoomMessage("방 정보가 없습니다.");
+            return;
+        }
+
+        if (!currentRoomState.isLeader)
+        {
+            ShowRoomMessage("방장만 게임을 시작할 수 있습니다.");
+            return;
+        }
+
+        if (!currentRoomState.canStart)
+        {
+            ShowRoomMessage("A팀 3명, B팀 3명이 있어야 시작할 수 있습니다.");
+            return;
+        }
+
+        NetworkManager.Instance.SendRoomGameStart();
+    }
+
+    public void OnRecvRoomGameStartResult(byte result)
+    {
+        Debug.Log($"[ROOM GAME START UI] result={result}");
+
+        if (result == (byte)RoomGameStartResult.SUCCESS)
+        {
+            SceneManager.LoadScene("UserPick");
+            return;
+        }
+
+        if (result == (byte)RoomGameStartResult.NOT_LEADER)
+        {
+            ShowRoomMessage("방장만 게임을 시작할 수 있습니다.");
+            return;
+        }
+
+        if (result == (byte)RoomGameStartResult.NOT_ENOUGH_PLAYERS)
+        {
+            ShowRoomMessage("A팀 3명, B팀 3명이 있어야 시작할 수 있습니다.");
+            return;
+        }
+
+        if (result == (byte)RoomGameStartResult.ALREADY_PLAYING)
+        {
+            ShowRoomMessage("이미 게임이 시작되었습니다.");
+            return;
+        }
+
+        ShowRoomMessage("게임 시작에 실패했습니다.");
     }
 }

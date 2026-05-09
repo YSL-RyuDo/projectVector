@@ -57,6 +57,9 @@ public class LoginUI : MonoBehaviour
 
         enterButton.gameObject.SetActive(false);
         errorText.gameObject.SetActive(false);
+
+        if (popupImage != null)
+            popupImage.SetActive(false);
     }
 
     // =========================
@@ -109,7 +112,20 @@ public class LoginUI : MonoBehaviour
 
     public void OnClickSwitch()
     {
-        SetMode(mode == LoginMode.Login ? LoginMode.Register : LoginMode.Login);
+        LoginMode nextMode = mode == LoginMode.Login
+            ? LoginMode.Register
+            : LoginMode.Login;
+
+        SetMode(nextMode);
+
+        if (nextMode == LoginMode.Register)
+        {
+            if (popupImage != null)
+                popupImage.SetActive(true);
+
+            if (errorText != null)
+                errorText.gameObject.SetActive(false);
+        }
     }
 
     // =========================

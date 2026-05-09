@@ -54,6 +54,15 @@ public enum PacketType : ushort
     PKT_SC_ROOM_KICK_RESULT = 38,
     PKT_SC_ROOM_KICKED = 39,
 
+    PKT_CS_PICK_ENTER = 40,
+    PKT_SC_PICK_STATE = 41,
+
+    PKT_CS_PICK_HOVER = 42,
+    PKT_CS_PICK_LOCK = 43,
+    PKT_SC_PICK_LOCK_RESULT = 44,
+
+    PKT_SC_PICK_TIMER = 45,
+
     PKT_SC_HELLO = 100,
     PKT_SC_SPAWN_PLAYER = 101,
     PKT_SC_DESPAWN_PLAYER = 102,
@@ -80,5 +89,6 @@ public enum LoginResult : byte
     SUCCESS = 0,
     NO_ID = 1,
     WRONG_PASSWORD = 2,
-    INVALID_INPUT = 3
+    INVALID_INPUT = 3,
+    ALREADY_LOGIN = 4
 };

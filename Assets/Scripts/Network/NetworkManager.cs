@@ -106,6 +106,17 @@ public enum RoomAdminResult : byte
     FAILED = 6
 }
 
+public enum RoomGameStartResult : byte
+{
+    SUCCESS = 0,
+    NOT_IN_ROOM = 1,
+    ROOM_NOT_FOUND = 2,
+    NOT_LEADER = 3,
+    NOT_ENOUGH_PLAYERS = 4,
+    ALREADY_PLAYING = 5,
+    FAILED = 6
+}
+
 public class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance;
@@ -115,6 +126,7 @@ public class NetworkManager : MonoBehaviour
 
     LoginUI loginUI;
     LobbyManager lobbyManager;
+    private PickManager pickManager;
 
     void Awake()
     {
@@ -331,6 +343,21 @@ public class NetworkManager : MonoBehaviour
                 HandleRoomKicked(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_ROOM_GAME_START_RESULT:
+                HandleRoomGameStartResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_PICK_STATE:
+                HandlePickState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_PICK_LOCK_RESULT:
+                HandlePickLockResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_PICK_TIMER:
+                HandlePickTimer(body);
+                break;
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -379,6 +406,7 @@ public class NetworkManager : MonoBehaviour
                 (byte)LoginResult.NO_ID => "아이디 없음",
                 (byte)LoginResult.WRONG_PASSWORD => "비밀번호 틀림",
                 (byte)LoginResult.INVALID_INPUT => "입력 오류",
+                (byte)LoginResult.ALREADY_LOGIN => "이미 로그인된 계정입니다.",
                 _ => "로그인 실패"
             };
 
@@ -982,5 +1010,150 @@ public class NetworkManager : MonoBehaviour
         Debug.Log($"[ROOM KICKED] roomId={roomId}, kicker={kickerNickname}");
 
         lobbyManager?.OnRecvRoomKicked(roomId, kickerNickname);
+    }
+
+    public void SendRoomGameStart()
+    {
+        Debug.Log("[CLIENT] SendRoomGameStart");
+
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_GAME_START).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    void HandleRoomGameStartResult(byte[] body)
+    {
+        int offset = 0;
+
+        byte result = body[offset];
+        offset += 1;
+
+        Debug.Log($"[ROOM GAME START RESULT] result={result}");
+
+        lobbyManager?.OnRecvRoomGameStartResult(result);
+    }
+
+    public void SetPickManager(PickManager manager)
+    {
+        pickManager = manager;
+    }
+
+    public void SendPickEnter()
+    {
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_PICK_ENTER).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    public void SendPickHover(int characterId)
+    {
+        byte[] buffer = new byte[4 + 4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_PICK_HOVER).CopyTo(buffer, 2);
+        BitConverter.GetBytes(characterId).CopyTo(buffer, 4);
+
+        client.Send(buffer);
+    }
+
+    public void SendPickLock(int characterId)
+    {
+        byte[] buffer = new byte[4 + 4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_PICK_LOCK).CopyTo(buffer, 2);
+        BitConverter.GetBytes(characterId).CopyTo(buffer, 4);
+
+        client.Send(buffer);
+    }
+
+    private void HandlePickState(byte[] body)
+    {
+        int offset = 0;
+
+        PickStateData state = new PickStateData();
+
+        state.roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        state.mapName = Packet.ReadFixedString(body, offset, 32);
+        offset += 32;
+
+        state.myTeam = (RoomSlotTeam)body[offset];
+        offset += 1;
+
+        state.firstRole = (PickRole)body[offset];
+        offset += 1;
+
+        state.secondRole = (PickRole)body[offset];
+        offset += 1;
+
+        state.remainingSeconds = BitConverter.ToUInt16(body, offset);
+        offset += 2;
+
+        state.blueScore = body[offset];
+        offset += 1;
+
+        state.redScore = body[offset];
+        offset += 1;
+
+        byte memberCount = body[offset];
+        offset += 1;
+
+        for (int i = 0; i < memberCount; i++)
+        {
+            PickTeamMemberData member = new PickTeamMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.hoverCharacterId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.lockedCharacterId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.isLocked = body[offset] != 0;
+            offset += 1;
+
+            member.isMe = body[offset] != 0;
+            offset += 1;
+
+            state.members.Add(member);
+        }
+
+        pickManager?.OnRecvPickState(state);
+    }
+
+    private void HandlePickLockResult(byte[] body)
+    {
+        int offset = 0;
+
+        byte result = body[offset];
+        offset += 1;
+
+        int characterId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        pickManager?.OnRecvPickLockResult(result, characterId);
+    }
+
+    private void HandlePickTimer(byte[] body)
+    {
+        ushort remainingSeconds = BitConverter.ToUInt16(body, 0);
+
+        pickManager?.OnRecvPickTimer(remainingSeconds);
     }
 }
