@@ -117,6 +117,12 @@ public enum RoomGameStartResult : byte
     FAILED = 6
 }
 
+public enum PickPhase : byte
+{
+    PICKING = 0,
+    PREPARE = 1,
+    COMPLETE = 2
+}
 public class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance;
@@ -358,6 +364,15 @@ public class NetworkManager : MonoBehaviour
             case (ushort)PacketType.PKT_SC_PICK_TIMER:
                 HandlePickTimer(body);
                 break;
+
+            case (ushort)PacketType.PKT_SC_MATCH_LOADING_INFO:
+                HandleMatchLoadingInfo(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_MATCH_START:
+                HandleMatchStart(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -1152,8 +1167,95 @@ public class NetworkManager : MonoBehaviour
 
     private void HandlePickTimer(byte[] body)
     {
-        ushort remainingSeconds = BitConverter.ToUInt16(body, 0);
+        int offset = 0;
 
-        pickManager?.OnRecvPickTimer(remainingSeconds);
+        PickPhase phase = (PickPhase)body[offset];
+        offset += 1;
+
+        ushort remainingSeconds = BitConverter.ToUInt16(body, offset);
+        offset += 2;
+
+        Debug.Log($"[PICK TIMER] phase={phase}, remain={remainingSeconds}");
+
+        pickManager?.OnRecvPickTimer(phase, remainingSeconds);
+    }
+
+    private void HandleMatchLoadingInfo(byte[] body)
+    {
+        int offset = 0;
+
+        MatchLoadingInfoData data = new MatchLoadingInfoData();
+
+        data.roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        data.attackTeam = body[offset];
+        offset += 1;
+
+        data.defenseTeam = body[offset];
+        offset += 1;
+
+        byte attackCount = body[offset];
+        offset += 1;
+
+        byte defenseCount = body[offset];
+        offset += 1;
+
+        for (int i = 0; i < 3; i++)
+        {
+            MatchLoadingMemberData member = new MatchLoadingMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.characterId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.rankImageId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            if (i < attackCount)
+                data.attackMembers.Add(member);
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            MatchLoadingMemberData member = new MatchLoadingMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.characterId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.rankImageId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            if (i < defenseCount)
+                data.defenseMembers.Add(member);
+        }
+
+        pickManager?.OnRecvMatchLoadingInfo(data);
+    }
+
+    private void HandleMatchStart(byte[] body)
+    {
+        uint roomId = BitConverter.ToUInt32(body, 0);
+
+        Debug.Log($"[MATCH START] roomId={roomId}");
+
+        pickManager?.OnRecvMatchStart(roomId);
     }
 }

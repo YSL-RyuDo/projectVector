@@ -55,4 +55,10 @@ public class PickCharacterButtonUI : MonoBehaviour
         if (button != null)
             button.interactable = interactable;
     }
+
+    public void SetInteractable(bool value)
+    {
+        if (button != null)
+            button.interactable = value;
+    }
 }

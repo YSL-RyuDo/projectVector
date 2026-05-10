@@ -44,8 +44,22 @@ public class PickManager : MonoBehaviour
     [SerializeField] private TMP_Text skillNameText;
     [SerializeField] private TMP_Text skillInfoText;
 
+    [Header("Character Preview Model")]
+    [SerializeField] private Transform previewSpawnPoint;
+    [SerializeField] private GameObject[] characterModelPrefabs;
+    [SerializeField] private Vector3 previewLocalPosition = Vector3.zero;
+    [SerializeField] private Vector3 previewLocalEulerAngles = Vector3.zero;
+    [SerializeField] private Vector3 previewLocalScale = Vector3.one;
+
+    private GameObject currentPreviewModel;
+    private int currentPreviewCharacterId = -1;
+
     private PickStateData currentState;
     private int currentInfoCharacterId = -1;
+
+    private bool isInputLockedByPhase = true;
+    private PickPhase currentPhase = PickPhase.PICKING;
+    [SerializeField] private MatchLoadingPanelUI matchLoadingPanelUI;
 
     private void Start()
     {
@@ -63,10 +77,20 @@ public class PickManager : MonoBehaviour
             selectButton.interactable = false;
         }
 
+        ApplyTimer(20);
+
         if (characterInfoPanel != null)
             characterInfoPanel.SetActive(false);
 
         NetworkManager.Instance.SendPickEnter();
+    }
+
+    private void OnDestroy()
+    {
+        ClearPreviewModel();
+
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SetPickManager(null);
     }
 
     private void InitCharacterButtons()
@@ -115,6 +139,9 @@ public class PickManager : MonoBehaviour
 
     private void OnClickCharacter(int characterId)
     {
+        if (isInputLockedByPhase)
+            return;
+
         PickTeamMemberData me = GetMe();
 
         if (me != null && me.isLocked)
@@ -124,13 +151,18 @@ public class PickManager : MonoBehaviour
             return;
 
         currentInfoCharacterId = characterId;
+
         ApplyCharacterInfo(characterId);
+        ShowPreviewModel(characterId);
 
         NetworkManager.Instance.SendPickHover(characterId);
     }
 
     private void OnClickSelect()
     {
+        if (isInputLockedByPhase)
+            return;
+
         PickTeamMemberData me = GetMe();
 
         if (me == null)
@@ -161,24 +193,53 @@ public class PickManager : MonoBehaviour
         ApplyTeamPickSlots();
         ApplyCharacterButtons();
         ApplySelectButton();
-
         ApplyCurrentCharacterInfoSafely();
     }
 
-    public void OnRecvPickTimer(ushort remainSeconds)
+    public void OnRecvPickTimer(PickPhase phase, ushort remainSeconds)
     {
+        currentPhase = phase;
         ApplyTimer(remainSeconds);
-    }
 
+        if (phase == PickPhase.PICKING)
+        {
+            isInputLockedByPhase = false;
+
+            ApplyCharacterButtons();
+            ApplySelectButton();
+            return;
+        }
+
+        if (phase == PickPhase.PREPARE)
+        {
+            isInputLockedByPhase = true;
+
+            //if (preparePanel != null)
+            //    preparePanel.SetActive(true);
+
+            // 여기서 matchLoadingPanelUI.Show() 호출하면 안 됨
+            ApplyCharacterButtons();
+            ApplySelectButton();
+            ApplyCurrentCharacterInfoSafely();
+            return;
+        }
+
+        if (phase == PickPhase.COMPLETE)
+        {
+            isInputLockedByPhase = true;
+
+            ApplyCharacterButtons();
+            ApplySelectButton();
+            ApplyCurrentCharacterInfoSafely();
+            return;
+        }
+    }
     public void OnRecvPickLockResult(byte result, int characterId)
     {
         Debug.Log($"[PICK LOCK RESULT] result={result}, characterId={characterId}");
 
-        if (result != (byte)PickLockResult.SUCCESS)
-        {
-            ApplySelectButton();
-            ApplyCurrentCharacterInfoSafely();
-        }
+        ApplySelectButton();
+        ApplyCurrentCharacterInfoSafely();
     }
 
     private void ApplyTopInfo()
@@ -189,7 +250,7 @@ public class PickManager : MonoBehaviour
         if (mapText != null)
             mapText.text = currentState.mapName;
 
-        ApplyTimer(currentState.remainingSeconds);
+        //ApplyTimer(currentState.remainingSeconds);
 
         if (ourTeamRoleText != null)
         {
@@ -226,11 +287,10 @@ public class PickManager : MonoBehaviour
         if (teamPickSlots == null)
             return;
 
-        // 슬롯 자체는 숨기지 않고 기본 상태로만 초기화
         for (int i = 0; i < teamPickSlots.Length; i++)
         {
             if (teamPickSlots[i] != null)
-                teamPickSlots[i].Clear();
+                teamPickSlots[i].SetWaitingSlot("");
         }
 
         if (currentState == null || currentState.members == null)
@@ -299,7 +359,11 @@ public class PickManager : MonoBehaviour
             else if (isTeamPick)
                 nickname = teamPickMember.nickname;
 
-            bool interactable = !myLocked && !isTeamPick && !isMyPick;
+            bool interactable =
+                !isInputLockedByPhase &&
+                !myLocked &&
+                !isTeamPick &&
+                !isMyPick;
 
             characterButtons[i].SetPickState(
                 isMyPick,
@@ -316,6 +380,16 @@ public class PickManager : MonoBehaviour
             return;
 
         PickTeamMemberData me = GetMe();
+
+        if (isInputLockedByPhase)
+        {
+            selectButton.interactable = false;
+
+            if (currentPhase == PickPhase.PREPARE)
+                SetSelectButtonText("선택 완료");
+
+            return;
+        }
 
         if (me == null)
         {
@@ -368,9 +442,7 @@ public class PickManager : MonoBehaviour
         PickTeamMemberData me = GetMe();
 
         if (me == null)
-        {
             return;
-        }
 
         int characterId = -1;
 
@@ -388,12 +460,11 @@ public class PickManager : MonoBehaviour
         }
 
         if (characterId < 0)
-        {
             return;
-        }
 
         currentInfoCharacterId = characterId;
         ApplyCharacterInfo(characterId);
+        ShowPreviewModel(characterId);
     }
 
     private void ApplyCharacterInfo(int characterId)
@@ -573,5 +644,65 @@ public class PickManager : MonoBehaviour
 
             teamPickSlots[i].SetWaitingSlot("");
         }
+    }
+
+    public void OnRecvMatchLoadingInfo(MatchLoadingInfoData data)
+    {
+        Debug.Log("[PICK MANAGER] Match loading info received");
+
+        if (matchLoadingPanelUI != null)
+            matchLoadingPanelUI.Show(data);
+        else
+            Debug.LogError("[PICK MANAGER] matchLoadingPanelUI is null");
+    }
+
+    public void OnRecvMatchStart(uint roomId)
+    {
+        if (matchLoadingPanelUI != null)
+            matchLoadingPanelUI.OnMatchStart();
+    }
+
+    private void ShowPreviewModel(int characterId)
+    {
+        if (previewSpawnPoint == null)
+        {
+            Debug.LogWarning("[PICK PREVIEW] previewSpawnPoint is null");
+            return;
+        }
+
+        if (characterModelPrefabs == null)
+            return;
+
+        if (characterId < 0 || characterId >= characterModelPrefabs.Length)
+            return;
+
+        GameObject prefab = characterModelPrefabs[characterId];
+        if (prefab == null)
+            return;
+
+        if (currentPreviewModel != null && currentPreviewCharacterId == characterId)
+            return;
+
+        ClearPreviewModel();
+
+        currentPreviewModel = Instantiate(prefab, previewSpawnPoint);
+        currentPreviewCharacterId = characterId;
+
+        currentPreviewModel.transform.localPosition = previewLocalPosition;
+        currentPreviewModel.transform.localRotation = Quaternion.Euler(previewLocalEulerAngles);
+        currentPreviewModel.transform.localScale = previewLocalScale;
+
+        Debug.Log($"[PICK PREVIEW] Show character model characterId={characterId}");
+    }
+
+    private void ClearPreviewModel()
+    {
+        if (currentPreviewModel != null)
+        {
+            Destroy(currentPreviewModel);
+            currentPreviewModel = null;
+        }
+
+        currentPreviewCharacterId = -1;
     }
 }
