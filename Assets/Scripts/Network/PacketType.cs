@@ -62,6 +62,8 @@ public enum PacketType : ushort
     PKT_SC_PICK_LOCK_RESULT = 44,
 
     PKT_SC_PICK_TIMER = 45,
+    PKT_SC_MATCH_LOADING_INFO = 46,
+    PKT_SC_MATCH_START = 47,
 
     PKT_SC_HELLO = 100,
     PKT_SC_SPAWN_PLAYER = 101,
