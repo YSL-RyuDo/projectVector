@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 
-public class DischargeSkill : MonoBehaviour
+public class InitiatorSkill_X : CharacterSkill
 {
     [SerializeField] private float _range = 13f;
     [SerializeField] private float _width = 8f;
@@ -14,15 +14,20 @@ public class DischargeSkill : MonoBehaviour
 
     private bool _isCasting = false;
 
-    private void Update()
+    void Update()
     {
         if (Keyboard.current.xKey.wasPressedThisFrame && !_isCasting)
         {
-            StartCoroutine(DischargeRoutine());
+            UseSkill();
         }
     }
 
-    private IEnumerator DischargeRoutine()
+    protected override void UseSkill()
+    {
+        StartCoroutine(dischargeRoutine());
+    }
+
+    private IEnumerator dischargeRoutine()
     {
         _isCasting = true;
 
@@ -56,15 +61,15 @@ public class DischargeSkill : MonoBehaviour
             Vector3 boltPos = transform.position + transform.forward * Random.Range(1f, _range) + transform.right * Random.Range(-_width / 2, _width / 2);
             boltPos.y = 0f; // 판정 기준점은 바닥(0)으로 고정
 
-            StartCoroutine(DrawLightning(boltPos));
-            ExecuteBolt(boltPos, hitTargets);
+            StartCoroutine(drawLightning(boltPos));
+            executeBolt(boltPos, hitTargets);
             yield return new WaitForSeconds(0.05f);
         }
 
         _isCasting = false;
     }
 
-    private IEnumerator DrawLightning(Vector3 targetPos)
+    private IEnumerator drawLightning(Vector3 targetPos)
     {
         GameObject lineObj = new GameObject("LightningLine");
         LineRenderer lr = lineObj.AddComponent<LineRenderer>();
@@ -95,7 +100,7 @@ public class DischargeSkill : MonoBehaviour
         Destroy(lineObj);
     }
 
-    private void ExecuteBolt(Vector3 center, HashSet<GameObject> hitHistory)
+    private void executeBolt(Vector3 center, HashSet<GameObject> hitHistory)
     {
         Collider[] targets = Physics.OverlapSphere(center, 2.0f, _enemyLayer);
         foreach (var target in targets)
@@ -105,8 +110,6 @@ public class DischargeSkill : MonoBehaviour
 
             if (target.TryGetComponent<ElectricShock>(out var shock))
             {
-
-
                 // 감전 2스택 부여 및 3.5초 유지
                 for (int i = 0; i < 2; i++) shock.Shock(3.5f);
 

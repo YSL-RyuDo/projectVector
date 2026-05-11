@@ -231,12 +231,12 @@ GameObject:
   - component: {fileID: 3632973935905670340}
   - component: {fileID: 2208983547156800768}
   - component: {fileID: 1671254314366744237}
-  - component: {fileID: 9082266197653193063}
   - component: {fileID: 3165811004819219101}
   - component: {fileID: 3876666842127032682}
+  - component: {fileID: 9082266197653193063}
   - component: {fileID: 1275202334242850848}
-  - component: {fileID: 6644194911831367189}
   - component: {fileID: 5148223354640960863}
+  - component: {fileID: 6644194911831367189}
   - component: {fileID: 3417935745254168854}
   - component: {fileID: 7571627229527556630}
   - component: {fileID: 6008646111598099427}
@@ -353,19 +353,6 @@ MonoBehaviour:
   _startPrimary: {fileID: 11400000, guid: d27b88a161774bc43b797ae0fd59076d, type: 2}
   _startPistol: {fileID: 11400000, guid: 2063512ced6a4b74c904aa23d4cf5da7, type: 2}
   _startKnife: {fileID: 0}
---- !u!114 &9082266197653193063
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9177276548501388304}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40a941ea896a2b944924090a67223e1a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerHP
-  MaxHP: 100
 --- !u!114 &3165811004819219101
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -407,6 +394,19 @@ MonoBehaviour:
   itemLayer:
     serializedVersion: 2
     m_Bits: 1024
+--- !u!114 &9082266197653193063
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9177276548501388304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40a941ea896a2b944924090a67223e1a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHP
+  MaxHP: 100
 --- !u!114 &1275202334242850848
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -420,19 +420,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerIdentity
   PlayerId: 0
---- !u!114 &6644194911831367189
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9177276548501388304}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f8e7d9d4661d72a4c956bcab2da47686, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Initiator
-  _taserDronePrefab: {fileID: 6648396469239923759, guid: 21ad1443c077ca14db53f7eb9982190a, type: 3}
 --- !u!114 &5148223354640960863
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -449,6 +436,19 @@ MonoBehaviour:
   _lineResolution: 30
   _lineSpacing: 0.12
   _scannerPrefab: {fileID: 3937076750133015356, guid: 9ba2acf52657cac49afc8b71244e8419, type: 3}
+--- !u!114 &6644194911831367189
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9177276548501388304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8e7d9d4661d72a4c956bcab2da47686, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Initiator
+  _taserDronePrefab: {fileID: 6648396469239923759, guid: 21ad1443c077ca14db53f7eb9982190a, type: 3}
 --- !u!114 &3417935745254168854
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class SwampTrapSkill : MonoBehaviour
+public class ControllerSkill_Q : CharacterSkill
 {
     [SerializeField] private GameObject _trapPrefab;
     [SerializeField] private Transform _throwPoint;
@@ -10,14 +10,13 @@ public class SwampTrapSkill : MonoBehaviour
 
     void Update()
     {
-        // Q키를 눌러서 투척
         if (Keyboard.current.qKey.wasPressedThisFrame)
         {
-            Throw();
+            UseSkill();
         }
     }
 
-    private void Throw()
+    protected override void UseSkill()
     {
         Vector3 playerPos = transform.position;
 

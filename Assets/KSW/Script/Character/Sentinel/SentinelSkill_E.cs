@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class E_Skill : MonoBehaviour
+public class SentinelSkill_E : CharacterSkill
 {
     [SerializeField] private GameObject trapPrefab;
     [SerializeField] private float maxDistance = 20f;
@@ -15,20 +15,25 @@ public class E_Skill : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.E))
         {
-            if (currentTrap == null)
-            {
-                isPlanning = !isPlanning;
-                UpdateUI();
-            }
-            else
-            {
-                RecallTrap();
-            }
+            UseSkill();
         }
 
         if (isPlanning)
         {
             HandlePlacement();
+        }
+    }
+
+    protected override void UseSkill()
+    {
+        if (currentTrap == null)
+        {
+            isPlanning = !isPlanning;
+            UpdateUI();
+        }
+        else
+        {
+            RecallTrap();
         }
     }
 
@@ -47,13 +52,11 @@ public class E_Skill : MonoBehaviour
             {
                 if (Vector3.Dot(hit.normal, Vector3.up) > 0.5f)
                 {
-                    Debug.LogWarning("바닥에는 설치할 수 없습니다!");
                     return;
                 }
 
                 if (Vector3.Dot(hit.normal, Vector3.up) < -0.5f)
                 {
-                    Debug.LogWarning("천장에는 설치할 수 없습니다!");
                     return;
                 }
 

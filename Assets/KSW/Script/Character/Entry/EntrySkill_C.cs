@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class EntrySkill_C : MonoBehaviour
+public class EntrySkill_C : CharacterSkill
 {
     private CharacterController _cc;
     private Animator _animator;
@@ -27,7 +27,10 @@ public class EntrySkill_C : MonoBehaviour
 
     private void Update()
     {
-        handleInput();
+        if (Input.GetKeyDown(KeyCode.C) && !_isSkillActive)
+        {
+            UseSkill();
+        }
         handleCameraHeight();
 
         if (_isSkillActive && _animator != null && _cc != null)
@@ -37,12 +40,9 @@ public class EntrySkill_C : MonoBehaviour
         }
     }
 
-    private void handleInput()
+    protected override void UseSkill()
     {
-        if (Input.GetKeyDown(KeyCode.C) && !_isSkillActive)
-        {
-            _skillCoroutine = StartCoroutine(SkillSequence());
-        }
+        _skillCoroutine = StartCoroutine(SkillSequence());
     }
 
     private IEnumerator SkillSequence()

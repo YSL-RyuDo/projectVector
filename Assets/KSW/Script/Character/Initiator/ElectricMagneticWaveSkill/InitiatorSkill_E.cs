@@ -2,7 +2,7 @@ using UnityEngine.InputSystem;
 using UnityEngine;
 using System.Collections;
 
-public class EMPWaveSkill : MonoBehaviour
+public class InitiatorSkill_E : CharacterSkill
 {
     [SerializeField] private float _radius = 7.0f;
     [SerializeField] private LayerMask _enemyLayer;
@@ -10,18 +10,23 @@ public class EMPWaveSkill : MonoBehaviour
     private LineRenderer _lineRenderer;
     private bool _isCasting = false;
 
-    private void Awake()
+    void Awake()
     {
         _lineRenderer = GetComponent<LineRenderer>();
         _lineRenderer.enabled = false;
     }
 
-    private void Update()
+    void Update()
     {
         if (Keyboard.current.eKey.wasPressedThisFrame && !_isCasting)
         {
-            StartCoroutine(EMPRoutine());
+            UseSkill();
         }
+    }
+
+    protected override void UseSkill()
+    {
+        StartCoroutine(EMPRoutine());
     }
 
     private IEnumerator EMPRoutine()

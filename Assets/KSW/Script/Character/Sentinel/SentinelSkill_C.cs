@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class C_Skill : MonoBehaviour
+public class SentinelSkill_C : CharacterSkill
 {
     public GameObject trapPrefab;
     public Transform throwPoint;
@@ -10,8 +10,7 @@ public class C_Skill : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.C))
         {
-            isReady = !isReady;
-            CharacterSkillUI.Instance.SentinelSkillText(true, "ÅõÃ´ ¸ğµå: ÁÂÅ¬¸¯(±æ°Ô ÅõÃ´), ¿ìÅ¬¸¯(Âª°Ô ÅõÃ´)");
+            UseSkill();
         }
 
         if (isReady)
@@ -29,6 +28,12 @@ public class C_Skill : MonoBehaviour
                 isReady = false;
             }
         }
+    }
+
+    protected override void UseSkill()
+    {
+        isReady = !isReady;
+        CharacterSkillUI.Instance.SentinelSkillText(true, "ÅõÃ´ ¸ğµå: ÁÂÅ¬¸¯(±æ°Ô ÅõÃ´), ¿ìÅ¬¸¯(Âª°Ô ÅõÃ´)");
     }
 
     private void throwTrap(float force)

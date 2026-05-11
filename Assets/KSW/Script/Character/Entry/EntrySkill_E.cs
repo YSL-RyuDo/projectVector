@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class EntrySkill_E : MonoBehaviour
+public class EntrySkill_E : CharacterSkill
 {
     [SerializeField] private float _duration = 5f;
     [SerializeField] private float _speedMultiplier = 1.5f;
@@ -24,7 +24,7 @@ public class EntrySkill_E : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.E) && !_isStealth)
         {
-            StartCoroutine(activateStealth());
+            UseSkill();
         }
 
         if (_isStealth)
@@ -32,6 +32,11 @@ public class EntrySkill_E : MonoBehaviour
             checkDetection();
             checkOtherActions();
         }
+    }
+
+    protected override void UseSkill()
+    {
+        StartCoroutine(activateStealth());
     }
 
     void OnDrawGizmosSelected()

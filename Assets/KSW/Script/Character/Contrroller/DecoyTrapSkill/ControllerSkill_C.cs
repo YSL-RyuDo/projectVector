@@ -1,21 +1,20 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class DecoyTrapSkill : MonoBehaviour
+public class ControllerSkill_C : CharacterSkill
 {
     [SerializeField] private GameObject _decoyProjectilePrefab;
     [SerializeField] private GameObject _decoyAreaPrefab;
-    private DecoyTrapArea _spawnedArea;
 
     void Update()
     {
         if (Keyboard.current.cKey.wasPressedThisFrame)
         {
-            throwDecoy();
+            UseSkill();
         }
     }
 
-    private void throwDecoy()
+    protected override void UseSkill()
     {
         Vector3 spawnPos = transform.position + (transform.forward * 2.0f) + (Vector3.up * 1.5f);
         GameObject projectile = Instantiate(_decoyProjectilePrefab, spawnPos, transform.rotation);

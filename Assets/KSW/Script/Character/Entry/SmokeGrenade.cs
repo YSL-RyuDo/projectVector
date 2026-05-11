@@ -4,7 +4,6 @@ public class SmokeGrenade : MonoBehaviour
 {
     [SerializeField] private GameObject _smokeEffectPrefab;
     [SerializeField] private float _delayBeforeSmoke = 2f;
-    [SerializeField] private float _smokeDuration = 10f;
 
     private bool _hasCollided = false;
 

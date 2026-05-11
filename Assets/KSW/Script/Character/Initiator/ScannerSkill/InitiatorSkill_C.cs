@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class ScannerSkill : MonoBehaviour
+public class InitiatorSkill_C : CharacterSkill
 {
     [SerializeField] private float _baseForce = 12f;
     [SerializeField] private int _lineResolution = 30;
@@ -16,6 +16,8 @@ public class ScannerSkill : MonoBehaviour
 
     void Start()
     {
+        _lineRenderer = GetComponent<LineRenderer>();
+
         _mainCam = Camera.main;
         if (_lineRenderer != null)
         {
@@ -36,12 +38,12 @@ public class ScannerSkill : MonoBehaviour
         {
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {
-                ThrowScanner();
-                CancelAiming();
+                UseSkill();
+                cancelAiming();
             }
             if (Mouse.current.rightButton.wasPressedThisFrame)
             {
-                CancelAiming();
+                cancelAiming();
             }
         }
     }
@@ -80,7 +82,7 @@ public class ScannerSkill : MonoBehaviour
         }
     }
 
-    private void ThrowScanner()
+    protected override void UseSkill()
     {
         if (_scannerPrefab == null) return;
 
@@ -138,7 +140,7 @@ public class ScannerSkill : MonoBehaviour
         return transform.position + (Vector3.up * targetHeight) + (forward * targetForward);
     }
 
-    private void CancelAiming()
+    private void cancelAiming()
     {
         _isAiming = false;
         if (_lineRenderer != null) _lineRenderer.enabled = false;

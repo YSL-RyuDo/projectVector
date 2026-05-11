@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class EntrySkill_Q : MonoBehaviour
+public class EntrySkill_Q : CharacterSkill
 {
     [SerializeField] private GameObject _smokeGrenadePrefab;
     [SerializeField] private Transform _throwPoint;
@@ -19,11 +19,11 @@ public class EntrySkill_Q : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Q))
         {
-            throwGrenade();
+            UseSkill();
         }
     }
 
-    private void throwGrenade()
+    protected override void UseSkill()
     {
         if (_smokeGrenadePrefab == null || _throwPoint == null || _playerCamera == null) return;
 

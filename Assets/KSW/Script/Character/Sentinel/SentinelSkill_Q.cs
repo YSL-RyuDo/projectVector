@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Q_Skill : MonoBehaviour
+public class SentinelSkill_Q : CharacterSkill
 {
     [SerializeField] private GameObject _trapPrefab;
     [SerializeField] private float _throwRange = 10f;
@@ -9,11 +9,11 @@ public class Q_Skill : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Q))
         {
-            tryPlaceTrap();
+            UseSkill();
         }
     }
 
-    private void tryPlaceTrap()
+    protected override void UseSkill()
     {
         Ray ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2));
         RaycastHit hit;

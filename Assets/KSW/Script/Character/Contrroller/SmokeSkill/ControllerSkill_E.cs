@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class SmokeSkill : MonoBehaviour
+public class ControllerSkill_E : CharacterSkill
 {
     [SerializeField] private GameObject _smokePrefab;
     [SerializeField] private GameObject _pingPrefab;
@@ -17,15 +17,11 @@ public class SmokeSkill : MonoBehaviour
 
     public static event Action OnMiniMap;
 
-    private void Start()
-    {
-    }
-
-    private void Update()
+    void Update()
     {
         if (Keyboard.current.eKey.wasPressedThisFrame)
         {
-            OnMiniMap?.Invoke();
+            UseSkill();
         }
 
         if (_isSelecting)
@@ -39,6 +35,11 @@ public class SmokeSkill : MonoBehaviour
                 dropSmokes();
             }
         }
+    }
+
+    protected override void UseSkill()
+    {
+        OnMiniMap?.Invoke();
     }
 
     public void SetupMiniMapReferences(Camera miniMapCam, RectTransform mapRect)
@@ -82,8 +83,6 @@ public class SmokeSkill : MonoBehaviour
         {
             Instantiate(_smokePrefab, pos, Quaternion.identity);
         }
-
-        Debug.Log($"{_targetLocations.Count}개의 연막 생성 완료");
 
         _targetLocations.Clear();
         OnMiniMap?.Invoke();

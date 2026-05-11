@@ -2,7 +2,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class TaserDroneSkill : MonoBehaviour
+public class InitiatorSkill_Q : CharacterSkill
 {
     private PlayerMovement _playerMovement;
     private FPSCameraLook _camera;
@@ -19,9 +19,14 @@ public class TaserDroneSkill : MonoBehaviour
 
     void Update()
     {
-        if (Keyboard.current.qKey.wasPressedThisFrame) SetDroneMode(!_isDroneMode);
+        if (Keyboard.current.qKey.wasPressedThisFrame) UseSkill();
     }
 
+    protected override void UseSkill()
+    {
+        SetDroneMode(!_isDroneMode);
+    }
+    
     public void SetDroneMode(bool active)
     {
         _isDroneMode = active;

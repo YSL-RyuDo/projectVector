@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
 
-public class X_Skill : MonoBehaviour
+public class SentinelSkill_X : CharacterSkill
 {
     [SerializeField] private GameObject xAreaPrefab;
     [SerializeField] private float chargingTime = 1.5f;
@@ -28,8 +28,13 @@ public class X_Skill : MonoBehaviour
     {
         if (Input.GetKey(KeyCode.X) && Input.GetMouseButtonDown(0) && !isCharging)
         {
-            StartCoroutine(XSkillRoutine());
+            UseSkill();
         }
+    }
+
+    protected override void UseSkill()
+    {
+        StartCoroutine(XSkillRoutine());
     }
 
     IEnumerator XSkillRoutine()
