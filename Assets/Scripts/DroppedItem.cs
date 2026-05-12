@@ -7,6 +7,11 @@ public class DroppedItem : MonoBehaviour
     public int magAmmo;
     public int reserveAmmo;
 
+    private void Start()
+    {
+        Destroy(gameObject, 180f);
+    }
+
     public void Pickup(PlayerItem player)
     {
         player.PickupItem(this);

@@ -1,5 +1,6 @@
 using Unity.Mathematics;
 using UnityEngine;
+using static UnityEditor.PlayerSettings;
 
 public class SpikeSpawner : MonoBehaviour
 {
@@ -25,5 +26,10 @@ public class SpikeSpawner : MonoBehaviour
         Spike spike = obj.GetComponent<Spike>();
         spike.OnDeploy();
         return spike;
+    }
+
+    public void ResetSpike(Transform pos)
+    {
+        GameObject obj = Instantiate(DroppedSpikePrefab, pos.position, quaternion.identity);
     }
 }

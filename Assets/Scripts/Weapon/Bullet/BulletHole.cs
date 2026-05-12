@@ -4,6 +4,6 @@ public class BulletHole : MonoBehaviour
 {
     void Start()
     {
-        Destroy(gameObject, 3f); // 10檬 第 昏力
+        Destroy(gameObject, 3f); // 3檬 第 昏力
     }
 }

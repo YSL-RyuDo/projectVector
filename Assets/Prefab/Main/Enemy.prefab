@@ -74,10 +74,13 @@ GameObject:
   - component: {fileID: 2662626554352696185}
   - component: {fileID: 7716740657604623856}
   - component: {fileID: 33935568519290493}
+  - component: {fileID: 1360521071014568118}
   - component: {fileID: 5879970288346742407}
   - component: {fileID: 4813049147961820609}
   - component: {fileID: 4076258702620012664}
   - component: {fileID: 6509078210988573278}
+  - component: {fileID: 1238382409958433510}
+  - component: {fileID: 540624703272827739}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -158,6 +161,31 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!143 &1360521071014568118
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9177276548501388304}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 2
+  m_Radius: 0.5
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &5879970288346742407
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -170,7 +198,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd10cc50f65d3da48b22adef8f5bb6d6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RemotePlayerMovement
-  lerpSpeed: 10
+  positionLerpSpeed: 12
+  rotationLerpSpeed: 15
 --- !u!114 &4813049147961820609
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -220,3 +249,40 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1238382409958433510
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9177276548501388304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af5f5d3c35319ea478932dc3e23b00e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerState
+  MaxHP: 100
+  state: 1
+--- !u!114 &540624703272827739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9177276548501388304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6103e7237caba5344bbd1844d28ef2e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerItem
+  primary: {fileID: 0}
+  secondary: {fileID: 11400000, guid: d27b88a161774bc43b797ae0fd59076d, type: 2}
+  melee: {fileID: 11400000, guid: fa9f3bdacc8f6834896d125db3620060, type: 2}
+  thrown: {fileID: 0}
+  spike: {fileID: 0}
+  itemHolder: {fileID: 5545481228220658964}
+  dropPoint: {fileID: 5577265537592965401}
+  pickupRange: 2.5
+  itemLayer:
+    serializedVersion: 2
+    m_Bits: 1024
