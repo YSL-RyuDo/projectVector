@@ -28,6 +28,101 @@ public class RoomListData
     public byte state;
 }
 
+public enum RoomSlotTeam : byte
+{
+    A = 0,
+    B = 1,
+    Observer = 2
+}
+
+public class RoomMemberData
+{
+    public uint playerId;
+    public string nickname;
+    public int level;
+    public int playerIconId;
+
+    public RoomSlotTeam team;
+    public byte slotIndex;
+    public bool isLeader;
+}
+
+public class RoomStateData
+{
+    public uint roomId;
+    public string roomName;
+    public string mapName;
+
+    public bool isLeader;
+    public bool canStart;
+
+    public List<RoomMemberData> members = new List<RoomMemberData>();
+}
+
+public enum RoomEnterResult : byte
+{
+    SUCCESS = 0,
+    ROOM_NOT_FOUND = 1,
+    ROOM_FULL = 2,
+    ALREADY_IN_ROOM = 3,
+    PLAYER_DATA_NOT_FOUND = 4,
+    NOT_IN_LOBBY = 5
+}
+
+public enum RoomSlotChangeResult : byte
+{
+    SUCCESS = 0,
+    REQUEST_SENT = 1,
+    NOT_IN_ROOM = 2,
+    ROOM_NOT_FOUND = 3,
+    INVALID_SLOT = 4,
+    SAME_SLOT = 5,
+    TARGET_NOT_FOUND = 6,
+    REQUEST_ALREADY_EXISTS = 7,
+    REJECTED = 8,
+    FAILED = 9
+}
+
+public class RoomSlotSwapRequestData
+{
+    public uint requesterPlayerId;
+    public string requesterNickname;
+
+    public RoomSlotTeam requesterTeam;
+    public byte requesterSlotIndex;
+
+    public RoomSlotTeam targetTeam;
+    public byte targetSlotIndex;
+}
+
+public enum RoomAdminResult : byte
+{
+    SUCCESS = 0,
+    NOT_IN_ROOM = 1,
+    ROOM_NOT_FOUND = 2,
+    NOT_LEADER = 3,
+    TARGET_NOT_FOUND = 4,
+    CANNOT_TARGET_SELF = 5,
+    FAILED = 6
+}
+
+public enum RoomGameStartResult : byte
+{
+    SUCCESS = 0,
+    NOT_IN_ROOM = 1,
+    ROOM_NOT_FOUND = 2,
+    NOT_LEADER = 3,
+    NOT_ENOUGH_PLAYERS = 4,
+    ALREADY_PLAYING = 5,
+    FAILED = 6
+}
+
+public enum PickPhase : byte
+{
+    PICKING = 0,
+    PREPARE = 1,
+    COMPLETE = 2
+}
 public class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance;
@@ -37,6 +132,7 @@ public class NetworkManager : MonoBehaviour
 
     LoginUI loginUI;
     LobbyManager lobbyManager;
+    private PickManager pickManager;
 
     void Awake()
     {
@@ -217,6 +313,66 @@ public class NetworkManager : MonoBehaviour
                 HandleRoomList(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_ROOM_CREATE_RESULT:
+                HandleRoomCreateResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROOM_LEAVE_RESULT:
+                HandleRoomLeaveResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROOM_ENTER_RESULT:
+                HandleRoomEnterResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROOM_STATE:
+                HandleRoomState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROOM_SLOT_CHANGE_RESULT:
+                HandleRoomSlotChangeResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROOM_SLOT_SWAP_REQUEST:
+                HandleRoomSlotSwapRequest(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROOM_TRANSFER_LEADER_RESULT:
+                HandleRoomTransferLeaderResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROOM_KICK_RESULT:
+                HandleRoomKickResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROOM_KICKED:
+                HandleRoomKicked(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROOM_GAME_START_RESULT:
+                HandleRoomGameStartResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_PICK_STATE:
+                HandlePickState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_PICK_LOCK_RESULT:
+                HandlePickLockResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_PICK_TIMER:
+                HandlePickTimer(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_MATCH_LOADING_INFO:
+                HandleMatchLoadingInfo(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_MATCH_START:
+                HandleMatchStart(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -265,6 +421,7 @@ public class NetworkManager : MonoBehaviour
                 (byte)LoginResult.NO_ID => "아이디 없음",
                 (byte)LoginResult.WRONG_PASSWORD => "비밀번호 틀림",
                 (byte)LoginResult.INVALID_INPUT => "입력 오류",
+                (byte)LoginResult.ALREADY_LOGIN => "이미 로그인된 계정입니다.",
                 _ => "로그인 실패"
             };
 
@@ -475,5 +632,630 @@ public class NetworkManager : MonoBehaviour
         }
 
         LobbyManager.Instance.OnRecvRoomList(rooms);
+    }
+
+    public void SendRoomCreate()
+    {
+        Debug.Log("[CLIENT] SendRoomCreate");
+
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_CREATE).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    public void SendRoomEnter(uint roomId)
+    {
+        Debug.Log($"[CLIENT] SendRoomEnter roomId={roomId}");
+
+        byte[] buffer = new byte[4 + 4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_ENTER).CopyTo(buffer, 2);
+        BitConverter.GetBytes(roomId).CopyTo(buffer, 4);
+
+        client.Send(buffer);
+    }
+
+    void HandleRoomCreateResult(byte[] body)
+    {
+        Debug.Log($"[ROOM CREATE RESULT] bodyLength={body.Length}");
+
+        int offset = 0;
+
+        byte result = body[offset];
+        offset += 1;
+
+        if (result != 0)
+        {
+            Debug.LogWarning($"[ROOM CREATE FAIL] result={result}");
+            return;
+        }
+
+        RoomStateData roomState = new RoomStateData();
+
+        roomState.roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        roomState.roomName = Packet.ReadFixedString(body, offset, 32);
+        offset += 32;
+
+        roomState.mapName = Packet.ReadFixedString(body, offset, 32);
+        offset += 32;
+
+        roomState.isLeader = body[offset] != 0;
+        offset += 1;
+
+        roomState.canStart = body[offset] != 0;
+        offset += 1;
+
+        byte memberCount = body[offset];
+        offset += 1;
+
+        for (int i = 0; i < memberCount; i++)
+        {
+            RoomMemberData member = new RoomMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.level = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.playerIconId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.team = (RoomSlotTeam)body[offset];
+            offset += 1;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.isLeader = body[offset] != 0;
+            offset += 1;
+
+            roomState.members.Add(member);
+        }
+
+        lobbyManager?.OnRecvRoomCreateResult(roomState);
+    }
+
+    public void SendRoomLeave()
+    {
+        Debug.Log("[CLIENT] SendRoomLeave");
+
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_LEAVE).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    void HandleRoomLeaveResult(byte[] body)
+    {
+        int offset = 0;
+
+        byte result = body[offset];
+        offset += 1;
+
+        uint roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        byte roomDeleted = body[offset];
+        offset += 1;
+
+        Debug.Log($"[ROOM LEAVE RESULT] result={result}, roomId={roomId}, roomDeleted={roomDeleted}");
+
+        lobbyManager?.OnRecvRoomLeaveResult(result, roomId, roomDeleted != 0);
+    }
+
+    void HandleRoomEnterResult(byte[] body)
+    {
+        int offset = 0;
+
+        byte result = body[offset];
+        offset += 1;
+
+        uint roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        Debug.Log($"[ROOM ENTER RESULT] result={result}, roomId={roomId}");
+
+        lobbyManager?.OnRecvRoomEnterResult(result, roomId);
+    }
+
+    void HandleRoomState(byte[] body)
+    {
+        Debug.Log($"[ROOM STATE] bodyLength={body.Length}");
+
+        int offset = 0;
+
+        RoomStateData roomState = new RoomStateData();
+
+        roomState.roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        roomState.roomName = Packet.ReadFixedString(body, offset, 32);
+        offset += 32;
+
+        roomState.mapName = Packet.ReadFixedString(body, offset, 32);
+        offset += 32;
+
+        roomState.canStart = body[offset] != 0;
+        offset += 1;
+
+        byte memberCount = body[offset];
+        offset += 1;
+
+        Debug.Log(
+            $"[ROOM STATE PARSED] " +
+            $"roomId={roomState.roomId}, " +
+            $"roomName={roomState.roomName}, " +
+            $"mapName={roomState.mapName}, " +
+            $"canStart={roomState.canStart}, " +
+            $"memberCount={memberCount}"
+        );
+
+        for (int i = 0; i < memberCount; i++)
+        {
+            RoomMemberData member = new RoomMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.level = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.playerIconId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.team = (RoomSlotTeam)body[offset];
+            offset += 1;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.isLeader = body[offset] != 0;
+            offset += 1;
+
+            roomState.members.Add(member);
+
+            Debug.Log(
+                $"[ROOM STATE MEMBER] " +
+                $"playerId={member.playerId}, " +
+                $"nickname={member.nickname}, " +
+                $"level={member.level}, " +
+                $"team={member.team}, " +
+                $"slot={member.slotIndex}, " +
+                $"leader={member.isLeader}"
+            );
+        }
+
+        lobbyManager?.OnRecvRoomState(roomState);
+    }
+
+    public void SendRoomSlotChange(RoomSlotTeam targetTeam, byte targetSlotIndex)
+    {
+        Debug.Log($"[CLIENT] SendRoomSlotChange team={targetTeam}, slot={targetSlotIndex}");
+
+        byte[] buffer = new byte[4 + 1 + 1];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_SLOT_CHANGE).CopyTo(buffer, 2);
+
+        buffer[4] = (byte)targetTeam;
+        buffer[5] = targetSlotIndex;
+
+        client.Send(buffer);
+    }
+
+    public void SendRoomSlotSwapResponse(uint requesterPlayerId, bool accept)
+    {
+        Debug.Log($"[CLIENT] SendRoomSlotSwapResponse requester={requesterPlayerId}, accept={accept}");
+
+        byte[] buffer = new byte[4 + 4 + 1];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_SLOT_SWAP_RESPONSE).CopyTo(buffer, 2);
+
+        BitConverter.GetBytes(requesterPlayerId).CopyTo(buffer, 4);
+        buffer[8] = accept ? (byte)1 : (byte)0;
+
+        client.Send(buffer);
+    }
+
+    void HandleRoomSlotChangeResult(byte[] body)
+    {
+        int offset = 0;
+
+        byte result = body[offset];
+        offset += 1;
+
+        RoomSlotTeam targetTeam = (RoomSlotTeam)body[offset];
+        offset += 1;
+
+        byte targetSlotIndex = body[offset];
+        offset += 1;
+
+        string targetNickname = Packet.ReadFixedString(body, offset, 20);
+        offset += 20;
+
+        Debug.Log(
+            $"[ROOM SLOT CHANGE RESULT] " +
+            $"result={result}, targetTeam={targetTeam}, targetSlot={targetSlotIndex}, targetNickname={targetNickname}"
+        );
+
+        lobbyManager?.OnRecvRoomSlotChangeResult(
+            result,
+            targetTeam,
+            targetSlotIndex,
+            targetNickname
+        );
+    }
+
+    void HandleRoomSlotSwapRequest(byte[] body)
+    {
+        int offset = 0;
+
+        RoomSlotSwapRequestData data = new RoomSlotSwapRequestData();
+
+        data.requesterPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        data.requesterNickname = Packet.ReadFixedString(body, offset, 20);
+        offset += 20;
+
+        data.requesterTeam = (RoomSlotTeam)body[offset];
+        offset += 1;
+
+        data.requesterSlotIndex = body[offset];
+        offset += 1;
+
+        data.targetTeam = (RoomSlotTeam)body[offset];
+        offset += 1;
+
+        data.targetSlotIndex = body[offset];
+        offset += 1;
+
+        Debug.Log(
+            $"[ROOM SLOT SWAP REQUEST] " +
+            $"requester={data.requesterNickname}, requesterId={data.requesterPlayerId}, " +
+            $"from={data.requesterTeam}{data.requesterSlotIndex}, " +
+            $"target={data.targetTeam}{data.targetSlotIndex}"
+        );
+
+        lobbyManager?.OnRecvRoomSlotSwapRequest(data);
+    }
+
+    public void SendRoomTransferLeader(uint targetPlayerId)
+    {
+        Debug.Log($"[CLIENT] SendRoomTransferLeader target={targetPlayerId}");
+
+        byte[] buffer = new byte[4 + 4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_TRANSFER_LEADER).CopyTo(buffer, 2);
+        BitConverter.GetBytes(targetPlayerId).CopyTo(buffer, 4);
+
+        client.Send(buffer);
+    }
+
+    public void SendRoomKick(uint targetPlayerId)
+    {
+        Debug.Log($"[CLIENT] SendRoomKick target={targetPlayerId}");
+
+        byte[] buffer = new byte[4 + 4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_KICK).CopyTo(buffer, 2);
+        BitConverter.GetBytes(targetPlayerId).CopyTo(buffer, 4);
+
+        client.Send(buffer);
+    }
+
+    void HandleRoomTransferLeaderResult(byte[] body)
+    {
+        int offset = 0;
+
+        byte result = body[offset];
+        offset += 1;
+
+        uint targetPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        string targetNickname = Packet.ReadFixedString(body, offset, 20);
+        offset += 20;
+
+        Debug.Log(
+            $"[ROOM TRANSFER LEADER RESULT] " +
+            $"result={result}, targetPlayerId={targetPlayerId}, targetNickname={targetNickname}"
+        );
+
+        lobbyManager?.OnRecvRoomTransferLeaderResult(
+            result,
+            targetPlayerId,
+            targetNickname
+        );
+    }
+
+    void HandleRoomKickResult(byte[] body)
+    {
+        int offset = 0;
+
+        byte result = body[offset];
+        offset += 1;
+
+        uint targetPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        string targetNickname = Packet.ReadFixedString(body, offset, 20);
+        offset += 20;
+
+        Debug.Log(
+            $"[ROOM KICK RESULT] " +
+            $"result={result}, targetPlayerId={targetPlayerId}, targetNickname={targetNickname}"
+        );
+
+        lobbyManager?.OnRecvRoomKickResult(
+            result,
+            targetPlayerId,
+            targetNickname
+        );
+    }
+
+    void HandleRoomKicked(byte[] body)
+    {
+        int offset = 0;
+
+        uint roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        string kickerNickname = Packet.ReadFixedString(body, offset, 20);
+        offset += 20;
+
+        Debug.Log($"[ROOM KICKED] roomId={roomId}, kicker={kickerNickname}");
+
+        lobbyManager?.OnRecvRoomKicked(roomId, kickerNickname);
+    }
+
+    public void SendRoomGameStart()
+    {
+        Debug.Log("[CLIENT] SendRoomGameStart");
+
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_GAME_START).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    void HandleRoomGameStartResult(byte[] body)
+    {
+        int offset = 0;
+
+        byte result = body[offset];
+        offset += 1;
+
+        Debug.Log($"[ROOM GAME START RESULT] result={result}");
+
+        lobbyManager?.OnRecvRoomGameStartResult(result);
+    }
+
+    public void SetPickManager(PickManager manager)
+    {
+        pickManager = manager;
+    }
+
+    public void SendPickEnter()
+    {
+        byte[] buffer = new byte[4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_PICK_ENTER).CopyTo(buffer, 2);
+
+        client.Send(buffer);
+    }
+
+    public void SendPickHover(int characterId)
+    {
+        byte[] buffer = new byte[4 + 4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_PICK_HOVER).CopyTo(buffer, 2);
+        BitConverter.GetBytes(characterId).CopyTo(buffer, 4);
+
+        client.Send(buffer);
+    }
+
+    public void SendPickLock(int characterId)
+    {
+        byte[] buffer = new byte[4 + 4];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_PICK_LOCK).CopyTo(buffer, 2);
+        BitConverter.GetBytes(characterId).CopyTo(buffer, 4);
+
+        client.Send(buffer);
+    }
+
+    private void HandlePickState(byte[] body)
+    {
+        int offset = 0;
+
+        PickStateData state = new PickStateData();
+
+        state.roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        state.mapName = Packet.ReadFixedString(body, offset, 32);
+        offset += 32;
+
+        state.myTeam = (RoomSlotTeam)body[offset];
+        offset += 1;
+
+        state.firstRole = (PickRole)body[offset];
+        offset += 1;
+
+        state.secondRole = (PickRole)body[offset];
+        offset += 1;
+
+        state.remainingSeconds = BitConverter.ToUInt16(body, offset);
+        offset += 2;
+
+        state.blueScore = body[offset];
+        offset += 1;
+
+        state.redScore = body[offset];
+        offset += 1;
+
+        byte memberCount = body[offset];
+        offset += 1;
+
+        for (int i = 0; i < memberCount; i++)
+        {
+            PickTeamMemberData member = new PickTeamMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.hoverCharacterId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.lockedCharacterId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.isLocked = body[offset] != 0;
+            offset += 1;
+
+            member.isMe = body[offset] != 0;
+            offset += 1;
+
+            state.members.Add(member);
+        }
+
+        pickManager?.OnRecvPickState(state);
+    }
+
+    private void HandlePickLockResult(byte[] body)
+    {
+        int offset = 0;
+
+        byte result = body[offset];
+        offset += 1;
+
+        int characterId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        pickManager?.OnRecvPickLockResult(result, characterId);
+    }
+
+    private void HandlePickTimer(byte[] body)
+    {
+        int offset = 0;
+
+        PickPhase phase = (PickPhase)body[offset];
+        offset += 1;
+
+        ushort remainingSeconds = BitConverter.ToUInt16(body, offset);
+        offset += 2;
+
+        Debug.Log($"[PICK TIMER] phase={phase}, remain={remainingSeconds}");
+
+        pickManager?.OnRecvPickTimer(phase, remainingSeconds);
+    }
+
+    private void HandleMatchLoadingInfo(byte[] body)
+    {
+        int offset = 0;
+
+        MatchLoadingInfoData data = new MatchLoadingInfoData();
+
+        data.roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        data.attackTeam = body[offset];
+        offset += 1;
+
+        data.defenseTeam = body[offset];
+        offset += 1;
+
+        byte attackCount = body[offset];
+        offset += 1;
+
+        byte defenseCount = body[offset];
+        offset += 1;
+
+        for (int i = 0; i < 3; i++)
+        {
+            MatchLoadingMemberData member = new MatchLoadingMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.characterId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.rankImageId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            if (i < attackCount)
+                data.attackMembers.Add(member);
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            MatchLoadingMemberData member = new MatchLoadingMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.characterId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.rankImageId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            if (i < defenseCount)
+                data.defenseMembers.Add(member);
+        }
+
+        pickManager?.OnRecvMatchLoadingInfo(data);
+    }
+
+    private void HandleMatchStart(byte[] body)
+    {
+        uint roomId = BitConverter.ToUInt32(body, 0);
+
+        Debug.Log($"[MATCH START] roomId={roomId}");
+
+        pickManager?.OnRecvMatchStart(roomId);
     }
 }
