@@ -326,7 +326,11 @@ public class Weapon : Item
             case WeaponData.WeaponType.Knife:
                 fireStrategy = new MeleeFire(this.transform, this.weaponData.range, this.weaponData.damage);
                 break;
+
+           
         }
+
+
 
     }
 
@@ -445,5 +449,24 @@ public class Weapon : Item
     public WeaponData.WeaponType GetWeaponType()
     {
         return weaponData.weaponType;
+    }
+
+    public void ThrowGrenade()
+    {
+        if (bulletPrefab == null || firePoint == null)
+            return;
+
+        GameObject grenade = Instantiate(
+            bulletPrefab,
+            firePoint.position,
+            firePoint.rotation
+        );
+
+        Rigidbody rb = grenade.GetComponent<Rigidbody>();
+
+        if (rb != null)
+        {
+            rb.AddForce(firePoint.forward * weaponData.muzzleVelocity, ForceMode.Impulse);
+        }
     }
 }
