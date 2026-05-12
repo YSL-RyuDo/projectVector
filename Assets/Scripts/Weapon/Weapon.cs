@@ -98,13 +98,17 @@ public class Weapon : Item
 
         if (Keyboard.current.rKey.wasPressedThisFrame)
         {
+            currentShotIndex = 0;
+            recoilSystem?.StopRecoil();
+
             StartCoroutine(Reload());
             return;
         }
 
         if (isFiringInput)
         {
-            if (!RoundManager.Instance.CanAttack) return;
+            bool cannotAttack = (RoundManager.Instance != null && !RoundManager.Instance.CanAttack);
+            if (cannotAttack) return;
             OnUse();
         }
         else
@@ -216,6 +220,9 @@ public class Weapon : Item
             Debug.Log("[HIT] Raycast hit nothing");
             return;
         }
+
+        var damageable = hit.collider.GetComponent<IDamageable>();
+        damageable?.TakeDamage();
 
         Debug.Log($"[HIT] Collider = {hit.collider.name}");
 

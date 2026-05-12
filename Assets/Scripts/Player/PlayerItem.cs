@@ -37,14 +37,14 @@ public class PlayerItem : MonoBehaviour
 
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
-            if (!RoundManager.Instance.CanAttack || currentIndex == 0 || currentIndex == 1) return;
+            if (IsAttackRestricted()) return;
 
             items[currentIndex]?.OnUse();
             Debug.Log("leftbutton");
         }
         if (Mouse.current.rightButton.wasPressedThisFrame)
         {
-            if (!RoundManager.Instance.CanAttack || currentIndex == 0 || currentIndex == 1) return;
+            if (IsAttackRestricted()) return;
 
             items[currentIndex]?.OnAltUse();
             Debug.Log("rightbutton");
@@ -308,5 +308,17 @@ public class PlayerItem : MonoBehaviour
 
         // 권총 장착
         Switch(1);
+    }
+
+    // 사격 조건
+    bool IsAttackRestricted()
+    {
+        // 0번, 1번 인덱스는 무조건 사용 불가
+        if (currentIndex == 0 || currentIndex == 1) return true;
+
+        // RoundManager가 있고, 공격 불가 상태라면 true 반환
+        if (RoundManager.Instance != null && !RoundManager.Instance.CanAttack) return true;
+
+        return false;
     }
 }
