@@ -11,6 +11,7 @@ public class Weapon : Item
     [SerializeField] private WeaponRecoil recoilSystem;
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private Transform firePoint;
+
     [SerializeField] private TMP_Text ammoText;
 
     [Header("Camera")]
@@ -31,6 +32,20 @@ public class Weapon : Item
     private float nextFireTime;
     private bool isReloading;
     private bool isADS;
+
+    private bool _canFire = true;
+
+    public bool CanFire
+    {
+        get => _canFire;
+        set => _canFire = value;
+    }
+
+    // 외부 읽기 전용
+    public Transform FirePoint => firePoint;
+    public bool IsADS => isADS;
+    public WeaponData WeaponData => weaponData;
+    public WeaponRecoil RecoilSystem => recoilSystem;
 
     [Header("Recoil Logic")]
     private int currentShotIndex = 0;
@@ -159,6 +174,8 @@ public class Weapon : Item
     {
         base.OnUse();
 
+        if (!_canFire) return;
+
         if (Time.time < nextFireTime || currentAmmo <= 0)
             return;
 
@@ -198,6 +215,11 @@ public class Weapon : Item
     public override void OnDrop()
     {
         DropWeapon();
+    }
+
+    public override void OnEquip()
+    {
+        base.OnEquip();
     }
 
     public void FireRaycast()
