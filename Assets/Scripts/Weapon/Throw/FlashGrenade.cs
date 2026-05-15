@@ -2,8 +2,6 @@ using UnityEngine;
 
 public class FlashGrenade : MonoBehaviour
 {
-    public float flashRadius = 5f;
-
     bool exploded = false;
 
     void OnCollisionEnter(Collision collision)
@@ -12,25 +10,20 @@ public class FlashGrenade : MonoBehaviour
 
         exploded = true;
 
-        Explode();
-    }
-
-    void Explode()
-    {
-        Collider[] hits = Physics.OverlapSphere(
-            transform.position,
-            flashRadius
-        );
-
-        foreach (Collider hit in hits)
+        if (
+           // collision.gameObject.CompareTag("Player") || ÇÃ·¹ÀÌ¾î ¿µÇâ ¿©ºÎ 
+            collision.gameObject.CompareTag("Enemy")
+        )
         {
             Flash flash =
-                hit.GetComponentInChildren<Flash>();
+                collision.gameObject.GetComponentInChildren<Flash>();
 
             if (flash != null)
             {
                 flash.flash();
             }
+
+            Debug.Log("¼¶±¤Åº ¸ÂÀ½");
         }
 
         Destroy(gameObject);

@@ -7,16 +7,16 @@ public class PlayerSkill : MonoBehaviour
 
     public Transform throwPoint;
 
-    public float throwForce = 10f;
+    public float throwForce = 15f;
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.G))
+        if (Input.GetKeyDown(KeyCode.J))
         {
             Throw(grenadePrefab);
         }
 
-        if (Input.GetKeyDown(KeyCode.F))
+        if (Input.GetKeyDown(KeyCode.H))
         {
             Throw(flashPrefab);
         }
@@ -27,7 +27,7 @@ public class PlayerSkill : MonoBehaviour
         GameObject obj = Instantiate(
             prefab,
             throwPoint.position,
-            throwPoint.rotation
+            Quaternion.identity
         );
 
         Rigidbody rb = obj.GetComponent<Rigidbody>();
@@ -35,7 +35,7 @@ public class PlayerSkill : MonoBehaviour
         if (rb != null)
         {
             rb.AddForce(
-                throwPoint.forward * throwForce,
+                Camera.main.transform.forward * throwForce,
                 ForceMode.Impulse
             );
         }
