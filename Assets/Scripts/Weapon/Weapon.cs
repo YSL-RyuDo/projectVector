@@ -38,6 +38,8 @@ public class Weapon : Item
 
     private IFireStrategy fireStrategy;
 
+    private PlayerIdentity _playerIdentity;
+
     void Awake()
     {
         ownerHP = GetComponentInParent<PlayerHP>();
@@ -56,6 +58,8 @@ public class Weapon : Item
         //ammoText = FindFirstObjectByType<TMP_Text>();
         ammoText = GameObject.Find("AmmoText").GetComponent<TMP_Text>();
         impulseSource = GetComponentInParent<CinemachineImpulseSource>();
+
+        _playerIdentity = GetComponentInParent<PlayerIdentity>();
 
         if (recoilSystem == null)
         {
@@ -85,6 +89,7 @@ public class Weapon : Item
     void Update()
     {
         if (GameController.Instance != null && GameController.Instance.IsPaused) return;
+        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
 
         if (!isPlayer) return;
 

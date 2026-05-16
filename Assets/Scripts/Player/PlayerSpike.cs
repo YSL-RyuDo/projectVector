@@ -26,16 +26,20 @@ public class PlayerSpike : MonoBehaviour
     public GameObject spikeSlider;
     private Slider slider;
 
+    private PlayerIdentity _playerIdentity;
+
     void Start()
     {
-        //slider = spikeSlider.GetComponent<Slider>();
+        //slider = spikeSlider.GetComponent<Slider>(); 슬라이더 찾는 방법 강구 필요
         playerItem = GetComponent<PlayerItem>();
         playerMove = GetComponent<PlayerMovement>();
+        _playerIdentity = GetComponent<PlayerIdentity>();
     }
 
     void Update()
     {
         if (GameController.Instance != null && GameController.Instance.IsPaused) return;
+        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
 
         // F 눌렀을 때
         if (Keyboard.current.fKey.wasPressedThisFrame)

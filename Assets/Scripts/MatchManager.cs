@@ -29,6 +29,7 @@ public class MatchManager : MonoBehaviour
 
     [Header("Invisiables")]
     [SerializeField] private GameObject[] targets;
+    [SerializeField] private GameObject gameUIs;
 
     private GameObject spawnedMap;
     private MapInfo currentMapInfo;
@@ -76,6 +77,7 @@ public class MatchManager : MonoBehaviour
             Debug.Log(
                 $"[GAME MEMBER] index={i}, " +
                 $"playerId={member.playerId}, " +
+                $"userId={member.userId}, " +
                 $"nickname={member.nickname}, " +
                 $"team={member.team}, " +
                 $"slot={member.slotIndex}, " +
@@ -95,6 +97,11 @@ public class MatchManager : MonoBehaviour
 
         if (inGameUIPanel != null)
             inGameUIPanel.SetActive(true);
+
+        StartCoroutine(ScreenFader.Instance.FadeOut(1f));
+        StartCoroutine(ScreenFader.Instance.FadeIn(1f));
+
+        SetGamePlayVisibility(true);
 
         SetTeamListVisible(true);
 
@@ -256,13 +263,21 @@ public class MatchManager : MonoBehaviour
                 spawnPoint.rotation
             );
 
-            characterObj.name =
-                $"Player_{member.playerId}_T{member.team}_S{member.slotIndex}_C{member.characterId}";
+            characterObj.name = MakePlayerObjectName(member);
+
+            characterObj.GetComponent<PlayerIdentity>().PlayerId = member.playerId;
 
             bool isMine = member.playerId == GetMyPlayerId();
             bool isMyTeam = member.team == myTeam;
 
             characterObj.tag = isMyTeam ? "Player" : "Enemy";
+
+            if (isMine)
+            {
+                characterObj.layer = 6;
+
+                characterObj.GetComponent<CinemachineCamera>().Priority = 10;
+            }
 
             PlayerState playerState = characterObj.GetComponent<PlayerState>();
             if (playerState != null)
@@ -305,6 +320,7 @@ public class MatchManager : MonoBehaviour
         if (target == null)
             return;
 
+        /*
         PlayerMovement movement = target.GetComponent<PlayerMovement>();
         if (movement != null)
             movement.enabled = false;
@@ -320,10 +336,11 @@ public class MatchManager : MonoBehaviour
         UnityEngine.InputSystem.PlayerInput input = target.GetComponent<UnityEngine.InputSystem.PlayerInput>();
         if (input != null)
             input.enabled = false;
+        */
 
         CinemachineCamera childCamera = target.GetComponentInChildren<CinemachineCamera>();
         if (childCamera != null)
-            childCamera.gameObject.SetActive(false);
+            childCamera.Priority = 1;
 
         AudioListener listener = target.GetComponentInChildren<AudioListener>();
         if (listener != null)
@@ -397,5 +414,44 @@ public class MatchManager : MonoBehaviour
 
         if (enemyTeamListRoot != null)
             enemyTeamListRoot.SetActive(visible);
+    }
+
+    private void SetGamePlayVisibility(bool isGameStarting)
+    {
+        // Invisiables(targets) 애들은 게임 시작 시 꺼줌 (isGameStarting이 true일 때 false로 세팅)
+        if (targets != null)
+        {
+            for (int i = 0; i < targets.Length; i++)
+            {
+                if (targets[i] != null)
+                    targets[i].SetActive(!isGameStarting);
+            }
+            Debug.Log($"[MATCH MANAGER] Invisiables(targets) 세팅 완료. Active = {!isGameStarting}");
+        }
+
+        // 기본 인게임 메인 판넬 활성화
+        if (inGameUIPanel != null)
+        {
+            inGameUIPanel.SetActive(isGameStarting);
+        }
+
+        // 3. gameUIs 배열에 등록된 개별 UI 요소들을 일괄적으로 켜줌
+        if (gameUIs != null)
+        {
+            gameUIs.SetActive(isGameStarting);
+            Debug.Log($"[MATCH MANAGER] gameUIs 켜기 완료. Active = {isGameStarting}");
+        }
+    }
+
+    private string MakePlayerObjectName(GameReadyMemberData member)
+    {
+        string id = member.userId;
+
+        if (string.IsNullOrEmpty(id))
+        {
+            id = $"player{member.playerId}";
+        }
+
+        return $"T{member.team}_{id}_S{member.slotIndex}_C{member.characterId}";
     }
 }

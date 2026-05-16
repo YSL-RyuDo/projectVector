@@ -21,9 +21,12 @@ public class PlayerItem : MonoBehaviour
     private PlayerSpike playerSpike;
     private int currentIndex = 0;
 
+    private PlayerIdentity _playerIdentity;
+
     private void Start()
     {
         playerSpike = GetComponent<PlayerSpike>();
+        _playerIdentity = GetComponent<PlayerIdentity>();
 
         InitializeDefaultItems();
 
@@ -35,6 +38,7 @@ public class PlayerItem : MonoBehaviour
     {
         if (!gameObject.CompareTag("Player")) return;
         if (GameController.Instance != null && GameController.Instance.IsPaused) return;
+        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
 
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {

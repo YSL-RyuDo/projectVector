@@ -22,6 +22,7 @@ public class PlayerMovement : MonoBehaviour
     private CharacterController _cc;
     private FPSCameraLook _cam;
     private Animator _animator;
+    private PlayerIdentity _playerIdentity;
 
     private float _verticalVelocity;
 
@@ -38,6 +39,7 @@ public class PlayerMovement : MonoBehaviour
         _cc = GetComponent<CharacterController>();
         _cam = GetComponentInChildren<FPSCameraLook>();
         _animator = GetComponentInChildren<Animator>();
+        _playerIdentity = GetComponent<PlayerIdentity>();
 
         _lastSentPos = transform.position;
         _lastSentYaw = _cam.GetYaw();
@@ -46,6 +48,7 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         if (GameController.Instance != null && GameController.Instance.IsPaused) return;
+        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
         movement();
         networkSend();
     }

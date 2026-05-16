@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 public class GameReadyMemberData
 {
     public uint playerId;
+    public string userId;
     public string nickname;
 
     public byte team;

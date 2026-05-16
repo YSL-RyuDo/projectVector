@@ -5,13 +5,13 @@ using UnityEngine.InputSystem;
 public class FPSCameraLook : MonoBehaviour
 {
     [Header("Mouse")]
-    // 기본 마우스 감도
     [SerializeField] private float _baseSensitivity = 0.2f;
-    // ADS(조준) 상태일 때 감도 배율 (0.5면 절반으로 감소)
     [SerializeField] private float _adsSensitivityMultiplier = 0.5f;
 
     [Header("Recoil")]
     public float recoilReturnSpeed = 10f;
+
+    private PlayerIdentity _playerIdentity;
 
     private float xRotation = 0f;   // Camera Pitch
     private float yaw = 0f;         // Player Yaw
@@ -31,6 +31,8 @@ public class FPSCameraLook : MonoBehaviour
 
         MiniMapUI ui = FindFirstObjectByType<MiniMapUI>();
 
+        _playerIdentity = GetComponent<PlayerIdentity>();
+
         if (ui != null)
         {
             ui.RegisterLocalPlayerCamera(this);
@@ -44,11 +46,10 @@ public class FPSCameraLook : MonoBehaviour
 
         if (Cursor.lockState == CursorLockMode.None) return;
         if (GameController.Instance != null && GameController.Instance.IsPaused) return;
+        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
 
-        // ADS(조준) 상태면 감도 낮춤
         float sensitivity = _baseSensitivity * (_isADS ? _adsSensitivityMultiplier : 1f);
         
-        // 마우스 이동값 읽기
         Vector2 mouseDelta = Mouse.current.delta.ReadValue();
         float mouseX = mouseDelta.x * MouseSettings.MouseSensitivity * sensitivity;
         float mouseY = mouseDelta.y * MouseSettings.MouseSensitivity * sensitivity;
