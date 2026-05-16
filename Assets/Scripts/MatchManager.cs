@@ -239,6 +239,8 @@ public class MatchManager : MonoBehaviour
 
             Debug.Log(
                 $"[SPAWN TRY] playerId={member.playerId}, " +
+                $"userId={member.userId}, " +
+                $"nickname={member.nickname}, " +
                 $"team={member.team}, slot={member.slotIndex}, " +
                 $"characterId={member.characterId}, " +
                 $"prefab={(prefab != null ? prefab.name : "NULL")}, " +
@@ -265,7 +267,19 @@ public class MatchManager : MonoBehaviour
 
             characterObj.name = MakePlayerObjectName(member);
 
-            characterObj.GetComponent<PlayerIdentity>().PlayerId = member.playerId;
+            PlayerIdentity identity = characterObj.GetComponent<PlayerIdentity>();
+
+            if (identity == null)
+                identity = characterObj.GetComponentInChildren<PlayerIdentity>(true);
+
+            if (identity == null)
+            {
+                Debug.LogError($"[SPAWN FAIL] PlayerIdentity not found. object={characterObj.name}");
+                Destroy(characterObj);
+                continue;
+            }
+
+            identity.PlayerId = member.playerId;
 
             bool isMine = member.playerId == GetMyPlayerId();
             bool isMyTeam = member.team == myTeam;
@@ -276,10 +290,23 @@ public class MatchManager : MonoBehaviour
             {
                 characterObj.layer = 6;
 
-                characterObj.GetComponent<CinemachineCamera>().Priority = 10;
+                CinemachineCamera cam = characterObj.GetComponentInChildren<CinemachineCamera>(true);
+
+                if (cam == null)
+                {
+                    Debug.LogError($"[SPAWN FAIL] CinemachineCamera not found. object={characterObj.name}");
+                }
+                else
+                {
+                    cam.Priority = 10;
+                }
             }
 
             PlayerState playerState = characterObj.GetComponent<PlayerState>();
+
+            if (playerState == null)
+                playerState = characterObj.GetComponentInChildren<PlayerState>(true);
+
             if (playerState != null)
             {
                 if (member.team == 0)
@@ -296,6 +323,7 @@ public class MatchManager : MonoBehaviour
             {
                 Debug.Log(
                     $"[SPAWN MINE] playerId={member.playerId}, " +
+                    $"userId={member.userId}, " +
                     $"nickname={member.nickname}, team={member.team}, slot={member.slotIndex}"
                 );
             }
