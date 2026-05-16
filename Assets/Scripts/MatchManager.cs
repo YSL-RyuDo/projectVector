@@ -98,8 +98,8 @@ public class MatchManager : MonoBehaviour
         if (inGameUIPanel != null)
             inGameUIPanel.SetActive(true);
 
-        StartCoroutine(ScreenFader.Instance.FadeOut(1f));
-        StartCoroutine(ScreenFader.Instance.FadeIn(1f));
+        //StartCoroutine(ScreenFader.Instance.FadeOut(1f));
+        StartCoroutine(ScreenFader.Instance.FadeIn(3f));
 
         SetGamePlayVisibility(true);
 

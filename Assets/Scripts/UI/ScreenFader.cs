@@ -41,6 +41,8 @@ public class ScreenFader : MonoBehaviour
     // 페이드인 (화면이 점차 밝아짐)
     public IEnumerator FadeIn(float duration)
     {
+        fadeImage.gameObject.SetActive(true);
+
         float timer = duration;
         Color color = fadeImage.color;
 
