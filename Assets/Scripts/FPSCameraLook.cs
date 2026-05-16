@@ -13,12 +13,12 @@ public class FPSCameraLook : MonoBehaviour
 
     private PlayerIdentity _playerIdentity;
 
-    private float xRotation = 0f;   // Camera Pitch
-    private float yaw = 0f;         // Player Yaw
+    private float xRotation = 0f;
+    private float yaw = 0f;
     private float recoilOffset = 0f;
     private bool _isADS = false;
 
-    Transform player;
+    private Transform player;
 
     public bool CanMove = true;
 
@@ -26,18 +26,40 @@ public class FPSCameraLook : MonoBehaviour
     {
         player = transform.parent;
 
+        if (player == null)
+        {
+            Debug.LogError($"[FPSCameraLook] parent is null. object={gameObject.name}");
+            enabled = false;
+            return;
+        }
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        MiniMapUI ui = FindFirstObjectByType<MiniMapUI>();
+        _playerIdentity = GetComponentInParent<PlayerIdentity>();
 
-        _playerIdentity = GetComponent<PlayerIdentity>();
+        if (_playerIdentity == null)
+        {
+            Debug.LogError($"[FPSCameraLook] PlayerIdentity not found in parent. object={gameObject.name}");
+            enabled = false;
+            return;
+        }
+
+        MiniMapUI ui = FindFirstObjectByType<MiniMapUI>();
 
         if (ui != null)
         {
             ui.RegisterLocalPlayerCamera(this);
-            ui.RegisterPlayer(this.gameObject);
+            ui.RegisterPlayer(player.gameObject);
         }
+
+        Debug.Log(
+            $"[FPSCameraLook INIT] " +
+            $"camera={gameObject.name}, " +
+            $"player={player.name}, " +
+            $"playerId={_playerIdentity.PlayerId}, " +
+            $"userId={_playerIdentity.UserId}"
+        );
     }
 
     void Update()
@@ -46,10 +68,21 @@ public class FPSCameraLook : MonoBehaviour
 
         if (Cursor.lockState == CursorLockMode.None) return;
         if (GameController.Instance != null && GameController.Instance.IsPaused) return;
-        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
+
+        if (_playerIdentity == null)
+            return;
+
+        if (NetworkManager.Instance == null)
+            return;
+
+        if (_playerIdentity.UserId != NetworkManager.Instance.MyUserId)
+            return;
+
+        if (Mouse.current == null)
+            return;
 
         float sensitivity = _baseSensitivity * (_isADS ? _adsSensitivityMultiplier : 1f);
-        
+
         Vector2 mouseDelta = Mouse.current.delta.ReadValue();
         float mouseX = mouseDelta.x * MouseSettings.MouseSensitivity * sensitivity;
         float mouseY = mouseDelta.y * MouseSettings.MouseSensitivity * sensitivity;
@@ -93,6 +126,5 @@ public class FPSCameraLook : MonoBehaviour
     internal void AddYaw(float amount)
     {
         yaw += amount;
-        //throw new NotImplementedException();
     }
 }
