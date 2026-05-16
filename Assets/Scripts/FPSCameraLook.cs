@@ -42,13 +42,16 @@ public class FPSCameraLook : MonoBehaviour
     {
         if (!CanMove) return;
 
+        if (Cursor.lockState == CursorLockMode.None) return;
+        if (GameController.Instance != null && GameController.Instance.IsPaused) return;
+
         // ADS(조준) 상태면 감도 낮춤
         float sensitivity = _baseSensitivity * (_isADS ? _adsSensitivityMultiplier : 1f);
         
         // 마우스 이동값 읽기
         Vector2 mouseDelta = Mouse.current.delta.ReadValue();
-        float mouseX = mouseDelta.x * sensitivity;
-        float mouseY = mouseDelta.y * sensitivity;
+        float mouseX = mouseDelta.x * MouseSettings.MouseSensitivity * sensitivity;
+        float mouseY = mouseDelta.y * MouseSettings.MouseSensitivity * sensitivity;
 
         yaw += mouseX;
         player.rotation = Quaternion.Euler(0f, yaw, 0f);

@@ -34,6 +34,7 @@ public class PlayerItem : MonoBehaviour
     void Update()
     {
         if (!gameObject.CompareTag("Player")) return;
+        if (GameController.Instance != null && GameController.Instance.IsPaused) return;
 
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {

@@ -35,6 +35,8 @@ public class PlayerSpike : MonoBehaviour
 
     void Update()
     {
+        if (GameController.Instance != null && GameController.Instance.IsPaused) return;
+
         // F ´­·¶À» ¶§
         if (Keyboard.current.fKey.wasPressedThisFrame)
         {

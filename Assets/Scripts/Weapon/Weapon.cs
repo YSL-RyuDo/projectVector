@@ -84,6 +84,8 @@ public class Weapon : Item
 
     void Update()
     {
+        if (GameController.Instance != null && GameController.Instance.IsPaused) return;
+
         if (!isPlayer) return;
 
         if (ownerHP != null && ownerHP.IsDead) return;

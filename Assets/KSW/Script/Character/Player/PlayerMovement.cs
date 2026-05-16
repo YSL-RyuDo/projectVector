@@ -45,6 +45,7 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        if (GameController.Instance != null && GameController.Instance.IsPaused) return;
         movement();
         networkSend();
     }
