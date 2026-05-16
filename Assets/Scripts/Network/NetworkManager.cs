@@ -133,6 +133,10 @@ public class NetworkManager : MonoBehaviour
     LoginUI loginUI;
     LobbyManager lobbyManager;
     private PickManager pickManager;
+    private MatchManager matchManager;
+
+    private uint myPlayerId;
+    public uint MyPlayerId => myPlayerId;
 
     void Awake()
     {
@@ -156,7 +160,8 @@ public class NetworkManager : MonoBehaviour
             }
         };
 
-        client.Connect("127.0.0.1", 9000);
+        //client.Connect("127.0.0.1", 9000);
+        client.Connect("211.247.47.240", 9000);
     }
 
     void Update()
@@ -185,6 +190,11 @@ public class NetworkManager : MonoBehaviour
     public void SetLobbyManager(LobbyManager manager)
     {
         lobbyManager = manager;
+    }
+
+    public void SetMatchManager(MatchManager manager)
+    {
+        matchManager = manager;
     }
 
     public void SendRegister(string id, string nick, string pw, string confirm)
@@ -1154,7 +1164,15 @@ public class NetworkManager : MonoBehaviour
             member.isMe = body[offset] != 0;
             offset += 1;
 
-            state.members.Add(member);
+            if(i<memberCount)
+            {
+                state.members.Add(member);
+
+                if (member.isMe)
+                {
+                    myPlayerId = member.playerId;
+                }
+            }
         }
 
         pickManager?.OnRecvPickState(state);
@@ -1286,8 +1304,50 @@ public class NetworkManager : MonoBehaviour
     {
         Debug.Log("[RECV] GAME ALL READY");
 
-        // 나중에 여기서 MatchLoadingPanel 끄고
-        // OurTeamList / EnemyTeamList / 모델 스폰 처리
+        int offset = 0;
+        GameAllReadyData data = new GameAllReadyData();
+
+        data.roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        data.prepareSeconds = BitConverter.ToUInt16(body, offset);
+        offset += 2;
+
+        byte memberCount = body[offset];
+        offset += 1;
+
+        for(int i=0; i<6; i++)
+        {
+            GameReadyMemberData member = new GameReadyMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.team = body[offset];
+            offset += 1;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.characterId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.rankImageId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            if (i< memberCount)
+                data.members.Add(member);
+        }
+
+        Debug.Log($"[RECV] GAME ALL READY roomId={data.roomId}, memberCount={data.members.Count}");
+
+        if (matchManager != null)
+            matchManager.OnRecvGameAllReady(data);
+        else
+            Debug.LogError("[NETWORK] matchManager is null");
     }
 
     private void HandleGamePrepareTimer(byte[] body)
@@ -1296,6 +1356,9 @@ public class NetworkManager : MonoBehaviour
 
         Debug.Log($"[RECV] GAME PREPARE TIMER remaining={remainingSeconds}");
 
-        // 나중에 여기서 인게임 TimerText 갱신
+        if(matchManager != null)
+            matchManager.OnRecvGamePrepareTimer(remainingSeconds);
+        else
+            Debug.LogError("[NETWORK] matchManager is null");
     }
 }

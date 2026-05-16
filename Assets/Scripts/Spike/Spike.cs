@@ -11,7 +11,7 @@ public class Spike : Item
     public float defuseTime = 5f;
     private float currentDefuseTime;
     private bool isDefusing;
-    private bool isHalfDefused = false; // 50% 달성 여부
+    private bool isHalfDefused = false;
 
     [Header("Explosion")]
     public float explosionTime = 40f;
@@ -27,7 +27,7 @@ public class Spike : Item
         playerSpike = GetComponentInParent<PlayerSpike>();
     }
 
-    void Update()
+    private void Update()
     {
         if (isPlanted)
         {
@@ -35,29 +35,38 @@ public class Spike : Item
         }
     }
 
-    void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other)
     {
-        if (!other.CompareTag("Player")) return;
+        if (!other.CompareTag("Player"))
+            return;
 
         playerSpike = other.GetComponent<PlayerSpike>();
+
+        if (playerSpike == null)
+            return;
 
         isPlayerInside = true;
         playerSpike.SetSpike(this);
 
         sliderObject = playerSpike.spikeSlider;
-        defuseSlider = sliderObject.GetComponent<Slider>();
+
+        if (sliderObject != null)
+            defuseSlider = sliderObject.GetComponent<Slider>();
 
         Debug.Log("Player in");
     }
 
-    void OnTriggerExit(Collider other)
+    private void OnTriggerExit(Collider other)
     {
-        if (!other.CompareTag("Player")) return;
+        if (!other.CompareTag("Player"))
+            return;
 
         if (playerSpike != null)
         {
-            CancelDefuse(); // 범위 나가면 해체 취소
+            CancelDefuse();
+
             playerSpike.SetSpike(null);
+
             isPlayerInside = false;
             playerSpike = null;
             sliderObject = null;
@@ -67,43 +76,59 @@ public class Spike : Item
         Debug.Log("Player out");
     }
 
-    public override void OnUse() { }
+    public override void OnUse()
+    {
+    }
+
     public override void OnDrop()
     {
-        playerSpike.RequestDrop();
-        this.OnUnequip();
+        if (playerSpike != null)
+            playerSpike.RequestDrop();
+
+        OnUnequip();
     }
 
     public void OnDeploy()
     {
         isPlanted = true;
-        // 필요하다면 여기서 설치 시 사운드나 이펙트 실행
+        currentExplosionTime = 0f;
+
+        Debug.Log("Spike Planted");
+
+        if (RoundManager.Instance != null)
+            RoundManager.Instance.OnSpikePlanted();
     }
 
-    //  Defuse 시작
     public void TryStartDefuse()
     {
-        if (!isPlayerInside || isExploded) return;
+        if (!isPlayerInside)
+            return;
+
+        if (isExploded)
+            return;
+
+        if (playerSpike == null)
+            return;
 
         isDefusing = true;
 
-        // 플레이어 제어권 뺏기 (무기 숨기기, 이동 불가)
-        playerSpike?.SetPlayerControl(false);
+        playerSpike.SetPlayerControl(false);
 
-        sliderObject?.SetActive(true); // UI 켜기
+        if (sliderObject != null)
+            sliderObject.SetActive(true);
+
         Debug.Log("Start Defuse");
     }
 
     public void Defusing()
     {
-        if (!isDefusing) return;
+        if (!isDefusing)
+            return;
 
         currentDefuseTime += Time.deltaTime;
 
         if (defuseSlider != null)
-        {
             defuseSlider.value = currentDefuseTime / defuseTime;
-        }
 
         if (!isHalfDefused && currentDefuseTime >= defuseTime * 0.5f)
         {
@@ -119,52 +144,81 @@ public class Spike : Item
 
     public void CancelDefuse()
     {
-        if (!isDefusing) return;
+        if (!isDefusing)
+            return;
 
         isDefusing = false;
 
-        // 플레이어 제어권 돌려주기 (무기 다시 꺼내기, 이동 가능)
-        playerSpike?.SetPlayerControl(true);
+        if (playerSpike != null)
+            playerSpike.SetPlayerControl(true);
 
         if (isHalfDefused)
         {
-            currentDefuseTime = defuseTime * 0.5f; // 50%로 고정
+            currentDefuseTime = defuseTime * 0.5f;
             Debug.Log("Defuse Canceled - Progress saved at 50%");
         }
-
         else
         {
-            currentDefuseTime = 0f; // 처음부터 다시
+            currentDefuseTime = 0f;
             Debug.Log("Defuse Canceled - Progress reset to 0%");
         }
+
+        if (defuseSlider != null)
+            defuseSlider.value = currentDefuseTime / defuseTime;
     }
 
-    void CompleteDefuse()
+    private void CompleteDefuse()
     {
+        if (isExploded)
+            return;
+
         isExploded = true;
+        isDefusing = false;
 
-        RoundManager.Instance.EndRound(false);
+        if (RoundManager.Instance != null)
+            RoundManager.Instance.RequestRoundEnd(false);
 
-        // 해체 성공 시에도 제어권 돌려주기
-        playerSpike?.SetPlayerControl(true);
+        if (playerSpike != null)
+            playerSpike.SetPlayerControl(true);
+
+        if (sliderObject != null)
+            sliderObject.SetActive(false);
 
         Debug.Log("Defuse Complete - Defenders Win");
+
         Destroy(gameObject);
     }
 
-    //  폭발 타이머
-    void ExplosionTimer()
+    private void ExplosionTimer()
     {
-        if (isExploded) return;
+        if (isExploded)
+            return;
+
         currentExplosionTime += Time.deltaTime;
-        if (currentExplosionTime >= explosionTime) Explode();
+
+        if (currentExplosionTime >= explosionTime)
+            Explode();
     }
 
-    void Explode()
+    private void Explode()
     {
+        if (isExploded)
+            return;
+
         isExploded = true;
-        sliderObject?.SetActive(false);
+        isDefusing = false;
+
+        if (sliderObject != null)
+            sliderObject.SetActive(false);
+
+        if (playerSpike != null)
+            playerSpike.SetPlayerControl(true);
+
+        if (RoundManager.Instance != null)
+            RoundManager.Instance.RequestRoundEnd(true);
+
         Debug.Log("Spike Exploded - Attackers Win");
+
         Destroy(gameObject);
     }
 }

@@ -28,7 +28,7 @@ public class PlayerSpike : MonoBehaviour
 
     void Start()
     {
-        slider = spikeSlider.GetComponent<Slider>();
+        //slider = spikeSlider.GetComponent<Slider>();
         playerItem = GetComponent<PlayerItem>();
         playerMove = GetComponent<PlayerMovement>();
     }

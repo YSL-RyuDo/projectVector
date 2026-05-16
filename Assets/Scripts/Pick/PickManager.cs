@@ -5,14 +5,7 @@ using UnityEngine.UI;
 public class PickManager : MonoBehaviour
 {
     [Header("Top Info")]
-    [SerializeField] private TMP_Text mapText;
-    [SerializeField] private TMP_Text timerText;
-
-    [SerializeField] private TMP_Text ourTeamRoleText;
-    [SerializeField] private TMP_Text enemyTeamRoleText;
-
-    [SerializeField] private TMP_Text blueTeamScoreText;
-    [SerializeField] private TMP_Text redTeamScoreText;
+    [SerializeField] private TopInfoUI topInfoUI;
 
     [Header("Team Pick")]
     [SerializeField] private TeamPickSlotUI[] teamPickSlots;
@@ -244,42 +237,14 @@ public class PickManager : MonoBehaviour
 
     private void ApplyTopInfo()
     {
-        if (currentState == null)
-            return;
-
-        if (mapText != null)
-            mapText.text = currentState.mapName;
-
-        //ApplyTimer(currentState.remainingSeconds);
-
-        if (ourTeamRoleText != null)
-        {
-            ourTeamRoleText.text =
-                RoleToText(currentState.firstRole) + " / " +
-                RoleToText(currentState.secondRole);
-        }
-
-        if (enemyTeamRoleText != null)
-        {
-            enemyTeamRoleText.text =
-                RoleToText(GetOppositeRole(currentState.firstRole)) + " / " +
-                RoleToText(GetOppositeRole(currentState.secondRole));
-        }
-
-        if (blueTeamScoreText != null)
-            blueTeamScoreText.text = currentState.blueScore.ToString();
-
-        if (redTeamScoreText != null)
-            redTeamScoreText.text = currentState.redScore.ToString();
+        if (topInfoUI != null)
+            topInfoUI.ApplyPickInfo(currentState);
     }
 
     private void ApplyTimer(ushort remainSeconds)
     {
-        int min = remainSeconds / 60;
-        int sec = remainSeconds % 60;
-
-        if (timerText != null)
-            timerText.text = $"{min:00}:{sec:00}";
+        if (topInfoUI != null)
+            topInfoUI.SetTimer(remainSeconds);
     }
 
     private void ApplyTeamPickSlots()
@@ -666,33 +631,91 @@ public class PickManager : MonoBehaviour
     {
         if (previewSpawnPoint == null)
         {
-            Debug.LogWarning("[PICK PREVIEW] previewSpawnPoint is null");
+            Debug.LogError("[PICK PREVIEW] previewSpawnPoint is null");
+            return;
+        }
+
+        if (!previewSpawnPoint.gameObject.activeInHierarchy)
+        {
+            Debug.LogError("[PICK PREVIEW] previewSpawnPoint is not active in hierarchy");
             return;
         }
 
         if (characterModelPrefabs == null)
+        {
+            Debug.LogError("[PICK PREVIEW] characterModelPrefabs is null");
             return;
+        }
 
         if (characterId < 0 || characterId >= characterModelPrefabs.Length)
+        {
+            Debug.LogError($"[PICK PREVIEW] invalid characterId={characterId}");
             return;
+        }
 
         GameObject prefab = characterModelPrefabs[characterId];
+
         if (prefab == null)
+        {
+            Debug.LogError($"[PICK PREVIEW] prefab is null. characterId={characterId}");
             return;
+        }
 
         if (currentPreviewModel != null && currentPreviewCharacterId == characterId)
             return;
 
         ClearPreviewModel();
 
-        currentPreviewModel = Instantiate(prefab, previewSpawnPoint);
+        currentPreviewModel = Instantiate(prefab);
         currentPreviewCharacterId = characterId;
 
+        currentPreviewModel.transform.SetParent(previewSpawnPoint, false);
         currentPreviewModel.transform.localPosition = previewLocalPosition;
         currentPreviewModel.transform.localRotation = Quaternion.Euler(previewLocalEulerAngles);
         currentPreviewModel.transform.localScale = previewLocalScale;
 
-        Debug.Log($"[PICK PREVIEW] Show character model characterId={characterId}");
+        currentPreviewModel.SetActive(true);
+
+        DisablePreviewControlComponents(currentPreviewModel);
+
+        Debug.Log(
+            $"[PICK PREVIEW] Show model. " +
+            $"characterId={characterId}, " +
+            $"prefab={prefab.name}, " +
+            $"spawnPoint={previewSpawnPoint.name}"
+        );
+    }
+
+    private void DisablePreviewControlComponents(GameObject target)
+    {
+        if (target == null)
+            return;
+
+        PlayerMovement movement = target.GetComponent<PlayerMovement>();
+        if (movement != null)
+            movement.enabled = false;
+
+        PlayerItem item = target.GetComponent<PlayerItem>();
+        if (item != null)
+            item.enabled = false;
+
+        PlayerSpike spike = target.GetComponent<PlayerSpike>();
+        if (spike != null)
+            spike.enabled = false;
+
+        UnityEngine.InputSystem.PlayerInput input =
+            target.GetComponent<UnityEngine.InputSystem.PlayerInput>();
+
+        if (input != null)
+            input.enabled = false;
+
+        Camera camera = target.GetComponentInChildren<Camera>();
+        if (camera != null)
+            camera.gameObject.SetActive(false);
+
+        AudioListener listener = target.GetComponentInChildren<AudioListener>();
+        if (listener != null)
+            listener.enabled = false;
     }
 
     private void ClearPreviewModel()

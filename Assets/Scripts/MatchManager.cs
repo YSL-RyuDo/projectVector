@@ -1,129 +1,401 @@
-using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
 using Unity.Cinemachine;
+using UnityEngine;
+using UnityEngine.UI;
 
 public class MatchManager : MonoBehaviour
 {
     public static MatchManager Instance;
 
+    [Header("Top Info")]
+    [SerializeField] private TopInfoUI topInfoUI;
+
+    [Header("Panels")]
+    [SerializeField] private GameObject playerPickPanel;
+    [SerializeField] private MatchLoadingPanelUI matchLoadingPanelUI;
+    [SerializeField] private GameObject inGameUIPanel;
+
     [Header("Maps")]
-    public GameObject[] maps;
+    [SerializeField] private GameObject[] maps;
 
     [Header("Characters")]
-    public GameObject[] characters;
+    [SerializeField] private GameObject[] characterPrefabs;
+    [SerializeField] private Sprite[] characterSprites;
+
+    [Header("Team List UI")]
+    [SerializeField] private GameObject ourTeamListRoot;
+    [SerializeField] private GameObject enemyTeamListRoot;
+    [SerializeField] private Image[] ourTeamImages;
+    [SerializeField] private Image[] enemyTeamImages;
 
     [Header("Invisiables")]
-    public GameObject[] targets;
+    [SerializeField] private GameObject[] targets;
+
+    private GameObject spawnedMap;
+    private MapInfo currentMapInfo;
+
+    private byte myTeam = 0;
+    private bool matchStarted = false;
+    private bool charactersSpawned = false;
 
     private void Awake()
     {
         Instance = this;
     }
 
-    public void SetupMatch(MatchLoadingInfoData loadingData)
+    private void Start()
     {
-        if (maps.Length == 0)
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SetMatchManager(this);
+    }
+
+    private void OnDestroy()
+    {
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SetMatchManager(null);
+
+        if (Instance == this)
+            Instance = null;
+
+        SetTeamListVisible(false);
+    }
+
+    public void OnRecvGameAllReady(GameAllReadyData data)
+    {
+        if (data == null)
         {
-            Debug.LogError("등록된 맵이 없습니다!");
+            Debug.LogError("[MATCH MANAGER] GameAllReadyData is null");
             return;
         }
 
-        // 맵 생성 (0번 고정) 및 스폰 포인트 정보 획득
-        GameObject spawnedMap = Instantiate(maps[0], Vector3.zero, Quaternion.identity);
-        MapInfo mapInfo = spawnedMap.GetComponent<MapInfo>();
+        Debug.Log($"[MATCH MANAGER] Game all ready received. memberCount={data.members.Count}");
 
-        if (mapInfo == null)
+        for (int i = 0; i < data.members.Count; i++)
         {
-            Debug.LogError("맵 프리팹에 MapInfo 스크립트가 없습니다!");
+            GameReadyMemberData member = data.members[i];
+
+            Debug.Log(
+                $"[GAME MEMBER] index={i}, " +
+                $"playerId={member.playerId}, " +
+                $"nickname={member.nickname}, " +
+                $"team={member.team}, " +
+                $"slot={member.slotIndex}, " +
+                $"characterId={member.characterId}"
+            );
+        }
+
+        matchStarted = true;
+
+        FindMyTeam(data);
+
+        if (playerPickPanel != null)
+            playerPickPanel.SetActive(false);
+
+        if (matchLoadingPanelUI != null)
+            matchLoadingPanelUI.Hide();
+
+        if (inGameUIPanel != null)
+            inGameUIPanel.SetActive(true);
+
+        SetTeamListVisible(true);
+
+        if (topInfoUI != null)
+        {
+            topInfoUI.gameObject.SetActive(true);
+            topInfoUI.ApplyGameStartInfo();
+            topInfoUI.SetTimer(data.prepareSeconds);
+        }
+
+        SpawnMapIfNeeded();
+
+        if (currentMapInfo == null)
+        {
+            Debug.LogError("[MATCH MANAGER] currentMapInfo is null. Cannot spawn characters.");
             return;
         }
 
-        // RoundManager에 스폰 포인트 포워딩
+        ApplyTeamCharacterImages(data);
+        SpawnCharacters(data);
+
         if (RoundManager.Instance != null)
-        {
-            RoundManager.Instance.attackSpawns = mapInfo.attackSpawnPoints;
-            RoundManager.Instance.defendSpawns = mapInfo.defendSpawnPoints;
-        }
+            RoundManager.Instance.OnServerPrepareStarted();
 
-        // 내가 어떤 팀(공격/수비)에 속해있는지 확인
-        bool isMyTeamAttack = CheckIfIAmAttack(loadingData);
-
-        // 공격팀 생성
-        SpawnTeam(loadingData.attackMembers, PlayerState.BattleState.Attack, isMyTeamAttack, mapInfo.attackSpawnPoints);
-
-        // 수비팀 생성
-        SpawnTeam(loadingData.defenseMembers, PlayerState.BattleState.Defence, !isMyTeamAttack, mapInfo.defendSpawnPoints);
-
-        Debug.Log("모든 캐릭터 생성 및 팀 배치 완료!");
-    }
-    private bool CheckIfIAmAttack(MatchLoadingInfoData loadingData)
-    {
-        foreach (var member in loadingData.attackMembers)
-        {
-            if (member.playerId == myPlayerId) return true;
-        }
-        return false;
+        Debug.Log("[MATCH MANAGER] In-game setup complete");
     }
 
-    // 팀 생성 핵심 로직
-    private void SpawnTeam(List<MatchLoadingMemberData> members, PlayerState.BattleState role, bool isMyTeam, Transform[] spawnPoints)
+    public void OnRecvGamePrepareTimer(ushort remainingSeconds)
     {
-        for (int i = 0; i < members.Count; i++)
+        if (!matchStarted)
+            return;
+
+        if (topInfoUI != null)
+            topInfoUI.SetTimer(remainingSeconds);
+
+        if (remainingSeconds == 0)
         {
-            MatchLoadingMemberData member = members[i];
+            if (RoundManager.Instance != null)
+                RoundManager.Instance.OnServerPrepareFinished();
+        }
+    }
 
-            if (member.characterId < 0 || member.characterId >= characters.Length)
+    public void OnRecvScoreUpdate(byte blueScore, byte redScore)
+    {
+        if (topInfoUI != null)
+            topInfoUI.SetScore(blueScore, redScore);
+    }
+
+    private void SpawnMapIfNeeded()
+    {
+        if (spawnedMap != null)
+            return;
+
+        if (maps == null || maps.Length == 0 || maps[0] == null)
+        {
+            Debug.LogError("[MATCH MANAGER] 등록된 맵이 없습니다.");
+            return;
+        }
+
+        spawnedMap = Instantiate(maps[0], Vector3.zero, Quaternion.identity);
+        currentMapInfo = spawnedMap.GetComponent<MapInfo>();
+
+        if (currentMapInfo == null)
+        {
+            Debug.LogError("[MATCH MANAGER] 맵 프리팹에 MapInfo가 없습니다.");
+            return;
+        }
+
+        if (RoundManager.Instance != null)
+            RoundManager.Instance.SetMapInfo(currentMapInfo);
+
+        Debug.Log($"[MATCH MANAGER] Map spawned. map={spawnedMap.name}");
+    }
+
+    private void FindMyTeam(GameAllReadyData data)
+    {
+        uint myPlayerId = GetMyPlayerId();
+
+        for (int i = 0; i < data.members.Count; i++)
+        {
+            GameReadyMemberData member = data.members[i];
+
+            if (member.playerId == myPlayerId)
             {
-                Debug.LogError($"[MatchManager] 잘못된 캐릭터 ID: {member.characterId}");
-                continue;
+                myTeam = member.team;
+                Debug.Log($"[MATCH MANAGER] My playerId={myPlayerId}, myTeam={myTeam}");
+                return;
             }
+        }
 
-            // 순서대로 스폰 포인트 지정
-            Transform spawnPoint = spawnPoints[i % spawnPoints.Length];
+        Debug.LogWarning($"[MATCH MANAGER] 내 playerId를 찾지 못했습니다. myPlayerId={myPlayerId}");
+    }
 
-            // 캐릭터 프리팹 생성
-            GameObject charObj = Instantiate(characters[member.characterId], spawnPoint.position, spawnPoint.rotation);
-            charObj.name = $"[{role}] {member.nickname}";
+    private void ApplyTeamCharacterImages(GameAllReadyData data)
+    {
+        ClearTeamImages(ourTeamImages);
+        ClearTeamImages(enemyTeamImages);
 
-            // 태그 지정: 나와 같은 팀이면 "Player", 적 팀이면 "Enemy"
-            charObj.tag = isMyTeam ? "Player" : "Enemy";
+        for (int i = 0; i < data.members.Count; i++)
+        {
+            GameReadyMemberData member = data.members[i];
+            Sprite sprite = GetCharacterSprite(member.characterId);
 
-            // PlayerState 기본 정보 설정
-            PlayerState pState = charObj.GetComponent<PlayerState>();
-            if (pState != null)
+            if (member.team == myTeam)
             {
-                pState.state = role;
-            }
-
-            // 내가 조종할 캐릭터가 아니라면 조작 컴포넌트를 모두 차단
-            if (member.playerId != myPlayerId)
-            {
-                DisableControlComponents(charObj);
+                SetTeamImage(ourTeamImages, member.slotIndex, sprite);
             }
             else
             {
-                Debug.Log($"내 캐릭터 생성 완료! (ID: {member.playerId}, 이름: {member.nickname})");
+                SetTeamImage(enemyTeamImages, member.slotIndex, sprite);
             }
         }
     }
 
-    // 본인 제외 다른 캐릭터들의 입력을 차단하는 함수
+    private void SpawnCharacters(GameAllReadyData data)
+    {
+        if (currentMapInfo == null)
+        {
+            Debug.LogError("[MATCH MANAGER] currentMapInfo is null. Spawn failed.");
+            return;
+        }
+
+        if (data == null || data.members == null)
+        {
+            Debug.LogError("[MATCH MANAGER] GameAllReadyData members is null.");
+            return;
+        }
+
+        for (int i = 0; i < data.members.Count; i++)
+        {
+            GameReadyMemberData member = data.members[i];
+
+            GameObject prefab = GetCharacterPrefab(member.characterId);
+            Transform spawnPoint = GetSpawnPoint(member.team, member.slotIndex);
+
+            Debug.Log(
+                $"[SPAWN TRY] playerId={member.playerId}, " +
+                $"team={member.team}, slot={member.slotIndex}, " +
+                $"characterId={member.characterId}, " +
+                $"prefab={(prefab != null ? prefab.name : "NULL")}, " +
+                $"spawnPoint={(spawnPoint != null ? spawnPoint.name : "NULL")}"
+            );
+
+            if (prefab == null)
+            {
+                Debug.LogError($"[SPAWN FAIL] prefab is null. characterId={member.characterId}");
+                continue;
+            }
+
+            if (spawnPoint == null)
+            {
+                Debug.LogError($"[SPAWN FAIL] spawnPoint is null. team={member.team}, slot={member.slotIndex}");
+                continue;
+            }
+
+            GameObject characterObj = Instantiate(
+                prefab,
+                spawnPoint.position,
+                spawnPoint.rotation
+            );
+
+            characterObj.name =
+                $"Player_{member.playerId}_T{member.team}_S{member.slotIndex}_C{member.characterId}";
+
+            bool isMine = member.playerId == GetMyPlayerId();
+            bool isMyTeam = member.team == myTeam;
+
+            characterObj.tag = isMyTeam ? "Player" : "Enemy";
+
+            PlayerState playerState = characterObj.GetComponent<PlayerState>();
+            if (playerState != null)
+            {
+                if (member.team == 0)
+                    playerState.state = PlayerState.BattleState.Attack;
+                else
+                    playerState.state = PlayerState.BattleState.Defence;
+            }
+
+            if (!isMine)
+            {
+                DisableControlComponents(characterObj);
+            }
+            else
+            {
+                Debug.Log(
+                    $"[SPAWN MINE] playerId={member.playerId}, " +
+                    $"nickname={member.nickname}, team={member.team}, slot={member.slotIndex}"
+                );
+            }
+
+            Debug.Log($"[SPAWN SUCCESS] {characterObj.name}");
+        }
+    }
+
+    private Transform GetSpawnPoint(byte team, byte slotIndex)
+    {
+        if (currentMapInfo == null)
+        {
+            Debug.LogError("[MATCH MANAGER] currentMapInfo is null");
+            return null;
+        }
+
+        return currentMapInfo.GetTeamSlotSpawnPoint(team, slotIndex);
+    }
+
     private void DisableControlComponents(GameObject target)
     {
-        // 조작 스크립트들을 비활성화
-        if (target.TryGetComponent(out PlayerMovement move)) move.enabled = false;
-        if (target.TryGetComponent(out PlayerItem item)) item.enabled = false;
-        if (target.TryGetComponent(out PlayerSpike spike)) spike.enabled = false;
+        if (target == null)
+            return;
 
-        // 유니티 자체 Input System 컴포넌트가 있다면 비활성화 (추후 변경 예정)
-        if (target.TryGetComponent(out UnityEngine.InputSystem.PlayerInput input)) input.enabled = false;
+        PlayerMovement movement = target.GetComponent<PlayerMovement>();
+        if (movement != null)
+            movement.enabled = false;
 
-        // 다른 유닛의 카메라는 꺼야 내 화면이 정상적으로 나옵니다.
+        PlayerItem item = target.GetComponent<PlayerItem>();
+        if (item != null)
+            item.enabled = false;
+
+        PlayerSpike spike = target.GetComponent<PlayerSpike>();
+        if (spike != null)
+            spike.enabled = false;
+
+        UnityEngine.InputSystem.PlayerInput input = target.GetComponent<UnityEngine.InputSystem.PlayerInput>();
+        if (input != null)
+            input.enabled = false;
+
         CinemachineCamera childCamera = target.GetComponentInChildren<CinemachineCamera>();
-        if (childCamera != null) childCamera.gameObject.SetActive(false);
+        if (childCamera != null)
+            childCamera.gameObject.SetActive(false);
 
         AudioListener listener = target.GetComponentInChildren<AudioListener>();
-        if (listener != null) listener.enabled = false;
+        if (listener != null)
+            listener.enabled = false;
+    }
+
+    private void ClearTeamImages(Image[] images)
+    {
+        if (images == null)
+            return;
+
+        for (int i = 0; i < images.Length; i++)
+        {
+            if (images[i] == null)
+                continue;
+
+            images[i].enabled = false;
+            images[i].sprite = null;
+        }
+    }
+
+    private void SetTeamImage(Image[] images, byte slotIndex, Sprite sprite)
+    {
+        if (images == null)
+            return;
+
+        if (slotIndex >= images.Length)
+            return;
+
+        if (images[slotIndex] == null)
+            return;
+
+        images[slotIndex].enabled = sprite != null;
+        images[slotIndex].sprite = sprite;
+    }
+
+    private Sprite GetCharacterSprite(int characterId)
+    {
+        if (characterSprites == null)
+            return null;
+
+        if (characterId < 0 || characterId >= characterSprites.Length)
+            return null;
+
+        return characterSprites[characterId];
+    }
+
+    private GameObject GetCharacterPrefab(int characterId)
+    {
+        if (characterPrefabs == null)
+            return null;
+
+        if (characterId < 0 || characterId >= characterPrefabs.Length)
+            return null;
+
+        return characterPrefabs[characterId];
+    }
+
+    private uint GetMyPlayerId()
+    {
+        if (NetworkManager.Instance == null)
+            return 0;
+
+        return NetworkManager.Instance.MyPlayerId;
+    }
+
+    private void SetTeamListVisible(bool visible)
+    {
+        if (ourTeamListRoot != null)
+            ourTeamListRoot.SetActive(visible);
+
+        if (enemyTeamListRoot != null)
+            enemyTeamListRoot.SetActive(visible);
     }
 }
