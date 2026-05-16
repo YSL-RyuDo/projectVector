@@ -238,10 +238,12 @@ public class MatchManager : MonoBehaviour
             Transform spawnPoint = GetSpawnPoint(member.team, member.slotIndex);
 
             Debug.Log(
-                $"[SPAWN TRY] playerId={member.playerId}, " +
+                $"[SPAWN TRY] " +
+                $"playerId={member.playerId}, " +
                 $"userId={member.userId}, " +
                 $"nickname={member.nickname}, " +
-                $"team={member.team}, slot={member.slotIndex}, " +
+                $"team={member.team}, " +
+                $"slot={member.slotIndex}, " +
                 $"characterId={member.characterId}, " +
                 $"prefab={(prefab != null ? prefab.name : "NULL")}, " +
                 $"spawnPoint={(spawnPoint != null ? spawnPoint.name : "NULL")}"
@@ -256,6 +258,19 @@ public class MatchManager : MonoBehaviour
             if (spawnPoint == null)
             {
                 Debug.LogError($"[SPAWN FAIL] spawnPoint is null. team={member.team}, slot={member.slotIndex}");
+                continue;
+            }
+
+            if (string.IsNullOrEmpty(member.userId))
+            {
+                Debug.LogError(
+                    $"[SPAWN FAIL] userId is empty. " +
+                    $"playerId={member.playerId}, " +
+                    $"nickname={member.nickname}, " +
+                    $"team={member.team}, " +
+                    $"slot={member.slotIndex}"
+                );
+
                 continue;
             }
 
@@ -280,8 +295,24 @@ public class MatchManager : MonoBehaviour
             }
 
             identity.PlayerId = member.playerId;
+            identity.UserId = member.userId;
+            identity.Nickname = member.nickname;
+            identity.Team = member.team;
+            identity.SlotIndex = member.slotIndex;
+            identity.CharacterId = member.characterId;
 
-            bool isMine = member.playerId == GetMyPlayerId();
+            Debug.Log(
+                $"[IDENTITY SET] " +
+                $"object={characterObj.name}, " +
+                $"playerId={identity.PlayerId}, " +
+                $"userId={identity.UserId}, " +
+                $"nickname={identity.Nickname}, " +
+                $"team={identity.Team}, " +
+                $"slot={identity.SlotIndex}, " +
+                $"characterId={identity.CharacterId}"
+            );
+
+            bool isMine = member.userId == NetworkManager.Instance.MyUserId;
             bool isMyTeam = member.team == myTeam;
 
             characterObj.tag = isMyTeam ? "Player" : "Enemy";
@@ -322,9 +353,12 @@ public class MatchManager : MonoBehaviour
             else
             {
                 Debug.Log(
-                    $"[SPAWN MINE] playerId={member.playerId}, " +
+                    $"[SPAWN MINE] " +
+                    $"playerId={member.playerId}, " +
                     $"userId={member.userId}, " +
-                    $"nickname={member.nickname}, team={member.team}, slot={member.slotIndex}"
+                    $"nickname={member.nickname}, " +
+                    $"team={member.team}, " +
+                    $"slot={member.slotIndex}"
                 );
             }
 

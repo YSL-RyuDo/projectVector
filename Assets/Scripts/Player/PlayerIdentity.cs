@@ -7,4 +7,5 @@ public class PlayerIdentity : MonoBehaviour
     public string Nickname;
     public byte Team;
     public byte SlotIndex;
+    public int CharacterId;
 }

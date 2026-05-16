@@ -138,6 +138,8 @@ public class NetworkManager : MonoBehaviour
     private uint myPlayerId;
     public uint MyPlayerId => myPlayerId;
 
+    private string myUserId = "";
+    public string MyUserId => myUserId;
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -214,6 +216,8 @@ public class NetworkManager : MonoBehaviour
 
     public void SendLogin(string id, string pw)
     {
+        myUserId = id.Trim();
+
         byte[] buffer = new byte[4 + 20 + 64];
 
         BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
@@ -434,6 +438,8 @@ public class NetworkManager : MonoBehaviour
 
         if (!success)
         {
+            myUserId = "";
+
             string msg = result switch
             {
                 (byte)LoginResult.NO_ID => "아이디 없음",
