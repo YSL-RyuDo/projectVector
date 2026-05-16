@@ -1,71 +1,179 @@
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class LoadingSlider : MonoBehaviour
 {
     [Header("UI References")]
-    [SerializeField] private Slider loadingSlider; // 연결할 UI 슬라이더
+    [SerializeField] private Slider loadingSlider;
+    [SerializeField] private TMP_Text percentText;
 
-    [Header("Settings")]
-    [SerializeField] private float fillDuration = 2.0f; // 슬라이더가 차오르는 시간
+    [Header("Fake Loading Settings")]
+    [SerializeField] private float minTotalLoadTime = 6.0f;
+    [SerializeField] private float maxTotalLoadTime = 11.0f;
+
+    [SerializeField] private float minStepDuration = 0.15f;
+    [SerializeField] private float maxStepDuration = 0.65f;
+
+    [SerializeField] private float minStepAmount = 0.015f;
+    [SerializeField] private float maxStepAmount = 0.12f;
+
+    [SerializeField] private float stallChance = 0.22f;
+    [SerializeField] private float minStallTime = 0.15f;
+    [SerializeField] private float maxStallTime = 0.9f;
+
+    [Header("Ready Send")]
+    [SerializeField] private bool sendReadyToServer = true;
 
     private Coroutine loadingCoroutine;
+    private bool readySent;
 
     private void OnEnable()
     {
-        // 오브젝트가 활성화될 때마다 슬라이더를 0으로 초기화
+        readySent = false;
+
         if (loadingSlider != null)
-        {
             loadingSlider.value = 0f;
-        }
 
-        // 혹시 이미 실행 중인 코루틴이 있다면 안전하게 정지
+        UpdatePercentText(0f);
+
         if (loadingCoroutine != null)
-        {
             StopCoroutine(loadingCoroutine);
-        }
 
-        // 로딩 프로세스 시작
         loadingCoroutine = StartCoroutine(StartLoadingProcess());
     }
 
     private void OnDisable()
     {
-        // 오브젝트가 비활성화되면 코루틴 정지
         if (loadingCoroutine != null)
         {
             StopCoroutine(loadingCoroutine);
+            loadingCoroutine = null;
         }
     }
 
     private IEnumerator StartLoadingProcess()
     {
-        GameController.Instance.isLoading = true; 
+        if (GameController.Instance != null)
+            GameController.Instance.isLoading = true;
 
-        // 5초 ~ 7초 사이의 랜덤한 시간 동안 대기
-        float randomWaitTime = Random.Range(5f, 7f);
-        Debug.Log($"로딩 시작 전 {randomWaitTime:F2}초 대기합니다.");
+        float targetTotalTime = Random.Range(minTotalLoadTime, maxTotalLoadTime);
+        float elapsedTotalTime = 0f;
 
-        yield return new WaitForSeconds(randomWaitTime);
+        float currentProgress = 0f;
 
-        // 슬라이더 값 채우기 시작
-        Debug.Log("로딩 바를 채우기 시작합니다.");
-        float elapsedTime = 0f;
+        Debug.Log($"[LOADING] fake loading start. targetTime={targetTotalTime:F2}");
 
-        while (elapsedTime < fillDuration)
+        while (currentProgress < 1f)
         {
-            elapsedTime += Time.deltaTime;
+            float remainingTimeRate = Mathf.Clamp01(elapsedTotalTime / targetTotalTime);
 
-            loadingSlider.value = Mathf.Lerp(0f, 1f, elapsedTime / fillDuration);
+            float nextAmount = Random.Range(minStepAmount, maxStepAmount);
 
-            yield return null; // 다음 프레임까지 대기
+            if (currentProgress >= 0.75f)
+                nextAmount *= 0.55f;
+
+            if (currentProgress >= 0.9f)
+                nextAmount *= 0.25f;
+
+            float nextProgress = Mathf.Clamp01(currentProgress + nextAmount);
+
+            if (elapsedTotalTime < targetTotalTime * 0.65f)
+                nextProgress = Mathf.Min(nextProgress, 0.88f);
+
+            if (elapsedTotalTime < targetTotalTime * 0.85f)
+                nextProgress = Mathf.Min(nextProgress, 0.96f);
+
+            if (elapsedTotalTime >= targetTotalTime)
+                nextProgress = 1f;
+
+            float stepDuration = Random.Range(minStepDuration, maxStepDuration);
+            float startProgress = currentProgress;
+            float stepElapsed = 0f;
+
+            while (stepElapsed < stepDuration)
+            {
+                stepElapsed += Time.deltaTime;
+                elapsedTotalTime += Time.deltaTime;
+
+                float t = Mathf.Clamp01(stepElapsed / stepDuration);
+                t = SmoothStep(t);
+
+                currentProgress = Mathf.Lerp(startProgress, nextProgress, t);
+
+                ApplyProgress(currentProgress);
+
+                yield return null;
+            }
+
+            currentProgress = nextProgress;
+            ApplyProgress(currentProgress);
+
+            if (currentProgress < 0.98f && Random.value < stallChance)
+            {
+                float stallTime = Random.Range(minStallTime, maxStallTime);
+                float stallElapsed = 0f;
+
+                Debug.Log($"[LOADING] stall {stallTime:F2}s at {(currentProgress * 100f):F0}%");
+
+                while (stallElapsed < stallTime)
+                {
+                    stallElapsed += Time.deltaTime;
+                    elapsedTotalTime += Time.deltaTime;
+                    yield return null;
+                }
+            }
         }
 
-        // 확실하게 최종 값을 1(100%)로 설정
-        loadingSlider.value = 1f;
-        Debug.Log("로딩 완료!");
+        ApplyProgress(1f);
 
-        GameController.Instance.isLoading = false;
+        if (GameController.Instance != null)
+            GameController.Instance.isLoading = false;
+
+        SendReadyOnce();
+
+        Debug.Log("[LOADING] 100% complete. Wait for server all ready.");
+    }
+
+    private void ApplyProgress(float progress)
+    {
+        progress = Mathf.Clamp01(progress);
+
+        if (loadingSlider != null)
+            loadingSlider.value = progress;
+
+        UpdatePercentText(progress);
+    }
+
+    private void UpdatePercentText(float progress)
+    {
+        if (percentText != null)
+            percentText.text = $"{Mathf.RoundToInt(progress * 100f)}%";
+    }
+
+    private float SmoothStep(float t)
+    {
+        return t * t * (3f - 2f * t);
+    }
+
+    private void SendReadyOnce()
+    {
+        if (readySent)
+            return;
+
+        readySent = true;
+
+        if (!sendReadyToServer)
+            return;
+
+        if (NetworkManager.Instance == null)
+        {
+            Debug.LogError("[LOADING] NetworkManager.Instance is null. Cannot send GAME_LOAD_READY.");
+            return;
+        }
+
+        NetworkManager.Instance.SendGameLoadReady();
+        Debug.Log("[LOADING] Send GAME_LOAD_READY to server.");
     }
 }

@@ -373,6 +373,14 @@ public class NetworkManager : MonoBehaviour
                 HandleMatchStart(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_GAME_ALL_READY:
+                HandleGameAllReady(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_GAME_PREPARE_TIMER:
+                HandleGamePrepareTimer(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -1257,5 +1265,37 @@ public class NetworkManager : MonoBehaviour
         Debug.Log($"[MATCH START] roomId={roomId}");
 
         pickManager?.OnRecvMatchStart(roomId);
+    }
+
+    public void SendGameLoadReady()
+    {
+        byte[] buffer = new byte[4];
+
+        ushort size = 4;
+        ushort type = (ushort)PacketType.PKT_CS_GAME_LOAD_READY;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, 0, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, 2, 2);
+
+        client.Send(buffer);
+
+        Debug.Log("[SEND] GAME LOAD READY");
+    }
+
+    private void HandleGameAllReady(byte[] body)
+    {
+        Debug.Log("[RECV] GAME ALL READY");
+
+        // 나중에 여기서 MatchLoadingPanel 끄고
+        // OurTeamList / EnemyTeamList / 모델 스폰 처리
+    }
+
+    private void HandleGamePrepareTimer(byte[] body)
+    {
+        ushort remainingSeconds = BitConverter.ToUInt16(body, 0);
+
+        Debug.Log($"[RECV] GAME PREPARE TIMER remaining={remainingSeconds}");
+
+        // 나중에 여기서 인게임 TimerText 갱신
     }
 }
