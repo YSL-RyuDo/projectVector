@@ -28,14 +28,6 @@ public class FPSCameraLook : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
-        MiniMapUI ui = FindFirstObjectByType<MiniMapUI>();
-
-        if (ui != null)
-        {
-            ui.RegisterLocalPlayerCamera(this);
-            ui.RegisterPlayer(this.gameObject);
-        }
     }
 
     void Update()

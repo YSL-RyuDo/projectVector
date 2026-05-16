@@ -5,10 +5,12 @@ using UnityEngine.InputSystem;
 
 public class ControllerSkill_E : CharacterSkill
 {
+    [Header("프리팹")]
     [SerializeField] private GameObject _smokePrefab;
     [SerializeField] private GameObject _pingPrefab;
-    private RectTransform _mapRect;
-    private RectTransform _pingContainer;
+
+    [SerializeField] private RectTransform _mapRect;
+    [SerializeField] private RectTransform _pingContainer;
 
     private Camera _miniMapCamera;
 
@@ -16,6 +18,12 @@ public class ControllerSkill_E : CharacterSkill
     private bool _isSelecting = false;
 
     public static event Action OnMiniMap;
+
+    private void Start()
+    {
+        GameObject miniMapCamera = GameObject.FindWithTag("MiniMapCamera");
+        _miniMapCamera = miniMapCamera.GetComponent<Camera>();
+    }
 
     void Update()
     {
@@ -42,13 +50,6 @@ public class ControllerSkill_E : CharacterSkill
         OnMiniMap?.Invoke();
     }
 
-    public void SetupMiniMapReferences(Camera miniMapCam, RectTransform mapRect)
-    {
-        _miniMapCamera = miniMapCam;
-        _mapRect = mapRect;
-        _pingContainer = mapRect;
-    }
-
     public void SetSelectingState(bool state)
     {
         _isSelecting = state;
@@ -57,6 +58,12 @@ public class ControllerSkill_E : CharacterSkill
 
     private void selectLocation()
     {
+        if (_mapRect == null || _miniMapCamera == null)
+        {
+            Debug.LogWarning("미니맵 MapRect 또는 MiniMapCamera가 인스펙터에 할당되지 않았습니다.");
+            return;
+        }
+
         Vector2 mousePos = Mouse.current.position.ReadValue();
 
         if (RectTransformUtility.ScreenPointToLocalPointInRectangle(_mapRect, mousePos, null, out Vector2 localPoint))

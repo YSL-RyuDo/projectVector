@@ -6,29 +6,15 @@ public class MiniMapUI : MonoBehaviour
 
     [SerializeField] private GameObject _miniMapUIPanel;
     [SerializeField] private GameObject _background;
-    [SerializeField] private ControllerSkill_E _smokeSkill;
 
-    [SerializeField] private Camera _targetMiniMapCamera;
-    [SerializeField] private RectTransform _mapRect;
+    private ControllerSkill_E _smokeSkill;
 
     private void OnEnable() => ControllerSkill_E.OnMiniMap += ToggleMiniMap;
     private void OnDisable() => ControllerSkill_E.OnMiniMap -= ToggleMiniMap;
 
-    public void RegisterLocalPlayerCamera(FPSCameraLook cam)
+    void Start()
     {
-        _camera = cam;
-    }
-
-    public void RegisterPlayer(GameObject playerObj)
-    {
-        // 1. 플레이어 자식에 있는 SmokeSkill을 찾음
-        var smoke = playerObj.GetComponentInChildren<ControllerSkill_E>();
-
-        if (smoke != null)
-        {
-            // 2. 하이라키에 있는 카메라와 UI 정보를 꽂아줌
-            smoke.SetupMiniMapReferences(_targetMiniMapCamera, _mapRect);
-        }
+        _smokeSkill = GetComponentInParent<ControllerSkill_E>();
     }
 
     private void ToggleMiniMap()
