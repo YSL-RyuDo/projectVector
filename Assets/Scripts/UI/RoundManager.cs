@@ -41,7 +41,7 @@ public class RoundManager : MonoBehaviour
 
     void Awake() => Instance = this;
 
-    void Start()
+    public void StartGame()
     {
         StartCoroutine(GameLoop());
     }

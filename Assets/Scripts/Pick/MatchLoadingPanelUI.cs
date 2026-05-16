@@ -21,6 +21,8 @@ public class MatchLoadingPanelUI : MonoBehaviour
     [Header("Rank Table")]
     [SerializeField] private Sprite[] rankSprites;
 
+    private MatchLoadingInfoData cachedData;
+
     private void Awake()
     {
         if (rootPanel == null)
@@ -29,6 +31,8 @@ public class MatchLoadingPanelUI : MonoBehaviour
 
     public void Show(MatchLoadingInfoData data)
     {
+        cachedData = data; // 데이터 캐싱
+
         Debug.Log("[MATCH LOADING PANEL] Show called");
 
         if (rootPanel == null)
@@ -62,6 +66,17 @@ public class MatchLoadingPanelUI : MonoBehaviour
     {
         Debug.Log("Match Start! Load Game Scene here.");
         // SceneManager.LoadScene("GameScene");
+
+        Debug.Log("Match Start! 맵과 캐릭터를 생성합니다.");
+
+        if (MatchManager.Instance != null && cachedData != null)
+        {
+            // 매치 매니저에게 데이터를 토스하여 맵과 캐릭터 생성을 지시
+            MatchManager.Instance.SetupMatch(cachedData);
+        }
+
+        // 로딩 UI 판넬 닫기
+        //if (rootPanel != null) rootPanel.SetActive(false);
     }
 
     private void ApplySlot(
