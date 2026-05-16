@@ -1329,6 +1329,9 @@ public class NetworkManager : MonoBehaviour
             member.playerId = BitConverter.ToUInt32(body, offset);
             offset += 4;
 
+            member.userId = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
             member.nickname = Packet.ReadFixedString(body, offset, 20);
             offset += 20;
 
@@ -1344,7 +1347,19 @@ public class NetworkManager : MonoBehaviour
             member.rankImageId = BitConverter.ToInt32(body, offset);
             offset += 4;
 
-            if (i< memberCount)
+            Debug.Log(
+                $"[GAME ALL READY MEMBER PARSED] " +
+                $"index={i}, " +
+                $"playerId={member.playerId}, " +
+                $"userId={member.userId}, " +
+                $"nickname={member.nickname}, " +
+                $"team={member.team}, " +
+                $"slot={member.slotIndex}, " +
+                $"characterId={member.characterId}, " +
+                $"rankImageId={member.rankImageId}"
+            );
+
+            if (i < memberCount)
                 data.members.Add(member);
         }
 

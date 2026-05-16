@@ -507,13 +507,6 @@ public class MatchManager : MonoBehaviour
 
     private string MakePlayerObjectName(GameReadyMemberData member)
     {
-        string id = member.userId;
-
-        if (string.IsNullOrEmpty(id))
-        {
-            id = $"player{member.playerId}";
-        }
-
-        return $"T{member.team}_{id}_S{member.slotIndex}_C{member.characterId}";
+        return $"T{member.team}_{member.userId}_S{member.slotIndex}_C{member.characterId}";
     }
 }
