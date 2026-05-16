@@ -7,6 +7,8 @@ public class GameController : MonoBehaviour
 
     public GameObject settingsUI;
 
+    public bool isLoading;
+
     // 외부에서는 읽기만 가능 (get), 내부에서만 수정 가능 (private set)
     public bool IsPaused { get; private set; } = false;
 
@@ -35,10 +37,14 @@ public class GameController : MonoBehaviour
             // 시작할 때는 UI를 꺼둡니다.
             settingsUI.SetActive(false);
         }
+
+        isLoading = false;
     }
 
     void Update()
     {
+        if (!isLoading) return;
+
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             if (IsPaused) ResumeGame();
