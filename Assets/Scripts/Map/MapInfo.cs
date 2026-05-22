@@ -65,4 +65,24 @@ public class MapInfo : MonoBehaviour
         if (barriers != null)
             barriers.SetActive(active);
     }
+
+    public Transform GetSpawnPoint(byte team, byte slotIndex)
+    {
+        Transform[] points = null;
+
+        // ¡ˆ±› ±‚¡ÿ:
+        // A∆¿ = Attack
+        // B∆¿ = Defense
+        if (team == 0)
+            points = attackSpawnPoints;
+        else
+            points = defendSpawnPoints;
+
+        if (points == null || points.Length == 0)
+            return null;
+
+        int index = Mathf.Clamp(slotIndex, 0, points.Length - 1);
+
+        return points[index];
+    }
 }

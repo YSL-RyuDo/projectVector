@@ -4,6 +4,8 @@ using UnityEngine.UI;
 
 public class PickManager : MonoBehaviour
 {
+    public static PickManager Instance;
+
     [Header("Top Info")]
     [SerializeField] private TopInfoUI topInfoUI;
 
@@ -53,6 +55,11 @@ public class PickManager : MonoBehaviour
     private bool isInputLockedByPhase = true;
     private PickPhase currentPhase = PickPhase.PICKING;
     [SerializeField] private MatchLoadingPanelUI matchLoadingPanelUI;
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     private void Start()
     {
@@ -561,7 +568,7 @@ public class PickManager : MonoBehaviour
         return GetCharacterData(currentInfoCharacterId);
     }
 
-    private PickCharacterData GetCharacterData(int characterId)
+    public PickCharacterData GetCharacterData(int characterId)
     {
         if (characterId < 0)
             return null;

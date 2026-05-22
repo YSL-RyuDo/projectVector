@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -18,77 +17,70 @@ public class FPSCameraLook : MonoBehaviour
     private float recoilOffset = 0f;
     private bool _isADS = false;
 
-    private Transform player;
+    private Transform playerRoot;
+    private bool isLocalPlayer = false;
 
     public bool CanMove = true;
 
-    void Start()
+    private void Awake()
     {
-        player = transform.parent;
+        _playerIdentity = GetComponentInParent<PlayerIdentity>();
+        enabled = false;
+    }
 
-        if (player == null)
-        {
-            Debug.LogError($"[FPSCameraLook] parent is null. object={gameObject.name}");
-            enabled = false;
+    public void SetLocalPlayer(bool isLocal, Transform root)
+    {
+        isLocalPlayer = isLocal;
+        playerRoot = root;
+
+        CanMove = isLocal;
+        enabled = isLocal;
+
+        if (!isLocal)
             return;
-        }
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        _playerIdentity = GetComponentInParent<PlayerIdentity>();
-
         if (_playerIdentity == null)
-        {
-            Debug.LogError($"[FPSCameraLook] PlayerIdentity not found in parent. object={gameObject.name}");
-            enabled = false;
-            return;
-        }
+            _playerIdentity = GetComponentInParent<PlayerIdentity>();
 
         MiniMapUI ui = FindFirstObjectByType<MiniMapUI>();
 
-        if (ui != null)
+        if (ui != null && playerRoot != null)
         {
             ui.RegisterLocalPlayerCamera(this);
-            ui.RegisterPlayer(player.gameObject);
+            ui.RegisterPlayer(playerRoot.gameObject);
         }
 
         Debug.Log(
-            $"[FPSCameraLook INIT] " +
-            $"camera={gameObject.name}, " +
-            $"player={player.name}, " +
-            $"playerId={_playerIdentity.PlayerId}, " +
-            $"userId={_playerIdentity.UserId}"
+            $"[FPSCameraLook LOCAL INIT] " +
+            $"cameraRoot={gameObject.name}, " +
+            $"player={playerRoot.name}, " +
+            $"playerId={_playerIdentity?.PlayerId}, " +
+            $"userId={_playerIdentity?.UserId}"
         );
     }
 
-    void Update()
+    private void Update()
     {
+        if (!isLocalPlayer) return;
         if (!CanMove) return;
+        if (playerRoot == null) return;
 
         if (Cursor.lockState == CursorLockMode.None) return;
         if (GameController.Instance != null && GameController.Instance.IsPaused) return;
-
-        if (_playerIdentity == null)
-            return;
-
-        if (NetworkManager.Instance == null)
-            return;
-
-        if (_playerIdentity.UserId != NetworkManager.Instance.MyUserId)
-            return;
-
-        if (Mouse.current == null)
-            return;
+        if (Mouse.current == null) return;
 
         float sensitivity = _baseSensitivity * (_isADS ? _adsSensitivityMultiplier : 1f);
 
         Vector2 mouseDelta = Mouse.current.delta.ReadValue();
+
         float mouseX = mouseDelta.x * MouseSettings.MouseSensitivity * sensitivity;
         float mouseY = mouseDelta.y * MouseSettings.MouseSensitivity * sensitivity;
 
         yaw += mouseX;
-        player.rotation = Quaternion.Euler(0f, yaw, 0f);
+        playerRoot.rotation = Quaternion.Euler(0f, yaw, 0f);
 
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -80f, 80f);
@@ -108,6 +100,11 @@ public class FPSCameraLook : MonoBehaviour
         return yaw;
     }
 
+    public void SetYaw(float value)
+    {
+        yaw = value;
+    }
+
     public void AddRecoil(float amount)
     {
         recoilOffset -= amount;
@@ -121,9 +118,10 @@ public class FPSCameraLook : MonoBehaviour
     public void AddPitch(float amount)
     {
         xRotation += amount;
+        xRotation = Mathf.Clamp(xRotation, -80f, 80f);
     }
 
-    internal void AddYaw(float amount)
+    public void AddYaw(float amount)
     {
         yaw += amount;
     }

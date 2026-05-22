@@ -13,12 +13,6 @@ public class PlayerMovement : MonoBehaviour
     // 외부 변경용
     public bool CanMove = true;
 
-    // Network
-    private float _sendInterval = 0.05f; // 20hz
-    private float _lastSentYaw;
-    private float _sendTimer;
-    private Vector3 _lastSentPos;
-
     // Network (Receive - 원격 플레이어 동기화용 변수)
     private Vector3 _targetPosition;
     private float _targetYaw;
@@ -34,6 +28,14 @@ public class PlayerMovement : MonoBehaviour
 
     public event Action OnJumpEvent;
 
+    [SerializeField] private float sendInterval = 0.05f; // 20Hz
+    private float lastSendTime;
+    private Vector3 lastSentPos;
+    private float lastSentYaw;
+    [SerializeField] private float positionSendThreshold = 0.02f;
+    [SerializeField] private float yawSendThreshold = 1.0f;
+
+
     public float Speed
     {
         get => _speed;
@@ -43,28 +45,27 @@ public class PlayerMovement : MonoBehaviour
     void Awake()
     {
         _cc = GetComponent<CharacterController>();
-        _cam = GetComponentInChildren<FPSCameraLook>();
+        _cam = GetComponentInChildren<FPSCameraLook>(true);
         _animator = GetComponentInChildren<Animator>();
         _playerIdentity = GetComponent<PlayerIdentity>();
 
-        _lastSentPos = transform.position;
-        _lastSentYaw = _cam.GetYaw();
+        lastSentPos = transform.position;
+        lastSentYaw = transform.eulerAngles.y;
 
         _targetPosition = transform.position;
+        _targetYaw = transform.eulerAngles.y;
     }
 
     void Start()
     {
-        // 내 캐릭터인지 외부 확인용 변수 캐싱
-        _isMine = (_playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId);
-
         if (_cam != null)
         {
-            _lastSentYaw = _cam.GetYaw();
+            lastSentYaw = _cam.GetYaw();
             _targetYaw = _cam.GetYaw();
         }
         else
         {
+            lastSentYaw = transform.eulerAngles.y;
             _targetYaw = transform.eulerAngles.y;
         }
     }
@@ -77,7 +78,8 @@ public class PlayerMovement : MonoBehaviour
         {
             // "내 캐릭터"라면 직접 조종하고 서버로 패킷 전송
             movement();
-            networkSend();
+            //networkSend();
+            TrySendMoveState();
         }
         else
         {
@@ -215,29 +217,63 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    private void networkSend()
+    public void SetLocalPlayer(bool isMine)
     {
-        _sendTimer += Time.deltaTime;
-        if (_sendTimer < _sendInterval)
+        _isMine = isMine;
+
+        _cam = GetComponentInChildren<FPSCameraLook>(true);
+
+        if (_cam != null)
+        {
+            lastSentYaw = _cam.GetYaw();
+            _targetYaw = _cam.GetYaw();
+        }
+        else
+        {
+            lastSentYaw = transform.eulerAngles.y;
+            _targetYaw = transform.eulerAngles.y;
+        }
+
+        Debug.Log(
+        $"[PLAYER MOVEMENT SET LOCAL] " +
+        $"object={gameObject.name}, " +
+        $"isMine={_isMine}, " +
+        $"playerId={_playerIdentity?.PlayerId}"
+    );
+    }
+
+    private void TrySendMoveState()
+    {
+        if (!_isMine)
             return;
 
-        _sendTimer = 0f;
+        if (NetworkManager.Instance == null)
+            return;
 
-        Vector3 pos = transform.position;
-        float yaw = _cam.GetYaw();
+        if (Time.time - lastSendTime < sendInterval)
+            return;
 
-        Vector2 curXZ = new Vector2(pos.x, pos.z);
-        Vector2 lastXZ = new Vector2(_lastSentPos.x, _lastSentPos.z);
+        Vector3 currentPos = transform.position;
+        float currentYaw = transform.eulerAngles.y;
 
-        bool movedXZ = (curXZ - lastXZ).sqrMagnitude > 0.0004f;
-        bool movedY = Mathf.Abs(pos.y - _lastSentPos.y) > 0.01f;
-        bool rotated = Mathf.Abs(yaw - _lastSentYaw) > 0.5f;
+        bool positionChanged =
+            Vector3.Distance(currentPos, lastSentPos) >= positionSendThreshold;
 
-        if (!movedXZ && !movedY && !rotated) return;
+        bool yawChanged =
+            Mathf.Abs(Mathf.DeltaAngle(currentYaw, lastSentYaw)) >= yawSendThreshold;
 
-        _lastSentPos = pos;
-        _lastSentYaw = yaw;
+        if (!positionChanged && !yawChanged)
+            return;
 
-        //NetworkManager.Instance.SendMoveState(pos.x, pos.y, pos.z, yaw);
+        lastSendTime = Time.time;
+        lastSentPos = currentPos;
+        lastSentYaw = currentYaw;
+
+        NetworkManager.Instance.SendMoveState(
+            currentPos.x,
+            currentPos.y,
+            currentPos.z,
+            currentYaw
+        );
     }
 }

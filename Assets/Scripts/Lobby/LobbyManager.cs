@@ -1408,7 +1408,7 @@ public class LobbyManager : MonoBehaviour
 
         if (result == (byte)RoomGameStartResult.SUCCESS)
         {
-            SceneManager.LoadScene("Game");
+            SceneManager.LoadScene("Game_TestVersion");
             return;
         }
 

@@ -5,49 +5,92 @@ using UnityEngine;
 
 public class NetworkClient
 {
-    TcpClient client;
-    NetworkStream stream;
-    Thread recvThread;
+    private TcpClient client;
+    private NetworkStream stream;
+    private Thread recvThread;
 
     public Action<ushort, byte[]> OnPacket;
 
-    private byte[] recvBuffer = new byte[8192];
+    private readonly byte[] recvBuffer = new byte[8192];
     private int recvSize = 0;
+
+    private volatile bool isRunning = false;
+    private readonly object sendLock = new object();
 
     public bool IsConnected => client != null && client.Connected;
 
     public void Connect(string ip, int port)
     {
-        client = new TcpClient(ip, port);
-        stream = client.GetStream();
+        Close();
 
-        recvThread = new Thread(ReceiveLoop);
-        recvThread.IsBackground = true;
-        recvThread.Start();
+        try
+        {
+            client = new TcpClient();
+            client.Connect(ip, port);
 
-        Debug.Log("서버 연결됨");
+            stream = client.GetStream();
+
+            isRunning = true;
+
+            recvThread = new Thread(ReceiveLoop);
+            recvThread.IsBackground = true;
+            recvThread.Start();
+
+            Debug.Log("서버 연결됨");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"서버 연결 실패: {e}");
+            Close();
+        }
     }
 
     public void Send(byte[] buffer)
     {
-        if (stream == null || !client.Connected)
+        if (buffer == null)
             return;
 
-        stream.Write(buffer, 0, buffer.Length);
+        lock (sendLock)
+        {
+            if (!isRunning)
+                return;
+
+            if (client == null || stream == null || !client.Connected)
+                return;
+
+            try
+            {
+                stream.Write(buffer, 0, buffer.Length);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"Send failed: {e.Message}");
+                Close();
+            }
+        }
     }
 
-    void ReceiveLoop()
+    private void ReceiveLoop()
     {
         byte[] tempBuffer = new byte[1024];
 
         try
         {
-            while (true)
+            while (isRunning)
             {
+                if (stream == null)
+                    break;
+
                 int bytes = stream.Read(tempBuffer, 0, tempBuffer.Length);
 
                 if (bytes <= 0)
                     break;
+
+                if (recvSize + bytes > recvBuffer.Length)
+                {
+                    Debug.LogError("[NETWORK] Receive buffer overflow. Disconnect.");
+                    break;
+                }
 
                 Buffer.BlockCopy(tempBuffer, 0, recvBuffer, recvSize, bytes);
                 recvSize += bytes;
@@ -55,15 +98,27 @@ public class NetworkClient
                 ProcessPackets();
             }
         }
+        catch (ObjectDisposedException)
+        {
+            // Close() 중에 stream이 닫히면 정상적으로 들어올 수 있음
+        }
+        catch (SocketException e)
+        {
+            if (isRunning)
+                Debug.LogWarning($"ReceiveLoop SocketException: {e.Message}");
+        }
         catch (Exception e)
         {
-            Debug.LogError($"ReceiveLoop Error: {e}");
+            if (isRunning)
+                Debug.LogError($"ReceiveLoop Error: {e}");
         }
+
+        isRunning = false;
 
         Debug.LogWarning("서버 연결 종료");
     }
 
-    void ProcessPackets()
+    private void ProcessPackets()
     {
         int offset = 0;
 
@@ -74,6 +129,13 @@ public class NetworkClient
 
             ushort size = BitConverter.ToUInt16(recvBuffer, offset);
             ushort type = BitConverter.ToUInt16(recvBuffer, offset + 2);
+
+            if (size < 4)
+            {
+                Debug.LogError($"[NETWORK] Invalid packet size={size}");
+                Close();
+                return;
+            }
 
             if (recvSize - offset < size)
                 break;
@@ -91,5 +153,39 @@ public class NetworkClient
             Buffer.BlockCopy(recvBuffer, offset, recvBuffer, 0, recvSize - offset);
             recvSize -= offset;
         }
+    }
+
+    public void Close()
+    {
+        isRunning = false;
+
+        try
+        {
+            stream?.Close();
+        }
+        catch { }
+
+        try
+        {
+            client?.Close();
+        }
+        catch { }
+
+        stream = null;
+        client = null;
+
+        recvSize = 0;
+
+        if (recvThread != null && recvThread.IsAlive)
+        {
+            try
+            {
+                if (Thread.CurrentThread != recvThread)
+                    recvThread.Join(300);
+            }
+            catch { }
+        }
+
+        recvThread = null;
     }
 }

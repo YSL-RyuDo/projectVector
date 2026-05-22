@@ -79,6 +79,12 @@ public enum PacketType : ushort
     PKT_CS_HIT = 120,
     PKT_SC_HP_UPDATE = 121,
     PKT_SC_DIE = 122,
+    PKT_SC_AMMO_UPDATE = 123,
+    PKT_CS_WEAPON_SWITCH = 124,
+
+    PKT_SC_ROUND_RESULT = 130,
+    PKT_SC_ROUND_RESET = 131,
+    PKT_SC_MATCH_RESULT = 132,
 }
 
 public enum RegisterResult : byte

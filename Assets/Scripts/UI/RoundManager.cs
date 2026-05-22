@@ -196,4 +196,43 @@ public class RoundManager : MonoBehaviour
                 Destroy(spike.gameObject);
         }
     }
+
+    public void OnRoundResult(
+    byte winnerTeam,
+    byte scoreA,
+    byte scoreB,
+    byte currentRound,
+    bool matchEnd,
+    ushort delaySeconds)
+    {
+        currentState = RoundState.RoundEnd;
+
+        if (currentMapInfo != null)
+            currentMapInfo.SetBarriersActive(true);
+
+        Debug.Log(
+            $"[ROUND RESULT] winnerTeam={winnerTeam}, " +
+            $"score={scoreA}:{scoreB}, " +
+            $"round={currentRound}, " +
+            $"matchEnd={matchEnd}, " +
+            $"delay={delaySeconds}"
+        );
+    }
+
+    public void OnServerRoundReset(byte currentRound, byte scoreA, byte scoreB)
+    {
+        currentState = RoundState.Preparation;
+
+        if (currentMapInfo != null)
+            currentMapInfo.SetBarriersActive(true);
+
+        Debug.Log(
+            $"[ROUND RESET] round={currentRound}, score={scoreA}:{scoreB}"
+        );
+
+        CleanUpDroppedItems();
+
+        if (SpikeSpawner.Instance != null && currentMapInfo != null)
+            SpikeSpawner.Instance.ResetSpike(currentMapInfo.spikeSpawnPoint);
+    }
 }

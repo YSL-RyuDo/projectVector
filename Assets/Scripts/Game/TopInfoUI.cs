@@ -15,6 +15,13 @@ public class TopInfoUI : MonoBehaviour
     [SerializeField] private TMP_Text blueTeamScoreText;
     [SerializeField] private TMP_Text redTeamScoreText;
 
+    public static TopInfoUI Instance;
+
+    private void Awake()
+    {
+        Instance = this;
+    }
+
     public void ApplyPickInfo(PickStateData state)
     {
         if (state == null)
@@ -49,8 +56,6 @@ public class TopInfoUI : MonoBehaviour
 
         if (enemyTeamRoleText != null)
             enemyTeamRoleText.text = "";
-
-        SetScore(0, 0);
     }
 
     public void SetMapText(string mapName)
@@ -100,5 +105,10 @@ public class TopInfoUI : MonoBehaviour
             return PickRole.DEFENSE;
 
         return PickRole.ATTACK;
+    }
+
+    public void ResetMatchScore()
+    {
+        SetScore(0, 0);
     }
 }

@@ -1,4 +1,3 @@
-using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -108,7 +107,11 @@ public class MatchManager : MonoBehaviour
         if (topInfoUI != null)
         {
             topInfoUI.gameObject.SetActive(true);
+
+            // 게임 최초 시작 시에만 점수 0:0 초기화
             topInfoUI.ApplyGameStartInfo();
+            topInfoUI.ResetMatchScore();
+
             topInfoUI.SetTimer(data.prepareSeconds);
         }
 
@@ -148,6 +151,60 @@ public class MatchManager : MonoBehaviour
     {
         if (topInfoUI != null)
             topInfoUI.SetScore(blueScore, redScore);
+    }
+
+    public void OnRecvRoundResult(
+    byte winnerTeam,
+    byte scoreA,
+    byte scoreB,
+    byte currentRound,
+    bool matchEnd,
+    ushort delaySeconds)
+    {
+        if (topInfoUI != null)
+        {
+            topInfoUI.SetScore(scoreA, scoreB);
+            topInfoUI.SetTimer(delaySeconds);
+
+            string winnerText = winnerTeam == 0
+                ? "블루팀 라운드 승리"
+                : "레드팀 라운드 승리";
+
+            topInfoUI.SetGameDescription(winnerText);
+        }
+
+        if (RoundManager.Instance != null)
+        {
+            RoundManager.Instance.OnRoundResult(
+                winnerTeam,
+                scoreA,
+                scoreB,
+                currentRound,
+                matchEnd,
+                delaySeconds
+            );
+        }
+    }
+
+    public void OnRecvRoundReset(
+        byte currentRound,
+        byte scoreA,
+        byte scoreB)
+    {
+        if (topInfoUI != null)
+        {
+            topInfoUI.SetScore(scoreA, scoreB);
+            topInfoUI.SetGameDescription("구매 단계");
+        }
+
+        if (RoundManager.Instance != null)
+        {
+            RoundManager.Instance.OnServerRoundReset(
+                currentRound,
+                scoreA,
+                scoreB
+            );
+        }
     }
 
     private void SpawnMapIfNeeded()
@@ -312,25 +369,67 @@ public class MatchManager : MonoBehaviour
                 $"characterId={identity.CharacterId}"
             );
 
-            bool isMine = member.userId == NetworkManager.Instance.MyUserId;
+            bool isMine = member.playerId == NetworkManager.Instance.MyPlayerId;
             bool isMyTeam = member.team == myTeam;
 
             characterObj.tag = isMyTeam ? "Player" : "Enemy";
+            SetCharacterModelVisible(characterObj, !isMine);
+
+            PlayerCameraController cameraController =
+                characterObj.GetComponent<PlayerCameraController>();
+
+            if (cameraController == null)
+                cameraController = characterObj.GetComponentInChildren<PlayerCameraController>(true);
+
+            PlayerMovement movement =
+                characterObj.GetComponent<PlayerMovement>();
+
+            if (movement == null)
+                movement = characterObj.GetComponentInChildren<PlayerMovement>(true);
+
+            if (cameraController != null)
+            {
+                cameraController.SetLocalPlayer(isMine);
+            }
+            else
+            {
+                Debug.LogError($"[SPAWN FAIL] PlayerCameraController not found. object={characterObj.name}");
+            }
+
+            if (movement != null)
+            {
+                movement.SetLocalPlayer(isMine);
+            }
+            else
+            {
+                Debug.LogError($"[SPAWN FAIL] PlayerMovement not found. object={characterObj.name}");
+            }
 
             if (isMine)
             {
-                characterObj.layer = 6;
+                Sprite localCharacterSprite = GetCharacterSprite(member.characterId);
 
-                CinemachineCamera cam = characterObj.GetComponentInChildren<CinemachineCamera>(true);
+                PickCharacterData pickData = null;
 
-                if (cam == null)
+                if (PickManager.Instance != null)
+                    pickData = PickManager.Instance.GetCharacterData(member.characterId);
+
+                if (InGameUIManager.Instance != null)
                 {
-                    Debug.LogError($"[SPAWN FAIL] CinemachineCamera not found. object={characterObj.name}");
+                    InGameUIManager.Instance.InitializeLocalPlayerUI(
+                        member.characterId,
+                        localCharacterSprite,
+                        pickData
+                    );
                 }
                 else
                 {
-                    cam.Priority = 10;
+                    Debug.LogError("[MATCH MANAGER] InGameUIManager.Instance is null");
                 }
+            }
+            else
+            {
+                DisableControlComponents(characterObj);
             }
 
             PlayerState playerState = characterObj.GetComponent<PlayerState>();
@@ -344,22 +443,6 @@ public class MatchManager : MonoBehaviour
                     playerState.state = PlayerState.BattleState.Attack;
                 else
                     playerState.state = PlayerState.BattleState.Defence;
-            }
-
-            if (!isMine)
-            {
-                DisableControlComponents(characterObj);
-            }
-            else
-            {
-                Debug.Log(
-                    $"[SPAWN MINE] " +
-                    $"playerId={member.playerId}, " +
-                    $"userId={member.userId}, " +
-                    $"nickname={member.nickname}, " +
-                    $"team={member.team}, " +
-                    $"slot={member.slotIndex}"
-                );
             }
 
             Debug.Log($"[SPAWN SUCCESS] {characterObj.name}");
@@ -382,31 +465,42 @@ public class MatchManager : MonoBehaviour
         if (target == null)
             return;
 
-        /*
-        PlayerMovement movement = target.GetComponent<PlayerMovement>();
-        if (movement != null)
-            movement.enabled = false;
+        PlayerCameraController cameraController =
+            target.GetComponent<PlayerCameraController>();
 
-        PlayerItem item = target.GetComponent<PlayerItem>();
-        if (item != null)
-            item.enabled = false;
+        if (cameraController == null)
+            cameraController = target.GetComponentInChildren<PlayerCameraController>(true);
 
-        PlayerSpike spike = target.GetComponent<PlayerSpike>();
-        if (spike != null)
-            spike.enabled = false;
+        if (cameraController != null)
+        {
+            cameraController.SetLocalPlayer(false);
+        }
+        else
+        {
+            Camera camera = target.GetComponentInChildren<Camera>(true);
+            if (camera != null)
+                camera.enabled = false;
 
-        UnityEngine.InputSystem.PlayerInput input = target.GetComponent<UnityEngine.InputSystem.PlayerInput>();
-        if (input != null)
-            input.enabled = false;
-        */
+            AudioListener listener = target.GetComponentInChildren<AudioListener>(true);
+            if (listener != null)
+                listener.enabled = false;
 
-        CinemachineCamera childCamera = target.GetComponentInChildren<CinemachineCamera>();
-        if (childCamera != null)
-            childCamera.Priority = 1;
+            FPSCameraLook look = target.GetComponentInChildren<FPSCameraLook>(true);
+            if (look != null)
+                look.enabled = false;
+        }
 
-        AudioListener listener = target.GetComponentInChildren<AudioListener>();
-        if (listener != null)
-            listener.enabled = false;
+        ControllerSkill_E skillE = target.GetComponent<ControllerSkill_E>();
+        if (skillE != null) skillE.enabled = false;
+
+        ControllerSkill_Q skillQ = target.GetComponent<ControllerSkill_Q>();
+        if (skillQ != null) skillQ.enabled = false;
+
+        ControllerSkill_C skillC = target.GetComponent<ControllerSkill_C>();
+        if (skillC != null) skillC.enabled = false;
+
+        ControllerSkill_X skillX = target.GetComponent<ControllerSkill_X>();
+        if (skillX != null) skillX.enabled = false;
     }
 
     private void ClearTeamImages(Image[] images)
@@ -509,4 +603,33 @@ public class MatchManager : MonoBehaviour
     {
         return $"T{member.team}_{member.userId}_S{member.slotIndex}_C{member.characterId}";
     }
+
+    private void SetCharacterModelVisible(GameObject characterObj, bool visible)
+    {
+        if (characterObj == null)
+            return;
+
+        Transform modelRoot = characterObj.transform.Find("Model");
+
+        if (modelRoot == null)
+        {
+            Debug.LogWarning($"[MODEL VISIBILITY] Model child not found. object={characterObj.name}");
+            return;
+        }
+
+        Renderer[] renderers = modelRoot.GetComponentsInChildren<Renderer>(true);
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            renderers[i].enabled = visible;
+        }
+
+        Debug.Log(
+            $"[MODEL VISIBILITY] object={characterObj.name}, " +
+            $"visible={visible}, " +
+            $"rendererCount={renderers.Length}"
+        );
+    }
+
+
 }
