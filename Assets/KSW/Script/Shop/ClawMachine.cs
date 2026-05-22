@@ -3,6 +3,7 @@ using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.UI;
+using TMPro;
 
 public class ClawMachine : MonoBehaviour
 {
@@ -30,6 +31,12 @@ public class ClawMachine : MonoBehaviour
     [Header("버튼")]
     [SerializeField] private Button _claw1;
     [SerializeField] private Button _claw2;
+    [SerializeField] private Button _close;
+
+    [Header("아이템 출력")]
+    [SerializeField] private GameObject _itemBackground;
+    [SerializeField] private GameObject _capculeImage;
+    [SerializeField] private TextMeshProUGUI _text;
 
     void Start()
     {
@@ -37,6 +44,7 @@ public class ClawMachine : MonoBehaviour
 
         _claw1.onClick.AddListener(StartGacha);
         _claw2.onClick.AddListener(StartGacha);
+        _close.onClick.AddListener(CloseButton);
     }
 
     void LateUpdate()
@@ -126,14 +134,31 @@ public class ClawMachine : MonoBehaviour
         if (randomValue < percentS)
         {
             Debug.Log($"<color=cyan>[가챠 결과] S 등급</color>");
+            _itemBackground.GetComponent<UIAnimator>().Show();
+            _capculeImage.GetComponent<UIAnimator>().Show();
+            _text.text = "S등급";
+            _text.gameObject.GetComponent<UIAnimator>().Show();
         }
         else if (randomValue < percentS + percentA)
         {
             Debug.Log($"<color=green>[가챠 결과] A 등급</color>");
+            _itemBackground.GetComponent<UIAnimator>().Show();
+            _capculeImage.GetComponent<UIAnimator>().Show();
+            _text.text = "A등급";
+            _text.gameObject.GetComponent<UIAnimator>().Show();
         }
         else
         {
             Debug.Log($"<color=white>[가챠 결과] B 등급</color>");
+            _itemBackground.GetComponent<UIAnimator>().Show();
+            _capculeImage.GetComponent<UIAnimator>().Show();
+            _text.text = "B등급";
+            _text.gameObject.GetComponent<UIAnimator>().Show();
         }
+    }
+
+    private void CloseButton()
+    {
+        _itemBackground.GetComponent<UIAnimator>().Close();
     }
 }
