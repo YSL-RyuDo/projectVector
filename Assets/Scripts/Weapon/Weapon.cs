@@ -226,6 +226,9 @@ public class Weapon : Item
         {
             currentAmmo--;
             UpdateAmmoUI();
+
+            if (NetworkManager.Instance != null)
+                NetworkManager.Instance.SendFire();
         }
 
         if (recoilSystem != null && weaponData.recoilPattern.Length > 0)
@@ -494,6 +497,9 @@ public class Weapon : Item
         if (isReloading)
             yield break;
 
+        if (weaponData.weaponType == WeaponData.WeaponType.Knife)
+            yield break;
+
         if (currentAmmo >= weaponData.magSize || reserveAmmo <= 0)
             yield break;
 
@@ -502,18 +508,18 @@ public class Weapon : Item
         if (ammoText != null)
             ammoText.text = "Reloading...";
 
+        if (InGameUIManager.Instance != null)
+            InGameUIManager.Instance.SetBulletText(0, reserveAmmo);
+
         yield return new WaitForSeconds(weaponData.reloadTime);
 
-        int need = weaponData.magSize - currentAmmo;
-        int reloadAmount = Mathf.Min(need, reserveAmmo);
-
-        currentAmmo += reloadAmount;
-        reserveAmmo -= reloadAmount;
+        // 여기서 클라가 직접 탄약을 계산하지 않는다.
+        // 서버에 장전 요청을 보내고, 서버의 SC_AMMO_UPDATE를 받아서 갱신한다.
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SendReload();
 
         isReloading = false;
-        UpdateAmmoUI();
     }
-
     void UpdateAmmoUI()
     {
         if (ammoText != null)

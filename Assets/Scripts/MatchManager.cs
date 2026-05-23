@@ -108,9 +108,9 @@ public class MatchManager : MonoBehaviour
         {
             topInfoUI.gameObject.SetActive(true);
 
-            // 게임 최초 시작 시에만 점수 0:0 초기화
             topInfoUI.ApplyGameStartInfo();
             topInfoUI.ResetMatchScore();
+            topInfoUI.HideRoleTextsForGame();
 
             topInfoUI.SetTimer(data.prepareSeconds);
         }
@@ -138,12 +138,31 @@ public class MatchManager : MonoBehaviour
             return;
 
         if (topInfoUI != null)
-            topInfoUI.SetTimer(remainingSeconds);
-
-        if (remainingSeconds == 0)
         {
-            if (RoundManager.Instance != null)
-                RoundManager.Instance.OnServerPrepareFinished();
+            topInfoUI.StopLocalCountdown();
+            topInfoUI.SetTimer(remainingSeconds);
+            topInfoUI.HideRoleTextsForGame();
+
+            if (remainingSeconds > 0)
+            {
+                topInfoUI.SetGameDescription("구매 단계");
+            }
+            else
+            {
+                topInfoUI.SetGameDescription("전투 단계");
+            }
+        }
+
+        if (RoundManager.Instance == null)
+            return;
+
+        if (remainingSeconds > 0)
+        {
+            RoundManager.Instance.OnServerPrepareStarted();
+        }
+        else
+        {
+            RoundManager.Instance.OnServerPrepareFinished();
         }
     }
 
@@ -164,13 +183,25 @@ public class MatchManager : MonoBehaviour
         if (topInfoUI != null)
         {
             topInfoUI.SetScore(scoreA, scoreB);
-            topInfoUI.SetTimer(delaySeconds);
 
-            string winnerText = winnerTeam == 0
-                ? "블루팀 라운드 승리"
-                : "레드팀 라운드 승리";
+            string winnerText;
+
+            if (matchEnd)
+            {
+                winnerText = winnerTeam == 0
+                    ? "블루팀 경기 승리"
+                    : "레드팀 경기 승리";
+            }
+            else
+            {
+                winnerText = winnerTeam == 0
+                    ? "블루팀 라운드 승리"
+                    : "레드팀 라운드 승리";
+            }
 
             topInfoUI.SetGameDescription(winnerText);
+            topInfoUI.HideRoleTextsForGame();
+            topInfoUI.StartLocalCountdown(delaySeconds);
         }
 
         if (RoundManager.Instance != null)
@@ -187,14 +218,20 @@ public class MatchManager : MonoBehaviour
     }
 
     public void OnRecvRoundReset(
-        byte currentRound,
-        byte scoreA,
-        byte scoreB)
+    byte currentRound,
+    byte scoreA,
+    byte scoreB)
     {
         if (topInfoUI != null)
         {
             topInfoUI.SetScore(scoreA, scoreB);
-            topInfoUI.SetGameDescription("구매 단계");
+
+            if (currentRound >= 5)
+                topInfoUI.SetGameDescription("듀스 라운드");
+            else
+                topInfoUI.SetGameDescription("구매 단계");
+
+            topInfoUI.SetCurrentRoundRole(myTeam, currentRound);
         }
 
         if (RoundManager.Instance != null)
@@ -205,6 +242,11 @@ public class MatchManager : MonoBehaviour
                 scoreB
             );
         }
+
+        Debug.Log(
+            $"[MATCH MANAGER] Round reset. round={currentRound}, " +
+            $"score={scoreA}:{scoreB}"
+        );
     }
 
     private void SpawnMapIfNeeded()

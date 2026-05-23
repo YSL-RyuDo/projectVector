@@ -449,4 +449,15 @@ public class PlayerItem : MonoBehaviour
         if (InGameUIManager.Instance != null)
             InGameUIManager.Instance.SetMainWeapon(weaponData);
     }
+
+    public Weapon GetCurrentWeapon()
+    {
+        if (currentIndex < 0 || currentIndex >= items.Length)
+            return null;
+
+        if (items[currentIndex] == null)
+            return null;
+
+        return items[currentIndex].GetComponent<Weapon>();
+    }
 }
