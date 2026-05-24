@@ -17,10 +17,12 @@ public class WeaponRecoil : MonoBehaviour
     private Vector3 targetRotation;
 
     private FPSCameraLook cameraLook;
+    private GeneralCameraShake cameraShake;
 
     void Awake()
     {
         cameraLook = GetComponentInParent<FPSCameraLook>();
+        cameraShake = Camera.main.GetComponent<GeneralCameraShake>();
     }
 
     void Update()
@@ -48,6 +50,8 @@ public class WeaponRecoil : MonoBehaviour
             // 주의: AddPitch/Yaw 내부에 Lerp를 통한 부드러운 회전 로직이 구현되어 있으면 가장 좋습니다.
             cameraLook.AddYaw(recoilPattern.x * multiplier * cameraRecoilMultiplier);
             cameraLook.AddPitch(-recoilPattern.y * multiplier * cameraRecoilMultiplier);
+
+            cameraShake.Fire(new Vector3(0f, -0.1f, - 0.1f));
         }
     }
 
@@ -56,5 +60,3 @@ public class WeaponRecoil : MonoBehaviour
         targetRotation = Vector3.Lerp(targetRotation, Vector3.zero, returnSpeed * Time.deltaTime);
     }
 }
-
-// 쏘고 원래 위치로 보내야함, 조준 시 카메라가 총 반동을 못 따라감
