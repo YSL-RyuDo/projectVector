@@ -173,13 +173,13 @@ public class PlayerItem : MonoBehaviour
 
     public void PickupItem(DroppedItem dropped)
     {
-        if (dropped.weaponData == null)
-        {
-            playerSpike.hasSpike = true;
-            Debug.Log("Spike∏¶ »πµÊ«ﬂΩ¿¥œ¥Ÿ.");
-            Destroy(dropped.gameObject);
-            return;
-        }
+        //if (dropped.weaponData == null)
+        //{
+        //    playerSpike.hasSpike = true;
+        //    Debug.Log("Spike∏¶ »πµÊ«ﬂΩ¿¥œ¥Ÿ.");
+        //    Destroy(dropped.gameObject);
+        //    return;
+        //}
 
         int slot = GetSlotIndex(dropped.weaponData);
         EquipItem(slot, dropped);
@@ -459,5 +459,57 @@ public class PlayerItem : MonoBehaviour
             return null;
 
         return items[currentIndex].GetComponent<Weapon>();
+    }
+
+    public void SetSpikeItemActive(bool value)
+    {
+        if (items[4] == null)
+        {
+            Debug.Log("[PLAYER ITEM] Spike slot is empty.");
+            return;
+        }
+
+        if (!value && currentIndex == 4)
+        {
+            Switch(1);
+        }
+
+        items[4].gameObject.SetActive(false);
+    }
+
+    public void GiveSpike(GameObject spikePrefab)
+    {
+        if (items[4] != null)
+            Destroy(items[4].gameObject);
+
+        GameObject obj = Instantiate(spikePrefab, itemHolder);
+        obj.transform.localPosition = new Vector3(0.75f, -0.2f, 1f);
+        obj.transform.localRotation = Quaternion.identity;
+
+        Item item = obj.GetComponent<Item>();
+        items[4] = item;
+
+        obj.SetActive(false);
+
+        Debug.Log("[PLAYER ITEM] Spike added to slot 5");
+    }
+
+    public void RemoveSpike()
+    {
+        if (currentIndex == 4)
+        {
+            if (items[1] != null)
+                Switch(1);
+            else if (items[2] != null)
+                Switch(2);
+        }
+
+        if (items[4] != null)
+        {
+            Destroy(items[4].gameObject);
+            items[4] = null;
+        }
+
+        Debug.Log("[PLAYER ITEM] Spike removed from slot 5");
     }
 }

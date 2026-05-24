@@ -9,6 +9,7 @@ public class PlayerSpike : MonoBehaviour
     [SerializeField] private Transform dropPoint;
 
     [Header("Spike")]
+    [SerializeField] private GameObject spikeItemPrefab;
     public bool hasSpike = true;
 
     private Spike spikeInRange;   // 설치된 스파이크 (해체용)
@@ -30,10 +31,14 @@ public class PlayerSpike : MonoBehaviour
 
     void Start()
     {
-        //slider = spikeSlider.GetComponent<Slider>(); 슬라이더 찾는 방법 강구 필요
+        if (spikeSlider != null)
+            slider = spikeSlider.GetComponent<Slider>();
+
         playerItem = GetComponent<PlayerItem>();
         playerMove = GetComponent<PlayerMovement>();
         _playerIdentity = GetComponent<PlayerIdentity>();
+
+        hasSpike = false;
     }
 
     void Update()
@@ -74,6 +79,32 @@ public class PlayerSpike : MonoBehaviour
             if (spikeInRange != null)
                 spikeInRange.CancelDefuse();
         }
+    }
+
+    public void SetHasSpikeFromServer(bool value)
+    {
+        hasSpike = value;
+
+        if (playerItem == null)
+            playerItem = GetComponent<PlayerItem>();
+
+        if (hasSpike)
+        {
+            if (spikeItemPrefab == null)
+            {
+                Debug.LogError("[PLAYER SPIKE] spikeItemPrefab is null. 손에 들 스파이크 프리팹을 넣어야 합니다.");
+                return;
+            }
+
+            playerItem.GiveSpike(spikeItemPrefab);
+        }
+        else
+        {
+            if (playerItem != null)
+                playerItem.RemoveSpike();
+        }
+
+        Debug.Log($"[PLAYER SPIKE] hasSpike={hasSpike}");
     }
 
     //  Spike 연결
@@ -118,16 +149,14 @@ public class PlayerSpike : MonoBehaviour
     void CompletePlant()
     {
         isPlanting = false;
-        hasSpike = false;
+        currentPlantTime = 0f;
 
-        //  Spike 생성 (현재는 로컬, 나중엔 서버에서 처리)
-        SpikeSpawner.Instance.SpawnPlanted(transform.position);
+        SetPlayerControl(true);
 
-        RoundManager.Instance.OnSpikePlanted();
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SendSpikePlantComplete(transform.position);
 
-        SetPlayerControl(true); // 제어권 돌려주기
-
-        Debug.Log("Spike Planted");
+        Debug.Log("[SPIKE] Plant request sent to server");
     }
 
     void CancelPlant()
@@ -165,6 +194,21 @@ public class PlayerSpike : MonoBehaviour
         {
             spikeSlider.SetActive(false);
             slider.value = 0f;
+        }
+    }
+
+    public void SetSpikeSlider(GameObject sliderObj)
+    {
+        spikeSlider = sliderObj;
+
+        if (spikeSlider != null)
+        {
+            slider = spikeSlider.GetComponent<Slider>();
+            spikeSlider.SetActive(false);
+        }
+        else
+        {
+            Debug.LogError("[PLAYER SPIKE] Spike Slider UI is null");
         }
     }
 }

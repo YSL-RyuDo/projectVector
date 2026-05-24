@@ -182,7 +182,6 @@ public class NetworkManager : MonoBehaviour
 
     public bool HasPendingReturnRoom => pendingReturnRoomId != 0;
     public uint PendingReturnRoomId => pendingReturnRoomId;
-    private bool isQuitting = false;
 
     public void ClearPendingReturnRoom()
     {
@@ -478,6 +477,23 @@ public class NetworkManager : MonoBehaviour
             case (ushort)PacketType.PKT_SC_SCOREBOARD_UPDATE:
                 HandleScoreboardUpdate(body);
                 break;
+
+            case (ushort)PacketType.PKT_SC_ROUND_TIMER:
+                HandleRoundTimer(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SPIKE_PICKUP_NOTIFY:
+                HandleSpikePickupNotify(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SPIKE_PLANTED:
+                HandleSpikePlanted(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SPIKE_DROPPED:
+                HandleSpikeDropped(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -1463,6 +1479,16 @@ public class NetworkManager : MonoBehaviour
 
         Debug.Log($"[GAME PREPARE TIMER] remaining={remainingSeconds}");
 
+        if (TopInfoUI.Instance != null)
+        {
+            TopInfoUI.Instance.SetTimer(remainingSeconds);
+
+            if (remainingSeconds == 0)
+            {
+                TopInfoUI.Instance.SetGameDescription("전투 단계");
+            }
+        }
+
         if (matchManager != null)
         {
             matchManager.OnRecvGamePrepareTimer(remainingSeconds);
@@ -1713,6 +1739,7 @@ public class NetworkManager : MonoBehaviour
 
         if (TopInfoUI.Instance != null)
         {
+            TopInfoUI.Instance.StopLocalCountdown();
             TopInfoUI.Instance.SetScoreByTeam(scoreA, scoreB);
         }
         else
@@ -2258,5 +2285,188 @@ public class NetworkManager : MonoBehaviour
 
         if (InGameScoreboardUI.Instance != null)
             InGameScoreboardUI.Instance.OnRecvScoreboardUpdate(data);
+    }
+
+    private void HandleRoundTimer(byte[] body)
+    {
+        int offset = 0;
+
+        ushort remainingSeconds = BitConverter.ToUInt16(body, offset);
+        offset += 2;
+
+        Debug.Log($"[ROUND TIMER] remaining={remainingSeconds}");
+
+        if (TopInfoUI.Instance != null)
+        {
+            TopInfoUI.Instance.SetGameDescription("전투 단계");
+            TopInfoUI.Instance.SetTimer(remainingSeconds);
+        }
+        else
+        {
+            Debug.LogError("[ROUND TIMER] TopInfoUI.Instance is null");
+        }
+    }
+
+    public void SendSpikePickupRequest()
+    {
+        ushort size = 4;
+        ushort type = (ushort)PacketType.PKT_CS_SPIKE_PICKUP_REQUEST;
+
+        byte[] buffer = new byte[size];
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, 0, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, 2, 2);
+
+        client.Send(buffer);
+
+        Debug.Log("[SEND] SPIKE PICKUP REQUEST");
+    }
+
+    public void SendSpikePlantComplete(Vector3 position)
+    {
+        ushort size = 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SPIKE_PLANT_COMPLETE;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4);
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND] SPIKE PLANT COMPLETE pos={position}");
+    }
+
+    private void HandleSpikePickupNotify(byte[] body)
+    {
+        int offset = 0;
+
+        uint carrierPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        byte showCarrierInfo = body[offset];
+        offset += 1;
+
+        string carrierNickname = Packet.ReadFixedString(body, offset, 20);
+        offset += 20;
+
+        Debug.Log(
+            $"[SPIKE PICKUP NOTIFY] carrier={carrierPlayerId}, " +
+            $"show={showCarrierInfo}, nickname={carrierNickname}"
+        );
+
+        DroppedSpikePickup[] droppedSpikes =
+            FindObjectsByType<DroppedSpikePickup>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < droppedSpikes.Length; i++)
+        {
+            Destroy(droppedSpikes[i].gameObject);
+        }
+
+        PlayerIdentity[] identities =
+            FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < identities.Length; i++)
+        {
+            PlayerSpike spike = identities[i].GetComponent<PlayerSpike>();
+            if (spike == null)
+                continue;
+
+            bool hasSpike = identities[i].PlayerId == carrierPlayerId;
+            spike.SetHasSpikeFromServer(hasSpike);
+        }
+
+        if (showCarrierInfo != 0)
+        {
+            if (TopInfoUI.Instance != null)
+                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} 스파이크 획득");
+        }
+        else
+        {
+            if (TopInfoUI.Instance != null)
+                TopInfoUI.Instance.SetGameDescription("스파이크 획득됨");
+        }
+    }
+
+    private void HandleSpikePlanted(byte[] body)
+    {
+        int offset = 0;
+
+        float x = BitConverter.ToSingle(body, offset); offset += 4;
+        float y = BitConverter.ToSingle(body, offset); offset += 4;
+        float z = BitConverter.ToSingle(body, offset); offset += 4;
+
+        Vector3 pos = new Vector3(x, y, z);
+
+        Debug.Log($"[SPIKE PLANTED] pos={pos}");
+
+        if (SpikeSpawner.Instance != null)
+            SpikeSpawner.Instance.SpawnPlanted(pos);
+
+        PlayerSpike mySpike = FindMyPlayerSpike();
+        if (mySpike != null)
+            mySpike.SetHasSpikeFromServer(false);
+
+        if (TopInfoUI.Instance != null)
+        {
+            TopInfoUI.Instance.SetGameDescription("스파이크 설치됨");
+            TopInfoUI.Instance.SetUnknownTimer();
+        }
+    }
+
+    private PlayerSpike FindMyPlayerSpike()
+    {
+        PlayerIdentity[] players = FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
+
+        foreach (PlayerIdentity identity in players)
+        {
+            if (identity.PlayerId == MyPlayerId)
+                return identity.GetComponent<PlayerSpike>();
+        }
+
+        return null;
+    }
+
+    private void HandleSpikeDropped(byte[] body)
+    {
+        int offset = 0;
+
+        float x = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float y = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float z = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        Vector3 pos = new Vector3(x, y, z);
+
+        Debug.Log($"[SPIKE DROPPED] pos={pos}");
+
+        if (SpikeSpawner.Instance != null)
+            SpikeSpawner.Instance.SpawnDroppedAt(pos);
+
+        PlayerIdentity[] identities =
+            FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < identities.Length; i++)
+        {
+            PlayerSpike spike = identities[i].GetComponent<PlayerSpike>();
+            if (spike != null)
+                spike.SetHasSpikeFromServer(false);
+        }
     }
 }

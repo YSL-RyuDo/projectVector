@@ -10949,6 +10949,7 @@ MonoBehaviour:
   defaultKnifeSprite: {fileID: 21300000, guid: 18487f002663015418e99c9491d6f2b2, type: 3}
   defaultThrowWeaponSprite: {fileID: 0}
   defaultSpikeSprite: {fileID: 0}
+  spikeSliderObject: {fileID: 1380879163}
 --- !u!4 &1240510446
 Transform:
   m_ObjectHideFlags: 0
@@ -14679,8 +14680,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e9239bf8c766dda46872f00bc85e6ae4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SettingsMenu
-  sensitivitySlider: {fileID: 1926058838}
-  sensitivityInputField: {fileID: 1092707546}
+  sensitivityUIList: []
 --- !u!114 &1762201920
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16354,7 +16354,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1849014478}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!20 &1849014480
 Camera:
   m_ObjectHideFlags: 0

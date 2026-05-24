@@ -19,6 +19,11 @@ public class SpikeSpawner : MonoBehaviour
         obj.GetComponent<Rigidbody>()?.AddForce(pos.forward * 3f, ForceMode.Impulse);
     }
 
+    public void SpawnDroppedAt(Vector3 position)
+    {
+        GameObject obj = Instantiate(DroppedSpikePrefab, position, Quaternion.identity);
+    }
+
     public Spike SpawnPlanted(Vector3 pos)
     {
         GameObject obj = Instantiate(spikePrefab, pos - new Vector3(0f, 0.5f, 0f), Quaternion.identity);

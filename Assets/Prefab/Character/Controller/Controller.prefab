@@ -173,7 +173,8 @@ MonoBehaviour:
   playerItem: {fileID: 6971429339355322284}
   playerMove: {fileID: 4206006752771187243}
   dropPoint: {fileID: 5692838109374247965}
-  hasSpike: 1
+  spikeItemPrefab: {fileID: 432519131735009139, guid: b196eaf8627e9724bb4697757aef6d5f, type: 3}
+  hasSpike: 0
   plantTime: 3
   spikeSlider: {fileID: 0}
 --- !u!114 &6971429339355322284
@@ -393,8 +394,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponRecoil
   snappiness: 10
   returnSpeed: 5
-  weaponRecoilMultiplier: 0.2
-  cameraRecoilMultiplier: 0.2
+  hipWeaponRecoilMultiplier: 1
+  hipCameraRecoilMultiplier: 1
+  hipShakeMultiplier: 1
+  adsWeaponRecoilMultiplier: 0.15
+  adsCameraRecoilMultiplier: 0.75
+  adsShakeMultiplier: 0.2
 --- !u!1 &7418409165851707817
 GameObject:
   m_ObjectHideFlags: 0

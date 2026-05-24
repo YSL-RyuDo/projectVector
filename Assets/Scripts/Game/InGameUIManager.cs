@@ -37,6 +37,10 @@ public class InGameUIManager : MonoBehaviour
     private int maxHp;
     private int maxBarrier;
 
+    [Header("Spike Plant / Defuse UI")]
+    [SerializeField] private GameObject spikeSliderObject;
+
+    public GameObject SpikeSliderObject => spikeSliderObject;
     private void Awake()
     {
         Instance = this;

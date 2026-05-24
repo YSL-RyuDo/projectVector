@@ -27,13 +27,13 @@ public class Spike : Item
         playerSpike = GetComponentInParent<PlayerSpike>();
     }
 
-    private void Update()
-    {
-        if (isPlanted)
-        {
-            ExplosionTimer();
-        }
-    }
+    //private void Update()
+    //{
+    //    if (isPlanted)
+    //    {
+    //        ExplosionTimer();
+    //    }
+    //}
 
     private void OnTriggerEnter(Collider other)
     {
@@ -91,7 +91,6 @@ public class Spike : Item
     public void OnDeploy()
     {
         isPlanted = true;
-        currentExplosionTime = 0f;
 
         Debug.Log("Spike Planted");
 
@@ -172,11 +171,7 @@ public class Spike : Item
         if (isExploded)
             return;
 
-        isExploded = true;
         isDefusing = false;
-
-        if (RoundManager.Instance != null)
-            RoundManager.Instance.RequestRoundEnd(false);
 
         if (playerSpike != null)
             playerSpike.SetPlayerControl(true);
@@ -184,9 +179,7 @@ public class Spike : Item
         if (sliderObject != null)
             sliderObject.SetActive(false);
 
-        Debug.Log("Defuse Complete - Defenders Win");
-
-        Destroy(gameObject);
+        Debug.Log("Defuse Complete - Send request to server later");
     }
 
     private void ExplosionTimer()

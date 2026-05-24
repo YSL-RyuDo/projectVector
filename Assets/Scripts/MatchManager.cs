@@ -125,6 +125,13 @@ public class MatchManager : MonoBehaviour
             return;
         }
 
+        // 1라운드 시작 시 바닥 스파이크 생성
+        if (SpikeSpawner.Instance != null && currentMapInfo.spikeSpawnPoint != null)
+        {
+            SpikeSpawner.Instance.ResetSpike(currentMapInfo.spikeSpawnPoint);
+            Debug.Log("[MATCH MANAGER] First round dropped spike spawned.");
+        }
+
         ApplyTeamCharacterImages(data);
         SpawnCharacters(data);
 
@@ -461,6 +468,14 @@ public class MatchManager : MonoBehaviour
                 {
                     Debug.LogError("[MATCH MANAGER] InGameUIManager.Instance is null");
                 }
+
+                PlayerSpike playerSpike = characterObj.GetComponent<PlayerSpike>();
+
+                if (playerSpike != null && InGameUIManager.Instance != null)
+                {
+                    playerSpike.SetSpikeSlider(InGameUIManager.Instance.SpikeSliderObject);
+                }
+
             }
             else
             {

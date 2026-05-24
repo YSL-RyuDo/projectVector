@@ -186,4 +186,12 @@ public class TopInfoUI : MonoBehaviour
 
         return ((currentRound - 5) % 2) == 0;
     }
+
+    public void SetUnknownTimer()
+    {
+        StopLocalCountdown();
+
+        if (timerText != null)
+            timerText.text = "??:??";
+    }
 }
