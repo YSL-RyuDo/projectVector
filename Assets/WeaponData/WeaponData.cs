@@ -3,6 +3,9 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Weapon/WeaponData")]
 public class WeaponData : ScriptableObject
 {
+    [Header("Server")]
+    public int weaponId;
+
     public enum WeaponType
     {
         AR,
@@ -21,6 +24,9 @@ public class WeaponData : ScriptableObject
     [Header("Prefab")]
     public GameObject weaponPrefab;
     public GameObject dropPrefab;
+
+    [Header("UI")]
+    public Sprite weaponIcon;
 
     [Header("Fire")]
     public float fireRate;  // 발사 속도

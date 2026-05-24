@@ -1,49 +1,86 @@
-using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class FPSCameraLook : MonoBehaviour
 {
     [Header("Mouse")]
-    // 기본 마우스 감도
     [SerializeField] private float _baseSensitivity = 0.2f;
-    // ADS(조준) 상태일 때 감도 배율 (0.5면 절반으로 감소)
     [SerializeField] private float _adsSensitivityMultiplier = 0.5f;
 
     [Header("Recoil")]
     public float recoilReturnSpeed = 10f;
 
-    private float xRotation = 0f;   // Camera Pitch
-    private float yaw = 0f;         // Player Yaw
+    private PlayerIdentity _playerIdentity;
+
+    private float xRotation = 0f;
+    private float yaw = 0f;
     private float recoilOffset = 0f;
     private bool _isADS = false;
 
-    Transform player;
+    private Transform playerRoot;
+    private bool isLocalPlayer = false;
 
     public bool CanMove = true;
 
-    void Start()
+    private void Awake()
     {
-        player = transform.parent;
+        _playerIdentity = GetComponentInParent<PlayerIdentity>();
+        enabled = false;
+    }
+
+    public void SetLocalPlayer(bool isLocal, Transform root)
+    {
+        isLocalPlayer = isLocal;
+        playerRoot = root;
+
+        CanMove = isLocal;
+        enabled = isLocal;
+
+        if (!isLocal)
+            return;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        if (_playerIdentity == null)
+            _playerIdentity = GetComponentInParent<PlayerIdentity>();
+
+        MiniMapUI ui = FindFirstObjectByType<MiniMapUI>();
+
+        if (ui != null && playerRoot != null)
+        {
+            ui.RegisterLocalPlayerCamera(this);
+            ui.RegisterPlayer(playerRoot.gameObject);
+        }
+
+        Debug.Log(
+            $"[FPSCameraLook LOCAL INIT] " +
+            $"cameraRoot={gameObject.name}, " +
+            $"player={playerRoot.name}, " +
+            $"playerId={_playerIdentity?.PlayerId}, " +
+            $"userId={_playerIdentity?.UserId}"
+        );
     }
 
-    void Update()
+    private void Update()
     {
+        if (!isLocalPlayer) return;
         if (!CanMove) return;
+        if (playerRoot == null) return;
 
-        // ADS(조준) 상태면 감도 낮춤
+        if (Cursor.lockState == CursorLockMode.None) return;
+        if (GameController.Instance != null && GameController.Instance.IsPaused) return;
+        if (Mouse.current == null) return;
+
         float sensitivity = _baseSensitivity * (_isADS ? _adsSensitivityMultiplier : 1f);
-        
-        // 마우스 이동값 읽기
+
         Vector2 mouseDelta = Mouse.current.delta.ReadValue();
-        float mouseX = mouseDelta.x * sensitivity;
-        float mouseY = mouseDelta.y * sensitivity;
+
+        float mouseX = mouseDelta.x * MouseSettings.MouseSensitivity * sensitivity;
+        float mouseY = mouseDelta.y * MouseSettings.MouseSensitivity * sensitivity;
 
         yaw += mouseX;
-        player.rotation = Quaternion.Euler(0f, yaw, 0f);
+        playerRoot.rotation = Quaternion.Euler(0f, yaw, 0f);
 
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -80f, 80f);
@@ -63,6 +100,11 @@ public class FPSCameraLook : MonoBehaviour
         return yaw;
     }
 
+    public void SetYaw(float value)
+    {
+        yaw = value;
+    }
+
     public void AddRecoil(float amount)
     {
         recoilOffset -= amount;
@@ -76,11 +118,11 @@ public class FPSCameraLook : MonoBehaviour
     public void AddPitch(float amount)
     {
         xRotation += amount;
+        xRotation = Mathf.Clamp(xRotation, -80f, 80f);
     }
 
-    internal void AddYaw(float amount)
+    public void AddYaw(float amount)
     {
         yaw += amount;
-        //throw new NotImplementedException();
     }
 }

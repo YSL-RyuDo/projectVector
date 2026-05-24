@@ -21,6 +21,8 @@ public class MatchLoadingPanelUI : MonoBehaviour
     [Header("Rank Table")]
     [SerializeField] private Sprite[] rankSprites;
 
+    private MatchLoadingInfoData cachedData;
+
     private void Awake()
     {
         if (rootPanel == null)
@@ -29,6 +31,8 @@ public class MatchLoadingPanelUI : MonoBehaviour
 
     public void Show(MatchLoadingInfoData data)
     {
+        cachedData = data; // µ•¿Ã≈Õ ƒ≥ΩÃ
+
         Debug.Log("[MATCH LOADING PANEL] Show called");
 
         if (rootPanel == null)
@@ -60,8 +64,7 @@ public class MatchLoadingPanelUI : MonoBehaviour
 
     public void OnMatchStart()
     {
-        Debug.Log("Match Start! Load Game Scene here.");
-        // SceneManager.LoadScene("GameScene");
+        Debug.Log("[MATCH LOADING PANEL] OnMatchStart ignored. Use SC_GAME_ALL_READY instead.");
     }
 
     private void ApplySlot(
@@ -160,5 +163,13 @@ public class MatchLoadingPanelUI : MonoBehaviour
         }
 
         return rankSprites[rankImageId];
+    }
+
+    public void Hide()
+    {
+        if (rootPanel != null)
+            rootPanel.SetActive(false);
+        else
+            gameObject.SetActive(false);
     }
 }

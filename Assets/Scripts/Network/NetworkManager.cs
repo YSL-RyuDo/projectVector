@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using Unity.VisualScripting;
+using UnityEngine.SceneManagement;
 
 public class LobbyCharacterData
 {
@@ -133,7 +135,23 @@ public class NetworkManager : MonoBehaviour
     LoginUI loginUI;
     LobbyManager lobbyManager;
     private PickManager pickManager;
+    private MatchManager matchManager;
 
+    private uint myPlayerId;
+    public uint MyPlayerId => myPlayerId;
+
+    private string myUserId = "";
+    public string MyUserId => myUserId;
+
+    private uint pendingReturnRoomId = 0;
+
+    public bool HasPendingReturnRoom => pendingReturnRoomId != 0;
+    public uint PendingReturnRoomId => pendingReturnRoomId;
+
+    public void ClearPendingReturnRoom()
+    {
+        pendingReturnRoomId = 0;
+    }
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -157,6 +175,7 @@ public class NetworkManager : MonoBehaviour
         };
 
         client.Connect("127.0.0.1", 9000);
+        //client.Connect("211.247.47.240", 9000);
     }
 
     void Update()
@@ -187,6 +206,11 @@ public class NetworkManager : MonoBehaviour
         lobbyManager = manager;
     }
 
+    public void SetMatchManager(MatchManager manager)
+    {
+        matchManager = manager;
+    }
+
     public void SendRegister(string id, string nick, string pw, string confirm)
     {
         byte[] buffer = new byte[4 + 20 + 20 + 64 + 64];
@@ -204,6 +228,8 @@ public class NetworkManager : MonoBehaviour
 
     public void SendLogin(string id, string pw)
     {
+        myUserId = id.Trim();
+
         byte[] buffer = new byte[4 + 20 + 64];
 
         BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
@@ -373,6 +399,43 @@ public class NetworkManager : MonoBehaviour
                 HandleMatchStart(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_GAME_ALL_READY:
+                HandleGameAllReady(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_GAME_PREPARE_TIMER:
+                HandleGamePrepareTimer(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_MOVE_STATE:
+                HandleMoveState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_HP_UPDATE:
+                HandleHPUpdate(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROUND_RESULT:
+                HandleRoundResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROUND_RESET:
+                HandleRoundReset(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_MATCH_RESULT:
+                HandleMatchResult(body);
+                break;
+            case (ushort)PacketType.PKT_SC_AMMO_UPDATE:
+                HandleAmmoUpdate(body);
+                break;
+            case (ushort)PacketType.PKT_SC_MATCH_RESULT_DETAIL:
+                HandleMatchResultDetail(body);
+                break;
+            case (ushort)PacketType.PKT_SC_RESULT_LEAVE_DONE:
+                HandleResultLeaveDone(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -416,6 +479,8 @@ public class NetworkManager : MonoBehaviour
 
         if (!success)
         {
+            myUserId = "";
+
             string msg = result switch
             {
                 (byte)LoginResult.NO_ID => "아이디 없음",
@@ -1146,7 +1211,15 @@ public class NetworkManager : MonoBehaviour
             member.isMe = body[offset] != 0;
             offset += 1;
 
-            state.members.Add(member);
+            if(i<memberCount)
+            {
+                state.members.Add(member);
+
+                if (member.isMe)
+                {
+                    myPlayerId = member.playerId;
+                }
+            }
         }
 
         pickManager?.OnRecvPickState(state);
@@ -1257,5 +1330,825 @@ public class NetworkManager : MonoBehaviour
         Debug.Log($"[MATCH START] roomId={roomId}");
 
         pickManager?.OnRecvMatchStart(roomId);
+    }
+
+    public void SendGameLoadReady()
+    {
+        byte[] buffer = new byte[4];
+
+        ushort size = 4;
+        ushort type = (ushort)PacketType.PKT_CS_GAME_LOAD_READY;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, 0, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, 2, 2);
+
+        client.Send(buffer);
+
+        Debug.Log("[SEND] GAME LOAD READY");
+    }
+
+    private void HandleGameAllReady(byte[] body)
+    {
+        Debug.Log("[RECV] GAME ALL READY");
+
+        int offset = 0;
+        GameAllReadyData data = new GameAllReadyData();
+
+        data.roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        data.prepareSeconds = BitConverter.ToUInt16(body, offset);
+        offset += 2;
+
+        byte memberCount = body[offset];
+        offset += 1;
+
+        for(int i=0; i<6; i++)
+        {
+            GameReadyMemberData member = new GameReadyMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.userId = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.team = body[offset];
+            offset += 1;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.characterId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.rankImageId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            Debug.Log(
+                $"[GAME ALL READY MEMBER PARSED] " +
+                $"index={i}, " +
+                $"playerId={member.playerId}, " +
+                $"userId={member.userId}, " +
+                $"nickname={member.nickname}, " +
+                $"team={member.team}, " +
+                $"slot={member.slotIndex}, " +
+                $"characterId={member.characterId}, " +
+                $"rankImageId={member.rankImageId}"
+            );
+
+            if (i < memberCount)
+                data.members.Add(member);
+        }
+
+        Debug.Log($"[RECV] GAME ALL READY roomId={data.roomId}, memberCount={data.members.Count}");
+
+        if (matchManager != null)
+            matchManager.OnRecvGameAllReady(data);
+        else
+            Debug.LogError("[NETWORK] matchManager is null");
+    }
+
+    private void HandleGamePrepareTimer(byte[] body)
+    {
+        int offset = 0;
+
+        ushort remainingSeconds = BitConverter.ToUInt16(body, offset);
+        offset += 2;
+
+        Debug.Log($"[GAME PREPARE TIMER] remaining={remainingSeconds}");
+
+        if (matchManager != null)
+        {
+            matchManager.OnRecvGamePrepareTimer(remainingSeconds);
+        }
+        else
+        {
+            Debug.LogError("[NETWORK] matchManager is null. PrepareTimer ignored.");
+        }
+    }
+
+    public void SendMoveState(float x, float y, float z, float yaw)
+    {
+        ushort size = 4 + 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_MOVE_STATE;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(yaw), 0, buffer, offset, 4);
+
+        client.Send(buffer);
+    }
+
+    private void OnApplicationQuit()
+    {
+        Debug.Log("[NETWORK] Application quit. Close client.");
+
+        if (client != null)
+        {
+            client.Close();
+        }
+    }
+
+    private void HandleMoveState(byte[] body)
+    {
+        int offset = 0;
+
+        uint playerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float x = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float y = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float z = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float yaw = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (playerId == MyPlayerId)
+            return;
+
+        PlayerMovement movement = FindPlayerMovementById(playerId);
+
+        if (movement == null)
+        {
+            Debug.LogWarning($"[MOVE RECV] PlayerMovement not found. playerId={playerId}");
+            return;
+        }
+
+        movement.OnReceiveRemoteMove(new Vector3(x, y, z), yaw);
+    }
+
+    private void HandleHPUpdate(byte[] body)
+    {
+        int offset = 0;
+
+        uint playerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        int hp = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int barrier = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int maxHp = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int maxBarrier = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        Debug.Log(
+            $"[HP UPDATE] playerId={playerId}, " +
+            $"hp={hp}, barrier={barrier}, maxHp={maxHp}, maxBarrier={maxBarrier}"
+        );
+
+        ApplyHPUpdate(playerId, hp, barrier, maxHp, maxBarrier);
+    }
+
+    private void ApplyHPUpdate(
+    uint playerId,
+    int hp,
+    int barrier,
+    int maxHp,
+    int maxBarrier)
+    {
+        PlayerIdentity[] identities =
+            FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < identities.Length; i++)
+        {
+            PlayerIdentity identity = identities[i];
+
+            if (identity == null)
+                continue;
+
+            if (identity.PlayerId != playerId)
+                continue;
+
+            PlayerHP playerHP = identity.GetComponent<PlayerHP>();
+
+            if (playerHP != null)
+            {
+                playerHP.SetServerHP(
+                    hp,
+                    barrier,
+                    maxHp,
+                    maxBarrier
+                );
+            }
+
+            break;
+        }
+
+        if (playerId == MyPlayerId)
+        {
+            if (InGameUIManager.Instance != null)
+            {
+                InGameUIManager.Instance.SetHpBarrier(
+                    hp,
+                    barrier,
+                    maxHp,
+                    maxBarrier
+                );
+            }
+        }
+    }
+
+    private PlayerMovement FindPlayerMovementById(uint playerId)
+    {
+        PlayerIdentity[] identities = FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < identities.Length; i++)
+        {
+            PlayerIdentity identity = identities[i];
+
+            if (identity == null)
+                continue;
+
+            if (identity.PlayerId != playerId)
+                continue;
+
+            PlayerMovement movement = identity.GetComponent<PlayerMovement>();
+
+            if (movement == null)
+                movement = identity.GetComponentInChildren<PlayerMovement>(true);
+
+            return movement;
+        }
+
+        return null;
+    }
+
+    public void SendHit(uint targetPlayerId)
+    {
+        ushort size = 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_HIT;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(targetPlayerId), 0, buffer, offset, 4);
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND HIT] targetPlayerId={targetPlayerId}");
+    }
+
+    public void SendWeaponSwitch(int weaponId)
+    {
+        ushort size = 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_WEAPON_SWITCH;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(weaponId), 0, buffer, offset, 4);
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND WEAPON SWITCH] weaponId={weaponId}");
+    }
+
+    private void HandleRoundResult(byte[] body)
+    {
+        int offset = 0;
+
+        byte winnerTeam = body[offset];
+        offset += 1;
+
+        byte scoreA = body[offset];
+        offset += 1;
+
+        byte scoreB = body[offset];
+        offset += 1;
+
+        byte currentRound = body[offset];
+        offset += 1;
+
+        byte matchEnd = body[offset];
+        offset += 1;
+
+        ushort delaySeconds = BitConverter.ToUInt16(body, offset);
+        offset += 2;
+
+        Debug.Log(
+            $"[ROUND RESULT] winnerTeam={winnerTeam}, " +
+            $"scoreA={scoreA}, scoreB={scoreB}, round={currentRound}, " +
+            $"matchEnd={matchEnd}, delay={delaySeconds}"
+        );
+
+        if (matchManager != null)
+        {
+            matchManager.OnRecvRoundResult(
+                winnerTeam,
+                scoreA,
+                scoreB,
+                currentRound,
+                matchEnd != 0,
+                delaySeconds
+            );
+        }
+        else
+        {
+            Debug.LogError("[NETWORK] matchManager is null. RoundResult ignored.");
+        }
+    }
+
+    private void HandleRoundReset(byte[] body)
+    {
+        int offset = 0;
+
+        byte currentRound = body[offset];
+        offset += 1;
+
+        byte scoreA = body[offset];
+        offset += 1;
+
+        byte scoreB = body[offset];
+        offset += 1;
+
+        byte memberCount = body[offset];
+        offset += 1;
+
+        Debug.Log(
+            $"[ROUND RESET] round={currentRound}, scoreA={scoreA}, scoreB={scoreB}, memberCount={memberCount}"
+        );
+
+        if (TopInfoUI.Instance != null)
+        {
+            TopInfoUI.Instance.SetScore(scoreA, scoreB);
+            TopInfoUI.Instance.SetGameDescription("구매 단계");
+        }
+
+        if (RoundManager.Instance != null)
+        {
+            RoundManager.Instance.OnServerRoundReset(
+                currentRound,
+                scoreA,
+                scoreB
+            );
+        }
+
+        for (int i = 0; i < memberCount; i++)
+        {
+            uint playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            byte actualTeam = body[offset];
+            offset += 1;
+
+            byte spawnTeam = body[offset];
+            offset += 1;
+
+            byte slotIndex = body[offset];
+            offset += 1;
+
+            int hp = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int barrier = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int maxHp = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int maxBarrier = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int currentWeaponId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int magAmmo = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int reserveAmmo = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            ApplyRoundResetMember(
+                playerId,
+                actualTeam,
+                spawnTeam,
+                slotIndex,
+                hp,
+                barrier,
+                maxHp,
+                maxBarrier,
+                currentWeaponId,
+                magAmmo,
+                reserveAmmo
+            );
+        }
+    }
+    private void ApplyRoundResetMember(
+    uint playerId,
+    byte actualTeam,
+    byte spawnTeam,
+    byte slotIndex,
+    int hp,
+    int barrier,
+    int maxHp,
+    int maxBarrier,
+    int currentWeaponId,
+    int magAmmo,
+    int reserveAmmo)
+    {
+        PlayerIdentity[] identities =
+            FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
+
+        PlayerIdentity targetIdentity = null;
+
+        for (int i = 0; i < identities.Length; i++)
+        {
+            if (identities[i] == null)
+                continue;
+
+            if (identities[i].PlayerId == playerId)
+            {
+                targetIdentity = identities[i];
+                break;
+            }
+        }
+
+        if (targetIdentity == null)
+        {
+            Debug.LogWarning($"[ROUND RESET] player not found. playerId={playerId}");
+            return;
+        }
+
+        MapInfo mapInfo = FindFirstObjectByType<MapInfo>();
+
+        if (mapInfo == null)
+        {
+            Debug.LogError("[ROUND RESET] MapInfo not found");
+            return;
+        }
+
+        Transform spawnPoint = mapInfo.GetSpawnPoint(spawnTeam, slotIndex);
+
+        if (spawnPoint == null)
+        {
+            Debug.LogError(
+                $"[ROUND RESET] spawnPoint not found slot={slotIndex}"
+            );
+            return;
+        }
+
+        CharacterController cc =
+            targetIdentity.GetComponent<CharacterController>();
+
+        if (cc != null)
+            cc.enabled = false;
+
+        targetIdentity.transform.position = spawnPoint.position;
+        targetIdentity.transform.rotation = spawnPoint.rotation;
+
+        if (cc != null)
+            cc.enabled = true;
+
+        PlayerHP playerHP = targetIdentity.GetComponent<PlayerHP>();
+
+        if (playerHP != null)
+        {
+            playerHP.SetServerHP(
+                hp,
+                barrier,
+                maxHp,
+                maxBarrier
+            );
+        }
+
+        bool isMine = playerId == MyPlayerId;
+
+        if (isMine)
+        {
+            if (InGameUIManager.Instance != null)
+            {
+                InGameUIManager.Instance.SetHpBarrier(
+                    hp,
+                    barrier,
+                    maxHp,
+                    maxBarrier
+                );
+
+                InGameUIManager.Instance.SetBulletText(
+                    magAmmo,
+                    reserveAmmo
+                );
+            }
+
+            PlayerItem item = targetIdentity.GetComponent<PlayerItem>();
+
+            if (item != null)
+            {
+                item.ResetToDefault();
+            }
+
+            PlayerMovement movement = targetIdentity.GetComponent<PlayerMovement>();
+            if (movement != null)
+            {
+                movement.SetLocalPlayer(true);
+            }
+        }
+
+        Debug.Log(
+            $"[ROUND RESET APPLY] playerId={playerId}, team=, slot={slotIndex}, pos={spawnPoint.position}"
+        );
+    }
+
+    private void HandleMatchResult(byte[] body)
+    {
+        int offset = 0;
+
+        byte winnerTeam = body[offset];
+        offset += 1;
+
+        byte scoreA = body[offset];
+        offset += 1;
+
+        byte scoreB = body[offset];
+        offset += 1;
+
+        Debug.Log(
+            $"[MATCH RESULT] winnerTeam={winnerTeam}, scoreA={scoreA}, scoreB={scoreB}"
+        );
+
+        SceneManager.LoadScene("Result");
+    }
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            if (client != null)
+            {
+                client.Close();
+            }
+
+            Instance = null;
+        }
+    }
+
+    public void SendReload()
+    {
+        ushort size = 4;
+        ushort type = (ushort)PacketType.PKT_CS_RELOAD;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        client.Send(buffer);
+
+        Debug.Log("[SEND RELOAD]");
+    }
+
+    private void HandleAmmoUpdate(byte[] body)
+    {
+        int offset = 0;
+
+        int weaponId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int magAmmo = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int reserveAmmo = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        Debug.Log(
+            $"[AMMO UPDATE] weaponId={weaponId}, magAmmo={magAmmo}, reserveAmmo={reserveAmmo}"
+        );
+
+        if (InGameUIManager.Instance != null)
+        {
+            InGameUIManager.Instance.SetBulletText(magAmmo, reserveAmmo);
+        }
+
+        PlayerIdentity[] identities =
+            FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < identities.Length; i++)
+        {
+            PlayerIdentity identity = identities[i];
+
+            if (identity == null)
+                continue;
+
+            if (identity.PlayerId != MyPlayerId)
+                continue;
+
+            PlayerItem item = identity.GetComponent<PlayerItem>();
+            if (item == null)
+                break;
+
+            Weapon weapon = item.GetCurrentWeapon();
+            if (weapon != null && weapon.GetWeaponId() == weaponId)
+            {
+                weapon.SetAmmo(magAmmo, reserveAmmo);
+            }
+
+            break;
+        }
+    }
+
+    public void SendFire()
+    {
+        ushort size = 4;
+        ushort type = (ushort)PacketType.PKT_CS_FIRE;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        client.Send(buffer);
+
+        Debug.Log("[SEND FIRE]");
+    }
+
+    private void HandleMatchResultDetail(byte[] body)
+    {
+        int offset = 0;
+
+        MatchResultCache.Clear();
+
+        MatchResultCache.winnerTeam = body[offset];
+        offset += 1;
+
+        MatchResultCache.scoreA = body[offset];
+        offset += 1;
+
+        MatchResultCache.scoreB = body[offset];
+        offset += 1;
+
+        byte memberCount = body[offset];
+        offset += 1;
+
+        for (int i = 0; i < memberCount; i++)
+        {
+            MatchResultMemberData member = new MatchResultMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.team = body[offset];
+            offset += 1;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.characterId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.kills = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.deaths = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.assists = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.firstHalfKills = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.firstHalfDeaths = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.firstHalfAssists = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.secondHalfKills = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.secondHalfDeaths = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.secondHalfAssists = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.overtimeKills = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.overtimeDeaths = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.overtimeAssists = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.isMvp = body[offset] != 0;
+            offset += 1;
+
+            MatchResultCache.members.Add(member);
+        }
+
+        Debug.Log(
+            $"[MATCH RESULT DETAIL] winner={MatchResultCache.winnerTeam}, " +
+            $"score={MatchResultCache.scoreA}:{MatchResultCache.scoreB}, " +
+            $"members={MatchResultCache.members.Count}"
+        );
+
+        SceneManager.LoadScene("Result");
+    }
+
+    public void SendResultLeave()
+    {
+        ushort size = 4;
+        ushort type = (ushort)PacketType.PKT_CS_RESULT_LEAVE;
+
+        byte[] buffer = new byte[size];
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, 0, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, 2, 2);
+
+        client.Send(buffer);
+
+        Debug.Log("[SEND RESULT LEAVE]");
+    }
+
+    private void HandleResultLeaveDone(byte[] body)
+    {
+        uint roomId = BitConverter.ToUInt32(body, 0);
+
+        Debug.Log($"[RESULT LEAVE DONE] roomId={roomId}");
+
+        pendingReturnRoomId = roomId;
+
+        SceneManager.LoadScene("Lobby");
+    }
+
+    public void SendRoomStateRequest(uint roomId)
+    {
+        ushort size = 8;
+        ushort type = (ushort)PacketType.PKT_CS_ROOM_STATE_REQUEST;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(roomId), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND ROOM STATE REQUEST] roomId={roomId}");
     }
 }

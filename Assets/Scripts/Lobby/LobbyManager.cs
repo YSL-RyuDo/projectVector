@@ -157,6 +157,9 @@ public class LobbyManager : MonoBehaviour
         NetworkManager.Instance.SetLobbyManager(this);
         NetworkManager.Instance.SendLobbyEnter();
 
+        bool returningFromResult =
+            NetworkManager.Instance.HasPendingReturnRoom;
+
         if (characterSelectPopup != null)
             characterSelectPopup.SetActive(false);
 
@@ -239,7 +242,26 @@ public class LobbyManager : MonoBehaviour
 
         HideAllTempGameSlots();
 
-        SelectGameMode(GameMode.Normal);
+        if (returningFromResult)
+        {
+            SelectGameMode(GameMode.Custom);
+
+            uint roomId = NetworkManager.Instance.PendingReturnRoomId;
+            NetworkManager.Instance.ClearPendingReturnRoom();
+
+            ShowGamePanel();
+
+            if (roomPanelUI != null)
+                roomPanelUI.HideRoom();
+
+            NetworkManager.Instance.SendRoomStateRequest(roomId);
+
+            Debug.Log($"[LOBBY RETURN FROM RESULT] request room state. roomId={roomId}");
+        }
+        else
+        {
+            SelectGameMode(GameMode.Normal);
+        }
     }
 
     void Update()
@@ -1408,7 +1430,7 @@ public class LobbyManager : MonoBehaviour
 
         if (result == (byte)RoomGameStartResult.SUCCESS)
         {
-            SceneManager.LoadScene("UserPick");
+            SceneManager.LoadScene("Game_TestVersion");
             return;
         }
 

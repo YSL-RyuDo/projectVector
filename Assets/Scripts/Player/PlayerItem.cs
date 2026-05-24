@@ -19,7 +19,9 @@ public class PlayerItem : MonoBehaviour
 
     private Item[] items = new Item[5]; // 0~4 (5번 = Spike)
     private PlayerSpike playerSpike;
-    private int currentIndex = 0;
+    private int currentIndex = -1;
+
+    private PlayerIdentity _playerIdentity;
 
     public Item[] Items => items;
     public int CurrentIndex => currentIndex;
@@ -27,16 +29,22 @@ public class PlayerItem : MonoBehaviour
     private void Start()
     {
         playerSpike = GetComponent<PlayerSpike>();
+        _playerIdentity = GetComponent<PlayerIdentity>();
 
         InitializeDefaultItems();
 
-        if (items[0] != null) Switch(0);
-        else if (items[1] != null) Switch(1);
+        // 시작 장비는 무조건 권총
+        if (items[1] != null)
+            Switch(1);
+        else if (items[2] != null)
+            Switch(2);
     }
 
     void Update()
     {
         if (!gameObject.CompareTag("Player")) return;
+        if (GameController.Instance != null && GameController.Instance.IsPaused) return;
+        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
 
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
@@ -72,12 +80,28 @@ public class PlayerItem : MonoBehaviour
 
     private void InitializeDefaultItems()
     {
-        // 각 슬롯에 해당하는 WeaponData가 Inspector에서 할당되어 있는지 확인 후 생성
-        if (primary != null) CreateStartingItem(primary, 0);
-        if (secondary != null) CreateStartingItem(secondary, 1);
-        if (melee != null) CreateStartingItem(melee, 2);
-        if (thrown != null) CreateStartingItem(thrown, 3);
+        // 0번 슬롯: 메인 무기
+        // 시작 시 메인 무기는 없음. 상점 구매 후에만 들어간다.
+        items[0] = null;
 
+        // 1번 슬롯: 권총
+        if (secondary != null)
+            CreateStartingItem(secondary, 1);
+        else
+            items[1] = null;
+
+        // 2번 슬롯: 나이프
+        if (melee != null)
+            CreateStartingItem(melee, 2);
+        else
+            items[2] = null;
+
+        // 3번 슬롯: 투척무기
+        // 현재는 사용하지 않으므로 비워둔다.
+        // 여기에 AWM이 들어가면 4번 키로 스나이퍼가 나온다.
+        items[3] = null;
+
+        // 4번 슬롯: 스파이크
         if (spike != null)
         {
             GameObject obj = Instantiate(spike, itemHolder);
@@ -87,7 +111,11 @@ public class PlayerItem : MonoBehaviour
             Item item = obj.GetComponent<Item>();
             items[4] = item;
 
-            obj.SetActive(false); // 일단 비활성화
+            obj.SetActive(false);
+        }
+        else
+        {
+            items[4] = null;
         }
     }
 
@@ -210,19 +238,42 @@ public class PlayerItem : MonoBehaviour
 
     void Switch(int index)
     {
-        if (currentIndex == index || items[index] == null) return;
+        if (index < 0 || index >= items.Length)
+            return;
 
-        if (index == 4 && !playerSpike.hasSpike)
+        if (items[index] == null)
+        {
+            Debug.Log($"[PLAYER ITEM] slot empty. index={index}");
+            return;
+        }
+
+        if (currentIndex == index)
+            return;
+
+        if (index == 4 && playerSpike != null && !playerSpike.hasSpike)
         {
             Debug.Log("스파이크가 없어서 5번 슬롯으로 전환할 수 없습니다.");
             return;
         }
 
-        items[currentIndex]?.OnUnequip();
+        if (currentIndex >= 0 && currentIndex < items.Length)
+        {
+            items[currentIndex]?.OnUnequip();
+        }
 
         currentIndex = index;
 
         items[currentIndex]?.OnEquip();
+
+        Weapon weapon = items[currentIndex].GetComponent<Weapon>();
+
+        if (weapon != null &&
+            _playerIdentity != null &&
+            NetworkManager.Instance != null &&
+            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId)
+        {
+            NetworkManager.Instance.SendWeaponSwitch(weapon.GetWeaponId());
+        }
     }
 
     public int GetSlotIndex(WeaponData data)
@@ -275,26 +326,28 @@ public class PlayerItem : MonoBehaviour
 
     public void ResetAllAmmo()
     {
-        // 0번(주무기)부터 1번(권총)까지만 반복
         for (int i = 0; i <= 1; i++)
         {
-            if (items[i] != null)
-            {
-                Weapon weapon = items[i].GetComponent<Weapon>();
+            if (items[i] == null)
+                continue;
 
-                if (weapon == null) continue;
+            Weapon weapon = items[i].GetComponent<Weapon>();
 
-                weapon.ReloadFull(); // 탄약 풀 리필
-            }
+            if (weapon == null)
+                continue;
+
+            weapon.ReloadFull();
         }
 
-        // 모든 리필이 끝나면 권총(1번)으로 스위치
-        Switch(1);
+        // 라운드 시작 기본 장착은 권총
+        if (items[1] != null)
+            Switch(1);
+        else if (items[2] != null)
+            Switch(2);
     }
 
     public void ResetToDefault()
     {
-        // 기존 모든 무기 파괴
         for (int i = 0; i < items.Length; i++)
         {
             if (items[i] != null)
@@ -304,24 +357,110 @@ public class PlayerItem : MonoBehaviour
             }
         }
 
-        // 권총 및 근접무기 등 기본 장비 재생성 (기존 InitializeDefaultItems 활용)
-        // Start 시점의 생성 로직을 별도 함수로 빼서 호출해도 됌
-        if (secondary != null) CreateStartingItem(secondary, 1);
-        if (melee != null) CreateStartingItem(melee, 2);
+        currentIndex = -1;
 
-        // 권총 장착
-        Switch(1);
+        // 라운드 리셋 후에도 메인 무기는 없음
+        items[0] = null;
+
+        // 권총 재생성
+        if (secondary != null)
+            CreateStartingItem(secondary, 1);
+        else
+            items[1] = null;
+
+        // 나이프 재생성
+        if (melee != null)
+            CreateStartingItem(melee, 2);
+        else
+            items[2] = null;
+
+        // 투척무기는 현재 없음
+        items[3] = null;
+
+        // 스파이크 재생성
+        if (spike != null)
+        {
+            GameObject obj = Instantiate(spike, itemHolder);
+            obj.transform.localPosition = new Vector3(0.75f, -0.2f, 1f);
+            obj.transform.localRotation = Quaternion.identity;
+
+            Item item = obj.GetComponent<Item>();
+            items[4] = item;
+
+            obj.SetActive(false);
+        }
+        else
+        {
+            items[4] = null;
+        }
+
+        // 기본 장착은 권총
+        if (items[1] != null)
+            Switch(1);
+        else if (items[2] != null)
+            Switch(2);
     }
-
     // 사격 조건
     bool IsAttackRestricted()
     {
-        // 0번, 1번 인덱스는 무조건 사용 불가
-        if (currentIndex == 0 || currentIndex == 1) return true;
+        if (currentIndex < 0 || currentIndex >= items.Length)
+            return true;
 
-        // RoundManager가 있고, 공격 불가 상태라면 true 반환
-        if (RoundManager.Instance != null && !RoundManager.Instance.CanAttack) return true;
+        if (items[currentIndex] == null)
+            return true;
+
+        if (RoundManager.Instance != null && !RoundManager.Instance.CanAttack)
+            return true;
 
         return false;
+    }
+
+    public void EquipPrimaryWeapon(WeaponData weaponData)
+    {
+        if (weaponData == null)
+            return;
+
+        if (GetSlotIndex(weaponData) != 0)
+        {
+            Debug.LogWarning($"[PLAYER ITEM] EquipPrimaryWeapon failed. weaponType={weaponData.weaponType}");
+            return;
+        }
+
+        if (items[0] != null)
+        {
+            items[0].OnDrop();
+            Destroy(items[0].gameObject);
+            items[0] = null;
+        }
+
+        GameObject obj = Instantiate(weaponData.weaponPrefab, itemHolder);
+
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
+
+        Item item = obj.GetComponent<Item>();
+        items[0] = item;
+
+        Weapon weapon = obj.GetComponent<Weapon>();
+        if (weapon != null)
+            weapon.Initialize(weaponData, dropPoint, weaponData.magSize, weaponData.maxReserveAmmo);
+
+        obj.SetActive(false);
+
+        Switch(0);
+
+        if (InGameUIManager.Instance != null)
+            InGameUIManager.Instance.SetMainWeapon(weaponData);
+    }
+
+    public Weapon GetCurrentWeapon()
+    {
+        if (currentIndex < 0 || currentIndex >= items.Length)
+            return null;
+
+        if (items[currentIndex] == null)
+            return null;
+
+        return items[currentIndex].GetComponent<Weapon>();
     }
 }
