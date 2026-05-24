@@ -108,6 +108,8 @@ public class MatchManager : MonoBehaviour
         {
             topInfoUI.gameObject.SetActive(true);
 
+            topInfoUI.SetMyTeam(myTeam);
+
             topInfoUI.ApplyGameStartInfo();
             topInfoUI.ResetMatchScore();
             topInfoUI.HideRoleTextsForGame();
@@ -166,10 +168,10 @@ public class MatchManager : MonoBehaviour
         }
     }
 
-    public void OnRecvScoreUpdate(byte blueScore, byte redScore)
+    public void OnRecvScoreUpdate(byte scoreA, byte scoreB)
     {
         if (topInfoUI != null)
-            topInfoUI.SetScore(blueScore, redScore);
+            topInfoUI.SetScoreByTeam(scoreA, scoreB);
     }
 
     public void OnRecvRoundResult(
@@ -182,24 +184,14 @@ public class MatchManager : MonoBehaviour
     {
         if (topInfoUI != null)
         {
-            topInfoUI.SetScore(scoreA, scoreB);
-
-            string winnerText;
+            topInfoUI.SetMyTeam(myTeam);
+            topInfoUI.SetScoreByTeam(scoreA, scoreB);
 
             if (matchEnd)
-            {
-                winnerText = winnerTeam == 0
-                    ? "ºí·çÆÀ °æ±â ½Â¸®"
-                    : "·¹µåÆÀ °æ±â ½Â¸®";
-            }
+                topInfoUI.SetMatchWinnerText(winnerTeam);
             else
-            {
-                winnerText = winnerTeam == 0
-                    ? "ºí·çÆÀ ¶ó¿îµå ½Â¸®"
-                    : "·¹µåÆÀ ¶ó¿îµå ½Â¸®";
-            }
+                topInfoUI.SetRoundWinnerText(winnerTeam);
 
-            topInfoUI.SetGameDescription(winnerText);
             topInfoUI.HideRoleTextsForGame();
             topInfoUI.StartLocalCountdown(delaySeconds);
         }
@@ -224,14 +216,15 @@ public class MatchManager : MonoBehaviour
     {
         if (topInfoUI != null)
         {
-            topInfoUI.SetScore(scoreA, scoreB);
+            topInfoUI.SetMyTeam(myTeam);
+            topInfoUI.SetScoreByTeam(scoreA, scoreB);
 
             if (currentRound >= 5)
                 topInfoUI.SetGameDescription("µà½º ¶ó¿îµå");
             else
                 topInfoUI.SetGameDescription("±¸¸Å ´Ü°è");
 
-            topInfoUI.SetCurrentRoundRole(myTeam, currentRound);
+            topInfoUI.SetCurrentRoundRole(currentRound);
         }
 
         if (RoundManager.Instance != null)

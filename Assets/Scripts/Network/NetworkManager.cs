@@ -116,7 +116,8 @@ public enum RoomGameStartResult : byte
     NOT_LEADER = 3,
     NOT_ENOUGH_PLAYERS = 4,
     ALREADY_PLAYING = 5,
-    FAILED = 6
+    FAILED = 6,
+    NOT_ALL_RETURNED_FROM_RESULT = 7
 }
 
 public enum PickPhase : byte
@@ -125,6 +126,40 @@ public enum PickPhase : byte
     PREPARE = 1,
     COMPLETE = 2
 }
+
+public enum RoundWinReason : byte
+{
+    NONE = 0,
+
+    ATTACK_ELIMINATION = 1,
+    ATTACK_SPIKE_EXPLODE = 2,
+
+    DEFENSE_ELIMINATION = 3,
+    DEFENSE_TIME_OUT = 4,
+    DEFENSE_SPIKE_DEFUSE = 5
+}
+
+public class ScoreboardMemberData
+{
+    public uint playerId;
+    public byte team;
+    public byte slotIndex;
+    public int characterId;
+    public string nickname;
+
+    public int kills;
+    public int deaths;
+    public int assists;
+}
+
+public class ScoreboardData
+{
+    public uint roomId;
+    public byte myTeam;
+    public List<ScoreboardMemberData> members = new();
+}
+
+
 public class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance;
@@ -147,6 +182,7 @@ public class NetworkManager : MonoBehaviour
 
     public bool HasPendingReturnRoom => pendingReturnRoomId != 0;
     public uint PendingReturnRoomId => pendingReturnRoomId;
+    private bool isQuitting = false;
 
     public void ClearPendingReturnRoom()
     {
@@ -426,16 +462,22 @@ public class NetworkManager : MonoBehaviour
             case (ushort)PacketType.PKT_SC_MATCH_RESULT:
                 HandleMatchResult(body);
                 break;
+
             case (ushort)PacketType.PKT_SC_AMMO_UPDATE:
                 HandleAmmoUpdate(body);
                 break;
+
             case (ushort)PacketType.PKT_SC_MATCH_RESULT_DETAIL:
                 HandleMatchResultDetail(body);
                 break;
+
             case (ushort)PacketType.PKT_SC_RESULT_LEAVE_DONE:
                 HandleResultLeaveDone(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_SCOREBOARD_UPDATE:
+                HandleScoreboardUpdate(body);
+                break;
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -1460,16 +1502,6 @@ public class NetworkManager : MonoBehaviour
         client.Send(buffer);
     }
 
-    private void OnApplicationQuit()
-    {
-        Debug.Log("[NETWORK] Application quit. Close client.");
-
-        if (client != null)
-        {
-            client.Close();
-        }
-    }
-
     private void HandleMoveState(byte[] body)
     {
         int offset = 0;
@@ -1667,6 +1699,9 @@ public class NetworkManager : MonoBehaviour
         byte matchEnd = body[offset];
         offset += 1;
 
+        RoundWinReason winReason = (RoundWinReason)body[offset];
+        offset += 1;
+
         ushort delaySeconds = BitConverter.ToUInt16(body, offset);
         offset += 2;
 
@@ -1675,6 +1710,26 @@ public class NetworkManager : MonoBehaviour
             $"scoreA={scoreA}, scoreB={scoreB}, round={currentRound}, " +
             $"matchEnd={matchEnd}, delay={delaySeconds}"
         );
+
+        if (TopInfoUI.Instance != null)
+        {
+            TopInfoUI.Instance.SetScoreByTeam(scoreA, scoreB);
+        }
+        else
+        {
+            Debug.LogError("[ROUND RESULT] TopInfoUI.Instance is null");
+        }
+
+        if (InGameScoreboardUI.Instance != null)
+        {
+            InGameScoreboardUI.Instance.OnRoundResult(
+                currentRound,
+                winnerTeam,
+                winReason,
+                scoreA,
+                scoreB
+            );
+        }
 
         if (matchManager != null)
         {
@@ -1715,7 +1770,7 @@ public class NetworkManager : MonoBehaviour
 
         if (TopInfoUI.Instance != null)
         {
-            TopInfoUI.Instance.SetScore(scoreA, scoreB);
+            TopInfoUI.Instance.SetScoreByTeam(scoreA, scoreB);
             TopInfoUI.Instance.SetGameDescription("구매 단계");
         }
 
@@ -1917,11 +1972,8 @@ public class NetworkManager : MonoBehaviour
     {
         if (Instance == this)
         {
-            if (client != null)
-            {
-                client.Close();
-            }
-
+            Debug.Log("[NETWORK] NetworkManager destroyed. Close client.");
+            client?.Close();
             Instance = null;
         }
     }
@@ -2150,5 +2202,61 @@ public class NetworkManager : MonoBehaviour
         client.Send(buffer);
 
         Debug.Log($"[SEND ROOM STATE REQUEST] roomId={roomId}");
+    }
+
+    private void OnApplicationQuit()
+    {
+        Debug.Log("[NETWORK] OnApplicationQuit");
+        client?.Close();
+    }
+
+    private void HandleScoreboardUpdate(byte[] body)
+    {
+        int offset = 0;
+
+        ScoreboardData data = new ScoreboardData();
+
+        data.roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        data.myTeam = body[offset];
+        offset += 1;
+
+        byte memberCount = body[offset];
+        offset += 1;
+
+        for (int i = 0; i < memberCount; i++)
+        {
+            ScoreboardMemberData member = new ScoreboardMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.team = body[offset];
+            offset += 1;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.characterId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.kills = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.deaths = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.assists = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            data.members.Add(member);
+        }
+
+        if (InGameScoreboardUI.Instance != null)
+            InGameScoreboardUI.Instance.OnRecvScoreboardUpdate(data);
     }
 }

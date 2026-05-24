@@ -1440,6 +1440,12 @@ public class LobbyManager : MonoBehaviour
             return;
         }
 
+        if (result == (byte)RoomGameStartResult.NOT_ALL_RETURNED_FROM_RESULT)
+        {
+            ShowRoomMessage("룸으로 돌아오지 못한 플레이어가 있습니다.");
+            return;
+        }
+
         if (result == (byte)RoomGameStartResult.NOT_ENOUGH_PLAYERS)
         {
             ShowRoomMessage("A팀 3명, B팀 3명이 있어야 시작할 수 있습니다.");

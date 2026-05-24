@@ -91,6 +91,7 @@ public enum PacketType : ushort
     PKT_CS_RESULT_LEAVE = 134,
     PKT_SC_RESULT_LEAVE_DONE = 135,
     PKT_CS_ROOM_STATE_REQUEST = 136,
+    PKT_SC_SCOREBOARD_UPDATE = 137,
 }
 
 public enum RegisterResult : byte
