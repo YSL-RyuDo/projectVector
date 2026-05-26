@@ -139,4 +139,19 @@ public class FPSCameraLook : MonoBehaviour
     {
         yaw += amount;
     }
+
+    public void ResetLookRotation(float yawValue)
+    {
+        xRotation = 0f;
+        yaw = yawValue;
+        recoilOffset = 0f;
+
+        transform.localRotation = Quaternion.identity;
+
+        if (playerRoot == null)
+            playerRoot = GetComponentInParent<PlayerIdentity>()?.transform;
+
+        if (playerRoot != null)
+            playerRoot.rotation = Quaternion.Euler(0f, yaw, 0f);
+    }
 }

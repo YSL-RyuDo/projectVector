@@ -494,6 +494,18 @@ public class NetworkManager : MonoBehaviour
                 HandleSpikeDropped(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_SPIKE_DEFUSE_STATE:
+                HandleSpikeDefuseState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SPIKE_DEFUSED:
+                HandleSpikeDefused(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_DIE:
+                HandleDie(body);
+                break;
+
             default:
                 Debug.LogWarning($"Ã³¸® ¾È µÈ ÆÐÅ¶ type={type}");
                 break;
@@ -1874,7 +1886,10 @@ public class NetworkManager : MonoBehaviour
     int reserveAmmo)
     {
         PlayerIdentity[] identities =
-            FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
+            FindObjectsByType<PlayerIdentity>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
 
         PlayerIdentity targetIdentity = null;
 
@@ -1896,6 +1911,8 @@ public class NetworkManager : MonoBehaviour
             return;
         }
 
+        bool isMine = playerId == MyPlayerId;
+
         MapInfo mapInfo = FindFirstObjectByType<MapInfo>();
 
         if (mapInfo == null)
@@ -1908,9 +1925,7 @@ public class NetworkManager : MonoBehaviour
 
         if (spawnPoint == null)
         {
-            Debug.LogError(
-                $"[ROUND RESET] spawnPoint not found slot={slotIndex}"
-            );
+            Debug.LogError($"[ROUND RESET] spawnPoint not found slot={slotIndex}");
             return;
         }
 
@@ -1938,10 +1953,23 @@ public class NetworkManager : MonoBehaviour
             );
         }
 
-        bool isMine = playerId == MyPlayerId;
+        PlayerDeathController death =
+            targetIdentity.GetComponent<PlayerDeathController>();
+
+        if (death != null)
+            death.OnRespawn();
+
+        PlayerMovement movement =
+            targetIdentity.GetComponent<PlayerMovement>();
+
+        PlayerCameraController cameraController =
+            targetIdentity.GetComponent<PlayerCameraController>();
 
         if (isMine)
         {
+            if (SpectatorManager.Instance != null)
+                SpectatorManager.Instance.StopSpectating();
+
             if (InGameUIManager.Instance != null)
             {
                 InGameUIManager.Instance.SetHpBarrier(
@@ -1960,19 +1988,42 @@ public class NetworkManager : MonoBehaviour
             PlayerItem item = targetIdentity.GetComponent<PlayerItem>();
 
             if (item != null)
-            {
                 item.ResetToDefault();
-            }
 
-            PlayerMovement movement = targetIdentity.GetComponent<PlayerMovement>();
             if (movement != null)
             {
                 movement.SetLocalPlayer(true);
+                movement.CanMove = true;
             }
+
+            if (cameraController != null)
+            {
+                cameraController.SetLocalPlayer(true);
+
+                if (cameraController.PlayerCamera != null)
+                {
+                    cameraController.PlayerCamera.transform.localPosition = Vector3.zero;
+                    cameraController.PlayerCamera.transform.localRotation = Quaternion.identity;
+                }
+            }
+
+            FPSCameraLook look =
+                targetIdentity.GetComponentInChildren<FPSCameraLook>(true);
+
+            if (look != null)
+                look.ResetLookRotation(spawnPoint.rotation.eulerAngles.y);
+        }
+        else
+        {
+            if (movement != null)
+                movement.SetLocalPlayer(false);
+
+            if (cameraController != null)
+                cameraController.SetLocalPlayer(false);
         }
 
         Debug.Log(
-            $"[ROUND RESET APPLY] playerId={playerId}, team=, slot={slotIndex}, pos={spawnPoint.position}"
+            $"[ROUND RESET APPLY] playerId={playerId}, team={actualTeam}, slot={slotIndex}, pos={spawnPoint.position}, isMine={isMine}"
         );
     }
 
@@ -2362,44 +2413,46 @@ public class NetworkManager : MonoBehaviour
         string carrierNickname = Packet.ReadFixedString(body, offset, 20);
         offset += 20;
 
-        Debug.Log(
-            $"[SPIKE PICKUP NOTIFY] carrier={carrierPlayerId}, " +
-            $"show={showCarrierInfo}, nickname={carrierNickname}"
-        );
-
-        DroppedSpikePickup[] droppedSpikes =
-            FindObjectsByType<DroppedSpikePickup>(FindObjectsSortMode.None);
-
-        for (int i = 0; i < droppedSpikes.Length; i++)
-        {
-            Destroy(droppedSpikes[i].gameObject);
-        }
+        Debug.Log($"[SPIKE PICKUP NOTIFY] carrier={carrierPlayerId}, show={showCarrierInfo}, nickname={carrierNickname}");
 
         PlayerIdentity[] identities =
             FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
 
-        for (int i = 0; i < identities.Length; i++)
+        foreach (PlayerIdentity identity in identities)
         {
-            PlayerSpike spike = identities[i].GetComponent<PlayerSpike>();
-            if (spike == null)
+            PlayerSpike ps = identity.GetComponent<PlayerSpike>();
+            if (ps == null)
                 continue;
 
-            bool hasSpike = identities[i].PlayerId == carrierPlayerId;
-            spike.SetHasSpikeFromServer(hasSpike);
+            bool hasSpike = identity.PlayerId == carrierPlayerId;
+            ps.SetHasSpikeFromServer(hasSpike);
         }
 
-        if (showCarrierInfo != 0)
+        // ÇÙ½É: ¸ðµç Å¬¶ó¿¡¼­ ¹Ù´Ú ½ºÆÄÀÌÅ© Á¦°Å
+        DroppedSpikePickup[] droppedSpikes =
+            FindObjectsByType<DroppedSpikePickup>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        foreach (DroppedSpikePickup dropped in droppedSpikes)
         {
-            if (TopInfoUI.Instance != null)
-                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} ½ºÆÄÀÌÅ© È¹µæ");
+            Rigidbody rb = dropped.GetComponentInParent<Rigidbody>();
+
+            if (rb != null)
+                Destroy(rb.gameObject);
+            else
+                Destroy(dropped.transform.root.gameObject);
         }
-        else
+
+        if (TopInfoUI.Instance != null)
         {
-            if (TopInfoUI.Instance != null)
+            if (showCarrierInfo != 0)
+                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} ½ºÆÄÀÌÅ© È¹µæ");
+            else
                 TopInfoUI.Instance.SetGameDescription("½ºÆÄÀÌÅ© È¹µæµÊ");
         }
     }
-
     private void HandleSpikePlanted(byte[] body)
     {
         int offset = 0;
@@ -2443,30 +2496,179 @@ public class NetworkManager : MonoBehaviour
     {
         int offset = 0;
 
-        float x = BitConverter.ToSingle(body, offset);
-        offset += 4;
+        float x = BitConverter.ToSingle(body, offset); offset += 4;
+        float y = BitConverter.ToSingle(body, offset); offset += 4;
+        float z = BitConverter.ToSingle(body, offset); offset += 4;
 
-        float y = BitConverter.ToSingle(body, offset);
-        offset += 4;
+        float dirX = BitConverter.ToSingle(body, offset); offset += 4;
+        float dirY = BitConverter.ToSingle(body, offset); offset += 4;
+        float dirZ = BitConverter.ToSingle(body, offset); offset += 4;
 
-        float z = BitConverter.ToSingle(body, offset);
+        uint dropperPlayerId = BitConverter.ToUInt32(body, offset);
         offset += 4;
 
         Vector3 pos = new Vector3(x, y, z);
-
-        Debug.Log($"[SPIKE DROPPED] pos={pos}");
+        Vector3 dir = new Vector3(dirX, dirY, dirZ);
 
         if (SpikeSpawner.Instance != null)
-            SpikeSpawner.Instance.SpawnDroppedAt(pos);
+            SpikeSpawner.Instance.SpawnDroppedAt(pos, dir, dropperPlayerId);
+    }
+
+    private void HandleSpikeDefuseState(byte[] body)
+    {
+        int offset = 0;
+
+        byte state = body[offset];
+        offset += 1;
+
+        byte halfDefused = body[offset];
+        offset += 1;
+
+        uint defuserPlayerId = BitConverter.ToUInt32(body, offset);
+
+        Spike[] spikes = FindObjectsByType<Spike>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < spikes.Length; i++)
+        {
+            if (state == 1)
+            {
+                if (defuserPlayerId == MyPlayerId)
+                    spikes[i].StartDefuseFromServer(halfDefused != 0);
+            }
+            else if (state == 0)
+            {
+                spikes[i].CancelDefuseFromServer(halfDefused != 0);
+            }
+            else if (state == 2)
+            {
+                spikes[i].SetHalfDefusedFromServer(true);
+            }
+        }
+    }
+
+    private void HandleSpikeDefused(byte[] body)
+    {
+        int offset = 0;
+
+        uint defuserPlayerId = BitConverter.ToUInt32(body, offset);
+
+        Spike[] spikes = FindObjectsByType<Spike>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < spikes.Length; i++)
+        {
+            Destroy(spikes[i].gameObject);
+        }
+
+        if (TopInfoUI.Instance != null)
+            TopInfoUI.Instance.SetGameDescription("½ºÆÄÀÌÅ© ÇØÃ¼µÊ");
+
+        Debug.Log($"[SPIKE DEFUSED] defuser={defuserPlayerId}");
+    }
+
+    public void SendSpikeDefuseStart()
+    {
+        SendEmptyPacket(PacketType.PKT_CS_SPIKE_DEFUSE_START);
+    }
+
+    public void SendSpikeDefuseCancel()
+    {
+        SendEmptyPacket(PacketType.PKT_CS_SPIKE_DEFUSE_CANCEL);
+    }
+
+    public void SendSpikeDefuseHalf()
+    {
+        SendEmptyPacket(PacketType.PKT_CS_SPIKE_DEFUSE_HALF);
+    }
+
+    public void SendSpikeDefuseComplete()
+    {
+        SendEmptyPacket(PacketType.PKT_CS_SPIKE_DEFUSE_COMPLETE);
+    }
+
+    private void SendEmptyPacket(PacketType packetType)
+    {
+        ushort size = 4;
+        ushort type = (ushort)packetType;
+
+        byte[] buffer = new byte[size];
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, 0, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, 2, 2);
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND] {packetType}");
+    }
+
+    private void HandleDie(byte[] body)
+    {
+        uint deadPlayerId = BitConverter.ToUInt32(body, 0);
+
+        Debug.Log($"[DIE] playerId={deadPlayerId}");
 
         PlayerIdentity[] identities =
             FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
 
-        for (int i = 0; i < identities.Length; i++)
+        foreach (PlayerIdentity identity in identities)
         {
-            PlayerSpike spike = identities[i].GetComponent<PlayerSpike>();
-            if (spike != null)
-                spike.SetHasSpikeFromServer(false);
+            if (identity.PlayerId != deadPlayerId)
+                continue;
+
+            PlayerDeathController death =
+                identity.GetComponent<PlayerDeathController>();
+
+            if (death != null)
+                death.OnDead();
+            else
+                Debug.LogError($"[DIE] PlayerDeathController missing. object={identity.name}");
+
+            break;
         }
+
+        if (deadPlayerId == MyPlayerId)
+        {
+            if (SpectatorManager.Instance != null)
+                SpectatorManager.Instance.StartSpectating();
+            else
+                Debug.LogError("[DIE] SpectatorManager.Instance is null");
+        }
+    }
+
+    public void SendSpikeDropRequest(Vector3 position, Vector3 direction)
+    {
+        ushort size = 4 + 4 + 4 + 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SPIKE_DROP_REQUEST;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(direction.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(direction.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(direction.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND] SPIKE DROP REQUEST pos={position}, dir={direction}");
     }
 }

@@ -35,7 +35,6 @@ public class MatchManager : MonoBehaviour
 
     private byte myTeam = 0;
     private bool matchStarted = false;
-    private bool charactersSpawned = false;
 
     private void Awake()
     {
@@ -133,6 +132,12 @@ public class MatchManager : MonoBehaviour
         }
 
         ApplyTeamCharacterImages(data);
+
+        Camera sceneMainCamera = GameObject.Find("Main Camera")?.GetComponent<Camera>();
+
+        if (sceneMainCamera != null)
+            sceneMainCamera.gameObject.SetActive(false);
+
         SpawnCharacters(data);
 
         if (RoundManager.Instance != null)

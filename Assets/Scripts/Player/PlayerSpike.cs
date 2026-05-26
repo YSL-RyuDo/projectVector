@@ -152,9 +152,12 @@ public class PlayerSpike : MonoBehaviour
         currentPlantTime = 0f;
 
         SetPlayerControl(true);
+        Vector3 plantPos =transform.position +transform.forward * 1.0f;
 
         if (NetworkManager.Instance != null)
-            NetworkManager.Instance.SendSpikePlantComplete(transform.position);
+        {
+            NetworkManager.Instance.SendSpikePlantComplete(plantPos);
+        }
 
         Debug.Log("[SPIKE] Plant request sent to server");
     }
@@ -171,16 +174,37 @@ public class PlayerSpike : MonoBehaviour
         SetPlayerControl(true); // 제어권 돌려주기
     }
 
-    //  Drop 요청
     public void RequestDrop()
     {
-        if (!hasSpike) return;
+        if (!hasSpike)
+            return;
 
-        Debug.Log("Spike Dropped");
+        if (_playerIdentity == null)
+            return;
 
-        hasSpike = false;
+        if (NetworkManager.Instance == null)
+            return;
 
-        SpikeSpawner.Instance.SpawnDropped(dropPoint);
+        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
+            return;
+
+        Vector3 dropPosition;
+        Vector3 dropDirection;
+
+        if (dropPoint != null)
+        {
+            dropPosition = dropPoint.position;
+            dropDirection = dropPoint.forward;
+        }
+        else
+        {
+            dropPosition = transform.position + transform.forward * 1.0f + Vector3.up * 0.8f;
+            dropDirection = transform.forward;
+        }
+
+        NetworkManager.Instance.SendSpikeDropRequest(dropPosition, dropDirection);
+
+        Debug.Log($"[SPIKE] Drop request sent from DropPoint. pos={dropPosition}, dir={dropDirection}");
     }
 
     public void SetPlayerControl(bool canControl)

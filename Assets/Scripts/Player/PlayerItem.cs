@@ -173,13 +173,14 @@ public class PlayerItem : MonoBehaviour
 
     public void PickupItem(DroppedItem dropped)
     {
-        //if (dropped.weaponData == null)
-        //{
-        //    playerSpike.hasSpike = true;
-        //    Debug.Log("Spike¸¦ È¹µæÇß½À´Ï´Ù.");
-        //    Destroy(dropped.gameObject);
-        //    return;
-        //}
+        if (dropped == null)
+            return;
+
+        if (dropped.weaponData == null)
+        {
+            Debug.Log("[PLAYER ITEM] weaponData is null. This is not a weapon pickup.");
+            return;
+        }
 
         int slot = GetSlotIndex(dropped.weaponData);
         EquipItem(slot, dropped);
@@ -511,5 +512,19 @@ public class PlayerItem : MonoBehaviour
         }
 
         Debug.Log("[PLAYER ITEM] Spike removed from slot 5");
+    }
+
+    public void DisableOnDeath()
+    {
+        SetWeaponVisibility(false);
+        enabled = false;
+    }
+
+    public void EnableOnRespawn()
+    {
+        enabled = true;
+
+        if (currentIndex >= 0 && currentIndex < items.Length && items[currentIndex] != null)
+            items[currentIndex].gameObject.SetActive(true);
     }
 }

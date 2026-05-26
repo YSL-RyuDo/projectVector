@@ -10,7 +10,7 @@ public class PlayerCameraController : MonoBehaviour
     public Camera PlayerCamera => playerCamera;
     public FPSCameraLook CameraLook => cameraLook;
 
-    private void Awake()
+    private void Awake()    
     {
         if (playerCamera == null)
             playerCamera = GetComponentInChildren<Camera>(true);

@@ -15,37 +15,44 @@ public class Spike : Item
 
     [Header("Explosion")]
     public float explosionTime = 40f;
-    private float currentExplosionTime;
     private bool isExploded;
 
     [Header("UI")]
     private Slider defuseSlider;
     private GameObject sliderObject;
 
+    private bool halfSentToServer;
+
+    public static Spike PlantedSpike { get; private set; }
+
+    [Header("Spectator")]
+    [SerializeField] private Transform spectatePoint;
+    public Transform SpectatePoint => spectatePoint;
+
     private void Start()
     {
         playerSpike = GetComponentInParent<PlayerSpike>();
     }
 
-    //private void Update()
-    //{
-    //    if (isPlanted)
-    //    {
-    //        ExplosionTimer();
-    //    }
-    //}
+    private void OnDestroy()
+    {
+        if (PlantedSpike == this)
+            PlantedSpike = null;
+    }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!other.CompareTag("Player"))
+        PlayerSpike ps = other.GetComponent<PlayerSpike>();
+
+        if (ps == null)
+            ps = other.GetComponentInParent<PlayerSpike>();
+
+        if (ps == null)
             return;
 
-        playerSpike = other.GetComponent<PlayerSpike>();
-
-        if (playerSpike == null)
-            return;
-
+        playerSpike = ps;
         isPlayerInside = true;
+
         playerSpike.SetSpike(this);
 
         sliderObject = playerSpike.spikeSlider;
@@ -53,15 +60,20 @@ public class Spike : Item
         if (sliderObject != null)
             defuseSlider = sliderObject.GetComponent<Slider>();
 
-        Debug.Log("Player in");
+        Debug.Log($"[SPIKE] Player in defuse range. player={other.name}");
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (!other.CompareTag("Player"))
+        PlayerSpike ps = other.GetComponent<PlayerSpike>();
+
+        if (ps == null)
+            ps = other.GetComponentInParent<PlayerSpike>();
+
+        if (ps == null)
             return;
 
-        if (playerSpike != null)
+        if (playerSpike != null && ps == playerSpike)
         {
             CancelDefuse();
 
@@ -71,9 +83,9 @@ public class Spike : Item
             playerSpike = null;
             sliderObject = null;
             defuseSlider = null;
-        }
 
-        Debug.Log("Player out");
+            Debug.Log($"[SPIKE] Player out defuse range. player={other.name}");
+        }
     }
 
     public override void OnUse()
@@ -91,8 +103,22 @@ public class Spike : Item
     public void OnDeploy()
     {
         isPlanted = true;
+        isExploded = false;
 
-        Debug.Log("Spike Planted");
+        isHalfDefused = false;
+        halfSentToServer = false;
+        currentDefuseTime = 0f;
+
+        PlantedSpike = this;
+
+        if (spectatePoint == null)
+        {
+            Transform found = transform.Find("SpectatePoint");
+            if (found != null)
+                spectatePoint = found;
+        }
+
+        Debug.Log("[SPIKE] Planted and registered as PlantedSpike");
 
         if (RoundManager.Instance != null)
             RoundManager.Instance.OnSpikePlanted();
@@ -100,23 +126,14 @@ public class Spike : Item
 
     public void TryStartDefuse()
     {
-        if (!isPlayerInside)
-            return;
+        if (!isPlayerInside) return;
+        if (isExploded) return;
+        if (playerSpike == null) return;
 
-        if (isExploded)
-            return;
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SendSpikeDefuseStart();
 
-        if (playerSpike == null)
-            return;
-
-        isDefusing = true;
-
-        playerSpike.SetPlayerControl(false);
-
-        if (sliderObject != null)
-            sliderObject.SetActive(true);
-
-        Debug.Log("Start Defuse");
+        Debug.Log("[SPIKE] Defuse start request sent");
     }
 
     public void Defusing()
@@ -132,13 +149,21 @@ public class Spike : Item
         if (!isHalfDefused && currentDefuseTime >= defuseTime * 0.5f)
         {
             isHalfDefused = true;
-            Debug.Log("Half Defused! (50%)");
+            currentDefuseTime = defuseTime * 0.5f;
+
+            if (!halfSentToServer)
+            {
+                halfSentToServer = true;
+
+                if (NetworkManager.Instance != null)
+                    NetworkManager.Instance.SendSpikeDefuseHalf();
+            }
+
+            Debug.Log("[SPIKE] Half defuse request sent");
         }
 
         if (currentDefuseTime >= defuseTime)
-        {
             CompleteDefuse();
-        }
     }
 
     public void CancelDefuse()
@@ -148,22 +173,14 @@ public class Spike : Item
 
         isDefusing = false;
 
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SendSpikeDefuseCancel();
+
         if (playerSpike != null)
             playerSpike.SetPlayerControl(true);
 
-        if (isHalfDefused)
-        {
-            currentDefuseTime = defuseTime * 0.5f;
-            Debug.Log("Defuse Canceled - Progress saved at 50%");
-        }
-        else
-        {
-            currentDefuseTime = 0f;
-            Debug.Log("Defuse Canceled - Progress reset to 0%");
-        }
-
-        if (defuseSlider != null)
-            defuseSlider.value = currentDefuseTime / defuseTime;
+        if (sliderObject != null)
+            sliderObject.SetActive(false);
     }
 
     private void CompleteDefuse()
@@ -179,39 +196,61 @@ public class Spike : Item
         if (sliderObject != null)
             sliderObject.SetActive(false);
 
-        Debug.Log("Defuse Complete - Send request to server later");
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SendSpikeDefuseComplete();
+
+        Debug.Log("[SPIKE] Defuse complete request sent");
     }
 
-    private void ExplosionTimer()
+    public void SetHalfDefusedFromServer(bool value)
     {
-        if (isExploded)
-            return;
+        isHalfDefused = value;
 
-        currentExplosionTime += Time.deltaTime;
+        currentDefuseTime = isHalfDefused
+            ? defuseTime * 0.5f
+            : 0f;
 
-        if (currentExplosionTime >= explosionTime)
-            Explode();
+        if (defuseSlider != null)
+            defuseSlider.value = currentDefuseTime / defuseTime;
+
+        Debug.Log($"[SPIKE] half defused from server={isHalfDefused}");
     }
 
-    private void Explode()
+    public void StartDefuseFromServer(bool halfDefused)
     {
-        if (isExploded)
-            return;
+        isDefusing = true;
+        isHalfDefused = halfDefused;
 
-        isExploded = true;
-        isDefusing = false;
+        currentDefuseTime = isHalfDefused
+            ? defuseTime * 0.5f
+            : 0f;
+
+        if (playerSpike != null)
+            playerSpike.SetPlayerControl(false);
 
         if (sliderObject != null)
-            sliderObject.SetActive(false);
+            sliderObject.SetActive(true);
+
+        if (defuseSlider != null)
+            defuseSlider.value = currentDefuseTime / defuseTime;
+    }
+
+    public void CancelDefuseFromServer(bool halfDefused)
+    {
+        isDefusing = false;
+        isHalfDefused = halfDefused;
+
+        currentDefuseTime = isHalfDefused
+            ? defuseTime * 0.5f
+            : 0f;
 
         if (playerSpike != null)
             playerSpike.SetPlayerControl(true);
 
-        if (RoundManager.Instance != null)
-            RoundManager.Instance.RequestRoundEnd(true);
+        if (sliderObject != null)
+            sliderObject.SetActive(false);
 
-        Debug.Log("Spike Exploded - Attackers Win");
-
-        Destroy(gameObject);
+        if (defuseSlider != null)
+            defuseSlider.value = currentDefuseTime / defuseTime;
     }
 }

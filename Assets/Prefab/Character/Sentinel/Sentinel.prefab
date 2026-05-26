@@ -1751,6 +1751,7 @@ GameObject:
   - component: {fileID: 4099350766847986925}
   - component: {fileID: 8893806549369827747}
   - component: {fileID: 1193098693382271854}
+  - component: {fileID: 6538360918056891337}
   m_Layer: 0
   m_Name: Sentinel
   m_TagString: Untagged
@@ -1840,7 +1841,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39777574204be064fb2357a6c06f255f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  _speed: 30
+  _speed: 5
   _gravity: -20
   _jumpPower: 8
   CanMove: 1
@@ -1996,6 +1997,19 @@ MonoBehaviour:
   playerCamera: {fileID: 3746713758413285215}
   audioListener: {fileID: 1457765181002271776}
   cameraLook: {fileID: 5192383614653975492}
+--- !u!114 &6538360918056891337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6886427744864830309}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8aea6e31888c5d4b91a2a9a455dcb1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerDeathController
+  modelRoot: {fileID: 1882982270309555570}
 --- !u!1 &7035400687790684767
 GameObject:
   m_ObjectHideFlags: 0

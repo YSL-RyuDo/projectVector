@@ -339,6 +339,7 @@ GameObject:
   - component: {fileID: 6008646111598099427}
   - component: {fileID: 3022143099333133632}
   - component: {fileID: 5169373442458704092}
+  - component: {fileID: 4103103688302902310}
   m_Layer: 0
   m_Name: Initiator
   m_TagString: Untagged
@@ -400,7 +401,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39777574204be064fb2357a6c06f255f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  _speed: 30
+  _speed: 5
   _gravity: -20
   _jumpPower: 8
   CanMove: 1
@@ -669,6 +670,19 @@ MonoBehaviour:
   playerCamera: {fileID: 2211279825742249225}
   audioListener: {fileID: 8531010850139576624}
   cameraLook: {fileID: 1749541706190651911}
+--- !u!114 &4103103688302902310
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9177276548501388304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8aea6e31888c5d4b91a2a9a455dcb1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerDeathController
+  modelRoot: {fileID: 2394164600379191788}
 --- !u!1001 &2394164600379225610
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2714,6 +2728,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8f0565f23a2b58541a475bd3c1393052, type: 3}
+--- !u!1 &2394164600379191788 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 100326, guid: 8f0565f23a2b58541a475bd3c1393052, type: 3}
+  m_PrefabInstance: {fileID: 2394164600379225610}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2394164600379354572 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400326, guid: 8f0565f23a2b58541a475bd3c1393052, type: 3}
