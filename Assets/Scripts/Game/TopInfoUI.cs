@@ -13,11 +13,16 @@ public class TopInfoUI : MonoBehaviour
 
     [SerializeField] private TMP_Text gameDescriptionText;
 
-    [SerializeField] private TMP_Text blueTeamScoreText;
-    [SerializeField] private TMP_Text redTeamScoreText;
+    [Header("Score Texts")]
+    [SerializeField] private TMP_Text ourTeamScoreText;
+    [SerializeField] private TMP_Text enemyTeamScoreText;
 
     public static TopInfoUI Instance;
+
     private Coroutine timerRoutine;
+
+    // 0 = A팀, 1 = B팀
+    private byte myTeam = 0;
 
     private void Awake()
     {
@@ -30,6 +35,7 @@ public class TopInfoUI : MonoBehaviour
             return;
 
         SetMapText(state.mapName);
+        SetMyTeam((byte)state.myTeam);
 
         if (ourTeamRoleText != null)
         {
@@ -47,13 +53,44 @@ public class TopInfoUI : MonoBehaviour
                 enemyTeamRoleText.text = "선 공격 / 후 수비";
         }
 
-        SetScore(state.blueScore, state.redScore);
+        SetScoreByTeam(state.blueScore, state.redScore);
         SetGameDescription("캐릭터 선택");
     }
 
     public void ApplyGameStartInfo()
     {
         SetGameDescription("5판 3선승");
+    }
+
+    public void SetMyTeam(byte team)
+    {
+        myTeam = team;
+    }
+
+    // 서버 원본 점수: scoreA = A팀, scoreB = B팀
+    // 화면 출력: 왼쪽 = 우리팀, 오른쪽 = 상대팀
+    public void SetScoreByTeam(int scoreA, int scoreB)
+    {
+        int ourScore = myTeam == 0 ? scoreA : scoreB;
+        int enemyScore = myTeam == 0 ? scoreB : scoreA;
+
+        if (ourTeamScoreText != null)
+            ourTeamScoreText.text = ourScore.ToString();
+
+        if (enemyTeamScoreText != null)
+            enemyTeamScoreText.text = enemyScore.ToString();
+    }
+
+    public void SetRoundWinnerText(byte winnerTeam)
+    {
+        bool ourTeamWin = winnerTeam == myTeam;
+        SetGameDescription(ourTeamWin ? "우리팀 라운드 승리" : "상대팀 라운드 승리");
+    }
+
+    public void SetMatchWinnerText(byte winnerTeam)
+    {
+        bool ourTeamWin = winnerTeam == myTeam;
+        SetGameDescription(ourTeamWin ? "우리팀 경기 승리" : "상대팀 경기 승리");
     }
 
     public void SetMapText(string mapName)
@@ -77,18 +114,9 @@ public class TopInfoUI : MonoBehaviour
             timerText.text = $"{min:00}:{sec:00}";
     }
 
-    public void SetScore(int blueScore, int redScore)
-    {
-        if (blueTeamScoreText != null)
-            blueTeamScoreText.text = blueScore.ToString();
-
-        if (redTeamScoreText != null)
-            redTeamScoreText.text = redScore.ToString();
-    }
-
     public void ResetMatchScore()
     {
-        SetScore(0, 0);
+        SetScoreByTeam(0, 0);
     }
 
     public void HideRoleTextsForGame()
@@ -103,7 +131,6 @@ public class TopInfoUI : MonoBehaviour
     public void StartLocalCountdown(ushort seconds)
     {
         StopLocalCountdown();
-
         timerRoutine = StartCoroutine(LocalCountdownRoutine(seconds));
     }
 
@@ -134,30 +161,13 @@ public class TopInfoUI : MonoBehaviour
         timerRoutine = null;
     }
 
-    public void SetCurrentRoundRole(byte myTeam, byte currentRound)
+    public void SetCurrentRoundRole(byte currentRound)
     {
-        bool aTeamAttack;
+        bool aTeamAttack = IsATeamAttackRound(currentRound);
 
-        if (currentRound <= 2)
-        {
-            aTeamAttack = true;
-        }
-        else if (currentRound < 5)
-        {
-            aTeamAttack = false;
-        }
-        else
-        {
-            // 5R A공격, 6R A수비, 7R A공격 ...
-            aTeamAttack = ((currentRound - 5) % 2) == 0;
-        }
-
-        bool myTeamIsAttack;
-
-        if (myTeam == 0)
-            myTeamIsAttack = aTeamAttack;
-        else
-            myTeamIsAttack = !aTeamAttack;
+        bool myTeamIsAttack = myTeam == 0
+            ? aTeamAttack
+            : !aTeamAttack;
 
         if (ourTeamRoleText != null)
             ourTeamRoleText.text = myTeamIsAttack ? "공격" : "수비";
@@ -166,22 +176,22 @@ public class TopInfoUI : MonoBehaviour
             enemyTeamRoleText.text = myTeamIsAttack ? "수비" : "공격";
     }
 
-    private string RoleToText(PickRole role)
+    private bool IsATeamAttackRound(byte currentRound)
     {
-        if (role == PickRole.ATTACK)
-            return "선 공격";
+        if (currentRound <= 2)
+            return true;
 
-        if (role == PickRole.DEFENSE)
-            return "후 수비";
+        if (currentRound < 5)
+            return false;
 
-        return "";
+        return ((currentRound - 5) % 2) == 0;
     }
 
-    private PickRole GetOppositeRole(PickRole role)
+    public void SetUnknownTimer()
     {
-        if (role == PickRole.ATTACK)
-            return PickRole.DEFENSE;
+        StopLocalCountdown();
 
-        return PickRole.ATTACK;
+        if (timerText != null)
+            timerText.text = "??:??";
     }
 }

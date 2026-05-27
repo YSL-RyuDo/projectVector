@@ -1,5 +1,6 @@
+using System;
+using System.Collections.Generic;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,22 +8,30 @@ public class SettingsMenu : MonoBehaviour
 {
     public static SettingsMenu Instance { get; private set; }
 
-    [Header("UI Elements")]
-    public Slider sensitivitySlider;
-    public TMP_InputField sensitivityInputField; // 텍스트 표시와 입력을 모두 담당
+    // 상용화 게임처럼 직관적인 UI 관리를 위한 구조체 정의
+    [Serializable]
+    public struct SensitivityUIElements
+    {
+        public SensitivityType type;
+        public Slider slider;
+        public TMP_InputField inputField;
+    }
+
+    [Header("Sensitivity Settings UI")]
+    [SerializeField] private List<SensitivityUIElements> sensitivityUIList;
+
+    // 값 변경 시 무한 루프(이벤트 핑퐁)를 방지하기 위한 플래그
+    private bool isUpdatingUI = false;
 
     void Awake()
     {
-        // 중복 생성 방지 및 싱글톤 세팅
         if (Instance == null)
         {
             Instance = this;
-
             DontDestroyOnLoad(transform.root.gameObject);
         }
         else
         {
-            // 이미 다른 씬에서 넘어온 설정창이 있다면, 새로 생성된 것은 파괴합니다.
             Destroy(transform.root.gameObject);
             return;
         }
@@ -30,54 +39,92 @@ public class SettingsMenu : MonoBehaviour
 
     void Start()
     {
-        float savedSensitivity = MouseSettings.MouseSensitivity;
-
-        // UI의 초기 상태를 불러온 값으로 설정
-        sensitivitySlider.value = savedSensitivity;
-        UpdateInputField(savedSensitivity);
-
-        // 리스너 등록 (값이 바뀔 때마다 실행될 함수 연결)
-        sensitivitySlider.onValueChanged.AddListener(OnSliderValueChanged);
-        sensitivityInputField.onEndEdit.AddListener(OnInputFieldEndEdit);
+        InitializeUI();
     }
 
-    // 슬라이더를 움직일 때 호출
-    void OnSliderValueChanged(float value)
+    private void OnDisable()
     {
-        // 소수점 3째 자리로 제한하여 저장
+        CloseSettingsMenu();
+    }
+
+    private void InitializeUI()
+    {
+        foreach (var element in sensitivityUIList)
+        {
+            // 저장된 데이터 로드
+            float savedValue = MouseSettings.GetSensitivity(element.type);
+
+            // UI 초기화 (이벤트 실행 방지를 위해 플래그 설정)
+            isUpdatingUI = true;
+            element.slider.value = savedValue;
+            element.inputField.text = savedValue.ToString("F3");
+            isUpdatingUI = false;
+
+            // 리스너 등록 (람다식을 활용해 어떤 타입의 UI가 변경되었는지 전달)
+            SensitivityType currentType = element.type;
+            Slider currentSlider = element.slider;
+            TMP_InputField currentInputField = element.inputField;
+
+            currentSlider.onValueChanged.AddListener((value) =>
+                OnSliderValueChanged(currentType, value, currentInputField));
+
+            currentInputField.onEndEdit.AddListener((text) =>
+                OnInputFieldEndEdit(currentType, text, currentSlider, currentInputField));
+        }
+    }
+
+    // 슬라이더 조작 시 호출
+    private void OnSliderValueChanged(SensitivityType type, float value, TMP_InputField inputField)
+    {
+        if (isUpdatingUI) return;
+
         float roundedValue = Mathf.Round(value * 1000f) / 1000f;
 
-        MouseSettings.MouseSensitivity = roundedValue;
-        UpdateInputField(roundedValue);
+        // 데이터 저장
+        MouseSettings.SetSensitivity(type, roundedValue);
+
+        // 인풋필드 동기화
+        isUpdatingUI = true;
+        inputField.text = roundedValue.ToString("F3");
+        isUpdatingUI = false;
     }
 
-    // 인풋 필드 입력을 마쳤을 때 호출 (Enter 키 입력 또는 다른 곳 클릭 시)
-    void OnInputFieldEndEdit(string text)
+    // 인풋필드 입력 종료 시 호출
+    private void OnInputFieldEndEdit(SensitivityType type, string text, Slider slider, TMP_InputField inputField)
     {
+        if (isUpdatingUI) return;
+
         if (float.TryParse(text, out float newValue))
         {
-            // 범위를 0.01 ~ 10 사이로 제한하고 소수점 3째 자리 반올림
-            newValue = Mathf.Clamp(newValue, sensitivitySlider.minValue, sensitivitySlider.maxValue);
+            // 슬라이더의 Min/Max 범위를 기준으로 클램핑
+            newValue = Mathf.Clamp(newValue, slider.minValue, slider.maxValue);
             newValue = Mathf.Round(newValue * 1000f) / 1000f;
 
-            // 슬라이더 값 변경 (OnSliderValueChanged가 자동으로 연이어 실행됨)
-            sensitivitySlider.value = newValue;
-            MouseSettings.MouseSensitivity = newValue;
-            UpdateInputField(newValue);
+            // 데이터 저장
+            MouseSettings.SetSensitivity(type, newValue);
+
+            // 슬라이더 및 인풋필드 UI 동기화
+            isUpdatingUI = true;
+            slider.value = newValue;
+            inputField.text = newValue.ToString("F3");
+            isUpdatingUI = false;
         }
         else
         {
-            // 숫자가 아닌 잘못된 입력이 들어오면 기존에 저장되어 있던 값으로 복구
-            UpdateInputField(MouseSettings.MouseSensitivity);
+            // 잘못된 문자 입력 시 기존에 저장되어 있던 값으로 복구
+            isUpdatingUI = true;
+            inputField.text = MouseSettings.GetSensitivity(type).ToString("F3");
+            isUpdatingUI = false;
         }
     }
 
-    // 인풋 필드의 텍스트만 소수점 3째 자리 포맷("F3")으로 업데이트
-    void UpdateInputField(float value)
+    // 설정 창을 닫을 때 호출하는 함수 (배경 클릭, X 버튼, ESC 키 입력 등)
+    public void CloseSettingsMenu()
     {
-        if (sensitivityInputField != null)
-        {
-            sensitivityInputField.text = value.ToString("F3");
-        }
+        // 변경된 모든 세팅값을 실제 디스크에 동기화 (최적화)
+        MouseSettings.SaveSettings();
+
+        // UI 비활성화 등의 연출 추가 가능
+        gameObject.SetActive(false);
     }
 }

@@ -116,7 +116,8 @@ public enum RoomGameStartResult : byte
     NOT_LEADER = 3,
     NOT_ENOUGH_PLAYERS = 4,
     ALREADY_PLAYING = 5,
-    FAILED = 6
+    FAILED = 6,
+    NOT_ALL_RETURNED_FROM_RESULT = 7
 }
 
 public enum PickPhase : byte
@@ -125,6 +126,40 @@ public enum PickPhase : byte
     PREPARE = 1,
     COMPLETE = 2
 }
+
+public enum RoundWinReason : byte
+{
+    NONE = 0,
+
+    ATTACK_ELIMINATION = 1,
+    ATTACK_SPIKE_EXPLODE = 2,
+
+    DEFENSE_ELIMINATION = 3,
+    DEFENSE_TIME_OUT = 4,
+    DEFENSE_SPIKE_DEFUSE = 5
+}
+
+public class ScoreboardMemberData
+{
+    public uint playerId;
+    public byte team;
+    public byte slotIndex;
+    public int characterId;
+    public string nickname;
+
+    public int kills;
+    public int deaths;
+    public int assists;
+}
+
+public class ScoreboardData
+{
+    public uint roomId;
+    public byte myTeam;
+    public List<ScoreboardMemberData> members = new();
+}
+
+
 public class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance;
@@ -426,14 +461,49 @@ public class NetworkManager : MonoBehaviour
             case (ushort)PacketType.PKT_SC_MATCH_RESULT:
                 HandleMatchResult(body);
                 break;
+
             case (ushort)PacketType.PKT_SC_AMMO_UPDATE:
                 HandleAmmoUpdate(body);
                 break;
+
             case (ushort)PacketType.PKT_SC_MATCH_RESULT_DETAIL:
                 HandleMatchResultDetail(body);
                 break;
+
             case (ushort)PacketType.PKT_SC_RESULT_LEAVE_DONE:
                 HandleResultLeaveDone(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SCOREBOARD_UPDATE:
+                HandleScoreboardUpdate(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROUND_TIMER:
+                HandleRoundTimer(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SPIKE_PICKUP_NOTIFY:
+                HandleSpikePickupNotify(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SPIKE_PLANTED:
+                HandleSpikePlanted(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SPIKE_DROPPED:
+                HandleSpikeDropped(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SPIKE_DEFUSE_STATE:
+                HandleSpikeDefuseState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SPIKE_DEFUSED:
+                HandleSpikeDefused(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_DIE:
+                HandleDie(body);
                 break;
 
             default:
@@ -1421,6 +1491,16 @@ public class NetworkManager : MonoBehaviour
 
         Debug.Log($"[GAME PREPARE TIMER] remaining={remainingSeconds}");
 
+        if (TopInfoUI.Instance != null)
+        {
+            TopInfoUI.Instance.SetTimer(remainingSeconds);
+
+            if (remainingSeconds == 0)
+            {
+                TopInfoUI.Instance.SetGameDescription("전투 단계");
+            }
+        }
+
         if (matchManager != null)
         {
             matchManager.OnRecvGamePrepareTimer(remainingSeconds);
@@ -1458,16 +1538,6 @@ public class NetworkManager : MonoBehaviour
         Buffer.BlockCopy(BitConverter.GetBytes(yaw), 0, buffer, offset, 4);
 
         client.Send(buffer);
-    }
-
-    private void OnApplicationQuit()
-    {
-        Debug.Log("[NETWORK] Application quit. Close client.");
-
-        if (client != null)
-        {
-            client.Close();
-        }
     }
 
     private void HandleMoveState(byte[] body)
@@ -1667,6 +1737,9 @@ public class NetworkManager : MonoBehaviour
         byte matchEnd = body[offset];
         offset += 1;
 
+        RoundWinReason winReason = (RoundWinReason)body[offset];
+        offset += 1;
+
         ushort delaySeconds = BitConverter.ToUInt16(body, offset);
         offset += 2;
 
@@ -1675,6 +1748,27 @@ public class NetworkManager : MonoBehaviour
             $"scoreA={scoreA}, scoreB={scoreB}, round={currentRound}, " +
             $"matchEnd={matchEnd}, delay={delaySeconds}"
         );
+
+        if (TopInfoUI.Instance != null)
+        {
+            TopInfoUI.Instance.StopLocalCountdown();
+            TopInfoUI.Instance.SetScoreByTeam(scoreA, scoreB);
+        }
+        else
+        {
+            Debug.LogError("[ROUND RESULT] TopInfoUI.Instance is null");
+        }
+
+        if (InGameScoreboardUI.Instance != null)
+        {
+            InGameScoreboardUI.Instance.OnRoundResult(
+                currentRound,
+                winnerTeam,
+                winReason,
+                scoreA,
+                scoreB
+            );
+        }
 
         if (matchManager != null)
         {
@@ -1715,7 +1809,7 @@ public class NetworkManager : MonoBehaviour
 
         if (TopInfoUI.Instance != null)
         {
-            TopInfoUI.Instance.SetScore(scoreA, scoreB);
+            TopInfoUI.Instance.SetScoreByTeam(scoreA, scoreB);
             TopInfoUI.Instance.SetGameDescription("구매 단계");
         }
 
@@ -1792,7 +1886,10 @@ public class NetworkManager : MonoBehaviour
     int reserveAmmo)
     {
         PlayerIdentity[] identities =
-            FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
+            FindObjectsByType<PlayerIdentity>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
 
         PlayerIdentity targetIdentity = null;
 
@@ -1814,6 +1911,8 @@ public class NetworkManager : MonoBehaviour
             return;
         }
 
+        bool isMine = playerId == MyPlayerId;
+
         MapInfo mapInfo = FindFirstObjectByType<MapInfo>();
 
         if (mapInfo == null)
@@ -1826,9 +1925,7 @@ public class NetworkManager : MonoBehaviour
 
         if (spawnPoint == null)
         {
-            Debug.LogError(
-                $"[ROUND RESET] spawnPoint not found slot={slotIndex}"
-            );
+            Debug.LogError($"[ROUND RESET] spawnPoint not found slot={slotIndex}");
             return;
         }
 
@@ -1856,10 +1953,23 @@ public class NetworkManager : MonoBehaviour
             );
         }
 
-        bool isMine = playerId == MyPlayerId;
+        PlayerDeathController death =
+            targetIdentity.GetComponent<PlayerDeathController>();
+
+        if (death != null)
+            death.OnRespawn();
+
+        PlayerMovement movement =
+            targetIdentity.GetComponent<PlayerMovement>();
+
+        PlayerCameraController cameraController =
+            targetIdentity.GetComponent<PlayerCameraController>();
 
         if (isMine)
         {
+            if (SpectatorManager.Instance != null)
+                SpectatorManager.Instance.StopSpectating();
+
             if (InGameUIManager.Instance != null)
             {
                 InGameUIManager.Instance.SetHpBarrier(
@@ -1878,19 +1988,42 @@ public class NetworkManager : MonoBehaviour
             PlayerItem item = targetIdentity.GetComponent<PlayerItem>();
 
             if (item != null)
-            {
                 item.ResetToDefault();
-            }
 
-            PlayerMovement movement = targetIdentity.GetComponent<PlayerMovement>();
             if (movement != null)
             {
                 movement.SetLocalPlayer(true);
+                movement.CanMove = true;
             }
+
+            if (cameraController != null)
+            {
+                cameraController.SetLocalPlayer(true);
+
+                if (cameraController.PlayerCamera != null)
+                {
+                    cameraController.PlayerCamera.transform.localPosition = Vector3.zero;
+                    cameraController.PlayerCamera.transform.localRotation = Quaternion.identity;
+                }
+            }
+
+            FPSCameraLook look =
+                targetIdentity.GetComponentInChildren<FPSCameraLook>(true);
+
+            if (look != null)
+                look.ResetLookRotation(spawnPoint.rotation.eulerAngles.y);
+        }
+        else
+        {
+            if (movement != null)
+                movement.SetLocalPlayer(false);
+
+            if (cameraController != null)
+                cameraController.SetLocalPlayer(false);
         }
 
         Debug.Log(
-            $"[ROUND RESET APPLY] playerId={playerId}, team=, slot={slotIndex}, pos={spawnPoint.position}"
+            $"[ROUND RESET APPLY] playerId={playerId}, team={actualTeam}, slot={slotIndex}, pos={spawnPoint.position}, isMine={isMine}"
         );
     }
 
@@ -1917,11 +2050,8 @@ public class NetworkManager : MonoBehaviour
     {
         if (Instance == this)
         {
-            if (client != null)
-            {
-                client.Close();
-            }
-
+            Debug.Log("[NETWORK] NetworkManager destroyed. Close client.");
+            client?.Close();
             Instance = null;
         }
     }
@@ -2150,5 +2280,395 @@ public class NetworkManager : MonoBehaviour
         client.Send(buffer);
 
         Debug.Log($"[SEND ROOM STATE REQUEST] roomId={roomId}");
+    }
+
+    private void OnApplicationQuit()
+    {
+        Debug.Log("[NETWORK] OnApplicationQuit");
+        client?.Close();
+    }
+
+    private void HandleScoreboardUpdate(byte[] body)
+    {
+        int offset = 0;
+
+        ScoreboardData data = new ScoreboardData();
+
+        data.roomId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        data.myTeam = body[offset];
+        offset += 1;
+
+        byte memberCount = body[offset];
+        offset += 1;
+
+        for (int i = 0; i < memberCount; i++)
+        {
+            ScoreboardMemberData member = new ScoreboardMemberData();
+
+            member.playerId = BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            member.team = body[offset];
+            offset += 1;
+
+            member.slotIndex = body[offset];
+            offset += 1;
+
+            member.characterId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+
+            member.kills = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.deaths = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.assists = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            data.members.Add(member);
+        }
+
+        if (InGameScoreboardUI.Instance != null)
+            InGameScoreboardUI.Instance.OnRecvScoreboardUpdate(data);
+    }
+
+    private void HandleRoundTimer(byte[] body)
+    {
+        int offset = 0;
+
+        ushort remainingSeconds = BitConverter.ToUInt16(body, offset);
+        offset += 2;
+
+        Debug.Log($"[ROUND TIMER] remaining={remainingSeconds}");
+
+        if (TopInfoUI.Instance != null)
+        {
+            TopInfoUI.Instance.SetGameDescription("전투 단계");
+            TopInfoUI.Instance.SetTimer(remainingSeconds);
+        }
+        else
+        {
+            Debug.LogError("[ROUND TIMER] TopInfoUI.Instance is null");
+        }
+    }
+
+    public void SendSpikePickupRequest()
+    {
+        ushort size = 4;
+        ushort type = (ushort)PacketType.PKT_CS_SPIKE_PICKUP_REQUEST;
+
+        byte[] buffer = new byte[size];
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, 0, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, 2, 2);
+
+        client.Send(buffer);
+
+        Debug.Log("[SEND] SPIKE PICKUP REQUEST");
+    }
+
+    public void SendSpikePlantComplete(Vector3 position)
+    {
+        ushort size = 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SPIKE_PLANT_COMPLETE;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4);
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND] SPIKE PLANT COMPLETE pos={position}");
+    }
+
+    private void HandleSpikePickupNotify(byte[] body)
+    {
+        int offset = 0;
+
+        uint carrierPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        byte showCarrierInfo = body[offset];
+        offset += 1;
+
+        string carrierNickname = Packet.ReadFixedString(body, offset, 20);
+        offset += 20;
+
+        Debug.Log($"[SPIKE PICKUP NOTIFY] carrier={carrierPlayerId}, show={showCarrierInfo}, nickname={carrierNickname}");
+
+        PlayerIdentity[] identities =
+            FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
+
+        foreach (PlayerIdentity identity in identities)
+        {
+            PlayerSpike ps = identity.GetComponent<PlayerSpike>();
+            if (ps == null)
+                continue;
+
+            bool hasSpike = identity.PlayerId == carrierPlayerId;
+            ps.SetHasSpikeFromServer(hasSpike);
+        }
+
+        // 핵심: 모든 클라에서 바닥 스파이크 제거
+        DroppedSpikePickup[] droppedSpikes =
+            FindObjectsByType<DroppedSpikePickup>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        foreach (DroppedSpikePickup dropped in droppedSpikes)
+        {
+            Rigidbody rb = dropped.GetComponentInParent<Rigidbody>();
+
+            if (rb != null)
+                Destroy(rb.gameObject);
+            else
+                Destroy(dropped.transform.root.gameObject);
+        }
+
+        if (TopInfoUI.Instance != null)
+        {
+            if (showCarrierInfo != 0)
+                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} 스파이크 획득");
+            else
+                TopInfoUI.Instance.SetGameDescription("스파이크 획득됨");
+        }
+    }
+    private void HandleSpikePlanted(byte[] body)
+    {
+        int offset = 0;
+
+        float x = BitConverter.ToSingle(body, offset); offset += 4;
+        float y = BitConverter.ToSingle(body, offset); offset += 4;
+        float z = BitConverter.ToSingle(body, offset); offset += 4;
+
+        Vector3 pos = new Vector3(x, y, z);
+
+        Debug.Log($"[SPIKE PLANTED] pos={pos}");
+
+        if (SpikeSpawner.Instance != null)
+            SpikeSpawner.Instance.SpawnPlanted(pos);
+
+        PlayerSpike mySpike = FindMyPlayerSpike();
+        if (mySpike != null)
+            mySpike.SetHasSpikeFromServer(false);
+
+        if (TopInfoUI.Instance != null)
+        {
+            TopInfoUI.Instance.SetGameDescription("스파이크 설치됨");
+            TopInfoUI.Instance.SetUnknownTimer();
+        }
+    }
+
+    private PlayerSpike FindMyPlayerSpike()
+    {
+        PlayerIdentity[] players = FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
+
+        foreach (PlayerIdentity identity in players)
+        {
+            if (identity.PlayerId == MyPlayerId)
+                return identity.GetComponent<PlayerSpike>();
+        }
+
+        return null;
+    }
+
+    private void HandleSpikeDropped(byte[] body)
+    {
+        int offset = 0;
+
+        float x = BitConverter.ToSingle(body, offset); offset += 4;
+        float y = BitConverter.ToSingle(body, offset); offset += 4;
+        float z = BitConverter.ToSingle(body, offset); offset += 4;
+
+        float dirX = BitConverter.ToSingle(body, offset); offset += 4;
+        float dirY = BitConverter.ToSingle(body, offset); offset += 4;
+        float dirZ = BitConverter.ToSingle(body, offset); offset += 4;
+
+        uint dropperPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        Vector3 pos = new Vector3(x, y, z);
+        Vector3 dir = new Vector3(dirX, dirY, dirZ);
+
+        if (SpikeSpawner.Instance != null)
+            SpikeSpawner.Instance.SpawnDroppedAt(pos, dir, dropperPlayerId);
+    }
+
+    private void HandleSpikeDefuseState(byte[] body)
+    {
+        int offset = 0;
+
+        byte state = body[offset];
+        offset += 1;
+
+        byte halfDefused = body[offset];
+        offset += 1;
+
+        uint defuserPlayerId = BitConverter.ToUInt32(body, offset);
+
+        Spike[] spikes = FindObjectsByType<Spike>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < spikes.Length; i++)
+        {
+            if (state == 1)
+            {
+                if (defuserPlayerId == MyPlayerId)
+                    spikes[i].StartDefuseFromServer(halfDefused != 0);
+            }
+            else if (state == 0)
+            {
+                spikes[i].CancelDefuseFromServer(halfDefused != 0);
+            }
+            else if (state == 2)
+            {
+                spikes[i].SetHalfDefusedFromServer(true);
+            }
+        }
+    }
+
+    private void HandleSpikeDefused(byte[] body)
+    {
+        int offset = 0;
+
+        uint defuserPlayerId = BitConverter.ToUInt32(body, offset);
+
+        Spike[] spikes = FindObjectsByType<Spike>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < spikes.Length; i++)
+        {
+            Destroy(spikes[i].gameObject);
+        }
+
+        if (TopInfoUI.Instance != null)
+            TopInfoUI.Instance.SetGameDescription("스파이크 해체됨");
+
+        Debug.Log($"[SPIKE DEFUSED] defuser={defuserPlayerId}");
+    }
+
+    public void SendSpikeDefuseStart()
+    {
+        SendEmptyPacket(PacketType.PKT_CS_SPIKE_DEFUSE_START);
+    }
+
+    public void SendSpikeDefuseCancel()
+    {
+        SendEmptyPacket(PacketType.PKT_CS_SPIKE_DEFUSE_CANCEL);
+    }
+
+    public void SendSpikeDefuseHalf()
+    {
+        SendEmptyPacket(PacketType.PKT_CS_SPIKE_DEFUSE_HALF);
+    }
+
+    public void SendSpikeDefuseComplete()
+    {
+        SendEmptyPacket(PacketType.PKT_CS_SPIKE_DEFUSE_COMPLETE);
+    }
+
+    private void SendEmptyPacket(PacketType packetType)
+    {
+        ushort size = 4;
+        ushort type = (ushort)packetType;
+
+        byte[] buffer = new byte[size];
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, 0, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, 2, 2);
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND] {packetType}");
+    }
+
+    private void HandleDie(byte[] body)
+    {
+        uint deadPlayerId = BitConverter.ToUInt32(body, 0);
+
+        Debug.Log($"[DIE] playerId={deadPlayerId}");
+
+        PlayerIdentity[] identities =
+            FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
+
+        foreach (PlayerIdentity identity in identities)
+        {
+            if (identity.PlayerId != deadPlayerId)
+                continue;
+
+            PlayerDeathController death =
+                identity.GetComponent<PlayerDeathController>();
+
+            if (death != null)
+                death.OnDead();
+            else
+                Debug.LogError($"[DIE] PlayerDeathController missing. object={identity.name}");
+
+            break;
+        }
+
+        if (deadPlayerId == MyPlayerId)
+        {
+            if (SpectatorManager.Instance != null)
+                SpectatorManager.Instance.StartSpectating();
+            else
+                Debug.LogError("[DIE] SpectatorManager.Instance is null");
+        }
+    }
+
+    public void SendSpikeDropRequest(Vector3 position, Vector3 direction)
+    {
+        ushort size = 4 + 4 + 4 + 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SPIKE_DROP_REQUEST;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(direction.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(direction.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(direction.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND] SPIKE DROP REQUEST pos={position}, dir={direction}");
     }
 }

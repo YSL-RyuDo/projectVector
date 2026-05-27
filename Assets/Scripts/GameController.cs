@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class GameController : MonoBehaviour
 {
@@ -7,7 +8,7 @@ public class GameController : MonoBehaviour
 
     public GameObject settingsUI;
 
-    public bool isLoading;
+    public bool isLoading = false;
 
     // 외부에서는 읽기만 가능 (get), 내부에서만 수정 가능 (private set)
     public bool IsPaused { get; private set; } = false;
@@ -18,7 +19,7 @@ public class GameController : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject); 
+            DontDestroyOnLoad(gameObject);
         }
         else
         {
@@ -28,34 +29,50 @@ public class GameController : MonoBehaviour
 
     void Start()
     {
-        // 수동 연결 대신, 다른 씬으로 넘어온 SettingsMenu의 부모 오브젝트를 자동으로 찾아서 연결합니다.
-        if (SettingsMenu.Instance != null)
-        {
-            // SettingsMenu가 붙어있는 최상위 오브젝트(Canvas)를 지정
-            settingsUI = SettingsMenu.Instance.transform.root.gameObject;
-
-            // 시작할 때는 UI를 꺼둡니다.
-            settingsUI.SetActive(false);
-        }
+        TryFindSettingsUI();
 
         isLoading = false;
     }
 
     void Update()
     {
-        if (!isLoading) return;
+        if (isLoading) return;
 
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
+            // 만약 다른 씬으로 넘어가면서 settingsUI 연결이 끊겼을 때를 대비한 안전장치
+            if (settingsUI == null)
+            {
+                TryFindSettingsUI();
+            }
+
             if (IsPaused) ResumeGame();
             else PauseGame();
+        }
+    }
+
+    // SettingsMenu 싱글톤을 찾아 UI 오브젝트를 안전하게 매핑하는 함수
+    private void TryFindSettingsUI()
+    {
+        if (SettingsMenu.Instance != null)
+        {
+            settingsUI = SettingsMenu.Instance.transform.root.gameObject;
+
+            // 처음에는 꺼둔 상태로 설정 (켜져 있다면 꺼줌)
+            if (!IsPaused && settingsUI.activeSelf)
+            {
+                settingsUI.SetActive(false);
+            }
         }
     }
 
     void PauseGame()
     {
         IsPaused = true;
-        settingsUI.SetActive(true);
+
+        if (settingsUI != null)
+            settingsUI.SetActive(true);
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
@@ -63,7 +80,16 @@ public class GameController : MonoBehaviour
     void ResumeGame()
     {
         IsPaused = false;
-        settingsUI.SetActive(false);
+
+        if (SettingsMenu.Instance != null && settingsUI != null && settingsUI.activeSelf)
+        {
+            SettingsMenu.Instance.CloseSettingsMenu();
+        }
+        else if (settingsUI != null)
+        {
+            settingsUI.SetActive(false);
+        }
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }

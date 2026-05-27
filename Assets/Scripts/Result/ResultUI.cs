@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 public enum ResultViewType
 {
@@ -22,15 +21,22 @@ public class ResultUI : MonoBehaviour
     [SerializeField] private GameObject overtimeButton;
     [SerializeField] private TMP_Text arrayButtonText;
 
-    [Header("Rows")]
+    [Header("Team Sorted Rows")]
     [SerializeField] private ResultUserRowUI[] teamARows;
     [SerializeField] private ResultUserRowUI[] teamBRows;
+
+    [Header("All KDA Sorted Rows")]
+    [SerializeField] private Transform allRowParent;
+    [SerializeField] private ResultUserRowUI blueTeamRowPrefab;
+    [SerializeField] private ResultUserRowUI redTeamRowPrefab;
 
     [Header("Character Sprites")]
     [SerializeField] private Sprite[] characterSprites;
 
     private ResultViewType currentViewType = ResultViewType.Total;
     private bool arrayByKdaOnly = false;
+
+    private readonly List<ResultUserRowUI> spawnedAllRows = new();
 
     private void Start()
     {
@@ -74,7 +80,7 @@ public class ResultUI : MonoBehaviour
         arrayByKdaOnly = !arrayByKdaOnly;
 
         if (arrayButtonText != null)
-            arrayButtonText.text = arrayByKdaOnly ? "전체 KDA 정렬" : "팀별 KDA 정렬";
+            arrayButtonText.text = arrayByKdaOnly ? "팀별 KDA 정렬" : "전체 KDA 정렬";
 
         Draw();
     }
@@ -99,7 +105,8 @@ public class ResultUI : MonoBehaviour
         if (redTeamScoreText != null)
             redTeamScoreText.text = MatchResultCache.scoreB.ToString();
 
-        ClearRows();
+        ClearTeamRows();
+        ClearSpawnedAllRows();
 
         if (arrayByKdaOnly)
             DrawAllSorted();
@@ -135,13 +142,20 @@ public class ResultUI : MonoBehaviour
         List<MatchResultMemberData> all = new(MatchResultCache.members);
         SortMembers(all);
 
-        int index = 0;
+        foreach (MatchResultMemberData data in all)
+        {
+            ResultUserRowUI prefab = data.team == 0
+                ? blueTeamRowPrefab
+                : redTeamRowPrefab;
 
-        for (int i = 0; i < teamARows.Length && index < all.Count; i++, index++)
-            ApplyRow(teamARows[i], all[index]);
+            if (prefab == null || allRowParent == null)
+                continue;
 
-        for (int i = 0; i < teamBRows.Length && index < all.Count; i++, index++)
-            ApplyRow(teamBRows[i], all[index]);
+            ResultUserRowUI row = Instantiate(prefab, allRowParent);
+            spawnedAllRows.Add(row);
+
+            ApplyRow(row, data);
+        }
     }
 
     private void ApplyRow(ResultUserRowUI row, MatchResultMemberData data)
@@ -158,19 +172,36 @@ public class ResultUI : MonoBehaviour
         row.SetData(data, currentViewType, sprite, myPlayerId);
     }
 
-    private void ClearRows()
+    private void ClearTeamRows()
     {
-        foreach (ResultUserRowUI row in teamARows)
+        if (teamARows != null)
         {
-            if (row != null)
-                row.Clear();
+            foreach (ResultUserRowUI row in teamARows)
+            {
+                if (row != null)
+                    row.Clear();
+            }
         }
 
-        foreach (ResultUserRowUI row in teamBRows)
+        if (teamBRows != null)
+        {
+            foreach (ResultUserRowUI row in teamBRows)
+            {
+                if (row != null)
+                    row.Clear();
+            }
+        }
+    }
+
+    private void ClearSpawnedAllRows()
+    {
+        foreach (ResultUserRowUI row in spawnedAllRows)
         {
             if (row != null)
-                row.Clear();
+                Destroy(row.gameObject);
         }
+
+        spawnedAllRows.Clear();
     }
 
     private void SortMembers(List<MatchResultMemberData> list)

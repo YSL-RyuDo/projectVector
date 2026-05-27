@@ -35,7 +35,6 @@ public class MatchManager : MonoBehaviour
 
     private byte myTeam = 0;
     private bool matchStarted = false;
-    private bool charactersSpawned = false;
 
     private void Awake()
     {
@@ -108,6 +107,8 @@ public class MatchManager : MonoBehaviour
         {
             topInfoUI.gameObject.SetActive(true);
 
+            topInfoUI.SetMyTeam(myTeam);
+
             topInfoUI.ApplyGameStartInfo();
             topInfoUI.ResetMatchScore();
             topInfoUI.HideRoleTextsForGame();
@@ -123,7 +124,20 @@ public class MatchManager : MonoBehaviour
             return;
         }
 
+        // 1라운드 시작 시 바닥 스파이크 생성
+        if (SpikeSpawner.Instance != null && currentMapInfo.spikeSpawnPoint != null)
+        {
+            SpikeSpawner.Instance.ResetSpike(currentMapInfo.spikeSpawnPoint);
+            Debug.Log("[MATCH MANAGER] First round dropped spike spawned.");
+        }
+
         ApplyTeamCharacterImages(data);
+
+        Camera sceneMainCamera = GameObject.Find("Main Camera")?.GetComponent<Camera>();
+
+        if (sceneMainCamera != null)
+            sceneMainCamera.gameObject.SetActive(false);
+
         SpawnCharacters(data);
 
         if (RoundManager.Instance != null)
@@ -166,10 +180,10 @@ public class MatchManager : MonoBehaviour
         }
     }
 
-    public void OnRecvScoreUpdate(byte blueScore, byte redScore)
+    public void OnRecvScoreUpdate(byte scoreA, byte scoreB)
     {
         if (topInfoUI != null)
-            topInfoUI.SetScore(blueScore, redScore);
+            topInfoUI.SetScoreByTeam(scoreA, scoreB);
     }
 
     public void OnRecvRoundResult(
@@ -182,24 +196,14 @@ public class MatchManager : MonoBehaviour
     {
         if (topInfoUI != null)
         {
-            topInfoUI.SetScore(scoreA, scoreB);
-
-            string winnerText;
+            topInfoUI.SetMyTeam(myTeam);
+            topInfoUI.SetScoreByTeam(scoreA, scoreB);
 
             if (matchEnd)
-            {
-                winnerText = winnerTeam == 0
-                    ? "블루팀 경기 승리"
-                    : "레드팀 경기 승리";
-            }
+                topInfoUI.SetMatchWinnerText(winnerTeam);
             else
-            {
-                winnerText = winnerTeam == 0
-                    ? "블루팀 라운드 승리"
-                    : "레드팀 라운드 승리";
-            }
+                topInfoUI.SetRoundWinnerText(winnerTeam);
 
-            topInfoUI.SetGameDescription(winnerText);
             topInfoUI.HideRoleTextsForGame();
             topInfoUI.StartLocalCountdown(delaySeconds);
         }
@@ -224,14 +228,15 @@ public class MatchManager : MonoBehaviour
     {
         if (topInfoUI != null)
         {
-            topInfoUI.SetScore(scoreA, scoreB);
+            topInfoUI.SetMyTeam(myTeam);
+            topInfoUI.SetScoreByTeam(scoreA, scoreB);
 
             if (currentRound >= 5)
                 topInfoUI.SetGameDescription("듀스 라운드");
             else
                 topInfoUI.SetGameDescription("구매 단계");
 
-            topInfoUI.SetCurrentRoundRole(myTeam, currentRound);
+            topInfoUI.SetCurrentRoundRole(currentRound);
         }
 
         if (RoundManager.Instance != null)
@@ -468,6 +473,14 @@ public class MatchManager : MonoBehaviour
                 {
                     Debug.LogError("[MATCH MANAGER] InGameUIManager.Instance is null");
                 }
+
+                PlayerSpike playerSpike = characterObj.GetComponent<PlayerSpike>();
+
+                if (playerSpike != null && InGameUIManager.Instance != null)
+                {
+                    playerSpike.SetSpikeSlider(InGameUIManager.Instance.SpikeSliderObject);
+                }
+
             }
             else
             {

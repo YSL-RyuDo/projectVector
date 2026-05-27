@@ -116,7 +116,7 @@ public class PlayerMovement : MonoBehaviour
             _verticalVelocity += _gravity * Time.deltaTime;
             if (_animator != null && _verticalVelocity < 0 && !_animator.GetBool("Down"))
             {
-                _animator.SetBool("Down", true);
+                //_animator.SetBool("Down", true);
             }
         }
 
@@ -126,7 +126,7 @@ public class PlayerMovement : MonoBehaviour
         if (_animator != null)
         {
             bool isMoving = input.sqrMagnitude > 0;
-            _animator.SetBool("Walk", isMoving);
+            //_animator.SetBool("Forward", isMoving);
         }
     }
 
@@ -172,17 +172,17 @@ public class PlayerMovement : MonoBehaviour
 
             // 정지 상태인지 달리는 상태인지 판단 (임계값 0.1f)
             bool isMoving = horizontalSpeed > 0.1f;
-            _animator.SetBool("Forward", isMoving);
+           // _animator.SetBool("Forward", isMoving);
 
             // 공중 상태 애니메이션 처리 (Y축 변화율 확인)
             float verticalSpeed = movementDelta.y / Time.deltaTime;
             if (verticalSpeed < -1f)
             {
-                _animator.SetBool("Down", true);
+                //_animator.SetBool("Down", true);
             }
             else if (verticalSpeed >= 0)
             {
-                _animator.SetBool("Down", false);
+                //_animator.SetBool("Down", false);
             }
         }
     }

@@ -47,8 +47,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponRecoil
   snappiness: 10
   returnSpeed: 5
-  weaponRecoilMultiplier: 0.2
-  cameraRecoilMultiplier: 0.2
+  hipWeaponRecoilMultiplier: 1
+  hipCameraRecoilMultiplier: 1
+  hipShakeMultiplier: 1
+  adsWeaponRecoilMultiplier: 0.15
+  adsCameraRecoilMultiplier: 0.75
+  adsShakeMultiplier: 0.2
 --- !u!1 &4079037153674066772
 GameObject:
   m_ObjectHideFlags: 0
@@ -92,9 +96,10 @@ GameObject:
   - component: {fileID: 2211279825742249225}
   - component: {fileID: 8531010850139576624}
   - component: {fileID: 6910272285972718600}
+  - component: {fileID: 929135158563349947}
   m_Layer: 0
   m_Name: PlayerCamera
-  m_TagString: Untagged
+  m_TagString: MainCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -218,6 +223,20 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!114 &929135158563349947
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4142911425823365623}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aff6256fbb405b145974698ba0d06159, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GeneralCameraShake
+  returnSpeed: 10
+  snapiness: 20
 --- !u!1 &7894991582291376646
 GameObject:
   m_ObjectHideFlags: 0
@@ -320,6 +339,7 @@ GameObject:
   - component: {fileID: 6008646111598099427}
   - component: {fileID: 3022143099333133632}
   - component: {fileID: 5169373442458704092}
+  - component: {fileID: 4103103688302902310}
   m_Layer: 0
   m_Name: Initiator
   m_TagString: Untagged
@@ -404,7 +424,8 @@ MonoBehaviour:
   playerItem: {fileID: 3876666842127032682}
   playerMove: {fileID: 2208983547156800768}
   dropPoint: {fileID: 7999039813103860235}
-  hasSpike: 1
+  spikeItemPrefab: {fileID: 432519131735009139, guid: b196eaf8627e9724bb4697757aef6d5f, type: 3}
+  hasSpike: 0
   plantTime: 3
   spikeSlider: {fileID: 0}
 --- !u!114 &3876666842127032682
@@ -649,6 +670,19 @@ MonoBehaviour:
   playerCamera: {fileID: 2211279825742249225}
   audioListener: {fileID: 8531010850139576624}
   cameraLook: {fileID: 1749541706190651911}
+--- !u!114 &4103103688302902310
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9177276548501388304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8aea6e31888c5d4b91a2a9a455dcb1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerDeathController
+  modelRoot: {fileID: 2394164600379191788}
 --- !u!1001 &2394164600379225610
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2694,6 +2728,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8f0565f23a2b58541a475bd3c1393052, type: 3}
+--- !u!1 &2394164600379191788 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 100326, guid: 8f0565f23a2b58541a475bd3c1393052, type: 3}
+  m_PrefabInstance: {fileID: 2394164600379225610}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2394164600379354572 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400326, guid: 8f0565f23a2b58541a475bd3c1393052, type: 3}

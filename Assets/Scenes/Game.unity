@@ -4915,6 +4915,7 @@ GameObject:
   m_Component:
   - component: {fileID: 971832603}
   - component: {fileID: 971832604}
+  - component: {fileID: 971832605}
   m_Layer: 0
   m_Name: MatchManager
   m_TagString: Untagged
@@ -4979,6 +4980,18 @@ MonoBehaviour:
   - {fileID: 50771143}
   - {fileID: 1824475332}
   gameUIs: {fileID: 2096996113}
+--- !u!114 &971832605
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971832602}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4b0b001e9ae9254abb55a9ed24e5de2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpectatorManager
 --- !u!1 &979324126
 GameObject:
   m_ObjectHideFlags: 0
@@ -5590,8 +5603,8 @@ MonoBehaviour:
   ourTeamRoleText: {fileID: 397253901}
   enemyTeamRoleText: {fileID: 275282781}
   gameDescriptionText: {fileID: 884692820}
-  blueTeamScoreText: {fileID: 617417683}
-  redTeamScoreText: {fileID: 1800963437}
+  ourTeamScoreText: {fileID: 0}
+  enemyTeamScoreText: {fileID: 0}
 --- !u!1 &1160847778
 GameObject:
   m_ObjectHideFlags: 0
@@ -7703,8 +7716,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e9239bf8c766dda46872f00bc85e6ae4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SettingsMenu
-  sensitivitySlider: {fileID: 1926058838}
-  sensitivityInputField: {fileID: 1092707546}
+  sensitivityUIList: []
 --- !u!114 &1762201920
 MonoBehaviour:
   m_ObjectHideFlags: 0

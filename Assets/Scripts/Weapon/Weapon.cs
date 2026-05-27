@@ -64,7 +64,7 @@ public class Weapon : Item
         }
         else
         {
-            Debug.LogWarning($"[WEAPON] PlayerCameraController not found. object={name}", this);
+            //Debug.LogWarning($"[WEAPON] PlayerCameraController not found. object={name}", this);
         }
 
         weaponADS = GetComponent<WeaponADS>();
@@ -86,8 +86,8 @@ public class Weapon : Item
         GameObject ammoObj = GameObject.Find("AmmoText");
         if (ammoObj != null)
             ammoText = ammoObj.GetComponent<TMP_Text>();
-        else
-            Debug.LogWarning($"[WEAPON] AmmoText object not found. object={name}", this);
+        //else
+            //Debug.LogWarning($"[WEAPON] AmmoText object not found. object={name}", this);
     }
 
     public void Initialize(WeaponData data, Transform dp, int mag, int reserve)
@@ -241,7 +241,8 @@ public class Weapon : Item
 
             recoilSystem.FireRecoil(
                 weaponData.recoilPattern[index],
-                recoilMultiplier
+                recoilMultiplier,
+                isADS
             );
         }
 
