@@ -291,35 +291,58 @@ public class PlayerItem : MonoBehaviour
 
     public void SetWeaponVisibility(bool visibility)
     {
+        if (currentIndex < 0 || currentIndex >= items.Length)
+            return;
+
+        if (items[currentIndex] == null)
+            return;
+
         if (visibility)
         {
-            // 만약 현재 인덱스가 스파이크(4번)인데, 스파이크를 더 이상 가지고 있지 않다면
-            if (currentIndex == 4 && !playerSpike.hasSpike)
+            if (currentIndex == 4 && playerSpike != null && !playerSpike.hasSpike)
             {
-                // 0번(주무기)부터 순서대로 검사해서 있는 무기를 장착
-                int fallbackIndex = -1;
-                for (int i = 0; i < items.Length; i++)
-                {
-                    if (items[i] != null && i != 4) // 스파이크 제외하고 있는 무기 찾기
-                    {
-                        fallbackIndex = i;
-                        break;
-                    }
-                }
+                int fallbackIndex = FindFirstAvailableWeaponSlotExceptSpike();
 
-                // 바꿀 무기를 찾았다면 해당 무기로 스위치
                 if (fallbackIndex != -1)
                 {
-                    Switch(fallbackIndex);
-                    return; // Switch 함수 내부에서 SetActive(true)를 해주므로 여기서 종료
+                    SwitchWeaponVisualOnlyBySlot(fallbackIndex);
+                    return;
                 }
             }
         }
 
-        if (items[currentIndex] != null)
+        items[currentIndex].gameObject.SetActive(visibility);
+    }
+
+    private int FindFirstAvailableWeaponSlotExceptSpike()
+    {
+        for (int i = 0; i < items.Length; i++)
         {
-            items[currentIndex].gameObject.SetActive(visibility);
+            if (i == 4)
+                continue;
+
+            if (items[i] != null)
+                return i;
         }
+
+        return -1;
+    }
+
+    private void SwitchWeaponVisualOnlyBySlot(int slot)
+    {
+        if (slot < 0 || slot >= items.Length)
+            return;
+
+        if (items[slot] == null)
+            return;
+
+        for (int i = 0; i < items.Length; i++)
+        {
+            if (items[i] != null)
+                items[i].gameObject.SetActive(i == slot);
+        }
+
+        currentIndex = slot;
     }
 
     public void ResetAllAmmo()
@@ -526,5 +549,64 @@ public class PlayerItem : MonoBehaviour
 
         if (currentIndex >= 0 && currentIndex < items.Length && items[currentIndex] != null)
             items[currentIndex].gameObject.SetActive(true);
+    }
+
+    public void ApplyWeaponSwitchFromServer(int weaponId)
+    {
+        // 서버 통지로 받은 무기 변경이다.
+        // 여기서는 다시 NetworkManager.SendWeaponSwitch() 보내면 안 된다.
+
+        SwitchWeaponVisualOnly(weaponId);
+
+        Debug.Log($"[PLAYER ITEM] remote weapon switch weaponId={weaponId}");
+    }
+
+    private void SwitchWeaponVisualOnly(int weaponId)
+    {
+        int foundSlot = -1;
+
+        for (int i = 0; i < items.Length; i++)
+        {
+            if (items[i] == null)
+                continue;
+
+            Weapon weapon = items[i].GetComponent<Weapon>();
+
+            if (weapon == null)
+                continue;
+
+            bool active = weapon.GetWeaponId() == weaponId;
+            items[i].gameObject.SetActive(active);
+
+            if (active)
+                foundSlot = i;
+        }
+
+        if (foundSlot != -1)
+        {
+            currentIndex = foundSlot;
+        }
+        else
+        {
+            Debug.LogWarning($"[PLAYER ITEM] weaponId not found. weaponId={weaponId}");
+        }
+    }
+
+    public void SetADSVisualFromServer(bool isADS)
+    {
+        Weapon currentWeapon = GetCurrentWeapon();
+
+        if (currentWeapon == null)
+        {
+            Debug.LogWarning("[PLAYER ITEM] ADS visual failed. currentWeapon is null");
+            return;
+        }
+
+        WeaponADS weaponADS = currentWeapon.GetComponent<WeaponADS>();
+
+        if (weaponADS != null)
+            weaponADS.SetADS(isADS);
+
+        Debug.Log($"[PLAYER ITEM] ADS visual from server isADS={isADS}");
     }
 }

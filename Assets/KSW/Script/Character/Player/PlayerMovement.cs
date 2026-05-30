@@ -16,6 +16,10 @@ public class PlayerMovement : MonoBehaviour
     // Network (Receive - 원격 플레이어 동기화용 변수)
     private Vector3 _targetPosition;
     private float _targetYaw;
+    private float _targetPitch;
+    private float lastSentPitch;
+
+    [SerializeField] private float pitchSendThreshold = 1.0f;
     [SerializeField] private float _lerpSpeed = 15f; // 원격 캐릭터 이동 부드러움 강도
 
     private CharacterController _cc;
@@ -62,11 +66,17 @@ public class PlayerMovement : MonoBehaviour
         {
             lastSentYaw = _cam.GetYaw();
             _targetYaw = _cam.GetYaw();
+
+            lastSentPitch = _cam.GetPitch();
+            _targetPitch = _cam.GetPitch();
         }
         else
         {
             lastSentYaw = transform.eulerAngles.y;
             _targetYaw = transform.eulerAngles.y;
+
+            lastSentPitch = 0f;
+            _targetPitch = 0f;
         }
     }
 
@@ -132,15 +142,13 @@ public class PlayerMovement : MonoBehaviour
 
     // 외부(NetworkManager 등 패킷 수신부)에서 호출해 줄 함수
     // 서버로부터 이 캐릭터의 최신 좌표와 방향을 받으면 목적지를 갱신
-    public void OnReceiveRemoteMove(Vector3 serverPos, float serverYaw)
+    public void OnReceiveRemoteMove(Vector3 serverPos, float serverYaw, float serverPitch)
     {
-        // 보안용: 실수로 내 캐릭터 패킷을 내가 받아서 강제 이동시키는 것 방지
         if (_isMine) return;
 
-        // 너무 멀리 떨어져 있으면 렉으로 간주하고 순간이동
         if (Vector3.Distance(transform.position, serverPos) > 5f)
         {
-            _cc.enabled = false; // 순간이동 시 CC 충돌 꼬임 방지
+            _cc.enabled = false;
             transform.position = serverPos;
             _cc.enabled = true;
             _targetPosition = serverPos;
@@ -151,6 +159,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         _targetYaw = serverYaw;
+        _targetPitch = serverPitch;
     }
 
     // 원격 플레이어(타인)를 서버 목적지 좌표로 부드럽게 이동시키고 애니메이션을 제어하는 로직
@@ -163,6 +172,18 @@ public class PlayerMovement : MonoBehaviour
         transform.position = Vector3.Lerp(transform.position, _targetPosition, Time.deltaTime * _lerpSpeed);
         transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, _targetYaw, 0), Time.deltaTime * _lerpSpeed);
         _cc.enabled = true;
+
+        if (_cam != null)
+        {
+            Transform camTransform = _cam.transform;
+            Quaternion targetCamRot = Quaternion.Euler(_targetPitch, 0f, 0f);
+
+            camTransform.localRotation = Quaternion.Lerp(
+                camTransform.localRotation,
+                targetCamRot,
+                Time.deltaTime * _lerpSpeed
+            );
+        }
 
         // 이동량 기반 원격 캐릭터 애니메이션 처리
         if (_animator != null)
@@ -227,11 +248,17 @@ public class PlayerMovement : MonoBehaviour
         {
             lastSentYaw = _cam.GetYaw();
             _targetYaw = _cam.GetYaw();
+
+            lastSentPitch = _cam.GetPitch();
+            _targetPitch = _cam.GetPitch();
         }
         else
         {
             lastSentYaw = transform.eulerAngles.y;
             _targetYaw = transform.eulerAngles.y;
+
+            lastSentPitch = 0f;
+            _targetPitch = 0f;
         }
 
         Debug.Log(
@@ -255,6 +282,13 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3 currentPos = transform.position;
         float currentYaw = transform.eulerAngles.y;
+        float currentPitch = 0f;
+
+        if (_cam != null)
+        {
+            currentYaw = _cam.GetYaw();
+            currentPitch = _cam.GetPitch();
+        }
 
         bool positionChanged =
             Vector3.Distance(currentPos, lastSentPos) >= positionSendThreshold;
@@ -262,18 +296,23 @@ public class PlayerMovement : MonoBehaviour
         bool yawChanged =
             Mathf.Abs(Mathf.DeltaAngle(currentYaw, lastSentYaw)) >= yawSendThreshold;
 
-        if (!positionChanged && !yawChanged)
+        bool pitchChanged =
+            Mathf.Abs(Mathf.DeltaAngle(currentPitch, lastSentPitch)) >= pitchSendThreshold;
+
+        if (!positionChanged && !yawChanged && !pitchChanged)
             return;
 
         lastSendTime = Time.time;
         lastSentPos = currentPos;
         lastSentYaw = currentYaw;
+        lastSentPitch = currentPitch;
 
         NetworkManager.Instance.SendMoveState(
             currentPos.x,
             currentPos.y,
             currentPos.z,
-            currentYaw
+            currentYaw,
+            currentPitch
         );
     }
 }
