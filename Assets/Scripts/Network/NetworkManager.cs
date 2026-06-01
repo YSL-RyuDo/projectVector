@@ -151,6 +151,8 @@ public class ScoreboardMemberData
     public int kills;
     public int deaths;
     public int assists;
+
+    public int credits;
 }
 
 public class ScoreboardData
@@ -2361,6 +2363,9 @@ public class NetworkManager : MonoBehaviour
             offset += 4;
 
             member.assists = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            member.credits = BitConverter.ToInt32(body, offset);
             offset += 4;
 
             data.members.Add(member);
