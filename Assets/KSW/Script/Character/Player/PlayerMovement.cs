@@ -39,6 +39,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float positionSendThreshold = 0.02f;
     [SerializeField] private float yawSendThreshold = 1.0f;
 
+    private int _currentAnimIndex = -1;
+    private bool _isCrouching = false;
 
     public float Speed
     {
@@ -106,6 +108,12 @@ public class PlayerMovement : MonoBehaviour
         Vector2 input = getInput();
         Vector3 move = transform.right * input.x + transform.forward * input.y;
 
+        if (Keyboard.current.leftCtrlKey.wasPressedThisFrame)
+        {
+            _isCrouching = !_isCrouching;
+            if (_animator != null) _animator.SetBool("Crouch", _isCrouching);
+        }
+
         if (_cc.isGrounded)
         {
             if (_verticalVelocity < -2f) _verticalVelocity = -2f;
@@ -115,33 +123,37 @@ public class PlayerMovement : MonoBehaviour
             if (Keyboard.current.spaceKey.wasPressedThisFrame)
             {
                 _verticalVelocity = _jumpPower;
+                _isCrouching = false; // 점프 시 앉기 상태 해제
 
                 OnJumpEvent?.Invoke();
 
-                if (_animator != null) _animator.SetTrigger("Jump");
+                if (_animator != null)
+                {
+                    _animator.SetBool("Crouch", false);
+                    _animator.SetTrigger("Jump");
+                }
             }
         }
         else
         {
             _verticalVelocity += _gravity * Time.deltaTime;
-            if (_animator != null && _verticalVelocity < 0 && !_animator.GetBool("Down"))
-            {
-                //_animator.SetBool("Down", true);
-            }
         }
 
         Vector3 velocity = (move.normalized * _speed) + (Vector3.up * _verticalVelocity);
         _cc.Move(velocity * Time.deltaTime);
 
+        bool isMoving = input.sqrMagnitude > 0;
+
         if (_animator != null)
         {
-            bool isMoving = input.sqrMagnitude > 0;
             _animator.SetBool("Forward", isMoving);
         }
+
+        // 로컬 플레이어 애니메이션 상태 판단 및 로그 출력
+        UpdateAnimationStateLog(isMoving, _isCrouching);
     }
 
     // 외부(NetworkManager 등 패킷 수신부)에서 호출해 줄 함수
-    // 서버로부터 이 캐릭터의 최신 좌표와 방향을 받으면 목적지를 갱신
     public void OnReceiveRemoteMove(Vector3 serverPos, float serverYaw, float serverPitch)
     {
         if (_isMine) return;
@@ -186,26 +198,56 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // 이동량 기반 원격 캐릭터 애니메이션 처리
+        Vector3 movementDelta = transform.position - prevPosition;
+        float horizontalSpeed = new Vector3(movementDelta.x, 0, movementDelta.z).magnitude / Time.deltaTime;
+
+        // 정지 상태인지 달리는 상태인지 판단 (임계값 0.1f)
+        bool isMoving = horizontalSpeed > 0.1f;
+
+        // 원격 플레이어의 앉기 상태는 동기화된 Animator 파라미터("Crouch")에서 읽어옴
+        bool isRemoteCrouching = false;
         if (_animator != null)
         {
-            Vector3 movementDelta = transform.position - prevPosition;
-            float horizontalSpeed = new Vector3(movementDelta.x, 0, movementDelta.z).magnitude / Time.deltaTime;
-
-            // 정지 상태인지 달리는 상태인지 판단 (임계값 0.1f)
-            bool isMoving = horizontalSpeed > 0.1f;
-           // _animator.SetBool("Forward", isMoving);
-
-            // 공중 상태 애니메이션 처리 (Y축 변화율 확인)
-            float verticalSpeed = movementDelta.y / Time.deltaTime;
-            if (verticalSpeed < -1f)
-            {
-                //_animator.SetBool("Down", true);
-            }
-            else if (verticalSpeed >= 0)
-            {
-                //_animator.SetBool("Down", false);
-            }
+            // _animator.SetBool("Forward", isMoving);
+            isRemoteCrouching = _animator.GetBool("Crouch");
         }
+
+        // --- 원격 플레이어 애니메이션 상태 판단 및 로그 출력 ---
+        UpdateAnimationStateLog(isMoving, isRemoteCrouching);
+    }
+
+    private void UpdateAnimationStateLog(bool isMoving, bool isCrouching)
+    {
+        int newIndex = 0; // 기본 상태: 정지 (0)
+
+        if (isCrouching)
+        {
+            newIndex = 2; // 앉기 (2)
+        }
+        else if (isMoving)
+        {
+            newIndex = 1; // 걷기 (1)
+        }
+
+        if (_currentAnimIndex != newIndex)
+        {
+            _currentAnimIndex = newIndex;
+            string stateName = _currentAnimIndex == 0 ? "정지" : (_currentAnimIndex == 1 ? "걷기" : "앉기");
+
+            Debug.Log($"[{gameObject.name}] 애니메이션 상태 변경 -> {stateName} ({_currentAnimIndex}) | IsMine: {_isMine}");
+        }
+    }
+
+    // 현재 애니메이션 인덱스 값 리턴해주는 함수
+    public int GetCurrentAnimIndex()
+    {
+        if (_currentAnimIndex == -1)
+        {
+            if (_isCrouching) return 2;
+            bool isMoving = _isMine ? (getInput().sqrMagnitude > 0) : false;
+            return isMoving ? 1 : 0;
+        }
+        return _currentAnimIndex;
     }
 
     public void SetVerticalVelocity(float force)
@@ -234,6 +276,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 _animator.SetBool("Crouch", false);
                 _animator.SetTrigger("Jump");
+                _isCrouching = false; // 점프 시 앉기 해제
             }
         }
     }
@@ -262,11 +305,11 @@ public class PlayerMovement : MonoBehaviour
         }
 
         Debug.Log(
-        $"[PLAYER MOVEMENT SET LOCAL] " +
-        $"object={gameObject.name}, " +
-        $"isMine={_isMine}, " +
-        $"playerId={_playerIdentity?.PlayerId}"
-    );
+            $"[PLAYER MOVEMENT SET LOCAL] " +
+            $"object={gameObject.name}, " +
+            $"isMine={_isMine}, " +
+            $"playerId={_playerIdentity?.PlayerId}"
+        );
     }
 
     private void TrySendMoveState()
