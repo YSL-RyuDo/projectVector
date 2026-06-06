@@ -18,8 +18,32 @@ public class SpikeSpawner : MonoBehaviour
         obj.GetComponent<Rigidbody>()?.AddForce(pos.forward * 3f, ForceMode.Impulse);
     }
 
+    private void DestroyExistingDroppedSpikes()
+    {
+        DroppedSpikePickup[] droppedSpikes =
+            FindObjectsByType<DroppedSpikePickup>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        foreach (DroppedSpikePickup dropped in droppedSpikes)
+        {
+            if (dropped == null)
+                continue;
+
+            Rigidbody rb = dropped.GetComponentInParent<Rigidbody>();
+
+            if (rb != null)
+                Destroy(rb.gameObject);
+            else
+                Destroy(dropped.gameObject);
+        }
+    }
+
     public void SpawnDroppedAt(Vector3 position, Vector3 direction, uint dropperPlayerId = 0)
     {
+        DestroyExistingDroppedSpikes();
+
         GameObject obj = Instantiate(
             DroppedSpikePrefab,
             position + Vector3.up * 0.6f,
@@ -77,6 +101,8 @@ public class SpikeSpawner : MonoBehaviour
 
     public void ResetSpike(Transform pos)
     {
+        DestroyExistingDroppedSpikes();
+
         Instantiate(DroppedSpikePrefab, pos.position, Quaternion.identity);
     }
 }

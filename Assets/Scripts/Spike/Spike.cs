@@ -22,6 +22,7 @@ public class Spike : Item
     private GameObject sliderObject;
 
     private bool halfSentToServer;
+    private bool defuseStartRequested;
 
     public static Spike PlantedSpike { get; private set; }
 
@@ -130,6 +131,14 @@ public class Spike : Item
         if (isExploded) return;
         if (playerSpike == null) return;
 
+        if (isDefusing)
+            return;
+
+        if (defuseStartRequested)
+            return;
+
+        defuseStartRequested = true;
+
         if (NetworkManager.Instance != null)
             NetworkManager.Instance.SendSpikeDefuseStart();
 
@@ -168,10 +177,11 @@ public class Spike : Item
 
     public void CancelDefuse()
     {
-        if (!isDefusing)
+        if (!isDefusing && !defuseStartRequested)
             return;
 
         isDefusing = false;
+        defuseStartRequested = false;
 
         if (NetworkManager.Instance != null)
             NetworkManager.Instance.SendSpikeDefuseCancel();
@@ -189,6 +199,7 @@ public class Spike : Item
             return;
 
         isDefusing = false;
+        defuseStartRequested = false;
 
         if (playerSpike != null)
             playerSpike.SetPlayerControl(true);
@@ -218,6 +229,8 @@ public class Spike : Item
 
     public void StartDefuseFromServer(bool halfDefused)
     {
+        defuseStartRequested = false;
+
         isDefusing = true;
         isHalfDefused = halfDefused;
 
@@ -237,6 +250,8 @@ public class Spike : Item
 
     public void CancelDefuseFromServer(bool halfDefused)
     {
+        defuseStartRequested = false;
+
         isDefusing = false;
         isHalfDefused = halfDefused;
 
@@ -252,5 +267,22 @@ public class Spike : Item
 
         if (defuseSlider != null)
             defuseSlider.value = currentDefuseTime / defuseTime;
+    }
+
+    public void ForceCancelInteraction()
+    {
+        isDefusing = false;
+        currentDefuseTime = 0f;
+
+        if (playerSpike != null)
+            playerSpike.SetPlayerControl(true);
+
+        if (sliderObject != null)
+            sliderObject.SetActive(false);
+
+        if (defuseSlider != null)
+            defuseSlider.value = 0f;
+
+        Debug.Log("[SPIKE] Force cancel interaction");
     }
 }
