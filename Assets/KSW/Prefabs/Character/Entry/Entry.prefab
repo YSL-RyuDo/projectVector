@@ -46,12 +46,13 @@ GameObject:
   - component: {fileID: 1337814468169054530}
   - component: {fileID: 3225505679923054622}
   - component: {fileID: 8686546304118897734}
-  - component: {fileID: 3339773911071748933}
   - component: {fileID: 5754477062383331201}
   - component: {fileID: 5451113489913816011}
   - component: {fileID: 5703506062973416802}
   - component: {fileID: 5686896472883070561}
   - component: {fileID: 7645956341492531068}
+  - component: {fileID: 4655964921810831032}
+  - component: {fileID: 7546390536306817338}
   m_Layer: 0
   m_Name: Entry
   m_TagString: Untagged
@@ -145,6 +146,10 @@ MonoBehaviour:
   _gravity: -20
   _jumpPower: 8
   CanMove: 1
+  _lerpSpeed: 15
+  sendInterval: 0.05
+  positionSendThreshold: 0.02
+  yawSendThreshold: 1
 --- !u!114 &1337814468169054530
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -181,6 +186,7 @@ MonoBehaviour:
   playerItem: {fileID: 8686546304118897734}
   playerMove: {fileID: 4832067478216282293}
   dropPoint: {fileID: 0}
+  spikeItemPrefab: {fileID: 0}
   hasSpike: 1
   plantTime: 3
   spikeSlider: {fileID: 0}
@@ -207,19 +213,6 @@ MonoBehaviour:
   itemLayer:
     serializedVersion: 2
     m_Bits: 1024
---- !u!114 &3339773911071748933
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7286507536929022138}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40a941ea896a2b944924090a67223e1a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerHP
-  MaxHP: 100
 --- !u!114 &5754477062383331201
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -305,6 +298,36 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterId
   id: 3
+--- !u!114 &4655964921810831032
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7286507536929022138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fea29bb7c508c244a1f805a5fd3fc4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Outline
+  outlineMode: 1
+  outlineColor: {r: 0, g: 0.12823725, b: 1, a: 1}
+  outlineWidth: 8
+  precomputeOutline: 0
+  bakeKeys: []
+  bakeValues: []
+--- !u!114 &7546390536306817338
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7286507536929022138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae133f9412295944fb3c9c711649aac5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerOutline
 --- !u!1 &7740857516947110529
 GameObject:
   m_ObjectHideFlags: 0
@@ -353,8 +376,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponRecoil
   snappiness: 10
   returnSpeed: 5
-  weaponRecoilMultiplier: 0.2
-  cameraRecoilMultiplier: 0.2
+  hipWeaponRecoilMultiplier: 1
+  hipCameraRecoilMultiplier: 1
+  hipShakeMultiplier: 1
+  adsWeaponRecoilMultiplier: 0.15
+  adsCameraRecoilMultiplier: 0.75
+  adsShakeMultiplier: 0.2
 --- !u!114 &2696049793722714343
 MonoBehaviour:
   m_ObjectHideFlags: 0

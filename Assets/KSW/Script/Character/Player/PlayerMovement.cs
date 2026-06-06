@@ -136,7 +136,7 @@ public class PlayerMovement : MonoBehaviour
         if (_animator != null)
         {
             bool isMoving = input.sqrMagnitude > 0;
-            //_animator.SetBool("Forward", isMoving);
+            _animator.SetBool("Forward", isMoving);
         }
     }
 

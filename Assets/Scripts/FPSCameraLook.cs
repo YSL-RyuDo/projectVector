@@ -49,8 +49,8 @@ public class FPSCameraLook : MonoBehaviour
 
         if (ui != null && playerRoot != null)
         {
-            ui.RegisterLocalPlayerCamera(this);
-            ui.RegisterPlayer(playerRoot.gameObject);
+            //ui.RegisterLocalPlayerCamera(this);
+            //ui.RegisterPlayer(playerRoot.gameObject);
         }
 
         Debug.Log(

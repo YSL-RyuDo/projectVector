@@ -134,8 +134,8 @@ public class InitiatorSkill_C : CharacterSkill
         forward.y = 0;
         forward.Normalize();
 
-        float targetHeight = 1.3f;   // 지면으로부터 1.3m 높이
-        float targetForward = 0.9f;  // 캐릭터 정면으로부터 0.9m 앞
+        float targetHeight = 2.0f;
+        float targetForward = 1.8f;
 
         return transform.position + (Vector3.up * targetHeight) + (forward * targetForward);
     }

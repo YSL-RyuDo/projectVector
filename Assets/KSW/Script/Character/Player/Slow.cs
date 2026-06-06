@@ -12,7 +12,7 @@ public class Slow : MonoBehaviour
 
     [SerializeField] private Color _slowColor = Color.green;
 
-    private void Awake()
+    void Awake()
     {
         _animator = GetComponent<Animator>();
         _renderer = GetComponentInChildren<Renderer>();

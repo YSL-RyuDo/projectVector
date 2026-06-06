@@ -23,6 +23,9 @@ public class PlayerItem : MonoBehaviour
 
     private PlayerIdentity _playerIdentity;
 
+    public Item[] Items => items;
+    public int CurrentIndex => currentIndex;
+
     private void Start()
     {
         playerSpike = GetComponent<PlayerSpike>();

@@ -48,8 +48,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponRecoil
   snappiness: 10
   returnSpeed: 5
-  weaponRecoilMultiplier: 0.2
-  cameraRecoilMultiplier: 0.2
+  hipWeaponRecoilMultiplier: 1
+  hipCameraRecoilMultiplier: 1
+  hipShakeMultiplier: 1
+  adsWeaponRecoilMultiplier: 0.15
+  adsCameraRecoilMultiplier: 0.75
+  adsShakeMultiplier: 0.2
 --- !u!114 &201068421418006838
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -299,7 +303,6 @@ GameObject:
   - component: {fileID: 1671254314366744237}
   - component: {fileID: 3165811004819219101}
   - component: {fileID: 3876666842127032682}
-  - component: {fileID: 9082266197653193063}
   - component: {fileID: 1275202334242850848}
   - component: {fileID: 5148223354640960863}
   - component: {fileID: 6644194911831367189}
@@ -307,6 +310,8 @@ GameObject:
   - component: {fileID: 7571627229527556630}
   - component: {fileID: 6008646111598099427}
   - component: {fileID: 3022143099333133632}
+  - component: {fileID: 3676297815918090915}
+  - component: {fileID: 5211874590150356183}
   m_Layer: 0
   m_Name: Initiator
   m_TagString: Player
@@ -399,6 +404,10 @@ MonoBehaviour:
   _gravity: -20
   _jumpPower: 8
   CanMove: 1
+  _lerpSpeed: 15
+  sendInterval: 0.05
+  positionSendThreshold: 0.02
+  yawSendThreshold: 1
 --- !u!114 &1671254314366744237
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -435,6 +444,7 @@ MonoBehaviour:
   playerItem: {fileID: 3876666842127032682}
   playerMove: {fileID: 2208983547156800768}
   dropPoint: {fileID: 7999039813103860235}
+  spikeItemPrefab: {fileID: 0}
   hasSpike: 1
   plantTime: 3
   spikeSlider: {fileID: 0}
@@ -461,19 +471,6 @@ MonoBehaviour:
   itemLayer:
     serializedVersion: 2
     m_Bits: 1024
---- !u!114 &9082266197653193063
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9177276548501388304}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40a941ea896a2b944924090a67223e1a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerHP
-  MaxHP: 100
 --- !u!114 &1275202334242850848
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -678,6 +675,36 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterId
   id: 0
+--- !u!114 &3676297815918090915
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9177276548501388304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fea29bb7c508c244a1f805a5fd3fc4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Outline
+  outlineMode: 1
+  outlineColor: {r: 1, g: 0, b: 0, a: 1}
+  outlineWidth: 8
+  precomputeOutline: 0
+  bakeKeys: []
+  bakeValues: []
+--- !u!114 &5211874590150356183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9177276548501388304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae133f9412295944fb3c9c711649aac5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerOutline
 --- !u!1001 &2394164600379225610
 PrefabInstance:
   m_ObjectHideFlags: 0
