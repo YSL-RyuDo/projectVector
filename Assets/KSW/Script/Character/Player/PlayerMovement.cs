@@ -35,6 +35,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float positionSendThreshold = 0.02f;
     [SerializeField] private float yawSendThreshold = 1.0f;
 
+    private int _currentAnimIndex = -1;
+    private bool _isCrouching = false;
 
     public float Speed
     {
@@ -96,6 +98,12 @@ public class PlayerMovement : MonoBehaviour
         Vector2 input = getInput();
         Vector3 move = transform.right * input.x + transform.forward * input.y;
 
+        if (Keyboard.current.leftCtrlKey.wasPressedThisFrame)
+        {
+            _isCrouching = !_isCrouching;
+            if (_animator != null) _animator.SetBool("Crouch", _isCrouching);
+        }
+
         if (_cc.isGrounded)
         {
             if (_verticalVelocity < -2f) _verticalVelocity = -2f;
@@ -105,42 +113,43 @@ public class PlayerMovement : MonoBehaviour
             if (Keyboard.current.spaceKey.wasPressedThisFrame)
             {
                 _verticalVelocity = _jumpPower;
+                _isCrouching = false; // 점프 시 앉기 해제
 
                 OnJumpEvent?.Invoke();
 
-                if (_animator != null) _animator.SetTrigger("Jump");
+                if (_animator != null)
+                {
+                    _animator.SetBool("Crouch", false);
+                    _animator.SetTrigger("Jump");
+                }
             }
         }
         else
         {
             _verticalVelocity += _gravity * Time.deltaTime;
-            if (_animator != null && _verticalVelocity < 0 && !_animator.GetBool("Down"))
-            {
-                //_animator.SetBool("Down", true);
-            }
         }
 
         Vector3 velocity = (move.normalized * _speed) + (Vector3.up * _verticalVelocity);
         _cc.Move(velocity * Time.deltaTime);
 
+        bool isMoving = input.sqrMagnitude > 0;
+
         if (_animator != null)
         {
-            bool isMoving = input.sqrMagnitude > 0;
             _animator.SetBool("Forward", isMoving);
         }
+
+        UpdateAnimationStateLog(isMoving, _isCrouching);
     }
 
     // 외부(NetworkManager 등 패킷 수신부)에서 호출해 줄 함수
-    // 서버로부터 이 캐릭터의 최신 좌표와 방향을 받으면 목적지를 갱신
     public void OnReceiveRemoteMove(Vector3 serverPos, float serverYaw)
     {
-        // 보안용: 실수로 내 캐릭터 패킷을 내가 받아서 강제 이동시키는 것 방지
         if (_isMine) return;
 
-        // 너무 멀리 떨어져 있으면 렉으로 간주하고 순간이동
         if (Vector3.Distance(transform.position, serverPos) > 5f)
         {
-            _cc.enabled = false; // 순간이동 시 CC 충돌 꼬임 방지
+            _cc.enabled = false;
             transform.position = serverPos;
             _cc.enabled = true;
             _targetPosition = serverPos;
@@ -153,10 +162,8 @@ public class PlayerMovement : MonoBehaviour
         _targetYaw = serverYaw;
     }
 
-    // 원격 플레이어(타인)를 서버 목적지 좌표로 부드럽게 이동시키고 애니메이션을 제어하는 로직
     private void SyncRemotePlayerMovement()
     {
-        // 위치 및 회전 보간(Lerp) 처리
         Vector3 prevPosition = transform.position;
 
         _cc.enabled = false;
@@ -165,25 +172,42 @@ public class PlayerMovement : MonoBehaviour
         _cc.enabled = true;
 
         // 이동량 기반 원격 캐릭터 애니메이션 처리
+        Vector3 movementDelta = transform.position - prevPosition;
+        float horizontalSpeed = new Vector3(movementDelta.x, 0, movementDelta.z).magnitude / Time.deltaTime;
+
+        // 정지 상태인지 달리는 상태인지 판단 (임계값 0.1f)
+        bool isMoving = horizontalSpeed > 0.1f;
+
+        bool isRemoteCrouching = false;
         if (_animator != null)
         {
-            Vector3 movementDelta = transform.position - prevPosition;
-            float horizontalSpeed = new Vector3(movementDelta.x, 0, movementDelta.z).magnitude / Time.deltaTime;
+            // _animator.SetBool("Forward", isMoving);
+            isRemoteCrouching = _animator.GetBool("Crouch");
+        }
 
-            // 정지 상태인지 달리는 상태인지 판단 (임계값 0.1f)
-            bool isMoving = horizontalSpeed > 0.1f;
-           // _animator.SetBool("Forward", isMoving);
+        UpdateAnimationStateLog(isMoving, isRemoteCrouching);
+    }
 
-            // 공중 상태 애니메이션 처리 (Y축 변화율 확인)
-            float verticalSpeed = movementDelta.y / Time.deltaTime;
-            if (verticalSpeed < -1f)
-            {
-                //_animator.SetBool("Down", true);
-            }
-            else if (verticalSpeed >= 0)
-            {
-                //_animator.SetBool("Down", false);
-            }
+    private void UpdateAnimationStateLog(bool isMoving, bool isCrouching)
+    {
+        int newIndex = 0; // 기본값 정지 (0)
+
+        if (isCrouching)
+        {
+            newIndex = 2; // 앉기 (2)
+        }
+        else if (isMoving)
+        {
+            newIndex = 1; // 걷기 (1)
+        }
+
+        // 상태가 변경되었을 때만 Debug.Log 출력
+        if (_currentAnimIndex != newIndex)
+        {
+            _currentAnimIndex = newIndex;
+            string stateName = _currentAnimIndex == 0 ? "정지" : (_currentAnimIndex == 1 ? "걷기" : "앉기");
+
+            Debug.Log($"[{gameObject.name}] 애니메이션 상태 변경 -> {stateName} ({_currentAnimIndex}) | IsMine: {_isMine}");
         }
     }
 
@@ -213,6 +237,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 _animator.SetBool("Crouch", false);
                 _animator.SetTrigger("Jump");
+                _isCrouching = false; // 점프 시 앉기 상태 해제
             }
         }
     }
@@ -220,7 +245,6 @@ public class PlayerMovement : MonoBehaviour
     public void SetLocalPlayer(bool isMine)
     {
         _isMine = isMine;
-
         _cam = GetComponentInChildren<FPSCameraLook>(true);
 
         if (_cam != null)
@@ -235,35 +259,26 @@ public class PlayerMovement : MonoBehaviour
         }
 
         Debug.Log(
-        $"[PLAYER MOVEMENT SET LOCAL] " +
-        $"object={gameObject.name}, " +
-        $"isMine={_isMine}, " +
-        $"playerId={_playerIdentity?.PlayerId}"
-    );
+            $"[PLAYER MOVEMENT SET LOCAL] " +
+            $"object={gameObject.name}, " +
+            $"isMine={_isMine}, " +
+            $"playerId={_playerIdentity?.PlayerId}"
+        );
     }
 
     private void TrySendMoveState()
     {
-        if (!_isMine)
-            return;
-
-        if (NetworkManager.Instance == null)
-            return;
-
-        if (Time.time - lastSendTime < sendInterval)
-            return;
+        if (!_isMine) return;
+        if (NetworkManager.Instance == null) return;
+        if (Time.time - lastSendTime < sendInterval) return;
 
         Vector3 currentPos = transform.position;
         float currentYaw = transform.eulerAngles.y;
 
-        bool positionChanged =
-            Vector3.Distance(currentPos, lastSentPos) >= positionSendThreshold;
+        bool positionChanged = Vector3.Distance(currentPos, lastSentPos) >= positionSendThreshold;
+        bool yawChanged = Mathf.Abs(Mathf.DeltaAngle(currentYaw, lastSentYaw)) >= yawSendThreshold;
 
-        bool yawChanged =
-            Mathf.Abs(Mathf.DeltaAngle(currentYaw, lastSentYaw)) >= yawSendThreshold;
-
-        if (!positionChanged && !yawChanged)
-            return;
+        if (!positionChanged && !yawChanged) return;
 
         lastSendTime = Time.time;
         lastSentPos = currentPos;
