@@ -15,6 +15,18 @@ public class PickCharacterButtonUI : MonoBehaviour
     private int characterId;
     private Action<int> onClick;
 
+    public bool IsPickActive { get; private set; }
+
+    private void OnEnable()
+    {
+        IsPickActive = true;
+    }
+
+    private void OnDisable()
+    {
+        IsPickActive = false;
+    }
+
     public void Init(PickCharacterData data, Action<int> callback)
     {
         characterId = data.characterId;
@@ -32,6 +44,14 @@ public class PickCharacterButtonUI : MonoBehaviour
             button.onClick.AddListener(() =>
             {
                 onClick?.Invoke(characterId);
+
+                // KSW : Pick 했을 때 인사 or 동작 실행
+                LobbyCharacterAnimation spawnedAni = FindFirstObjectByType<LobbyCharacterAnimation>();
+
+                if (spawnedAni != null)
+                {
+                    spawnedAni.PlayGreeting();
+                }
             });
         }
 

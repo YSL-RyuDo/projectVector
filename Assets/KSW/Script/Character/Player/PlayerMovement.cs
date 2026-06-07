@@ -238,18 +238,6 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    // 현재 애니메이션 인덱스 값 리턴해주는 함수
-    public int GetCurrentAnimIndex()
-    {
-        if (_currentAnimIndex == -1)
-        {
-            if (_isCrouching) return 2;
-            bool isMoving = _isMine ? (getInput().sqrMagnitude > 0) : false;
-            return isMoving ? 1 : 0;
-        }
-        return _currentAnimIndex;
-    }
-
     public void SetVerticalVelocity(float force)
     {
         _verticalVelocity = force;

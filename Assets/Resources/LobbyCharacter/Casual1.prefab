@@ -1944,7 +1944,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5853607669530328438}
-  - component: {fileID: 4572303196238659210}
+  - component: {fileID: 8391982533541227728}
+  - component: {fileID: 6277453247696532123}
   m_Layer: 0
   m_Name: Casual1
   m_TagString: Untagged
@@ -1971,7 +1972,7 @@ Transform:
   - {fileID: 5974912729475057824}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!95 &4572303196238659210
+--- !u!95 &8391982533541227728
 Animator:
   serializedVersion: 7
   m_ObjectHideFlags: 0
@@ -1980,9 +1981,9 @@ Animator:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7401587327423938050}
   m_Enabled: 1
-  m_Avatar: {fileID: 9000000, guid: 7e0043553097dc34e867f52b292bb164, type: 3}
-  m_Controller: {fileID: 9100000, guid: f198b02e0e99f8d458e8beaa4c101d65, type: 2}
-  m_CullingMode: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: bc151aa5f62a91f468dd1b6c31dd520d, type: 2}
+  m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
@@ -1993,6 +1994,18 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &6277453247696532123
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7401587327423938050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5bd45047c38f90f4fbeb2edad297c7cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
 --- !u!1 &7549456046523007317
 GameObject:
   m_ObjectHideFlags: 0
