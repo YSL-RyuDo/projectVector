@@ -42,6 +42,9 @@ public class PlayerMovement : MonoBehaviour
     private int _currentAnimIndex = -1;
     private bool _isCrouching = false;
 
+    private byte _targetAnimIndex = 0;
+    private byte lastSentAnimIndex = 255;
+
     public float Speed
     {
         get => _speed;
@@ -154,9 +157,14 @@ public class PlayerMovement : MonoBehaviour
     }
 
     // 외부(NetworkManager 등 패킷 수신부)에서 호출해 줄 함수
-    public void OnReceiveRemoteMove(Vector3 serverPos, float serverYaw, float serverPitch)
+    public void OnReceiveRemoteMove(
+    Vector3 serverPos,
+    float serverYaw,
+    float serverPitch,
+    byte serverAnimIndex)
     {
-        if (_isMine) return;
+        if (_isMine)
+            return;
 
         if (Vector3.Distance(transform.position, serverPos) > 5f)
         {
@@ -172,6 +180,43 @@ public class PlayerMovement : MonoBehaviour
 
         _targetYaw = serverYaw;
         _targetPitch = serverPitch;
+
+        _targetAnimIndex = serverAnimIndex;
+        ApplyAnimationIndexFromServer(_targetAnimIndex);
+    }
+
+    private void ApplyAnimationIndexFromServer(byte animIndex)
+    {
+        _currentAnimIndex = animIndex;
+
+        if (_animator == null)
+            return;
+
+        switch (animIndex)
+        {
+            // 0 = 정지
+            case 0:
+                _animator.SetBool("Forward", false);
+                _animator.SetBool("Crouch", false);
+                break;
+
+            // 1 = 걷기
+            case 1:
+                _animator.SetBool("Forward", true);
+                _animator.SetBool("Crouch", false);
+                break;
+
+            // 2 = 앉기
+            case 2:
+                _animator.SetBool("Forward", false);
+                _animator.SetBool("Crouch", true);
+                break;
+
+            default:
+                _animator.SetBool("Forward", false);
+                _animator.SetBool("Crouch", false);
+                break;
+        }
     }
 
     // 원격 플레이어(타인)를 서버 목적지 좌표로 부드럽게 이동시키고 애니메이션을 제어하는 로직
@@ -197,23 +242,7 @@ public class PlayerMovement : MonoBehaviour
             );
         }
 
-        // 이동량 기반 원격 캐릭터 애니메이션 처리
-        Vector3 movementDelta = transform.position - prevPosition;
-        float horizontalSpeed = new Vector3(movementDelta.x, 0, movementDelta.z).magnitude / Time.deltaTime;
-
-        // 정지 상태인지 달리는 상태인지 판단 (임계값 0.1f)
-        bool isMoving = horizontalSpeed > 0.1f;
-
-        // 원격 플레이어의 앉기 상태는 동기화된 Animator 파라미터("Crouch")에서 읽어옴
-        bool isRemoteCrouching = false;
-        if (_animator != null)
-        {
-            // _animator.SetBool("Forward", isMoving);
-            isRemoteCrouching = _animator.GetBool("Crouch");
-        }
-
-        // --- 원격 플레이어 애니메이션 상태 판단 및 로그 출력 ---
-        UpdateAnimationStateLog(isMoving, isRemoteCrouching);
+        ApplyAnimationIndexFromServer(_targetAnimIndex);
     }
 
     private void UpdateAnimationStateLog(bool isMoving, bool isCrouching)
@@ -236,6 +265,25 @@ public class PlayerMovement : MonoBehaviour
 
             Debug.Log($"[{gameObject.name}] 애니메이션 상태 변경 -> {stateName} ({_currentAnimIndex}) | IsMine: {_isMine}");
         }
+    }
+
+    public int GetCurrentAnimIndex()
+    {
+        if (_currentAnimIndex != -1)
+            return _currentAnimIndex;
+
+        if (_isCrouching)
+            return 2;
+
+        if (_isMine)
+        {
+            Vector2 input = getInput();
+
+            if (input.sqrMagnitude > 0f)
+                return 1;
+        }
+
+        return 0;
     }
 
     public void SetVerticalVelocity(float force)
@@ -321,6 +369,8 @@ public class PlayerMovement : MonoBehaviour
             currentPitch = _cam.GetPitch();
         }
 
+        byte currentAnimIndex = (byte)GetCurrentAnimIndex();
+
         bool positionChanged =
             Vector3.Distance(currentPos, lastSentPos) >= positionSendThreshold;
 
@@ -330,20 +380,25 @@ public class PlayerMovement : MonoBehaviour
         bool pitchChanged =
             Mathf.Abs(Mathf.DeltaAngle(currentPitch, lastSentPitch)) >= pitchSendThreshold;
 
-        if (!positionChanged && !yawChanged && !pitchChanged)
+        bool animChanged =
+            currentAnimIndex != lastSentAnimIndex;
+
+        if (!positionChanged && !yawChanged && !pitchChanged && !animChanged)
             return;
 
         lastSendTime = Time.time;
         lastSentPos = currentPos;
         lastSentYaw = currentYaw;
         lastSentPitch = currentPitch;
+        lastSentAnimIndex = currentAnimIndex;
 
         NetworkManager.Instance.SendMoveState(
             currentPos.x,
             currentPos.y,
             currentPos.z,
             currentYaw,
-            currentPitch
+            currentPitch,
+            currentAnimIndex
         );
     }
 }

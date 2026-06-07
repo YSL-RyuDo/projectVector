@@ -3,6 +3,7 @@ using UnityEngine;
 public class RoundManager : MonoBehaviour
 {
     public static RoundManager Instance;
+    public bool IsBuyPhase { get; private set; }
 
     public enum RoundState
     {
@@ -48,21 +49,26 @@ public class RoundManager : MonoBehaviour
     public void OnServerPrepareStarted()
     {
         currentState = RoundState.Preparation;
+        IsBuyPhase = true;
 
         if (currentMapInfo != null)
             currentMapInfo.SetBarriersActive(true);
 
-        Debug.Log("[ROUND] Server prepare started.");
+        Debug.Log("[ROUND] Server prepare started. Buy phase enabled.");
     }
 
     public void OnServerPrepareFinished()
     {
         currentState = RoundState.MainRound;
+        IsBuyPhase = false;
+
+        if (StorePanelUI.Instance != null)
+            StorePanelUI.Instance.Close();
 
         if (currentMapInfo != null)
             currentMapInfo.SetBarriersActive(false);
 
-        Debug.Log("[ROUND] Server prepare finished. Main round start.");
+        Debug.Log("[ROUND] Server prepare finished. Buy phase disabled. Main round start.");
     }
 
     public void OnSpikePlanted()
@@ -71,6 +77,10 @@ public class RoundManager : MonoBehaviour
             return;
 
         currentState = RoundState.SpikePlanted;
+        IsBuyPhase = false;
+
+        if (StorePanelUI.Instance != null)
+            StorePanelUI.Instance.Close();
 
         Debug.Log("[ROUND] Spike planted.");
     }
@@ -90,6 +100,10 @@ public class RoundManager : MonoBehaviour
     public void OnServerRoundEnd(bool attackWin)
     {
         currentState = RoundState.RoundEnd;
+        IsBuyPhase = false;
+
+        if (StorePanelUI.Instance != null)
+            StorePanelUI.Instance.Close();
 
         if (currentMapInfo != null)
             currentMapInfo.SetBarriersActive(true);
@@ -104,6 +118,10 @@ public class RoundManager : MonoBehaviour
     public void OnServerGameOver(bool attackWin)
     {
         currentState = RoundState.GameOver;
+        IsBuyPhase = false;
+
+        if (StorePanelUI.Instance != null)
+            StorePanelUI.Instance.Close();
 
         Debug.Log(attackWin
             ? "[ROUND] Attack game win."
@@ -206,6 +224,10 @@ public class RoundManager : MonoBehaviour
     ushort delaySeconds)
     {
         currentState = RoundState.RoundEnd;
+        IsBuyPhase = false;
+
+        if (StorePanelUI.Instance != null)
+            StorePanelUI.Instance.Close();
 
         if (currentMapInfo != null)
             currentMapInfo.SetBarriersActive(true);
@@ -222,12 +244,13 @@ public class RoundManager : MonoBehaviour
     public void OnServerRoundReset(byte currentRound, byte scoreA, byte scoreB)
     {
         currentState = RoundState.Preparation;
+        IsBuyPhase = true;
 
         if (currentMapInfo != null)
             currentMapInfo.SetBarriersActive(true);
 
         Debug.Log(
-            $"[ROUND RESET] round={currentRound}, score={scoreA}:{scoreB}"
+            $"[ROUND RESET] round={currentRound}, score={scoreA}:{scoreB}, buyPhase={IsBuyPhase}"
         );
 
         CleanUpDroppedItems();

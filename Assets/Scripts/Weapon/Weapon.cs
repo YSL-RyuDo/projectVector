@@ -260,7 +260,6 @@ public class Weapon : Item
         switch (weaponData.weaponType)
         {
             // 즉시 판정 무기
-            case WeaponData.WeaponType.Pistol:
             case WeaponData.WeaponType.SR:
                 FireHitscan();
                 break;
@@ -269,6 +268,7 @@ public class Weapon : Item
             case WeaponData.WeaponType.AR:
             case WeaponData.WeaponType.SMG:
             case WeaponData.WeaponType.LMG:
+            case WeaponData.WeaponType.Pistol:
                 FireProjectile();
                 break;
 

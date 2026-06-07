@@ -9,6 +9,7 @@ public class Bullet : MonoBehaviour
     private byte ownerTeam;
 
     private float maxDistance;
+    private float bulletSpeed;
     private Vector3 startPos;
     private Vector3 direction;
 
@@ -23,15 +24,16 @@ public class Bullet : MonoBehaviour
         float range,
         float speed,
         Vector3 dir,
-        bool sendHitFromThisBullet
-    )
+        bool sendHitFromThisBullet)
     {
         ownerIdentity = owner;
         ownerPlayerId = owner != null ? (int)owner.PlayerId : -1;
         ownerTeam = owner != null ? owner.Team : (byte)255;
 
         maxDistance = range;
+        bulletSpeed = speed;
         direction = dir.normalized;
+
         canSendHit = sendHitFromThisBullet;
         hitSent = false;
 
@@ -40,10 +42,28 @@ public class Bullet : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         bulletCollider = GetComponent<Collider>();
 
-        if (rb != null)
+        if (bulletCollider == null)
         {
-            rb.linearVelocity = direction * speed;
+            Debug.LogError("[BULLET] Collider missing.", this);
+            Destroy(gameObject);
+            return;
         }
+
+        if (rb == null)
+        {
+            Debug.LogError("[BULLET] Rigidbody missing.", this);
+            Destroy(gameObject);
+            return;
+        }
+
+        rb.useGravity = false;
+        rb.isKinematic = false;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+
+        IgnoreOwnerColliders();
+
+        rb.linearVelocity = direction * bulletSpeed;
     }
 
     private void Update()
@@ -68,12 +88,9 @@ public class Bullet : MonoBehaviour
             return;
         }
 
-        ContactPoint contact = collision.contacts.Length > 0
-            ? collision.contacts[0]
-            : default;
-
         if (collision.contacts.Length > 0)
         {
+            ContactPoint contact = collision.contacts[0];
             SpawnBulletHole(contact.point, contact.normal);
         }
 
@@ -86,20 +103,25 @@ public class Bullet : MonoBehaviour
             return;
 
         // 자기 자신은 무시
-        if (ownerIdentity != null && targetIdentity.PlayerId == ownerIdentity.PlayerId)
+        if (ownerIdentity != null &&
+            targetIdentity.PlayerId == ownerIdentity.PlayerId)
         {
             IgnoreThisCollision(collision.collider);
+            RestoreVelocity();
             return;
         }
 
-        // 같은 팀이면 지나가게 처리
-        if (ownerIdentity != null && targetIdentity.Team == ownerTeam)
+        // 같은 팀은 클라에서 관통 처리
+        // 서버에도 아군 사격 방어가 있으므로 이중 방어 구조
+        if (ownerIdentity != null &&
+            targetIdentity.Team == ownerTeam)
         {
             Debug.Log(
                 $"[BULLET] Friendly ignored. owner={ownerPlayerId}, target={targetIdentity.PlayerId}"
             );
 
             IgnoreThisCollision(collision.collider);
+            RestoreVelocity();
             return;
         }
 
@@ -119,8 +141,7 @@ public class Bullet : MonoBehaviour
             if (NetworkManager.Instance != null)
             {
                 Debug.Log(
-                    $"[BULLET HIT SEND] targetPlayerId={targetIdentity.PlayerId}, " +
-                    $"owner={ownerPlayerId}"
+                    $"[BULLET HIT SEND] targetPlayerId={targetIdentity.PlayerId}, owner={ownerPlayerId}"
                 );
 
                 NetworkManager.Instance.SendHit(targetIdentity.PlayerId);
@@ -130,12 +151,40 @@ public class Bullet : MonoBehaviour
         Destroy(gameObject);
     }
 
+    private void IgnoreOwnerColliders()
+    {
+        if (ownerIdentity == null || bulletCollider == null)
+            return;
+
+        Collider[] ownerColliders =
+            ownerIdentity.GetComponentsInChildren<Collider>(true);
+
+        foreach (Collider col in ownerColliders)
+        {
+            if (col == null)
+                continue;
+
+            if (col == bulletCollider)
+                continue;
+
+            Physics.IgnoreCollision(bulletCollider, col, true);
+        }
+    }
+
     private void IgnoreThisCollision(Collider other)
     {
-        if (bulletCollider != null && other != null)
-        {
-            Physics.IgnoreCollision(bulletCollider, other, true);
-        }
+        if (bulletCollider == null || other == null)
+            return;
+
+        Physics.IgnoreCollision(bulletCollider, other, true);
+    }
+
+    private void RestoreVelocity()
+    {
+        if (rb == null)
+            return;
+
+        rb.linearVelocity = direction * bulletSpeed;
     }
 
     private void SpawnBulletHole(Vector3 point, Vector3 normal)

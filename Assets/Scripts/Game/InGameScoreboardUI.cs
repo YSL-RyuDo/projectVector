@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class InGameScoreboardUI : MonoBehaviour
 {
@@ -20,23 +21,27 @@ public class InGameScoreboardUI : MonoBehaviour
     private ScoreboardData currentData;
     private byte myTeam;
     private bool roundHistoryInitialized = false;
+
+    private bool isScoreboardOpen = false;
+
     private void Awake()
     {
         Instance = this;
 
         if (rootPanel == null)
         {
-            Debug.LogError("[SCOREBOARD] Root Panel is null. KDATable 아래에 ScoreboardRoot를 만들고 연결하세요.");
+            Debug.LogError("[SCOREBOARD] Root Panel is null.");
             return;
         }
 
         if (rootPanel == gameObject)
         {
-            Debug.LogError("[SCOREBOARD] Root Panel에 KDATable 자기 자신을 넣으면 안 됩니다. ScoreboardRoot를 넣으세요.");
+            Debug.LogError("[SCOREBOARD] Root Panel에 자기 자신을 넣으면 안 됩니다.");
             return;
         }
 
         rootPanel.SetActive(false);
+        isScoreboardOpen = false;
     }
 
     private void OnDestroy()
@@ -50,18 +55,56 @@ public class InGameScoreboardUI : MonoBehaviour
         if (rootPanel == null)
             return;
 
-        if (Input.GetKeyDown(KeyCode.Tab))
-        {
-            Debug.Log("[SCOREBOARD] TAB DOWN");
-            rootPanel.SetActive(true);
-            Draw();
-        }
+        bool tabPressed = IsTabPressed();
 
-        if (Input.GetKeyUp(KeyCode.Tab))
-        {
-            Debug.Log("[SCOREBOARD] TAB UP");
-            rootPanel.SetActive(false);
-        }
+        if (tabPressed && !isScoreboardOpen)
+            Open();
+
+        if (!tabPressed && isScoreboardOpen)
+            Close();
+
+        if (isScoreboardOpen)
+            Draw();
+    }
+
+    private bool IsTabPressed()
+    {
+        if (Keyboard.current != null && Keyboard.current.tabKey.isPressed)
+            return true;
+
+        return false;
+    }
+
+    public void Open()
+    {
+        if (rootPanel == null)
+            return;
+
+        isScoreboardOpen = true;
+        rootPanel.SetActive(true);
+
+        // 상점 패널이 떠 있어도 스코어보드가 위로 오게 함
+        rootPanel.transform.SetAsLastSibling();
+
+        Draw();
+
+        Debug.Log("[SCOREBOARD] OPEN");
+    }
+
+    public void Close()
+    {
+        if (rootPanel == null)
+            return;
+
+        isScoreboardOpen = false;
+        rootPanel.SetActive(false);
+
+        Debug.Log("[SCOREBOARD] CLOSE");
+    }
+
+    public bool IsOpen()
+    {
+        return isScoreboardOpen;
     }
 
     public void OnRecvScoreboardUpdate(ScoreboardData data)
@@ -77,7 +120,8 @@ public class InGameScoreboardUI : MonoBehaviour
             roundHistoryInitialized = true;
         }
 
-        Draw();
+        if (isScoreboardOpen)
+            Draw();
     }
 
     public void OnRoundResult(

@@ -174,6 +174,7 @@ public class NetworkManager : MonoBehaviour
     LobbyManager lobbyManager;
     private PickManager pickManager;
     private MatchManager matchManager;
+    private ScoreboardData latestScoreboardData;
 
     private uint myPlayerId;
     public uint MyPlayerId => myPlayerId;
@@ -1533,9 +1534,15 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    public void SendMoveState(float x, float y, float z, float yaw, float pitch)
+    public void SendMoveState(
+    float x,
+    float y,
+    float z,
+    float yaw,
+    float pitch,
+    byte animIndex)
     {
-        ushort size = 4 + 4 + 4 + 4 + 4 + 4;
+        ushort size = 4 + 4 + 4 + 4 + 4 + 4 + 1;
         ushort type = (ushort)PacketType.PKT_CS_MOVE_STATE;
 
         byte[] buffer = new byte[size];
@@ -1561,6 +1568,9 @@ public class NetworkManager : MonoBehaviour
         offset += 4;
 
         Buffer.BlockCopy(BitConverter.GetBytes(pitch), 0, buffer, offset, 4);
+        offset += 4;
+
+        buffer[offset] = animIndex;
 
         client.Send(buffer);
     }
@@ -1587,6 +1597,9 @@ public class NetworkManager : MonoBehaviour
         float pitch = BitConverter.ToSingle(body, offset);
         offset += 4;
 
+        byte animIndex = body[offset];
+        offset += 1;
+
         if (playerId == MyPlayerId)
             return;
 
@@ -1598,7 +1611,12 @@ public class NetworkManager : MonoBehaviour
             return;
         }
 
-        movement.OnReceiveRemoteMove(new Vector3(x, y, z), yaw, pitch);
+        movement.OnReceiveRemoteMove(
+            new Vector3(x, y, z),
+            yaw,
+            pitch,
+            animIndex
+        );
     }
 
     private void HandleHPUpdate(byte[] body)
@@ -2371,8 +2389,13 @@ public class NetworkManager : MonoBehaviour
             data.members.Add(member);
         }
 
+        latestScoreboardData = data;
+
         if (InGameScoreboardUI.Instance != null)
             InGameScoreboardUI.Instance.OnRecvScoreboardUpdate(data);
+
+        if (StorePanelUI.Instance != null)
+            StorePanelUI.Instance.RefreshPlayerInfo();
     }
 
     private void HandleRoundTimer(byte[] body)
@@ -2985,5 +3008,24 @@ public class NetworkManager : MonoBehaviour
         playerSpike.SetHasSpikeFromServer(false);
 
         Debug.Log($"[SPIKE DROPPED APPLY] playerId={dropperPlayerId}, hasSpike=false");
+    }
+
+    public bool TryGetMyScoreboardMember(out ScoreboardMemberData myData)
+    {
+        myData = null;
+
+        if (latestScoreboardData == null)
+            return false;
+
+        foreach (ScoreboardMemberData member in latestScoreboardData.members)
+        {
+            if (member.playerId == MyPlayerId)
+            {
+                myData = member;
+                return true;
+            }
+        }
+
+        return false;
     }
 }
