@@ -133,10 +133,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39777574204be064fb2357a6c06f255f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  _speed: 5
+  _speed: 15
   _gravity: -20
   _jumpPower: 8
   CanMove: 1
+  pitchSendThreshold: 1
   _lerpSpeed: 15
   sendInterval: 0.05
   positionSendThreshold: 0.02
@@ -173,7 +174,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSpike
   playerItem: {fileID: 6971429339355322284}
   playerMove: {fileID: 4206006752771187243}
-  dropPoint: {fileID: 5692838109374247965}
+  dropPoint: {fileID: 2049683603135159512}
   spikeItemPrefab: {fileID: 432519131735009139, guid: b196eaf8627e9724bb4697757aef6d5f, type: 3}
   hasSpike: 0
   plantTime: 3
@@ -215,6 +216,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   _smokePrefab: {fileID: 7021023906734013752, guid: ffb63aae75a395c4da91ff8871a03f76, type: 3}
   _pingPrefab: {fileID: 8989380966646054412, guid: 6b7b0582adb07534cb1a2b877cac06e0, type: 3}
+  _mapRect: {fileID: 0}
+  _pingContainer: {fileID: 0}
 --- !u!114 &1804956782191041523
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1407,7 +1410,10 @@ PrefabInstance:
     m_RemovedGameObjects:
     - {fileID: -3671105809796305521, guid: f2c836f3e5c029140a0cc913d7df766a, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: -927199367670048503, guid: f2c836f3e5c029140a0cc913d7df766a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7262580417859575446}
   m_SourcePrefab: {fileID: 100100000, guid: f2c836f3e5c029140a0cc913d7df766a, type: 3}
 --- !u!4 &291219796056453791 stripped
 Transform:
@@ -1419,3 +1425,25 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: -927199367670048503, guid: f2c836f3e5c029140a0cc913d7df766a, type: 3}
   m_PrefabInstance: {fileID: 4715315066891147653}
   m_PrefabAsset: {fileID: 0}
+--- !u!95 &7262580417859575446
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3625897996615893132}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 1cb1393759421ce4488ee2ec2c1f4194, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0

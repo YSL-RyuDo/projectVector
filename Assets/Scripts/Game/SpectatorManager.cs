@@ -238,10 +238,23 @@ public class SpectatorManager : MonoBehaviour
         myCamera.enabled = true;
         myCamera.tag = "MainCamera";
 
-        myCamera.transform.SetPositionAndRotation(
-            targetCamera.transform.position,
-            targetCamera.transform.rotation
-        );
+        Vector3 targetCameraEuler = targetCamera.transform.rotation.eulerAngles;
+        Vector3 targetBodyEuler = target.transform.rotation.eulerAngles;
+
+        float pitch = NormalizeAngle(targetCameraEuler.x);
+        float yaw = targetBodyEuler.y;
+
+        myCamera.transform.position = targetCamera.transform.position;
+        myCamera.transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
+        myCamera.fieldOfView = targetCamera.fieldOfView;
+    }
+
+    private float NormalizeAngle(float angle)
+    {
+        if (angle > 180f)
+            angle -= 360f;
+
+        return angle;
     }
 
     private void SpectateSpike()
@@ -267,9 +280,13 @@ public class SpectatorManager : MonoBehaviour
         myCamera.enabled = true;
         myCamera.tag = "MainCamera";
 
-        myCamera.transform.SetPositionAndRotation(
-            point.position,
-            point.rotation
+        Vector3 euler = point.rotation.eulerAngles;
+
+        myCamera.transform.position = point.position;
+        myCamera.transform.rotation = Quaternion.Euler(
+            NormalizeAngle(euler.x),
+            euler.y,
+            0f
         );
 
         isSpikeSpectating = true;
@@ -339,6 +356,10 @@ public class SpectatorManager : MonoBehaviour
 
             if (prevDeath != null && !prevDeath.IsDead)
                 prevDeath.SetModelVisible(true);
+
+            PlayerItem prevItem = currentHiddenTarget.GetComponent<PlayerItem>();
+            if (prevItem != null)
+                prevItem.SetWeaponVisibility(false);
         }
 
         currentHiddenTarget = newTarget;
@@ -348,6 +369,10 @@ public class SpectatorManager : MonoBehaviour
 
         if (currentDeath != null && !currentDeath.IsDead)
             currentDeath.SetModelVisible(false);
+
+        PlayerItem currentItem = currentHiddenTarget.GetComponent<PlayerItem>();
+        if (currentItem != null)
+            currentItem.SetWeaponVisibility(true);
     }
 
     private void RestoreHiddenTargetModel()
@@ -360,6 +385,11 @@ public class SpectatorManager : MonoBehaviour
 
         if (death != null && !death.IsDead)
             death.SetModelVisible(true);
+
+        PlayerItem item = currentHiddenTarget.GetComponent<PlayerItem>();
+
+        if (item != null)
+            item.SetWeaponVisibility(false);
 
         currentHiddenTarget = null;
     }

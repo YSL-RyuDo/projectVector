@@ -21,7 +21,7 @@ public class FPSCameraLook : MonoBehaviour
     private bool isLocalPlayer = false;
 
     public bool CanMove = true;
-
+    private bool lastSentADS;
     private void Awake()
     {
         _playerIdentity = GetComponentInParent<PlayerIdentity>();
@@ -49,8 +49,8 @@ public class FPSCameraLook : MonoBehaviour
 
         if (ui != null && playerRoot != null)
         {
-            ui.RegisterLocalPlayerCamera(this);
-            ui.RegisterPlayer(playerRoot.gameObject);
+            //ui.RegisterLocalPlayerCamera(this);
+            //ui.RegisterPlayer(playerRoot.gameObject);
         }
 
         Debug.Log(
@@ -126,7 +126,7 @@ public class FPSCameraLook : MonoBehaviour
 
     public void SetADS(bool ads)
     {
-        _isADS = ads;
+        SetADSLocal(ads);
     }
 
     public void AddPitch(float amount)
@@ -153,5 +153,60 @@ public class FPSCameraLook : MonoBehaviour
 
         if (playerRoot != null)
             playerRoot.rotation = Quaternion.Euler(0f, yaw, 0f);
+    }
+
+    public void ForceExitADS()
+    {
+        SetADSLocal(false);
+
+        Camera cam = GetComponentInChildren<Camera>();
+        if (cam != null)
+            cam.fieldOfView = 60f;
+
+        Debug.Log("[ADS] force exit by death");
+    }
+
+    public float GetPitch()
+    {
+        return xRotation;
+    }
+
+    public void SetADSFromServer(bool isADS)
+    {
+        _isADS = isADS;
+
+        Camera cam = GetComponent<Camera>();
+
+        if (cam == null)
+            cam = GetComponentInChildren<Camera>(true);
+
+        if (cam != null)
+        {
+            cam.fieldOfView = isADS ? 40f : 60f;
+        }
+
+        Debug.Log($"[ADS] set from server isADS={isADS}");
+    }
+
+    private void SetADSLocal(bool value)
+    {
+        if (_isADS == value)
+            return;
+
+        _isADS = value;
+
+        Camera cam = GetComponent<Camera>();
+
+        if (cam == null)
+            cam = GetComponentInChildren<Camera>(true);
+
+        if (cam != null)
+            cam.fieldOfView = _isADS ? 40f : 60f;
+
+        if (NetworkManager.Instance != null && lastSentADS != _isADS)
+        {
+            lastSentADS = _isADS;
+            NetworkManager.Instance.SendADSState(_isADS);
+        }
     }
 }

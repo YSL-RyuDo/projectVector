@@ -28,17 +28,24 @@ public class PlayerSpike : MonoBehaviour
     private Slider slider;
 
     private PlayerIdentity _playerIdentity;
+    private bool spikeDropRequested;
 
     void Start()
     {
-        if (spikeSlider != null)
-            slider = spikeSlider.GetComponent<Slider>();
-
         playerItem = GetComponent<PlayerItem>();
         playerMove = GetComponent<PlayerMovement>();
         _playerIdentity = GetComponent<PlayerIdentity>();
 
         hasSpike = false;
+
+        if (spikeSlider == null)
+        {
+            SetSpikeSlider(FindSpikeSliderInScene());
+        }
+        else
+        {
+            SetSpikeSlider(spikeSlider);
+        }
     }
 
     void Update()
@@ -81,9 +88,37 @@ public class PlayerSpike : MonoBehaviour
         }
     }
 
+    private GameObject FindSpikeSliderInScene()
+    {
+        Canvas[] canvases = FindObjectsByType<Canvas>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+
+        foreach (Canvas canvas in canvases)
+        {
+            Transform[] children = canvas.GetComponentsInChildren<Transform>(true);
+
+            foreach (Transform child in children)
+            {
+                if (child.name == "SpikeSlider")
+                    return child.gameObject;
+            }
+        }
+
+        Debug.LogError("[PLAYER SPIKE] SpikeSlider object not found in scene");
+        return null;
+    }
+
     public void SetHasSpikeFromServer(bool value)
     {
         hasSpike = value;
+        spikeDropRequested = false;
+
+        if (!hasSpike)
+        {
+            ForceCancelPlant();
+        }
 
         if (playerItem == null)
             playerItem = GetComponent<PlayerItem>();
@@ -121,24 +156,57 @@ public class PlayerSpike : MonoBehaviour
     //  설치 시작
     public void TryStartPlant()
     {
-        if (!hasSpike) return;
-        if (!isInsidePlantZone) return;
+        if (spikeDropRequested)
+            return;
+
+        if (!hasSpike)
+        {
+            ForceCancelPlant();
+            return;
+        }
+
+        if (!isInsidePlantZone)
+            return;
+
+        if (_playerIdentity == null)
+            _playerIdentity = GetComponent<PlayerIdentity>();
+
+        if (NetworkManager.Instance == null ||
+            _playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
+            return;
+
+        if (spikeSlider == null)
+        {
+            Debug.LogError("[PLAYER SPIKE] spikeSlider is null on local player");
+            return;
+        }
+
+        if (slider == null)
+            slider = spikeSlider.GetComponent<Slider>();
+
+        if (slider == null)
+        {
+            Debug.LogError("[PLAYER SPIKE] Slider component missing");
+            return;
+        }
 
         Debug.Log("Start Planting");
 
         isPlanting = true;
         currentPlantTime = 0f;
 
-        SetPlayerControl(false); // 제어권 뺏기
+        SetPlayerControl(false);
 
         spikeSlider.SetActive(true);
+        slider.value = 0f;
     }
 
     void Planting()
     {
         currentPlantTime += Time.deltaTime;
 
-        slider.value = currentPlantTime / plantTime;
+        if (slider != null)
+            slider.value = currentPlantTime / plantTime;
 
         if (currentPlantTime >= plantTime)
         {
@@ -202,6 +270,9 @@ public class PlayerSpike : MonoBehaviour
             dropDirection = transform.forward;
         }
 
+        spikeDropRequested = true;
+        ForceCancelPlant();
+
         NetworkManager.Instance.SendSpikeDropRequest(dropPosition, dropDirection);
 
         Debug.Log($"[SPIKE] Drop request sent from DropPoint. pos={dropPosition}, dir={dropDirection}");
@@ -209,15 +280,19 @@ public class PlayerSpike : MonoBehaviour
 
     public void SetPlayerControl(bool canControl)
     {
-        // true면 무기 보이고 이동 가능, false면 무기 숨기고 이동 불가
-        playerItem.SetWeaponVisibility(canControl);
-        playerMove.CanMove = canControl;
+        if (playerItem != null)
+            playerItem.SetWeaponVisibility(canControl);
 
-        // 만약 컨트롤을 되돌려받을 때 슬라이더가 켜져있다면 꺼주는 안전장치
+        if (playerMove != null)
+            playerMove.CanMove = canControl;
+
         if (canControl)
         {
-            spikeSlider.SetActive(false);
-            slider.value = 0f;
+            if (spikeSlider != null)
+                spikeSlider.SetActive(false);
+
+            if (slider != null)
+                slider.value = 0f;
         }
     }
 
@@ -234,5 +309,28 @@ public class PlayerSpike : MonoBehaviour
         {
             Debug.LogError("[PLAYER SPIKE] Spike Slider UI is null");
         }
+    }
+
+    public void ForceCancelPlant()
+    {
+        bool wasPlanting = isPlanting;
+
+        isPlanting = false;
+        currentPlantTime = 0f;
+
+        if (wasPlanting)
+        {
+            SetPlayerControl(true);
+        }
+        else
+        {
+            if (spikeSlider != null)
+                spikeSlider.SetActive(false);
+
+            if (slider != null)
+                slider.value = 0f;
+        }
+
+        Debug.Log("[SPIKE PLANT CANCEL] force cancel");
     }
 }

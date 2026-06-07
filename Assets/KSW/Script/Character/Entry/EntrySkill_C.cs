@@ -19,13 +19,13 @@ public class EntrySkill_C : CharacterSkill
     private bool _isSkillActive = false;
     private Coroutine _skillCoroutine;
 
-    private void Start()
+    void Start()
     {
         _cc = GetComponent<CharacterController>();
         _animator = GetComponentInChildren<Animator>();
     }
 
-    private void Update()
+    void Update()
     {
         if (Input.GetKeyDown(KeyCode.C) && !_isSkillActive)
         {
