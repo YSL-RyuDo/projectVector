@@ -57,6 +57,15 @@ public class PlayerItem : MonoBehaviour
         {
             if (IsAttackRestricted()) return;
 
+            Weapon currentWeapon = GetCurrentWeapon();
+
+            if (currentWeapon != null &&
+                currentWeapon.GetWeaponType() == WeaponData.WeaponType.Knife)
+            {
+                Debug.Log("[PLAYER ITEM] Knife right click ignored.");
+                return;
+            }
+
             items[currentIndex]?.OnAltUse();
             Debug.Log("rightbutton");
         }
@@ -158,9 +167,15 @@ public class PlayerItem : MonoBehaviour
         foreach (var hit in hits)
         {
             DroppedItem di = hit.GetComponent<DroppedItem>();
-            if (di == null) continue;
+
+            if (di == null)
+                di = hit.GetComponentInParent<DroppedItem>();
+
+            if (di == null)
+                continue;
 
             float dist = Vector3.Distance(transform.position, di.transform.position);
+
             if (dist < minDist)
             {
                 minDist = dist;
@@ -179,62 +194,47 @@ public class PlayerItem : MonoBehaviour
         if (dropped == null)
             return;
 
-        if (dropped.weaponData == null)
-        {
-            Debug.Log("[PLAYER ITEM] weaponData is null. This is not a weapon pickup.");
-            return;
-        }
-
-        int slot = GetSlotIndex(dropped.weaponData);
-        EquipItem(slot, dropped);
+        dropped.Pickup(this);
     }
 
     public void EquipItem(int slot, DroppedItem dropped)
     {
-        if (items[slot] != null)
-        {
-            items[slot].OnDrop();
-            Destroy(items[slot].gameObject); // 반드시 .gameObject 파괴
-        }
-
-        GameObject obj = Instantiate(dropped.weaponData.weaponPrefab, itemHolder);
-
-        obj.transform.localPosition = Vector3.zero;
-        obj.transform.localRotation = Quaternion.identity;
-
-        Item item = obj.GetComponent<Item>();
-        items[slot] = item;
-
-        // 무기 컴포넌트 설정 (탄약 및 데이터 초기화)
-        Weapon weapon = obj.GetComponent<Weapon>();
-        weapon?.Initialize(dropped.weaponData, dropPoint, dropped.magAmmo, dropped.reserveAmmo);
-        
-        Switch(slot);
-
-        Destroy(dropped.gameObject);
+        Debug.LogWarning("[PLAYER ITEM] EquipItem is disabled. Use server pickup flow.");
     }
 
     void DropCurrentItem()
     {
-        if (currentIndex < 0 || currentIndex >= items.Length || items[currentIndex] == null) return;
-        if (currentIndex == 2) return;
+        if (currentIndex < 0 || currentIndex >= items.Length)
+            return;
 
-        items[currentIndex].OnDrop();
+        if (items[currentIndex] == null)
+            return;
 
-        if (currentIndex != 4)
-        {
-            Destroy(items[currentIndex].gameObject); // .gameObject 파괴
-            items[currentIndex] = null;
-        }
+        // 스파이크는 기존 PlayerSpike 드랍 로직을 써야 함
+        if (currentIndex == 4)
+            return;
 
-        for (int i = 0; i < items.Length; i++)
-        {
-            if (items[i] != null)
-            {
-                Switch(i);
-                return;
-            }
-        }
+        Weapon weapon = items[currentIndex].GetComponent<Weapon>();
+
+        if (weapon == null)
+            return;
+
+        if (NetworkManager.Instance == null)
+            return;
+
+        Vector3 dropPosition = dropPoint != null
+            ? dropPoint.position
+            : transform.position + transform.forward * 0.8f + Vector3.up * 0.5f;
+
+        Vector3 dropDirection = transform.forward;
+
+        NetworkManager.Instance.SendWeaponDropRequest(
+            weapon.GetWeaponId(),
+            dropPosition,
+            dropDirection
+        );
+
+        Debug.Log($"[PLAYER ITEM] weapon drop requested. weaponId={weapon.GetWeaponId()}");
     }
 
     void Switch(int index)
@@ -611,5 +611,434 @@ public class PlayerItem : MonoBehaviour
             weaponADS.SetADS(isADS);
 
         Debug.Log($"[PLAYER ITEM] ADS visual from server isADS={isADS}");
+    }
+
+    public void RemoveWeaponFromServer(int weaponId)
+    {
+        int slot = FindSlotByWeaponId(weaponId);
+
+        if (slot == -1)
+        {
+            Debug.LogWarning($"[PLAYER ITEM] RemoveWeaponFromServer failed. weaponId={weaponId}");
+            return;
+        }
+
+        bool wasCurrent = currentIndex == slot;
+
+        if (items[slot] != null)
+        {
+            Destroy(items[slot].gameObject);
+            items[slot] = null;
+        }
+
+        if (wasCurrent)
+        {
+            currentIndex = -1;
+
+            int fallbackSlot = FindFirstAvailableWeaponSlotExceptSpike();
+
+            if (fallbackSlot != -1)
+                SwitchWeaponVisualOnlyBySlot(fallbackSlot);
+        }
+
+        Debug.Log($"[PLAYER ITEM] weapon removed by server. weaponId={weaponId}, slot={slot}");
+    }
+
+    private int FindSlotByWeaponId(int weaponId)
+    {
+        for (int i = 0; i < items.Length; i++)
+        {
+            if (items[i] == null)
+                continue;
+
+            Weapon weapon = items[i].GetComponent<Weapon>();
+
+            if (weapon == null)
+                continue;
+
+            if (weapon.GetWeaponId() == weaponId)
+                return i;
+        }
+
+        return -1;
+    }
+
+    public void ApplyWeaponPickupFromServer(
+    int weaponId,
+    int magAmmo,
+    int reserveAmmo)
+    {
+        if (WeaponDropSpawner.Instance == null)
+        {
+            Debug.LogError("[PLAYER ITEM] WeaponDropSpawner.Instance is null");
+            return;
+        }
+
+        WeaponData data = WeaponDropSpawner.Instance.GetWeaponData(weaponId);
+
+        if (data == null)
+        {
+            Debug.LogError($"[PLAYER ITEM] WeaponData not found. weaponId={weaponId}");
+            return;
+        }
+
+        int slot = GetSlotIndex(data);
+
+        if (slot < 0 || slot >= items.Length)
+        {
+            Debug.LogError($"[PLAYER ITEM] invalid slot. weaponId={weaponId}, slot={slot}");
+            return;
+        }
+
+        if (items[slot] != null)
+        {
+            Destroy(items[slot].gameObject);
+            items[slot] = null;
+        }
+
+        GameObject obj = Instantiate(data.weaponPrefab, itemHolder);
+
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
+        DisableHeldWeaponPhysics(obj);
+
+        Item item = obj.GetComponent<Item>();
+
+        if (item == null)
+        {
+            Debug.LogError($"[PLAYER ITEM] Item component missing. weaponId={weaponId}");
+            Destroy(obj);
+            return;
+        }
+
+        items[slot] = item;
+
+        Weapon weapon = obj.GetComponent<Weapon>();
+
+        if (weapon != null)
+        {
+            weapon.Initialize(
+                data,
+                dropPoint,
+                magAmmo,
+                reserveAmmo
+            );
+        }
+
+        obj.SetActive(false);
+
+        SwitchWeaponVisualOnlyBySlot(slot);
+
+        if (InGameUIManager.Instance != null)
+            InGameUIManager.Instance.SetBulletText(magAmmo, reserveAmmo);
+
+        Debug.Log(
+            $"[PLAYER ITEM] weapon pickup applied by server. " +
+            $"weaponId={weaponId}, slot={slot}, ammo={magAmmo}/{reserveAmmo}"
+        );
+    }
+
+    private void DisableHeldWeaponPhysics(GameObject obj)
+    {
+        if (obj == null)
+            return;
+
+        DroppedItem droppedItem = obj.GetComponent<DroppedItem>();
+        if (droppedItem != null)
+            Destroy(droppedItem);
+
+        Rigidbody[] rigidbodies = obj.GetComponentsInChildren<Rigidbody>(true);
+
+        foreach (Rigidbody rb in rigidbodies)
+        {
+            if (rb == null)
+                continue;
+
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.useGravity = false;
+            rb.isKinematic = true;
+        }
+
+        Collider[] colliders = obj.GetComponentsInChildren<Collider>(true);
+
+        foreach (Collider col in colliders)
+        {
+            if (col == null)
+                continue;
+
+            col.enabled = false;
+        }
+    }
+
+    public void ApplyRoundResetInventoryFromServer(
+    int currentWeaponId,
+    int primaryWeaponId,
+    int primaryMagAmmo,
+    int primaryReserveAmmo,
+    int pistolWeaponId,
+    int pistolMagAmmo,
+    int pistolReserveAmmo,
+    int knifeWeaponId,
+    int knifeMagAmmo,
+    int knifeReserveAmmo)
+    {
+        if (_playerIdentity == null)
+            _playerIdentity = GetComponent<PlayerIdentity>();
+
+        ClearWeaponSlotsForRoundReset();
+
+        if (primaryWeaponId >= 0)
+        {
+            CreateWeaponFromServerForRoundReset(
+                primaryWeaponId,
+                primaryMagAmmo,
+                primaryReserveAmmo
+            );
+        }
+
+        if (pistolWeaponId >= 0)
+        {
+            CreateWeaponFromServerForRoundReset(
+                pistolWeaponId,
+                pistolMagAmmo,
+                pistolReserveAmmo
+            );
+        }
+
+        if (knifeWeaponId >= 0)
+        {
+            CreateWeaponFromServerForRoundReset(
+                knifeWeaponId,
+                knifeMagAmmo,
+                knifeReserveAmmo
+            );
+        }
+
+        int currentSlot = FindSlotByWeaponId(currentWeaponId);
+
+        bool isLocal =
+            _playerIdentity != null &&
+            NetworkManager.Instance != null &&
+            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+
+        if (currentSlot != -1)
+        {
+            if (isLocal)
+            {
+                // 로컬 플레이어는 실제 Switch를 호출해서
+                // OnEquip 처리 + 서버에 SendWeaponSwitch까지 보낸다.
+                Switch(currentSlot);
+            }
+            else
+            {
+                // 원격 플레이어는 서버에 패킷을 보내면 안 되므로 비주얼만 변경
+                SwitchWeaponVisualOnlyBySlot(currentSlot);
+            }
+        }
+        else
+        {
+            int fallbackSlot = FindFirstAvailableWeaponSlotExceptSpike();
+
+            if (fallbackSlot != -1)
+            {
+                if (isLocal)
+                    Switch(fallbackSlot);
+                else
+                    SwitchWeaponVisualOnlyBySlot(fallbackSlot);
+            }
+            else
+            {
+                currentIndex = -1;
+            }
+        }
+
+        UpdateBulletTextFromRoundResetData(
+            currentWeaponId,
+            primaryWeaponId,
+            primaryMagAmmo,
+            primaryReserveAmmo,
+            pistolWeaponId,
+            pistolMagAmmo,
+            pistolReserveAmmo,
+            knifeWeaponId,
+            knifeMagAmmo,
+            knifeReserveAmmo
+        );
+
+        Debug.Log(
+            $"[PLAYER ITEM] round reset inventory applied. " +
+            $"current={currentWeaponId}, primary={primaryWeaponId}, pistol={pistolWeaponId}, knife={knifeWeaponId}"
+        );
+    }
+
+    private void ClearWeaponSlotsForRoundReset()
+    {
+        // 0 = 주무기, 1 = 보조무기, 2 = 칼, 3 = 투척무기
+        // 4 = 스파이크는 여기서 건드리지 않는다.
+        for (int i = 0; i <= 3; i++)
+        {
+            if (items[i] != null)
+            {
+                Destroy(items[i].gameObject);
+                items[i] = null;
+            }
+        }
+
+        currentIndex = -1;
+
+        bool isLocal =
+            _playerIdentity != null &&
+            NetworkManager.Instance != null &&
+            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+
+        if (isLocal && InGameUIManager.Instance != null)
+        {
+            InGameUIManager.Instance.SetMainWeapon(null);
+            InGameUIManager.Instance.SetSubWeapon(null);
+            InGameUIManager.Instance.SetKnife(null);
+            InGameUIManager.Instance.SetBulletText(0, 0);
+        }
+    }
+
+    private void CreateWeaponFromServerForRoundReset(
+        int weaponId,
+        int magAmmo,
+        int reserveAmmo)
+    {
+        if (WeaponDropSpawner.Instance == null)
+        {
+            Debug.LogError("[PLAYER ITEM] WeaponDropSpawner.Instance is null");
+            return;
+        }
+
+        WeaponData data = WeaponDropSpawner.Instance.GetWeaponData(weaponId);
+
+        if (data == null)
+        {
+            Debug.LogError($"[PLAYER ITEM] WeaponData not found. weaponId={weaponId}");
+            return;
+        }
+
+        int slot = GetSlotIndex(data);
+
+        if (slot < 0 || slot >= items.Length)
+        {
+            Debug.LogError($"[PLAYER ITEM] invalid slot. weaponId={weaponId}, slot={slot}");
+            return;
+        }
+
+        if (slot == 4)
+        {
+            Debug.LogWarning($"[PLAYER ITEM] weapon cannot use spike slot. weaponId={weaponId}");
+            return;
+        }
+
+        if (items[slot] != null)
+        {
+            Destroy(items[slot].gameObject);
+            items[slot] = null;
+        }
+
+        GameObject obj = Instantiate(data.weaponPrefab, itemHolder);
+
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
+
+        DisableHeldWeaponPhysics(obj);
+
+        Item item = obj.GetComponent<Item>();
+
+        if (item == null)
+        {
+            Debug.LogError($"[PLAYER ITEM] Item component missing. weaponId={weaponId}");
+            Destroy(obj);
+            return;
+        }
+
+        items[slot] = item;
+
+        Weapon weapon = obj.GetComponent<Weapon>();
+
+        if (weapon != null)
+        {
+            weapon.Initialize(
+                data,
+                dropPoint,
+                magAmmo,
+                reserveAmmo
+            );
+        }
+
+        obj.SetActive(false);
+
+        bool isLocal =
+            _playerIdentity != null &&
+            NetworkManager.Instance != null &&
+            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+
+        if (isLocal && InGameUIManager.Instance != null)
+        {
+            if (slot == 0)
+            {
+                InGameUIManager.Instance.SetMainWeapon(data);
+            }
+            else if (slot == 1)
+            {
+                InGameUIManager.Instance.SetSubWeapon(data.weaponIcon);
+            }
+            else if (slot == 2)
+            {
+                InGameUIManager.Instance.SetKnife(data.weaponIcon);
+            }
+        }
+
+        Debug.Log(
+            $"[PLAYER ITEM] round reset weapon created. weaponId={weaponId}, slot={slot}, ammo={magAmmo}/{reserveAmmo}"
+        );
+    }
+
+    private void UpdateBulletTextFromRoundResetData(
+        int currentWeaponId,
+        int primaryWeaponId,
+        int primaryMagAmmo,
+        int primaryReserveAmmo,
+        int pistolWeaponId,
+        int pistolMagAmmo,
+        int pistolReserveAmmo,
+        int knifeWeaponId,
+        int knifeMagAmmo,
+        int knifeReserveAmmo)
+    {
+        bool isLocal =
+            _playerIdentity != null &&
+            NetworkManager.Instance != null &&
+            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+
+        if (!isLocal)
+            return;
+
+        if (InGameUIManager.Instance == null)
+            return;
+
+        if (currentWeaponId == primaryWeaponId)
+        {
+            InGameUIManager.Instance.SetBulletText(primaryMagAmmo, primaryReserveAmmo);
+            return;
+        }
+
+        if (currentWeaponId == pistolWeaponId)
+        {
+            InGameUIManager.Instance.SetBulletText(pistolMagAmmo, pistolReserveAmmo);
+            return;
+        }
+
+        if (currentWeaponId == knifeWeaponId)
+        {
+            InGameUIManager.Instance.SetBulletText(knifeMagAmmo, knifeReserveAmmo);
+            return;
+        }
+
+        InGameUIManager.Instance.SetBulletText(0, 0);
     }
 }

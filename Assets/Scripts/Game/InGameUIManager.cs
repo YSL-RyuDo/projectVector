@@ -100,24 +100,34 @@ public class InGameUIManager : MonoBehaviour
 
     public void SetHpBarrier(int hp, int barrier, int maxHpValue, int maxBarrierValue)
     {
-        int currentTotal = Mathf.Max(0, hp) + Mathf.Max(0, barrier);
-        int maxTotal = Mathf.Max(1, maxHpValue) + Mathf.Max(0, maxBarrierValue);
+        currentHp = Mathf.Clamp(hp, 0, Mathf.Max(1, maxHpValue));
+        currentBarrier = Mathf.Clamp(barrier, 0, 100);
+
+        maxHp = Mathf.Max(1, maxHpValue);
+        maxBarrier = Mathf.Max(0, maxBarrierValue);
+
+        int currentTotal = currentHp + currentBarrier;
+        int maxTotal = maxHp + maxBarrier;
 
         if (hpText != null)
             hpText.text = $"{currentTotal} / {maxTotal}";
 
         if (hpBar != null)
-            hpBar.fillAmount = Mathf.Clamp01((float)hp / Mathf.Max(1, maxHpValue));
+        {
+            // HP바의 최대치는 항상 maxHp, 보통 100
+            hpBar.fillAmount =
+                Mathf.Clamp01((float)currentHp / Mathf.Max(1, maxHp));
+        }
 
         if (barrierBar != null)
         {
-            if (maxBarrierValue <= 0)
-                barrierBar.fillAmount = 0f;
-            else
-                barrierBar.fillAmount =
-                    Mathf.Clamp01((float)barrier / maxBarrierValue);
+            // 베리어바의 UI 최대치는 항상 100
+            // Light 50이면 0.5, Heavy 100이면 1.0
+            barrierBar.fillAmount =
+                Mathf.Clamp01((float)currentBarrier / 100f);
         }
     }
+
     private void InitializeWeaponUI()
     {
         SetMainWeapon(null);

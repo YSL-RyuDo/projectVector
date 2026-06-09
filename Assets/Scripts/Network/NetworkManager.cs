@@ -518,6 +518,18 @@ public class NetworkManager : MonoBehaviour
                 HandleDie(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_WEAPON_DROPPED:
+                HandleWeaponDropped(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_WEAPON_PICKUP_NOTIFY:
+                HandleWeaponPickupNotify(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_STORE_BUY_RESULT:
+                HandleStoreBuyResult(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -1639,11 +1651,46 @@ public class NetworkManager : MonoBehaviour
         offset += 4;
 
         Debug.Log(
-            $"[HP UPDATE] playerId={playerId}, " +
-            $"hp={hp}, barrier={barrier}, maxHp={maxHp}, maxBarrier={maxBarrier}"
+            $"[HP UPDATE] playerId={playerId}, hp={hp}, barrier={barrier}, maxHp={maxHp}, maxBarrier={maxBarrier}"
         );
 
-        ApplyHPUpdate(playerId, hp, barrier, maxHp, maxBarrier);
+        PlayerIdentity target = FindPlayerIdentityById(playerId);
+
+        if (target != null)
+        {
+            PlayerHP hpComponent = target.GetComponent<PlayerHP>();
+
+            if (hpComponent == null)
+                hpComponent = target.GetComponentInChildren<PlayerHP>(true);
+
+            if (hpComponent != null)
+            {
+                hpComponent.SetServerHP(
+                    hp,
+                    barrier,
+                    maxHp,
+                    maxBarrier
+                );
+            }
+        }
+
+        if (playerId == myPlayerId)
+        {
+            if (InGameUIManager.Instance != null)
+            {
+                InGameUIManager.Instance.SetHpBarrier(
+                    hp,
+                    barrier,
+                    maxHp,
+                    maxBarrier
+                );
+            }
+
+            if (StorePanelUI.Instance != null)
+            {
+                StorePanelUI.Instance.SetOwnedArmorFromServer(maxBarrier);
+            }
+        }
     }
 
     private void ApplyHPUpdate(
@@ -1835,6 +1882,16 @@ public class NetworkManager : MonoBehaviour
 
     private void HandleRoundReset(byte[] body)
     {
+        if (WeaponDropSpawner.Instance != null)
+        {
+            WeaponDropSpawner.Instance.ClearAllDroppedWeapons();
+        }
+
+        if (StorePanelUI.Instance != null)
+        {
+            StorePanelUI.Instance.ResetOwnedItemsForNewRound();
+        }
+
         int offset = 0;
 
         byte currentRound = body[offset];
@@ -1905,6 +1962,33 @@ public class NetworkManager : MonoBehaviour
             int reserveAmmo = BitConverter.ToInt32(body, offset);
             offset += 4;
 
+            int primaryWeaponId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int primaryMagAmmo = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int primaryReserveAmmo = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int pistolWeaponId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int pistolMagAmmo = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int pistolReserveAmmo = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int knifeWeaponId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int knifeMagAmmo = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int knifeReserveAmmo = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
             ApplyRoundResetMember(
                 playerId,
                 actualTeam,
@@ -1918,10 +2002,25 @@ public class NetworkManager : MonoBehaviour
                 magAmmo,
                 reserveAmmo
             );
+
+            ApplyRoundResetInventoryToPlayer(
+                playerId,
+                currentWeaponId,
+                primaryWeaponId,
+                primaryMagAmmo,
+                primaryReserveAmmo,
+                pistolWeaponId,
+                pistolMagAmmo,
+                pistolReserveAmmo,
+                knifeWeaponId,
+                knifeMagAmmo,
+                knifeReserveAmmo
+            );
         }
 
         RefreshPlayerTagsByTeam();
     }
+
     private void ApplyRoundResetMember(
     uint playerId,
     byte actualTeam,
@@ -2076,6 +2175,77 @@ public class NetworkManager : MonoBehaviour
 
         Debug.Log(
             $"[ROUND RESET APPLY] playerId={playerId}, team={actualTeam}, slot={slotIndex}, pos={spawnPoint.position}, isMine={isMine}"
+        );
+    }
+
+    private void ApplyRoundResetInventoryToPlayer(
+    uint playerId,
+    int currentWeaponId,
+    int primaryWeaponId,
+    int primaryMagAmmo,
+    int primaryReserveAmmo,
+    int pistolWeaponId,
+    int pistolMagAmmo,
+    int pistolReserveAmmo,
+    int knifeWeaponId,
+    int knifeMagAmmo,
+    int knifeReserveAmmo)
+    {
+        PlayerIdentity target = FindPlayerIdentityById(playerId);
+
+        if (target == null)
+        {
+            Debug.LogWarning($"[ROUND RESET INVENTORY] player not found. playerId={playerId}");
+            return;
+        }
+
+        PlayerItem item = target.GetComponent<PlayerItem>();
+
+        if (item == null)
+            item = target.GetComponentInChildren<PlayerItem>(true);
+
+        if (item == null)
+        {
+            Debug.LogWarning($"[ROUND RESET INVENTORY] PlayerItem not found. playerId={playerId}");
+            return;
+        }
+
+        item.ApplyRoundResetInventoryFromServer(
+            currentWeaponId,
+            primaryWeaponId,
+            primaryMagAmmo,
+            primaryReserveAmmo,
+            pistolWeaponId,
+            pistolMagAmmo,
+            pistolReserveAmmo,
+            knifeWeaponId,
+            knifeMagAmmo,
+            knifeReserveAmmo
+        );
+
+        if (playerId == MyPlayerId)
+        {
+            if (StorePanelUI.Instance != null)
+            {
+                StorePanelUI.Instance.ResetOwnedItemsForNewRound();
+
+                if (primaryWeaponId >= 0)
+                    StorePanelUI.Instance.SetOwnedWeaponFromServer(primaryWeaponId);
+
+                if (pistolWeaponId >= 0)
+                    StorePanelUI.Instance.SetOwnedWeaponFromServer(pistolWeaponId);
+
+                if (knifeWeaponId >= 0)
+                    StorePanelUI.Instance.SetOwnedWeaponFromServer(knifeWeaponId);
+
+                // 베리어는 라운드마다 초기화
+                StorePanelUI.Instance.SetOwnedArmorFromServer(0);
+            }
+        }
+
+        Debug.Log(
+            $"[ROUND RESET INVENTORY] playerId={playerId}, current={currentWeaponId}, " +
+            $"primary={primaryWeaponId}, pistol={pistolWeaponId}, knife={knifeWeaponId}"
         );
     }
 
@@ -2868,6 +3038,13 @@ public class NetworkManager : MonoBehaviour
 
         Debug.Log($"[WEAPON SWITCH NOTIFY] playerId={playerId}, weaponId={weaponId}");
 
+        // 자기 자신은 이미 로컬 Switch()나 PickupNotify에서 처리됨
+        if (playerId == MyPlayerId)
+        {
+            Debug.Log($"[WEAPON SWITCH NOTIFY] ignored self. weaponId={weaponId}");
+            return;
+        }
+
         PlayerIdentity identity = FindPlayerIdentityById(playerId);
 
         if (identity == null)
@@ -3027,5 +3204,309 @@ public class NetworkManager : MonoBehaviour
         }
 
         return false;
+    }
+
+    public void SendWeaponDropRequest(
+    int weaponId,
+    Vector3 position,
+    Vector3 direction)
+    {
+        ushort size = 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_WEAPON_DROP_REQUEST;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(weaponId), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(direction.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(direction.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(direction.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND WEAPON DROP REQUEST] weaponId={weaponId}, pos={position}, dir={direction}");
+    }
+
+    public void SendWeaponPickupRequest(uint dropId)
+    {
+        ushort size = 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_WEAPON_PICKUP_REQUEST;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(dropId), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND WEAPON PICKUP REQUEST] dropId={dropId}");
+    }
+
+    private void HandleWeaponDropped(byte[] body)
+    {
+        int offset = 0;
+
+        uint dropId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint dropperPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        int weaponId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int magAmmo = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int reserveAmmo = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        float x = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float y = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float z = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float dirX = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float dirY = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float dirZ = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (dropperPlayerId == MyPlayerId)
+        {
+            if (StorePanelUI.Instance != null)
+            {
+                StorePanelUI.Instance.RemoveOwnedWeaponFromServer(weaponId);
+            }
+        }
+
+        Vector3 pos = new Vector3(x, y, z);
+        Vector3 dir = new Vector3(dirX, dirY, dirZ);
+
+        if (WeaponDropSpawner.Instance != null)
+        {
+            WeaponDropSpawner.Instance.SpawnDroppedWeapon(
+                dropId,
+                weaponId,
+                magAmmo,
+                reserveAmmo,
+                pos,
+                dir
+            );
+        }
+
+        // 서버가 이 플레이어의 무기를 드랍했다고 확정했으므로 손에서 제거
+        PlayerIdentity dropper = FindPlayerIdentityById(dropperPlayerId);
+
+        if (dropper != null)
+        {
+            PlayerItem item = dropper.GetComponent<PlayerItem>();
+
+            if (item == null)
+                item = dropper.GetComponentInChildren<PlayerItem>(true);
+
+            if (item != null)
+                item.RemoveWeaponFromServer(weaponId);
+        }
+
+        Debug.Log(
+            $"[WEAPON DROPPED RECV] dropId={dropId}, dropper={dropperPlayerId}, " +
+            $"weaponId={weaponId}, ammo={magAmmo}/{reserveAmmo}"
+        );
+    }
+
+    private void HandleWeaponPickupNotify(byte[] body)
+    {
+        int offset = 0;
+
+        uint dropId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint pickerPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        int weaponId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int magAmmo = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int reserveAmmo = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        // dropId == 0 이면 상점 구매로 받은 무기다.
+        // 이 경우 바닥 아이템을 삭제하면 안 된다.
+        if (dropId != 0)
+        {
+            if (WeaponDropSpawner.Instance != null)
+            {
+                WeaponDropSpawner.Instance.DestroyDroppedWeapon(dropId);
+            }
+        }
+
+        PlayerIdentity picker = FindPlayerIdentityById(pickerPlayerId);
+
+        if (picker != null)
+        {
+            PlayerItem item = picker.GetComponent<PlayerItem>();
+
+            if (item == null)
+                item = picker.GetComponentInChildren<PlayerItem>(true);
+
+            if (item != null)
+            {
+                item.ApplyWeaponPickupFromServer(
+                    weaponId,
+                    magAmmo,
+                    reserveAmmo
+                );
+            }
+        }
+
+        // 내가 주운 경우에만 상점 UI 보유 상태 갱신
+        if (pickerPlayerId == myPlayerId)
+        {
+            if (StorePanelUI.Instance != null)
+            {
+                StorePanelUI.Instance.SetOwnedWeaponFromServer(weaponId);
+            }
+        }
+
+        Debug.Log(
+            $"[WEAPON PICKUP NOTIFY] picker={pickerPlayerId}, dropId={dropId}, " +
+            $"weaponId={weaponId}, ammo={magAmmo}/{reserveAmmo}"
+        );
+    }
+
+    public void SendStoreBuyRequest(byte itemType, int itemId)
+    {
+        ushort size = 4 + 1 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_STORE_BUY_REQUEST;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        buffer[offset] = itemType;
+        offset += 1;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(itemId), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[STORE BUY REQUEST] itemType={itemType}, itemId={itemId}");
+    }
+
+    private void HandleStoreBuyResult(byte[] body)
+    {
+        int offset = 0;
+
+        byte result = body[offset];
+        offset += 1;
+
+        byte itemType = body[offset];
+        offset += 1;
+
+        int itemId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int price = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int remainCredits = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int weaponId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int magAmmo = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int reserveAmmo = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int barrier = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int maxBarrier = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        Debug.Log(
+            $"[STORE BUY RESULT] result={result}, itemType={itemType}, itemId={itemId}, " +
+            $"price={price}, credits={remainCredits}, weaponId={weaponId}, " +
+            $"ammo={magAmmo}/{reserveAmmo}, barrier={barrier}/{maxBarrier}"
+        );
+
+        if (StorePanelUI.Instance != null)
+        {
+            StorePanelUI.Instance.SetCreditDirect(remainCredits);
+        }
+
+        if (result != 0)
+        {
+            Debug.LogWarning($"[STORE BUY FAILED] result={result}");
+            return;
+        }
+
+        if (StorePanelUI.Instance != null)
+        {
+            if (itemType == 0)
+            {
+                // 무기 구매 성공
+                StorePanelUI.Instance.SetOwnedWeaponFromServer(weaponId);
+            }
+            else if (itemType == 1)
+            {
+                // 방어구 구매 성공
+                StorePanelUI.Instance.SetOwnedArmorFromServer(maxBarrier);
+            }
+        }
+
+        Debug.Log("[STORE BUY SUCCESS]");
     }
 }

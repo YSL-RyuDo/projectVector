@@ -174,13 +174,28 @@ public class Weapon : Item
         if (weaponData == null)
             return;
 
-        if (Mouse.current == null)
-            return;
-
         if (cameraController == null)
             return;
 
         if (cameraController.PlayerCamera == null)
+            return;
+
+        // Ä®Àº ADS ±ÝÁö
+        if (weaponData.weaponType == WeaponData.WeaponType.Knife)
+        {
+            if (isADS)
+            {
+                isADS = false;
+
+                cameraLook?.SetADS(false);
+                weaponADS?.SetADS(false);
+            }
+
+            cameraController.SetFOV(weaponData.normalFOV);
+            return;
+        }
+
+        if (Mouse.current == null)
             return;
 
         bool adsInput = Mouse.current.rightButton.isPressed;
@@ -193,7 +208,9 @@ public class Weapon : Item
             weaponADS?.SetADS(isADS);
         }
 
-        float targetFOV = isADS ? weaponData.adsFOV : weaponData.normalFOV;
+        float targetFOV = isADS
+            ? weaponData.adsFOV
+            : weaponData.normalFOV;
 
         float nextFOV = Mathf.Lerp(
             cameraController.PlayerCamera.fieldOfView,
@@ -203,7 +220,6 @@ public class Weapon : Item
 
         cameraController.SetFOV(nextFOV);
     }
-
     public override void OnUse()
     {
         base.OnUse();
@@ -555,28 +571,7 @@ public class Weapon : Item
 
     public void DropWeapon()
     {
-        if (dropPoint == null || weaponData == null)
-        {
-            Debug.LogWarning("[Weapon   ] Drop failed: missing data");
-            return;
-        }
-
-        GameObject dropped = Instantiate(
-            weaponData.dropPrefab,
-            dropPoint.position,
-            Quaternion.identity
-        );
-
-        DroppedItem dw = dropped.GetComponent<DroppedItem>();
-        if (dw != null)
-        {
-            dw.weaponData = weaponData;
-            dw.magAmmo = currentAmmo;
-            dw.reserveAmmo = reserveAmmo;
-        }
-
-        dropped.GetComponent<Rigidbody>()?.AddForce(transform.forward * 3f, ForceMode.Impulse);
-        Destroy(gameObject);
+        Debug.LogWarning("[WEAPON] DropWeapon local drop disabled. Use PlayerItem server drop flow.");
     }
 
     bool IsAutomatic()
