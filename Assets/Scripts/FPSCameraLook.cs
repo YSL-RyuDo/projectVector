@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -22,6 +23,12 @@ public class FPSCameraLook : MonoBehaviour
 
     public bool CanMove = true;
     private bool lastSentADS;
+
+    private Vector3 originalPosition;
+    private Vector3 targetPosition;
+
+    [SerializeField] private float downDistance = 0.5f;
+    [SerializeField] private float moveSpeed = 5f;
     private void Awake()
     {
         _playerIdentity = GetComponentInParent<PlayerIdentity>();
@@ -71,6 +78,17 @@ public class FPSCameraLook : MonoBehaviour
         if (Cursor.lockState == CursorLockMode.None) return;
         if (GameController.Instance != null && GameController.Instance.IsPaused) return;
         if (Mouse.current == null) return;
+
+        if (Keyboard.current.leftCtrlKey.isPressed)
+        {
+            targetPosition = originalPosition + Vector3.down * downDistance;
+        }
+        else
+        {
+            targetPosition = originalPosition;
+        }
+
+        transform.localPosition = Vector3.Lerp(transform.localPosition, targetPosition, Time.deltaTime * moveSpeed);
 
         float sensitivity = _baseSensitivity * (_isADS ? _adsSensitivityMultiplier : 1f);
 
