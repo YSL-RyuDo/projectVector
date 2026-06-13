@@ -1326,6 +1326,7 @@ Transform:
   - {fileID: 1254977179255991719}
   - {fileID: 2631825740034990017}
   - {fileID: 6481177751066274016}
+  - {fileID: 3686783432564127367}
   m_Father: {fileID: 3308355066744541591}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5225568387383409603
@@ -1667,6 +1668,8 @@ MonoBehaviour:
   _adsSensitivityMultiplier: 0.5
   recoilReturnSpeed: 10
   CanMove: 1
+  downDistance: 0.5
+  moveSpeed: 5
 --- !u!1 &6150753497224969999
 GameObject:
   m_ObjectHideFlags: 0
@@ -1698,6 +1701,73 @@ Transform:
   m_Children: []
   m_Father: {fileID: 7658383644370488181}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6519401467277061288
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3686783432564127367}
+  - component: {fileID: 837806976011386929}
+  - component: {fileID: 1794305477420861766}
+  m_Layer: 0
+  m_Name: WeaponHolder (Model)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3686783432564127367
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6519401467277061288}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7830342559569994681}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &837806976011386929
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6519401467277061288}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ff37a57890d11943b3451a06f9f6f38, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponRecoil
+  snappiness: 10
+  returnSpeed: 5
+  hipWeaponRecoilMultiplier: 1
+  hipCameraRecoilMultiplier: 1
+  hipShakeMultiplier: 1
+  adsWeaponRecoilMultiplier: 0.15
+  adsCameraRecoilMultiplier: 0.75
+  adsShakeMultiplier: 0.2
+--- !u!114 &1794305477420861766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6519401467277061288}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ab9e94617b5bb74b965999fa8b151f0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  _localPosition: {x: 0, y: 0.07, z: -0.05}
+  _localRotation: {x: -48, y: -3, z: -45}
 --- !u!1 &6635853111814737760
 GameObject:
   m_ObjectHideFlags: 0
@@ -1847,6 +1917,7 @@ MonoBehaviour:
   CanMove: 1
   pitchSendThreshold: 1
   _lerpSpeed: 15
+  _isMine: 0
   sendInterval: 0.05
   positionSendThreshold: 0.02
   yawSendThreshold: 1
@@ -1900,7 +1971,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerItem
   primary: {fileID: 0}
-  secondary: {fileID: 11400000, guid: d27b88a161774bc43b797ae0fd59076d, type: 2}
+  secondary: {fileID: 11400000, guid: 2063512ced6a4b74c904aa23d4cf5da7, type: 2}
   melee: {fileID: 11400000, guid: fa9f3bdacc8f6834896d125db3620060, type: 2}
   thrown: {fileID: 0}
   spike: {fileID: 0}

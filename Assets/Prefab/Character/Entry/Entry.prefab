@@ -303,6 +303,7 @@ MonoBehaviour:
   CanMove: 1
   pitchSendThreshold: 1
   _lerpSpeed: 15
+  _isMine: 0
   sendInterval: 0.05
   positionSendThreshold: 0.02
   yawSendThreshold: 1
@@ -338,7 +339,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerItem
   primary: {fileID: 0}
-  secondary: {fileID: 11400000, guid: d27b88a161774bc43b797ae0fd59076d, type: 2}
+  secondary: {fileID: 11400000, guid: 2063512ced6a4b74c904aa23d4cf5da7, type: 2}
   melee: {fileID: 11400000, guid: fa9f3bdacc8f6834896d125db3620060, type: 2}
   thrown: {fileID: 0}
   spike: {fileID: 0}
@@ -545,6 +546,73 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2625285703857817746}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8222648627800658633
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9215232923049926392}
+  - component: {fileID: 8309690446446627030}
+  - component: {fileID: 5963035126835394468}
+  m_Layer: 0
+  m_Name: WeaponHolder (Model)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &9215232923049926392
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8222648627800658633}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.0632022, y: -0.70312023, z: 0.7055075, w: -0.06234216}
+  m_LocalPosition: {x: 0.008803651, y: -0.113508634, z: -0.017433593}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6553138020968608817}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8309690446446627030
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8222648627800658633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ff37a57890d11943b3451a06f9f6f38, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponRecoil
+  snappiness: 10
+  returnSpeed: 5
+  hipWeaponRecoilMultiplier: 1
+  hipCameraRecoilMultiplier: 1
+  hipShakeMultiplier: 1
+  adsWeaponRecoilMultiplier: 0.15
+  adsCameraRecoilMultiplier: 0.75
+  adsShakeMultiplier: 0.2
+--- !u!114 &5963035126835394468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8222648627800658633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ab9e94617b5bb74b965999fa8b151f0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  _localPosition: {x: 0, y: 0.1, z: 0}
+  _localRotation: {x: 13, y: 90, z: -90}
 --- !u!1 &9173829662598906387
 GameObject:
   m_ObjectHideFlags: 0
@@ -595,6 +663,8 @@ MonoBehaviour:
   _adsSensitivityMultiplier: 0.5
   recoilReturnSpeed: 10
   CanMove: 1
+  downDistance: 0.5
+  moveSpeed: 5
 --- !u!1001 &5226665221230326517
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1293,7 +1363,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -7892078836406106428, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9215232923049926392}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
 --- !u!1 &4920659241852686244 stripped
@@ -1304,5 +1377,10 @@ GameObject:
 --- !u!4 &5693219732936660254 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
+  m_PrefabInstance: {fileID: 5226665221230326517}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6553138020968608817 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -7892078836406106428, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
   m_PrefabInstance: {fileID: 5226665221230326517}
   m_PrefabAsset: {fileID: 0}

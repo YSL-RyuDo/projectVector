@@ -28,7 +28,7 @@ public class PlayerMovement : MonoBehaviour
     private PlayerIdentity _playerIdentity;
 
     private float _verticalVelocity;
-    private bool _isMine; // 내 캐릭터인지 여부 저장
+    [SerializeField] private bool _isMine; // 내 캐릭터인지 여부 저장
 
     public event Action OnJumpEvent;
 
