@@ -13,6 +13,8 @@ public class PlayerDeathController : MonoBehaviour
     private Renderer[] modelRenderers;
 
     public bool IsDead { get; private set; }
+    private PlayerWeaponViewController weaponViewController;
+    private PlayerCameraController cameraController;
 
     private void Awake()
     {
@@ -21,6 +23,8 @@ public class PlayerDeathController : MonoBehaviour
         playerItem = GetComponent<PlayerItem>();
         playerSpike = GetComponent<PlayerSpike>();
         characterController = GetComponent<CharacterController>();
+        weaponViewController = GetComponent<PlayerWeaponViewController>();
+        cameraController = GetComponent<PlayerCameraController>();
 
         if (modelRoot == null)
         {
@@ -52,6 +56,9 @@ public class PlayerDeathController : MonoBehaviour
 
         if (characterController != null)
             characterController.enabled = false;
+
+        if (weaponViewController != null)
+            weaponViewController.HideAll();
 
         SetModelVisible(false);
 
@@ -87,7 +94,13 @@ public class PlayerDeathController : MonoBehaviour
         if (playerSpike != null)
             playerSpike.enabled = isMine;
 
-        SetModelVisible(!isMine);
+        if (weaponViewController != null)
+            weaponViewController.RestoreLastView();
+
+        if (cameraController != null)
+            cameraController.RefreshViewVisuals();
+        else
+            SetModelVisible(!isMine);
 
         Debug.Log($"[RESPAWN] restored object={name}, playerId={identity?.PlayerId}, isMine={isMine}");
     }

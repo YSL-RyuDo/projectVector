@@ -73,6 +73,7 @@ GameObject:
   - component: {fileID: 1106734809125183641}
   - component: {fileID: 1033738459421095285}
   - component: {fileID: 3259044383318252362}
+  - component: {fileID: 5686816642166120639}
   m_Layer: 0
   m_Name: Controller
   m_TagString: Untagged
@@ -195,7 +196,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerItem
   primary: {fileID: 0}
-  secondary: {fileID: 11400000, guid: 2063512ced6a4b74c904aa23d4cf5da7, type: 2}
+  secondary: {fileID: 11400000, guid: d27b88a161774bc43b797ae0fd59076d, type: 2}
   melee: {fileID: 11400000, guid: fa9f3bdacc8f6834896d125db3620060, type: 2}
   thrown: {fileID: 0}
   spike: {fileID: 0}
@@ -305,6 +306,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDeathController
   modelRoot: {fileID: 3625897996615893132}
+--- !u!114 &5686816642166120639
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 635509965751519011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb13f0404a587d24d8b0f334e2a699b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponViewController
+  firstPersonWeaponHolder: {fileID: 5037957760041102513}
+  thirdPersonWeaponHolder: {fileID: 7899570058276929204}
 --- !u!1 &2355497504878784162
 GameObject:
   m_ObjectHideFlags: 0

@@ -82,16 +82,31 @@ public class WeaponHolderModel : MonoBehaviour
 
     private void CleanUpComponents(GameObject targetObj)
     {
-        // 렌더러(MeshRenderer 등)를 제외한 모든 스크립트(사격 로직 등) 파괴
-        MonoBehaviour[] scripts = targetObj.GetComponentsInChildren<MonoBehaviour>(true);
-        foreach (var script in scripts)
+        MonoBehaviour[] scripts =
+            targetObj.GetComponentsInChildren<MonoBehaviour>(true);
+
+        foreach (MonoBehaviour script in scripts)
         {
-            if (script != null && !(script is Renderer))
+            if (script != null)
                 Destroy(script);
         }
 
-        // 물리 및 충돌체 파괴 (벽에 걸리거나 혼자 날아가는 것 방지)
-        foreach (var rb in targetObj.GetComponentsInChildren<Rigidbody>(true)) Destroy(rb);
-        foreach (var col in targetObj.GetComponentsInChildren<Collider>(true)) Destroy(col);
+        Rigidbody[] rigidbodies =
+            targetObj.GetComponentsInChildren<Rigidbody>(true);
+
+        foreach (Rigidbody rb in rigidbodies)
+        {
+            if (rb != null)
+                Destroy(rb);
+        }
+
+        Collider[] colliders =
+            targetObj.GetComponentsInChildren<Collider>(true);
+
+        foreach (Collider col in colliders)
+        {
+            if (col != null)
+                Destroy(col);
+        }
     }
 }

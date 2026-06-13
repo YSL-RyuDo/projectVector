@@ -15,6 +15,7 @@ public class SpectatorManager : MonoBehaviour
     private Camera myCamera;
 
     private PlayerIdentity currentHiddenTarget;
+
     private bool isSpikeSpectating;
 
     private void Awake()
@@ -51,6 +52,9 @@ public class SpectatorManager : MonoBehaviour
 
     public void StartSpectating()
     {
+        // 이전 관전 상태가 남아 있다면 먼저 복구
+        RestoreHiddenTargetModel();
+
         myPlayer = FindMyPlayer();
 
         if (myPlayer == null)
@@ -62,12 +66,14 @@ public class SpectatorManager : MonoBehaviour
         PlayerCameraController myCameraController =
             myPlayer.GetComponent<PlayerCameraController>();
 
-        if (myCameraController == null || myCameraController.PlayerCamera == null)
+        if (myCameraController == null ||
+            myCameraController.PlayerCamera == null)
         {
             Debug.LogError("[SPECTATOR] my camera not found");
             return;
         }
 
+        // 관전에는 죽은 내 플레이어의 카메라를 계속 사용한다.
         myCamera = myCameraController.PlayerCamera;
         myCamera.enabled = true;
         myCamera.tag = "MainCamera";
@@ -75,22 +81,29 @@ public class SpectatorManager : MonoBehaviour
         BuildTargets();
 
         isSpectating = true;
+        isSpikeSpectating = false;
         currentIndex = 0;
 
         if (targets.Count == 0)
         {
             SpectateSpike();
-            Debug.Log("[SPECTATOR] start spike spectate");
+
+            Debug.Log(
+                "[SPECTATOR] start spike spectate"
+            );
+
             return;
         }
 
         FollowTarget();
 
-        Debug.Log($"[SPECTATOR] start target={targets[currentIndex].PlayerId}");
+        Debug.Log(
+            $"[SPECTATOR] start target={targets[currentIndex].PlayerId}"
+        );
     }
-
     public void StopSpectating()
     {
+        // 현재 관전 대상의 모델과 3인칭 무기 복구
         RestoreHiddenTargetModel();
 
         isSpectating = false;
@@ -344,35 +357,90 @@ public class SpectatorManager : MonoBehaviour
         Debug.Log($"[SPECTATOR] prev={targets[currentIndex].PlayerId}");
     }
 
-    private void ApplySpectatorTargetModelVisibility(PlayerIdentity newTarget)
+    private void ApplySpectatorTargetModelVisibility(
+    PlayerIdentity newTarget)
     {
         if (newTarget == null)
             return;
 
-        if (currentHiddenTarget != null && currentHiddenTarget != newTarget)
+        // 이미 같은 플레이어를 관전 중이면 매 프레임 다시 설정하지 않는다.
+        if (currentHiddenTarget == newTarget)
+            return;
+
+        // 이전 관전 대상을 정상적인 3인칭 표시로 복구
+        RestoreHiddenTargetModel();
+
+        PlayerDeathController death =
+            newTarget.GetComponent<PlayerDeathController>();
+
+        if (death == null)
         {
-            PlayerDeathController prevDeath =
-                currentHiddenTarget.GetComponent<PlayerDeathController>();
+            death =
+                newTarget.GetComponentInChildren<PlayerDeathController>(true);
+        }
 
-            if (prevDeath != null && !prevDeath.IsDead)
-                prevDeath.SetModelVisible(true);
+        // 이미 죽은 플레이어는 관전 대상으로 적용하지 않는다.
+        if (death != null && death.IsDead)
+        {
+            Debug.LogWarning(
+                $"[SPECTATOR VIEW] target is dead. playerId={newTarget.PlayerId}"
+            );
 
-            PlayerItem prevItem = currentHiddenTarget.GetComponent<PlayerItem>();
-            if (prevItem != null)
-                prevItem.SetWeaponVisibility(false);
+            return;
         }
 
         currentHiddenTarget = newTarget;
 
-        PlayerDeathController currentDeath =
-            currentHiddenTarget.GetComponent<PlayerDeathController>();
+        // 관전 대상의 몸 모델은 숨긴다.
+        // 그래야 머리, 몸통, 3인칭 팔이 카메라 앞에 보이지 않는다.
+        if (death != null)
+        {
+            death.SetModelVisible(false);
+        }
 
-        if (currentDeath != null && !currentDeath.IsDead)
-            currentDeath.SetModelVisible(false);
+        PlayerWeaponViewController weaponView =
+            newTarget.GetComponent<PlayerWeaponViewController>();
 
-        PlayerItem currentItem = currentHiddenTarget.GetComponent<PlayerItem>();
-        if (currentItem != null)
-            currentItem.SetWeaponVisibility(true);
+        if (weaponView == null)
+        {
+            weaponView =
+                newTarget.GetComponentInChildren<PlayerWeaponViewController>(true);
+        }
+
+        if (weaponView != null)
+        {
+            // 관전 대상:
+            // CameraRoot/WeaponHolder ON
+            // Model/WeaponHolder(Model) OFF
+            weaponView.ShowFirstPerson();
+        }
+        else
+        {
+            Debug.LogWarning(
+                $"[SPECTATOR VIEW] PlayerWeaponViewController missing. " +
+                $"playerId={newTarget.PlayerId}"
+            );
+        }
+
+        PlayerItem playerItem =
+            newTarget.GetComponent<PlayerItem>();
+
+        if (playerItem == null)
+        {
+            playerItem =
+                newTarget.GetComponentInChildren<PlayerItem>(true);
+        }
+
+        if (playerItem != null)
+        {
+            // 1인칭 Holder 안의 현재 무기 프리팹을 활성화
+            playerItem.SetWeaponVisibility(true);
+        }
+
+        Debug.Log(
+            $"[SPECTATOR VIEW APPLY] playerId={newTarget.PlayerId}, " +
+            $"firstPersonWeapon=true, model=false"
+        );
     }
 
     private void RestoreHiddenTargetModel()
@@ -380,17 +448,68 @@ public class SpectatorManager : MonoBehaviour
         if (currentHiddenTarget == null)
             return;
 
-        PlayerDeathController death =
-            currentHiddenTarget.GetComponent<PlayerDeathController>();
+        PlayerIdentity previousTarget = currentHiddenTarget;
 
-        if (death != null && !death.IsDead)
-            death.SetModelVisible(true);
-
-        PlayerItem item = currentHiddenTarget.GetComponent<PlayerItem>();
-
-        if (item != null)
-            item.SetWeaponVisibility(false);
-
+        // 먼저 참조를 비운다.
         currentHiddenTarget = null;
+
+        PlayerDeathController death =
+            previousTarget.GetComponent<PlayerDeathController>();
+
+        if (death == null)
+        {
+            death =
+                previousTarget.GetComponentInChildren<PlayerDeathController>(true);
+        }
+
+        PlayerWeaponViewController weaponView =
+            previousTarget.GetComponent<PlayerWeaponViewController>();
+
+        if (weaponView == null)
+        {
+            weaponView =
+                previousTarget.GetComponentInChildren<PlayerWeaponViewController>(true);
+        }
+
+        PlayerItem playerItem =
+            previousTarget.GetComponent<PlayerItem>();
+
+        if (playerItem == null)
+        {
+            playerItem =
+                previousTarget.GetComponentInChildren<PlayerItem>(true);
+        }
+
+        if (death != null && death.IsDead)
+        {
+            // 관전 중 대상이 죽었다면 무기와 모델 모두 숨김
+            if (weaponView != null)
+                weaponView.HideAll();
+
+            if (playerItem != null)
+                playerItem.SetWeaponVisibility(false);
+
+            death.SetModelVisible(false);
+        }
+        else
+        {
+            // 이전 관전 대상을 정상적인 원격 플레이어 모습으로 복구
+            if (playerItem != null)
+                playerItem.SetWeaponVisibility(false);
+
+            if (weaponView != null)
+            {
+                // CameraRoot/WeaponHolder OFF
+                // Model/WeaponHolder(Model) ON
+                weaponView.ShowThirdPerson();
+            }
+
+            if (death != null)
+                death.SetModelVisible(true);
+        }
+
+        Debug.Log(
+            $"[SPECTATOR VIEW RESTORE] playerId={previousTarget.PlayerId}"
+        );
     }
 }
