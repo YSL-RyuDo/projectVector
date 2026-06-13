@@ -39,8 +39,15 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float positionSendThreshold = 0.02f;
     [SerializeField] private float yawSendThreshold = 1.0f;
 
-    private int _currentAnimIndex = -1;
     private bool _isCrouching = false;
+    private Vector3 _standingPos;
+    private Vector3 _crouchingPos;
+
+    [Header("카메라 높이 설정")]
+    [SerializeField] private float _crouchHeightOffset = 0.5f; // 얼마나 내릴지
+    [SerializeField] private float _crouchSpeed = 8f;         // 카메라 움직임 속도
+
+    private int _currentAnimIndex = -1;
 
     private byte _targetAnimIndex = 0;
     private byte lastSentAnimIndex = 255;
@@ -83,6 +90,9 @@ public class PlayerMovement : MonoBehaviour
             lastSentPitch = 0f;
             _targetPitch = 0f;
         }
+
+        _standingPos = _cam.transform.localPosition;
+        _crouchingPos = _standingPos - new Vector3(0, _crouchHeightOffset, 0);
     }
 
     void Update()
@@ -111,11 +121,14 @@ public class PlayerMovement : MonoBehaviour
         Vector2 input = getInput();
         Vector3 move = transform.right * input.x + transform.forward * input.y;
 
-        if (Keyboard.current.leftCtrlKey.wasPressedThisFrame)
+        _isCrouching = Keyboard.current.leftCtrlKey.isPressed;
+
+        if (_animator != null)
         {
-            _isCrouching = !_isCrouching;
-            if (_animator != null) _animator.SetBool("Crouch", _isCrouching);
+            _animator.SetBool("Crouch", _isCrouching);
         }
+        Vector3 targetPos = _isCrouching ? _crouchingPos : _standingPos;
+        _cam.transform.localPosition = Vector3.Lerp(_cam.transform.localPosition, targetPos, Time.deltaTime * _crouchSpeed);
 
         if (_cc.isGrounded)
         {
