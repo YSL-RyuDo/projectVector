@@ -79,16 +79,17 @@ public class FPSCameraLook : MonoBehaviour
         if (GameController.Instance != null && GameController.Instance.IsPaused) return;
         if (Mouse.current == null) return;
 
-        if (Keyboard.current.leftCtrlKey.isPressed)
-        {
-            targetPosition = originalPosition + Vector3.down * downDistance;
-        }
-        else
-        {
-            targetPosition = originalPosition;
-        }
+        // ¾É±â ÄÚµå
+        //if (Keyboard.current.leftCtrlKey.isPressed)
+        //{
+        //    targetPosition = originalPosition + Vector3.down * downDistance;
+        //}
+        //else
+        //{
+        //    targetPosition = originalPosition;
+        //}
 
-        transform.localPosition = Vector3.Lerp(transform.localPosition, targetPosition, Time.deltaTime * moveSpeed);
+        //transform.localPosition = Vector3.Lerp(transform.localPosition, targetPosition, Time.deltaTime * moveSpeed);
 
         float sensitivity = _baseSensitivity * (_isADS ? _adsSensitivityMultiplier : 1f);
 
