@@ -130,6 +130,21 @@ public class PlayerMovement : MonoBehaviour
             _isCrouching = !_isCrouching;
         }
 
+        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            if (_playerItem != null)
+            {
+                Weapon currentWeapon = _playerItem.GetCurrentWeapon();
+                if (currentWeapon != null && currentWeapon.GetWeaponType() == WeaponData.WeaponType.Knife)
+                {
+                    if (_animator != null)
+                    {
+                        _animator.SetTrigger("Sword_Attack");
+                    }
+                }
+            }
+        }
+
         bool isMoving = input.sqrMagnitude > 0;
 
         Vector3 targetPos = _isCrouching ? _crouchingPos : _standingPos;
