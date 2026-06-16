@@ -267,7 +267,19 @@ public class PlayerMovement : MonoBehaviour
 
         if (rawMoveState == 5 && isIndexChanged)
         {
-            _animator.SetTrigger("Pistol_Jump");
+            // 0: ±ÇÃÑ/¸Ç¼Õ, 1: ±äÃÑ, 2: Ä®
+            if (weaponTypeForAnimator == 1)
+            {
+                _animator.SetTrigger("LongGun_Jump");
+            }
+            else if (weaponTypeForAnimator == 2)
+            {
+                _animator.SetTrigger("Sword_Jump");
+            }
+            else
+            {
+                _animator.SetTrigger("Pistol_Jump");
+            }
         }
     }
 
