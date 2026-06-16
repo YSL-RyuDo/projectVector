@@ -335,14 +335,9 @@ public class PlayerMovement : MonoBehaviour
             int weaponOffset = 0;
 
             Weapon currentWeapon = null;
-            Weapon[] weapons = GetComponentsInChildren<Weapon>(true);
-            foreach (var w in weapons)
+            if (_playerItem != null)
             {
-                if (w.gameObject.activeInHierarchy)
-                {
-                    currentWeapon = w;
-                    break;
-                }
+                currentWeapon = _playerItem.GetCurrentWeapon();
             }
 
             if (currentWeapon != null)
