@@ -210,26 +210,17 @@ public class PlayerMovement : MonoBehaviour
         _currentAnimIndex = animIndex;
 
         Weapon currentWeapon = null;
-
         if (_playerItem != null)
         {
             currentWeapon = _playerItem.GetCurrentWeapon();
         }
 
-        Debug.Log(
-    $"CurrentIndex={_playerItem?.CurrentIndex}, " +
-    $"Weapon={currentWeapon?.name}, " +
-    $"Type={currentWeapon?.GetWeaponType()}"
-);
-
-        // 2. 무기 종류에 따라 WeaponType 파라미터 강제 주입!
-        int weaponTypeForAnimator = 0; // 기본값 0 (Pistol)
-
+        // 무기 종류에 따라 WeaponType 판단
+        int weaponTypeForAnimator = 0;
         if (currentWeapon != null)
         {
             WeaponData.WeaponType wType = currentWeapon.GetWeaponType();
 
-            // 긴 총 종류들이면 무조건 WeaponType = 1
             if (wType == WeaponData.WeaponType.AR ||
                 wType == WeaponData.WeaponType.SMG ||
                 wType == WeaponData.WeaponType.Shotgun ||
@@ -237,29 +228,44 @@ public class PlayerMovement : MonoBehaviour
                 wType == WeaponData.WeaponType.DMR ||
                 wType == WeaponData.WeaponType.SR)
             {
-                weaponTypeForAnimator = 1;
+                weaponTypeForAnimator = 1; // 긴총
             }
-            // 칼 종류면 무조건 WeaponType = 2
             else if (wType == WeaponData.WeaponType.Knife)
             {
-                weaponTypeForAnimator = 2;
+                weaponTypeForAnimator = 2; // 칼
             }
         }
 
-        // 애니메이터에 0, 1, 2 값을 다이렉트로 강제 설정!
+        int previousWeaponType = _animator.GetInteger("WeaponType");
+        bool isWeaponChanged = (previousWeaponType != weaponTypeForAnimator);
+
         _animator.SetInteger("WeaponType", weaponTypeForAnimator);
 
+        int rawMoveState = animIndex % 6; // 0~5 값
 
-        // 3. 이동 상태(MoveState)는 들어온 인덱스의 나머지 값으로 부드럽게 처리
-        int moveState = animIndex % 6;
-
-        if (moveState != 5)
+        if (rawMoveState != 5)
         {
-            _animator.SetFloat("MoveState", (float)moveState, 0.15f, Time.deltaTime);
+            float targetMoveStateValue = (float)rawMoveState;
+            if (weaponTypeForAnimator == 1)
+            {
+                targetMoveStateValue += 6f; // 긴총 구역이면 6.0 ~ 9.0 범위로 변환
+            }
+            else if (weaponTypeForAnimator == 2)
+            {
+                targetMoveStateValue += 12f; // 칼 구역이면 12.0 ~ 15.0 범위로 변환
+            }
+
+            if (isWeaponChanged)
+            {
+                _animator.SetFloat("MoveState", targetMoveStateValue);
+            }
+            else
+            {
+                _animator.SetFloat("MoveState", targetMoveStateValue, 0.15f, Time.deltaTime);
+            }
         }
 
-        // 4. 점프 트리거 처리
-        if (moveState == 5 && isIndexChanged)
+        if (rawMoveState == 5 && isIndexChanged)
         {
             _animator.SetTrigger("Pistol_Jump");
         }
