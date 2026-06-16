@@ -19,7 +19,7 @@ public class PlayerItem : MonoBehaviour
 
     private Item[] items = new Item[5]; // 0~4 (5번 = Spike)
     private PlayerSpike playerSpike;
-    private int currentIndex = -1;
+    [SerializeField] private int currentIndex = -1;
 
     private PlayerIdentity _playerIdentity;
 
@@ -1041,4 +1041,19 @@ public class PlayerItem : MonoBehaviour
 
         InGameUIManager.Instance.SetBulletText(0, 0);
     }
+
+// KSW : 에디터 무기 변경 테스트용 추가
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (!Application.isPlaying || items == null) return;
+        if (currentIndex >= 0 && currentIndex < items.Length && items[currentIndex] != null)
+        {
+            int targetIndex = currentIndex;
+            currentIndex = -2;
+            Switch(targetIndex);
+            Debug.Log($"[EDITOR DEBUG] Inspector forced switch to Slot {targetIndex}");
+        }
+    }
+#endif
 }
