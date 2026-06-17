@@ -1882,6 +1882,11 @@ public class NetworkManager : MonoBehaviour
 
     private void HandleRoundReset(byte[] body)
     {
+        if (KillLogManager.Instance != null)
+        {
+            KillLogManager.Instance.ClearAll();
+        }
+
         if (WeaponDropSpawner.Instance != null)
         {
             WeaponDropSpawner.Instance.ClearAllDroppedWeapons();
@@ -2835,74 +2840,156 @@ public class NetworkManager : MonoBehaviour
 
     private void HandleDie(byte[] body)
     {
+        int offset = 0;
 
-        uint deadPlayerId = BitConverter.ToUInt32(body, 0);
+        uint killerPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
 
-        Debug.Log($"[DIE] playerId={deadPlayerId}");
+        uint deadPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
 
-        PlayerIdentity[] identities =
-            FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
+        byte killerTeam = body[offset];
+        offset += 1;
 
-        foreach (PlayerIdentity identity in identities)
+        byte deadTeam = body[offset];
+        offset += 1;
+
+        int killerCharacterId =
+            BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int deadCharacterId =
+            BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        string killerNickname =
+            Packet.ReadFixedString(body, offset, 20);
+        offset += 20;
+
+        string deadNickname =
+            Packet.ReadFixedString(body, offset, 20);
+        offset += 20;
+
+        Debug.Log(
+            $"[DIE] killer={killerPlayerId}, " +
+            $"dead={deadPlayerId}, " +
+            $"killerTeam={killerTeam}, " +
+            $"deadTeam={deadTeam}, " +
+            $"killerNickname={killerNickname}, " +
+            $"deadNickname={deadNickname}, " +
+            $"killerCharacter={killerCharacterId}, " +
+            $"deadCharacter={deadCharacterId}"
+        );
+
+        // 킬러가 정상적으로 존재하는 사망만 킬로그 표시
+        if (killerPlayerId != 0 &&
+            KillLogManager.Instance != null)
         {
-            if (identity.PlayerId != deadPlayerId)
-                continue;
+            byte myTeam = GetMyTeamForKillLog();
 
-            PlayerDeathController death =
-                identity.GetComponent<PlayerDeathController>();
+            // 킬러가 내 팀이면 OurKillLogPrefab
+            // 킬러가 상대 팀이면 EnemyKillLogPrefab
+            bool isOurKill =
+                killerTeam == myTeam;
 
-            if (death != null)
-                death.OnDead();
-            else
-                Debug.LogError($"[DIE] PlayerDeathController missing. object={identity.name}");
-
-            break;
+            KillLogManager.Instance.ShowKillLog(
+                isOurKill,
+                killerCharacterId,
+                deadCharacterId,
+                killerNickname,
+                deadNickname
+            );
         }
 
-        if (deadPlayerId == MyPlayerId)
+        PlayerIdentity deadIdentity =
+            FindPlayerIdentityById(deadPlayerId);
+
+        if (deadIdentity != null)
         {
-            PlayerIdentity myIdentity = null;
+            PlayerDeathController death =
+                deadIdentity.GetComponent<PlayerDeathController>();
 
-            PlayerIdentity[] allIdentities =
-                FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
-
-            foreach (PlayerIdentity identity in allIdentities)
+            if (death == null)
             {
-                if (identity.PlayerId == MyPlayerId)
-                {
-                    myIdentity = identity;
-                    break;
-                }
+                death =
+                    deadIdentity.GetComponentInChildren<PlayerDeathController>(
+                        true
+                    );
             }
 
-            if (myIdentity != null)
+            if (death != null)
             {
-                PlayerSpike playerSpike = myIdentity.GetComponent<PlayerSpike>();
-
-                if (playerSpike == null)
-                    playerSpike = myIdentity.GetComponentInChildren<PlayerSpike>(true);
-
-                if (playerSpike != null)
-                    playerSpike.ForceCancelPlant();
-                else
-                    Debug.LogError("[DIE] PlayerSpike missing on local player");
-
-                PlayerItem item = myIdentity.GetComponent<PlayerItem>();
-                if (item != null)
-                    item.SetWeaponVisibility(false);
-
-                FPSCameraLook cameraLook = myIdentity.GetComponentInChildren<FPSCameraLook>(true);
-
-                if (cameraLook != null)
-                    cameraLook.ForceExitADS();
-                else
-                    Debug.LogError("[DIE] FPSCameraLook missing on local player");
+                death.OnDead();
             }
-
-            if (SpectatorManager.Instance != null)
-                SpectatorManager.Instance.StartSpectating();
             else
-                Debug.LogError("[DIE] SpectatorManager.Instance is null");
+            {
+                Debug.LogError(
+                    $"[DIE] PlayerDeathController missing. " +
+                    $"object={deadIdentity.name}"
+                );
+            }
+        }
+
+        if (deadPlayerId != MyPlayerId)
+            return;
+
+        PlayerIdentity myIdentity =
+            FindPlayerIdentityById(MyPlayerId);
+
+        if (myIdentity != null)
+        {
+            PlayerSpike playerSpike =
+                myIdentity.GetComponent<PlayerSpike>();
+
+            if (playerSpike == null)
+            {
+                playerSpike =
+                    myIdentity.GetComponentInChildren<PlayerSpike>(true);
+            }
+
+            if (playerSpike != null)
+            {
+                playerSpike.ForceCancelPlant();
+            }
+            else
+            {
+                Debug.LogError(
+                    "[DIE] PlayerSpike missing on local player"
+                );
+            }
+
+            PlayerItem item =
+                myIdentity.GetComponent<PlayerItem>();
+
+            if (item != null)
+                item.SetWeaponVisibility(false);
+
+            FPSCameraLook cameraLook =
+                myIdentity.GetComponentInChildren<FPSCameraLook>(true);
+
+            if (cameraLook != null)
+            {
+                cameraLook.ForceExitADS();
+            }
+            else
+            {
+                Debug.LogError(
+                    "[DIE] FPSCameraLook missing on local player"
+                );
+            }
+        }
+
+        if (SpectatorManager.Instance != null)
+        {
+            SpectatorManager.Instance.StartSpectating();
+        }
+        else
+        {
+            Debug.LogError(
+                "[DIE] SpectatorManager.Instance is null"
+            );
         }
     }
 
@@ -3508,5 +3595,24 @@ public class NetworkManager : MonoBehaviour
         }
 
         Debug.Log("[STORE BUY SUCCESS]");
+    }
+
+    private byte GetMyTeamForKillLog()
+    {
+        // Scoreboard에는 서버가 보내 준 내 실제 팀 정보가 들어 있다.
+        if (latestScoreboardData != null)
+            return latestScoreboardData.myTeam;
+
+        PlayerIdentity myIdentity =
+            FindPlayerIdentityById(MyPlayerId);
+
+        if (myIdentity != null)
+            return (byte)myIdentity.Team;
+
+        Debug.LogWarning(
+            "[KILL LOG] local team not found"
+        );
+
+        return 255;
     }
 }

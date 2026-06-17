@@ -169,20 +169,25 @@ public class Weapon : Item
         StopAllCoroutines();
     }
 
-    void HandleADS()
+    private void HandleADS()
     {
         if (weaponData == null)
             return;
 
         if (cameraController == null)
-            return;
+                    return;
 
         if (cameraController.PlayerCamera == null)
             return;
 
-        // 칼은 ADS 금지
-        if (weaponData.weaponType == WeaponData.WeaponType.Knife)
+        // 권총과 칼은 ADS 금지
+        bool cannotADS =
+            weaponData.weaponType == WeaponData.WeaponType.Pistol ||
+            weaponData.weaponType == WeaponData.WeaponType.Knife;
+
+        if (cannotADS)
         {
+            // 이전 무기에서 ADS 중이었다면 강제로 해제
             if (isADS)
             {
                 isADS = false;
@@ -191,14 +196,17 @@ public class Weapon : Item
                 weaponADS?.SetADS(false);
             }
 
+            // FOV도 일반 상태로 고정
             cameraController.SetFOV(weaponData.normalFOV);
+
             return;
         }
 
         if (Mouse.current == null)
             return;
 
-        bool adsInput = Mouse.current.rightButton.isPressed;
+        bool adsInput =
+            Mouse.current.rightButton.isPressed;
 
         if (adsInput != isADS)
         {
@@ -219,7 +227,8 @@ public class Weapon : Item
         );
 
         cameraController.SetFOV(nextFOV);
-    }
+}
+
     public override void OnUse()
     {
         base.OnUse();
