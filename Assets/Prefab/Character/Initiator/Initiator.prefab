@@ -302,8 +302,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ab9e94617b5bb74b965999fa8b151f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  _localPosition: {x: -0.06, y: 0.04, z: 0}
-  _localRotation: {x: 16, y: -75, z: 0}
+  _pistolPreset:
+    localPosition: {x: -0.06, y: 0.04, z: 0}
+    localRotation: {x: 16, y: -75, z: 0}
+  _riflePreset:
+    localPosition: {x: -0.06, y: 0.04, z: 0}
+    localRotation: {x: 16, y: -75, z: 0}
+  _knifePreset:
+    localPosition: {x: -0.06, y: 0.04, z: 0}
+    localRotation: {x: 16, y: -75, z: 0}
 --- !u!1 &7894991582291376646
 GameObject:
   m_ObjectHideFlags: 0
@@ -524,6 +531,7 @@ MonoBehaviour:
   itemLayer:
     serializedVersion: 2
     m_Bits: 1024
+  currentIndex: -1
 --- !u!114 &1275202334242850848
 MonoBehaviour:
   m_ObjectHideFlags: 0
