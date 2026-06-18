@@ -139,7 +139,7 @@ public class PlayerMovement : MonoBehaviour
                 {
                     if (_animator != null)
                     {
-                        _animator.SetTrigger("Sword_Attack");
+                        _animator.SetTrigger("Knife_Attack");
                     }
                 }
             }
@@ -289,7 +289,7 @@ public class PlayerMovement : MonoBehaviour
             }
             else if (weaponTypeForAnimator == 2)
             {
-                _animator.SetTrigger("Sword_Jump");
+                _animator.SetTrigger("Knife_Jump");
             }
             else
             {
