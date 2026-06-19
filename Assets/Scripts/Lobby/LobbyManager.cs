@@ -110,6 +110,47 @@ public class LobbyManager : MonoBehaviour
     private uint selectedAdminTargetPlayerId = 0;
     private string selectedAdminTargetNickname = "";
 
+    [Header("Main Navigation Buttons")]
+    [SerializeField] private Button lobbyMainButton;
+    [SerializeField] private Button characterMainButton;
+    [SerializeField] private Button gameMainButton;
+    [SerializeField] private Button careerMainButton;
+    [SerializeField] private Button storeMainButton;
+
+    [Header("Main Navigation Content Panels")]
+    [SerializeField] private GameObject lobbyHomePanel;
+    [SerializeField] private GameObject characterCustomizationPanel;
+    [SerializeField] private GameObject careerPanel;
+    [SerializeField] private GameObject storePanel;
+
+    [Header("Lobby Main Button Sprites")]
+    [SerializeField] private Sprite lobbyNormalSprite;
+    [SerializeField] private Sprite lobbySelectedSprite;
+
+    [Header("Character Main Button Sprites")]
+    [SerializeField] private Sprite characterNormalSprite;
+    [SerializeField] private Sprite characterSelectedSprite;
+
+    [Header("Career Main Button Sprites")]
+    [SerializeField] private Sprite careerNormalSprite;
+    [SerializeField] private Sprite careerSelectedSprite;
+
+    [Header("Store Main Button Sprites")]
+    [SerializeField] private Sprite storeNormalSprite;
+    [SerializeField] private Sprite storeSelectedSprite;
+
+    private enum LobbyMainMenu
+    {
+        Lobby,
+        Character,
+        Game,
+        Career,
+        Store
+    }
+
+    private LobbyMainMenu currentLobbyMainMenu =
+        LobbyMainMenu.Lobby;
+
     private enum GamePanelView
     {
         None,
@@ -155,11 +196,20 @@ public class LobbyManager : MonoBehaviour
 
     void Start()
     {
+        if (NetworkManager.Instance == null)
+        {
+            Debug.LogError("[LOBBY] NetworkManager.Instance is null");
+            return;
+        }
+
         NetworkManager.Instance.SetLobbyManager(this);
         NetworkManager.Instance.SendLobbyEnter();
 
         bool returningFromResult =
             NetworkManager.Instance.HasPendingReturnRoom;
+
+        // 기존 Hierarchy 구조는 건드리지 않고 버튼 이벤트만 코드에서 연결한다.
+        InitializeLobbyMainNavigation();
 
         if (characterSelectPopup != null)
             characterSelectPopup.SetActive(false);
@@ -169,6 +219,18 @@ public class LobbyManager : MonoBehaviour
 
         if (gamePanel != null)
             gamePanel.SetActive(false);
+
+        if (lobbyHomePanel != null)
+            lobbyHomePanel.SetActive(false);
+
+        if (characterCustomizationPanel != null)
+            characterCustomizationPanel.SetActive(false);
+
+        if (careerPanel != null)
+            careerPanel.SetActive(false);
+
+        if (storePanel != null)
+            storePanel.SetActive(false);
 
         if (tempGameRoomPanel != null)
             tempGameRoomPanel.SetActive(false);
@@ -181,11 +243,8 @@ public class LobbyManager : MonoBehaviour
             roomPanelUI.HideRoom();
             roomPanelUI.OnConfirmLeave = OnConfirmRoomLeave;
             roomPanelUI.OnGameStartClicked = OnClickRoomGameStart;
-        }
-
-        if (roomPanelUI != null)
-        {
             roomPanelUI.OnSlotClicked = OnClickRoomSlot;
+            roomPanelUI.OnSlotRightClicked = OnRightClickRoomSlot;
         }
 
         if (slotSwapRequestPanel != null)
@@ -221,11 +280,6 @@ public class LobbyManager : MonoBehaviour
             slotChangeCancelButton.onClick.AddListener(OnClickCancelSlotChange);
         }
 
-        if (roomPanelUI != null)
-        {
-            roomPanelUI.OnSlotRightClicked = OnRightClickRoomSlot;
-        }
-
         if (slotAdminMenuPanel != null)
             slotAdminMenuPanel.SetActive(false);
 
@@ -247,21 +301,27 @@ public class LobbyManager : MonoBehaviour
         {
             SelectGameMode(GameMode.Custom);
 
-            uint roomId = NetworkManager.Instance.PendingReturnRoomId;
+            uint roomId =
+                NetworkManager.Instance.PendingReturnRoomId;
+
             NetworkManager.Instance.ClearPendingReturnRoom();
 
-            ShowGamePanel();
-
-            if (roomPanelUI != null)
-                roomPanelUI.HideRoom();
+            // 결과 화면에서 돌아올 때는 게임 메뉴 상태를 유지한다.
+            SelectLobbyMainMenu(LobbyMainMenu.Game);
 
             NetworkManager.Instance.SendRoomStateRequest(roomId);
 
-            Debug.Log($"[LOBBY RETURN FROM RESULT] request room state. roomId={roomId}");
+            Debug.Log(
+                $"[LOBBY RETURN FROM RESULT] " +
+                $"request room state. roomId={roomId}"
+            );
         }
         else
         {
             SelectGameMode(GameMode.Normal);
+
+            // 최초 로비 입장 시 로비 버튼만 선택 이미지로 표시한다.
+            SelectLobbyMainMenu(LobbyMainMenu.Lobby);
         }
     }
 
@@ -650,8 +710,13 @@ public class LobbyManager : MonoBehaviour
 
     private void ShowGamePanel()
     {
-        if (gamePanel != null)
-            gamePanel.SetActive(true);
+        if (gamePanel == null)
+            return;
+
+        // 서버 응답이 늦게 도착해도 다른 메인 메뉴 위에 게임 패널을 강제로 띄우지 않는다.
+        gamePanel.SetActive(
+            currentLobbyMainMenu == LobbyMainMenu.Game
+        );
     }
 
     private void HideGamePanel()
@@ -770,8 +835,24 @@ public class LobbyManager : MonoBehaviour
 
     public void OnClickGameButton()
     {
-        Debug.Log($"[GAME PANEL] GameButton Click currentView={currentGamePanelView}");
+        Debug.Log(
+            $"[GAME PANEL] GameButton Click " +
+            $"currentView={currentGamePanelView}"
+        );
 
+        /*
+         * 게임 버튼 자체 이미지는 바꾸지 않는다.
+         * 대신 로비/캐릭터/커리어/스토어 버튼은 모두 일반 이미지로 복구한다.
+         */
+        SelectLobbyMainMenu(
+            LobbyMainMenu.Game
+        );
+
+        // 게임 내부에서 마지막으로 보던 화면을 그대로 복원한다.
+        ShowCurrentGamePanelView();
+    }
+    private void ShowCurrentGamePanelView()
+    {
         if (currentGamePanelView == GamePanelView.None)
         {
             SelectGameMode(GameMode.Normal);
@@ -785,16 +866,15 @@ public class LobbyManager : MonoBehaviour
             return;
         }
 
-        if (currentGamePanelView == GamePanelView.RoomPanel)
-        {
-            ShowRoomPanelOnly();
-            return;
-        }
-
         if (currentGamePanelView == GamePanelView.RoomList)
         {
             ShowRoomListPanel();
             return;
+        }
+
+        if (currentGamePanelView == GamePanelView.RoomPanel)
+        {
+            ShowRoomPanelOnly();
         }
     }
 
@@ -1058,8 +1138,13 @@ public class LobbyManager : MonoBehaviour
 
     public void OnClickCloseGamePanel()
     {
-        HideAllGameSubPanels();
-        HideGamePanel();
+        /*
+         * 게임 내부 상태는 유지하고 메인 로비 화면으로만 돌아간다.
+         * 이후 GameButton을 다시 누르면 currentGamePanelView 상태가 복원된다.
+         */
+        SelectLobbyMainMenu(
+            LobbyMainMenu.Lobby
+        );
     }
 
     public void OnRecvRoomCreateResult(RoomStateData roomState)
@@ -1598,5 +1683,231 @@ public class LobbyManager : MonoBehaviour
         }
 
         ShowRoomMessage("게임 시작에 실패했습니다.");
+    }
+
+    public void OnClickLobbyMainButton()
+    {
+        SelectLobbyMainMenu(
+            LobbyMainMenu.Lobby
+        );
+
+        Debug.Log("[LOBBY MAIN MENU] Lobby");
+    }
+
+    public void OnClickCharacterMainButton()
+    {
+        SelectLobbyMainMenu(
+            LobbyMainMenu.Character
+        );
+
+        Debug.Log("[LOBBY MAIN MENU] Character");
+    }
+
+    public void OnClickCareerMainButton()
+    {
+        SelectLobbyMainMenu(
+            LobbyMainMenu.Career
+        );
+
+        Debug.Log("[LOBBY MAIN MENU] Career");
+    }
+
+    public void OnClickStoreMainButton()
+    {
+        SelectLobbyMainMenu(
+            LobbyMainMenu.Store
+        );
+
+        Debug.Log("[LOBBY MAIN MENU] Store");
+    }
+
+    private void SelectLobbyMainMenu(
+    LobbyMainMenu selectedMenu)
+    {
+        currentLobbyMainMenu = selectedMenu;
+
+        // 메인 메뉴를 변경할 때 작은 선택 팝업만 닫는다.
+        if (characterSelectPopup != null)
+            characterSelectPopup.SetActive(false);
+
+        if (backgroundSelectPopup != null)
+            backgroundSelectPopup.SetActive(false);
+
+        /*
+         * 기존 Hierarchy와 기존 게임 내부 상태는 그대로 유지한다.
+         * 메인 콘텐츠 루트의 활성 상태만 변경한다.
+         */
+        if (lobbyHomePanel != null)
+        {
+            lobbyHomePanel.SetActive(
+                selectedMenu == LobbyMainMenu.Lobby
+            );
+        }
+
+        if (characterCustomizationPanel != null)
+        {
+            characterCustomizationPanel.SetActive(
+                selectedMenu == LobbyMainMenu.Character
+            );
+        }
+
+        if (gamePanel != null)
+        {
+            gamePanel.SetActive(
+                selectedMenu == LobbyMainMenu.Game
+            );
+        }
+
+        if (careerPanel != null)
+        {
+            careerPanel.SetActive(
+                selectedMenu == LobbyMainMenu.Career
+            );
+        }
+
+        if (storePanel != null)
+        {
+            storePanel.SetActive(
+                selectedMenu == LobbyMainMenu.Store
+            );
+        }
+
+        ApplyLobbyMainButtonSprites();
+
+        Debug.Log(
+            $"[LOBBY MAIN MENU SELECT] selected={selectedMenu}, " +
+            $"gameView={currentGamePanelView}"
+        );
+    }
+
+    private void InitializeLobbyMainNavigation()
+    {
+        BindMainNavigationButton(
+            lobbyMainButton,
+            OnClickLobbyMainButton
+        );
+
+        BindMainNavigationButton(
+            characterMainButton,
+            OnClickCharacterMainButton
+        );
+
+        BindMainNavigationButton(
+            gameMainButton,
+            OnClickGameButton
+        );
+
+        BindMainNavigationButton(
+            careerMainButton,
+            OnClickCareerMainButton
+        );
+
+        BindMainNavigationButton(
+            storeMainButton,
+            OnClickStoreMainButton
+        );
+    }
+
+    private void BindMainNavigationButton(
+        Button button,
+        UnityEngine.Events.UnityAction action)
+    {
+        if (button == null)
+        {
+            Debug.LogWarning(
+                "[LOBBY NAVIGATION] 연결되지 않은 메인 버튼이 있습니다."
+            );
+
+            return;
+        }
+
+        /*
+         * Inspector에 남아 있던 GameObject.SetActive 이벤트와
+         * 중복 호출되지 않도록 이 버튼의 클릭 이벤트만 교체한다.
+         * Hierarchy나 패널 구조는 변경하지 않는다.
+         */
+        button.onClick =
+            new Button.ButtonClickedEvent();
+
+        button.onClick.AddListener(action);
+
+        // 선택 표시는 Sprite로 직접 처리한다.
+        button.transition =
+            Selectable.Transition.None;
+
+        if (button.image != null)
+            button.image.color = Color.white;
+    }
+
+    private void ApplyLobbyMainButtonSprites()
+    {
+        SetMainButtonSprite(
+            lobbyMainButton,
+            currentLobbyMainMenu == LobbyMainMenu.Lobby
+                ? lobbySelectedSprite
+                : lobbyNormalSprite
+        );
+
+        SetMainButtonSprite(
+            characterMainButton,
+            currentLobbyMainMenu == LobbyMainMenu.Character
+                ? characterSelectedSprite
+                : characterNormalSprite
+        );
+
+        SetMainButtonSprite(
+            careerMainButton,
+            currentLobbyMainMenu == LobbyMainMenu.Career
+                ? careerSelectedSprite
+                : careerNormalSprite
+        );
+
+        SetMainButtonSprite(
+            storeMainButton,
+            currentLobbyMainMenu == LobbyMainMenu.Store
+                ? storeSelectedSprite
+                : storeNormalSprite
+        );
+
+        /*
+         * gameMainButton은 선택 상태와 무관하게 기존 Sprite를 그대로 유지한다.
+         * 따라서 이 함수에서 gameMainButton의 Sprite는 변경하지 않는다.
+         */
+    }
+
+    private void SetMainButtonSprite(
+        Button button,
+        Sprite sprite)
+    {
+        if (button == null)
+            return;
+
+        Image image = button.image;
+
+        if (image == null)
+            image = button.GetComponent<Image>();
+
+        if (image == null)
+        {
+            Debug.LogError(
+                $"[MAIN BUTTON] Image가 없습니다. " +
+                $"button={button.name}"
+            );
+
+            return;
+        }
+
+        if (sprite == null)
+        {
+            Debug.LogWarning(
+                $"[MAIN BUTTON] Sprite가 없습니다. " +
+                $"button={button.name}"
+            );
+
+            return;
+        }
+
+        image.sprite = sprite;
+        image.color = Color.white;
     }
 }
