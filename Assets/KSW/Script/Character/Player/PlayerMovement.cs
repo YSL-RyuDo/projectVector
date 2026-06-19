@@ -48,6 +48,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private float weaponWeight = 1f;
     private float currentMoveSpeed;
+    private bool isADS = false;
 
     public float Speed
     {
@@ -413,7 +414,23 @@ public class PlayerMovement : MonoBehaviour
     {
         weaponWeight = Mathf.Max(1f, weight);
 
+        UpdateMoveSpeed();
+    }
+
+    public void SetADS(bool ads)
+    {
+        isADS = ads;
+        UpdateMoveSpeed();
+    }
+
+    private void UpdateMoveSpeed()
+    {
         currentMoveSpeed =
             _speed - (1f - (1f / weaponWeight));
+
+        if (isADS)
+        {
+            currentMoveSpeed /= 1.5f;
+        }
     }
 }

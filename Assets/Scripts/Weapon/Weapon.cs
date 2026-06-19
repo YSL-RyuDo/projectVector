@@ -42,12 +42,13 @@ public class Weapon : Item
 
     private PlayerIdentity _playerIdentity;
 
-
+    private PlayerMovement playerMovement;
 
     void Awake()
     {
         ownerHP = GetComponentInParent<PlayerHP>();
         isPlayer = GetComponentInParent<PlayerMovement>() != null;
+        playerMovement = GetComponentInParent<PlayerMovement>();
 
         if (!isPlayer)
         {
@@ -214,6 +215,8 @@ public class Weapon : Item
 
             cameraLook?.SetADS(isADS);
             weaponADS?.SetADS(isADS);
+
+            playerMovement?.SetADS(isADS);
         }
 
         float targetFOV = isADS
