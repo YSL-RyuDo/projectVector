@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
+    #region 변수, 프로퍼티
     // Movement
     [SerializeField] private float _speed = 5f;
     [SerializeField] private float _gravity = -20f;
@@ -39,22 +40,31 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float positionSendThreshold = 0.02f;
     [SerializeField] private float yawSendThreshold = 1.0f;
 
-    private int _currentAnimIndex = -1;
     private bool _isCrouching = false;
+    private Vector3 _standingPos;
+    private Vector3 _crouchingPos;
+
+    [Header("카메라 높이 설정")]
+    [SerializeField] private float _crouchHeightOffset = 0.5f; // 얼마나 내릴지
+    [SerializeField] private float _crouchSpeed = 8f;         // 카메라 움직임 속도
+
+    private int _currentAnimIndex = -1;
 
     private byte _targetAnimIndex = 0;
     private byte lastSentAnimIndex = 255;
 
-    [SerializeField]
-    private float weaponWeight = 1f;
+    private float weaponWeight;
+
     private float currentMoveSpeed;
-    private bool isADS = false;
+
+    private PlayerItem _playerItem;
 
     public float Speed
     {
         get => _speed;
         set => _speed = value;
     }
+    #endregion
 
     void Awake()
     {
@@ -62,14 +72,13 @@ public class PlayerMovement : MonoBehaviour
         _cam = GetComponentInChildren<FPSCameraLook>(true);
         _animator = GetComponentInChildren<Animator>();
         _playerIdentity = GetComponent<PlayerIdentity>();
+        _playerItem = GetComponent<PlayerItem>();
 
         lastSentPos = transform.position;
         lastSentYaw = transform.eulerAngles.y;
 
         _targetPosition = transform.position;
         _targetYaw = transform.eulerAngles.y;
-
-        currentMoveSpeed = _speed;
     }
 
     void Start()
@@ -90,6 +99,14 @@ public class PlayerMovement : MonoBehaviour
             lastSentPitch = 0f;
             _targetPitch = 0f;
         }
+
+        if (_isMine)
+        {
+            InitializeMiniMap();
+        }
+
+        _standingPos = _cam.transform.localPosition;
+        _crouchingPos = _standingPos - new Vector3(0, _crouchHeightOffset, 0);
     }
 
     void Update()
@@ -100,7 +117,6 @@ public class PlayerMovement : MonoBehaviour
         {
             // "내 캐릭터"라면 직접 조종하고 서버로 패킷 전송
             movement();
-            //networkSend();
             TrySendMoveState();
         }
         else
@@ -121,43 +137,56 @@ public class PlayerMovement : MonoBehaviour
         if (Keyboard.current.leftCtrlKey.wasPressedThisFrame)
         {
             _isCrouching = !_isCrouching;
-            if (_animator != null) _animator.SetBool("Crouch", _isCrouching);
         }
+
+        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            if (_playerItem != null)
+            {
+                Weapon currentWeapon = _playerItem.GetCurrentWeapon();
+                if (currentWeapon != null && currentWeapon.GetWeaponType() == WeaponData.WeaponType.Knife)
+                {
+                    if (_animator != null)
+                    {
+                        _animator.SetTrigger("Knife_Attack");
+                    }
+                }
+            }
+        }
+
+        bool isMoving = input.sqrMagnitude > 0;
+
+        Vector3 targetPos = _isCrouching ? _crouchingPos : _standingPos;
+        _cam.transform.localPosition = Vector3.Lerp(_cam.transform.localPosition, targetPos, Time.deltaTime * _crouchSpeed);
 
         if (_cc.isGrounded)
         {
             if (_verticalVelocity < -2f) _verticalVelocity = -2f;
-
-            if (_animator != null) _animator.SetBool("Down", false);
 
             if (Keyboard.current.spaceKey.wasPressedThisFrame)
             {
                 _verticalVelocity = _jumpPower;
                 _isCrouching = false; // 점프 시 앉기 상태 해제
 
-                OnJumpEvent?.Invoke();
-
                 if (_animator != null)
                 {
-                    _animator.SetBool("Crouch", false);
                     _animator.SetTrigger("Jump");
                 }
+
+                OnJumpEvent?.Invoke();
             }
         }
         else
         {
             _verticalVelocity += _gravity * Time.deltaTime;
         }
-
-        //Vector3 velocity = (move.normalized * _speed) + (Vector3.up * _verticalVelocity);
-        Vector3 velocity = (move.normalized * currentMoveSpeed) + (Vector3.up * _verticalVelocity);
+        Vector3 velocity = (move.normalized * _speed) + (Vector3.up * _verticalVelocity);
         _cc.Move(velocity * Time.deltaTime);
-
-        bool isMoving = input.sqrMagnitude > 0;
 
         if (_animator != null)
         {
-            _animator.SetBool("Forward", isMoving);
+            int myAnimIndex = GetCurrentAnimIndex();
+            ApplyAnimationIndexFromServer((byte)myAnimIndex);
         }
 
         // 로컬 플레이어 애니메이션 상태 판단 및 로그 출력
@@ -165,11 +194,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
     // 외부(NetworkManager 등 패킷 수신부)에서 호출해 줄 함수
-    public void OnReceiveRemoteMove(
-    Vector3 serverPos,
-    float serverYaw,
-    float serverPitch,
-    byte serverAnimIndex)
+    public void OnReceiveRemoteMove(Vector3 serverPos, float serverYaw, float serverPitch, byte serverAnimIndex)
     {
         if (_isMine)
             return;
@@ -189,48 +214,120 @@ public class PlayerMovement : MonoBehaviour
         _targetYaw = serverYaw;
         _targetPitch = serverPitch;
 
+        if (_targetAnimIndex != serverAnimIndex && (serverAnimIndex == 5 || serverAnimIndex == 11 || serverAnimIndex == 17))
+        {
+            if (_animator != null)
+            {
+                _animator.SetTrigger("Jump");
+            }
+        }
+
         _targetAnimIndex = serverAnimIndex;
         ApplyAnimationIndexFromServer(_targetAnimIndex);
     }
 
     private void ApplyAnimationIndexFromServer(byte animIndex)
     {
+        if (_animator == null) return;
+
+        bool isIndexChanged = (_currentAnimIndex != animIndex);
         _currentAnimIndex = animIndex;
 
-        if (_animator == null)
-            return;
-
-        switch (animIndex)
+        Weapon currentWeapon = null;
+        if (_playerItem != null)
         {
-            // 0 = 정지
-            case 0:
-                _animator.SetBool("Forward", false);
-                _animator.SetBool("Crouch", false);
-                break;
+            currentWeapon = _playerItem.GetCurrentWeapon();
+        }
 
-            // 1 = 걷기
-            case 1:
-                _animator.SetBool("Forward", true);
-                _animator.SetBool("Crouch", false);
-                break;
+        // 무기 종류에 따라 WeaponType 판단
+        int weaponTypeForAnimator = 0;
+        if (currentWeapon != null)
+        {
+            WeaponData.WeaponType wType = currentWeapon.GetWeaponType();
 
-            // 2 = 앉기
-            case 2:
-                _animator.SetBool("Forward", false);
-                _animator.SetBool("Crouch", true);
-                break;
+            if (wType == WeaponData.WeaponType.AR ||
+                wType == WeaponData.WeaponType.SMG ||
+                wType == WeaponData.WeaponType.Shotgun ||
+                wType == WeaponData.WeaponType.LMG ||
+                wType == WeaponData.WeaponType.DMR ||
+                wType == WeaponData.WeaponType.SR)
+            {
+                weaponTypeForAnimator = 1; // 긴총
+            }
+            else if (wType == WeaponData.WeaponType.Knife)
+            {
+                weaponTypeForAnimator = 2; // 칼
+            }
+        }
 
-            default:
-                _animator.SetBool("Forward", false);
-                _animator.SetBool("Crouch", false);
-                break;
+        int previousWeaponType = _animator.GetInteger("WeaponType");
+        bool isWeaponChanged = (previousWeaponType != weaponTypeForAnimator);
+
+        _animator.SetInteger("WeaponType", weaponTypeForAnimator);
+
+        // 우클릭 사격 자세(인덱스 10) 여부를 Bool 파라미터로 주입
+        bool isAiming = (animIndex == 10);
+        _animator.SetBool("IsAiming", isAiming);
+
+        // 조준 상태(10)일 때도 하체 연산을 위해 가상의 rawMoveState를 계산해 줌
+        int rawMoveState = animIndex % 6; // 0~5 값
+
+        if (animIndex == 10)
+        {
+            // 조준 중일 때는 현재 실제 이동 입력 상태를 기반으로 하체용 rawMoveState를 강제 매칭
+            Vector2 input = getInput();
+            bool isMoving = input.sqrMagnitude > 0f;
+
+            if (_isCrouching && isMoving) rawMoveState = 3;      // 앉아 걷기
+            else if (_isCrouching) rawMoveState = 2;             // 앉기
+            else if (isMoving) rawMoveState = 1;                 // 걷기
+            else rawMoveState = 0;                               // 정지
+        }
+        // ----------------------------------------------------------------------------------
+
+        // 점프(5)가 아닐 때만 하체 MoveState 값을 부드럽게 갱신
+        if (rawMoveState != 5)
+        {
+            float targetMoveStateValue = (float)rawMoveState;
+            if (weaponTypeForAnimator == 1)
+            {
+                targetMoveStateValue += 6f; // 긴총 구역이면 6.0 ~ 9.0 범위로 변환
+            }
+            else if (weaponTypeForAnimator == 2)
+            {
+                targetMoveStateValue += 12f; // 칼 구역이면 12.0 ~ 15.0 범위로 변환
+            }
+
+            if (isWeaponChanged)
+            {
+                _animator.SetFloat("MoveState", targetMoveStateValue);
+            }
+            else
+            {
+                // 조준 중일 때는 하체가 더 기민하게 반응하도록 댐핑 속도를 주거나 없앨 수 있음 (현재는 0.15f 유지)
+                _animator.SetFloat("MoveState", targetMoveStateValue, 0.15f, Time.deltaTime);
+            }
+        }
+
+        if (rawMoveState == 5 && isIndexChanged)
+        {
+            if (weaponTypeForAnimator == 1)
+            {
+                _animator.SetTrigger("LongGun_Jump");
+            }
+            else if (weaponTypeForAnimator == 2)
+            {
+                _animator.SetTrigger("Knife_Jump");
+            }
+            else
+            {
+                _animator.SetTrigger("Pistol_Jump");
+            }
         }
     }
 
-    // 원격 플레이어(타인)를 서버 목적지 좌표로 부드럽게 이동시키고 애니메이션을 제어하는 로직
     private void SyncRemotePlayerMovement()
     {
-        // 위치 및 회전 보간(Lerp) 처리
         Vector3 prevPosition = transform.position;
 
         _cc.enabled = false;
@@ -255,41 +352,88 @@ public class PlayerMovement : MonoBehaviour
 
     private void UpdateAnimationStateLog(bool isMoving, bool isCrouching)
     {
-        int newIndex = 0; // 기본 상태: 정지 (0)
+        int newIndex = 0;
 
-        if (isCrouching)
+        if (isCrouching && isMoving)
         {
-            newIndex = 2; // 앉기 (2)
+            newIndex = 3;
+        }
+        else if (isCrouching)
+        {
+            newIndex = 2;
         }
         else if (isMoving)
         {
-            newIndex = 1; // 걷기 (1)
+            newIndex = 1;
         }
 
-        if (_currentAnimIndex != newIndex)
+        if (_currentAnimIndex % 6 != newIndex)
         {
-            _currentAnimIndex = newIndex;
-            string stateName = _currentAnimIndex == 0 ? "정지" : (_currentAnimIndex == 1 ? "걷기" : "앉기");
+            string stateName = "정지";
+            if (newIndex == 1) stateName = "걷기";
+            if (newIndex == 2) stateName = "앉기";
+            if (newIndex == 3) stateName = "앉아서 걷기";
 
-            Debug.Log($"[{gameObject.name}] 애니메이션 상태 변경 -> {stateName} ({_currentAnimIndex}) | IsMine: {_isMine}");
+            Debug.Log($"[{gameObject.name}] 애니메이션 상태 변경 -> {stateName} | IsMine: {_isMine}");
         }
     }
 
     public int GetCurrentAnimIndex()
     {
-        if (_currentAnimIndex != -1)
-            return _currentAnimIndex;
-
-        if (_isCrouching)
-            return 2;
-
         if (_isMine)
         {
             Vector2 input = getInput();
+            bool isMoving = input.sqrMagnitude > 0f;
+            bool isJumping = !_cc.isGrounded;
 
-            if (input.sqrMagnitude > 0f)
-                return 1;
+            int weaponOffset = 0;
+
+            Weapon currentWeapon = null;
+            if (_playerItem != null)
+            {
+                currentWeapon = _playerItem.GetCurrentWeapon();
+            }
+
+            if (currentWeapon != null)
+            {
+                WeaponData.WeaponType wType = currentWeapon.GetWeaponType();
+
+                if (wType == WeaponData.WeaponType.AR ||
+                    wType == WeaponData.WeaponType.SMG ||
+                    wType == WeaponData.WeaponType.Shotgun ||
+                    wType == WeaponData.WeaponType.LMG ||
+                    wType == WeaponData.WeaponType.DMR ||
+                    wType == WeaponData.WeaponType.SR)
+                {
+                    weaponOffset = 6; // 긴총 구역 (인덱스 6~11)
+                }
+                else if (wType == WeaponData.WeaponType.Knife)
+                {
+                    weaponOffset = 12; // 칼 구역 (인덱스 12~17)
+                }
+            }
+
+            // --- [추가/수정] 긴총을 들고 있고 마우스 우클릭 유지 중일 때 처리 ---
+            if (weaponOffset == 6 && Mouse.current != null && Mouse.current.rightButton.isPressed)
+            {
+                // 점프 중이 아닐 때만 사격 자세(10번) 고정 (원한다면 점프 중에도 적용 가능)
+                if (!isJumping)
+                {
+                    return 10; // 긴총 사격 자세 고정 인덱스
+                }
+            }
+            // -----------------------------------------------------------------
+
+            if (isJumping) return weaponOffset + 5;
+            if (_isCrouching && isMoving) return weaponOffset + 3;
+            if (_isCrouching) return weaponOffset + 2;
+            if (isMoving) return weaponOffset + 1;
+
+            return weaponOffset + 0;
         }
+
+        if (_currentAnimIndex != -1)
+            return _currentAnimIndex;
 
         return 0;
     }
@@ -318,9 +462,8 @@ public class PlayerMovement : MonoBehaviour
             _verticalVelocity = force;
             if (_animator != null)
             {
-                _animator.SetBool("Crouch", false);
                 _animator.SetTrigger("Jump");
-                _isCrouching = false; // 점프 시 앉기 해제
+                _isCrouching = false;
             }
         }
     }
@@ -328,8 +471,8 @@ public class PlayerMovement : MonoBehaviour
     public void SetLocalPlayer(bool isMine)
     {
         _isMine = isMine;
-
         _cam = GetComponentInChildren<FPSCameraLook>(true);
+        Debug.Log($"[외부 호출] SetLocalPlayer 가 호출됨! 오브젝트: {gameObject.name}, isMine: {isMine}");
 
         if (_cam != null)
         {
@@ -346,6 +489,12 @@ public class PlayerMovement : MonoBehaviour
 
             lastSentPitch = 0f;
             _targetPitch = 0f;
+        }
+
+        // PlayerMovement.cs의 SetLocalPlayer 내부 수정
+        if (_isMine)
+        {
+            InitializeMiniMap();
         }
 
         Debug.Log(
@@ -410,27 +559,37 @@ public class PlayerMovement : MonoBehaviour
         );
     }
 
+    private void InitializeMiniMap()
+    {
+        if (MiniMapCamera.Instance != null)
+        {
+            MiniMapCamera.Instance.SetTarget(transform);
+            Debug.Log($"[PlayerMovement] Start에서 미니맵 타겟 지정 성공 -> {gameObject.name}");
+        }
+        else
+        {
+            // 만약 싱글톤 인스턴스가 아직 없다면 씬에서 직접 찾기 시도
+            MiniMapCamera miniMapCam = FindFirstObjectByType<MiniMapCamera>();
+            if (miniMapCam != null)
+            {
+                miniMapCam.SetTarget(transform);
+                Debug.Log($"[PlayerMovement] FindFirstObjectByType으로 미니맵 타겟 지정 성공 -> {gameObject.name}");
+            }
+            else
+            {
+                Debug.LogError("[PlayerMovement] 씬에 MiniMapCamera가 존재하지 않습니다! 배치를 확인하세요.");
+            }
+        }
+
+        if (MiniMapManager.Instance != null)
+        {
+            MiniMapManager.Instance.RegisterLocalPlayer(transform);
+        }
+    }
+
     public void SetWeaponWeight(float weight)
     {
         weaponWeight = Mathf.Max(1f, weight);
-
-        UpdateMoveSpeed();
-    }
-
-    public void SetADS(bool ads)
-    {
-        isADS = ads;
-        UpdateMoveSpeed();
-    }
-
-    private void UpdateMoveSpeed()
-    {
-        currentMoveSpeed =
-            _speed - (1f - (1f / weaponWeight));
-
-        if (isADS)
-        {
-            currentMoveSpeed /= 1.5f;
-        }
+        currentMoveSpeed = _speed - (1f - (1f / weaponWeight));
     }
 }

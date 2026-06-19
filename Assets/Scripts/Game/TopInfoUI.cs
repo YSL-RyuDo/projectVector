@@ -84,13 +84,13 @@ public class TopInfoUI : MonoBehaviour
     public void SetRoundWinnerText(byte winnerTeam)
     {
         bool ourTeamWin = winnerTeam == myTeam;
-        SetGameDescription(ourTeamWin ? "¿ì¸®ÆÀ ¶ó¿îµå ½Â¸®" : "»ó´ëÆÀ ¶ó¿îµå ½Â¸®");
+        SetGameDescription(ourTeamWin ? "¶ó¿îµå ½Â¸®" : "¶ó¿îµå ÆÐ¹è");
     }
 
     public void SetMatchWinnerText(byte winnerTeam)
     {
         bool ourTeamWin = winnerTeam == myTeam;
-        SetGameDescription(ourTeamWin ? "¿ì¸®ÆÀ °æ±â ½Â¸®" : "»ó´ëÆÀ °æ±â ½Â¸®");
+        SetGameDescription(ourTeamWin ? "°æ±â ½Â¸®" : "°æ±â ÆÐ¹è");
     }
 
     public void SetMapText(string mapName)
