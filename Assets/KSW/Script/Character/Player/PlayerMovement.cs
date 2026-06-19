@@ -256,8 +256,27 @@ public class PlayerMovement : MonoBehaviour
 
         _animator.SetInteger("WeaponType", weaponTypeForAnimator);
 
+        // 우클릭 사격 자세(인덱스 10) 여부를 Bool 파라미터로 주입
+        bool isAiming = (animIndex == 10);
+        _animator.SetBool("IsAiming", isAiming);
+
+        // 조준 상태(10)일 때도 하체 연산을 위해 가상의 rawMoveState를 계산해 줌
         int rawMoveState = animIndex % 6; // 0~5 값
 
+        if (animIndex == 10)
+        {
+            // 조준 중일 때는 현재 실제 이동 입력 상태를 기반으로 하체용 rawMoveState를 강제 매칭
+            Vector2 input = getInput();
+            bool isMoving = input.sqrMagnitude > 0f;
+
+            if (_isCrouching && isMoving) rawMoveState = 3;      // 앉아 걷기
+            else if (_isCrouching) rawMoveState = 2;             // 앉기
+            else if (isMoving) rawMoveState = 1;                 // 걷기
+            else rawMoveState = 0;                               // 정지
+        }
+        // ----------------------------------------------------------------------------------
+
+        // 점프(5)가 아닐 때만 하체 MoveState 값을 부드럽게 갱신
         if (rawMoveState != 5)
         {
             float targetMoveStateValue = (float)rawMoveState;
@@ -276,13 +295,13 @@ public class PlayerMovement : MonoBehaviour
             }
             else
             {
+                // 조준 중일 때는 하체가 더 기민하게 반응하도록 댐핑 속도를 주거나 없앨 수 있음 (현재는 0.15f 유지)
                 _animator.SetFloat("MoveState", targetMoveStateValue, 0.15f, Time.deltaTime);
             }
         }
 
         if (rawMoveState == 5 && isIndexChanged)
         {
-            // 0: 권총/맨손, 1: 긴총, 2: 칼
             if (weaponTypeForAnimator == 1)
             {
                 _animator.SetTrigger("LongGun_Jump");
@@ -339,7 +358,6 @@ public class PlayerMovement : MonoBehaviour
             newIndex = 1;
         }
 
-        // 디버깅 로그 출력용 인덱스 매칭 수정 (0~3 범위가 바뀔 때만 로그가 출력되도록 둠)
         if (_currentAnimIndex % 6 != newIndex)
         {
             string stateName = "정지";
@@ -385,6 +403,17 @@ public class PlayerMovement : MonoBehaviour
                     weaponOffset = 12; // 칼 구역 (인덱스 12~17)
                 }
             }
+
+            // --- [추가/수정] 긴총을 들고 있고 마우스 우클릭 유지 중일 때 처리 ---
+            if (weaponOffset == 6 && Mouse.current != null && Mouse.current.rightButton.isPressed)
+            {
+                // 점프 중이 아닐 때만 사격 자세(10번) 고정 (원한다면 점프 중에도 적용 가능)
+                if (!isJumping)
+                {
+                    return 10; // 긴총 사격 자세 고정 인덱스
+                }
+            }
+            // -----------------------------------------------------------------
 
             if (isJumping) return weaponOffset + 5;
             if (_isCrouching && isMoving) return weaponOffset + 3;
