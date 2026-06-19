@@ -9,29 +9,37 @@ public class MiniMapManager : MonoBehaviour
     [SerializeField] private RectTransform _miniMapHUD;
     [SerializeField] private float _hudWidth = 180f;
     [SerializeField] private float _hudHeight = 180f;
-    [SerializeField] private RectTransform _hudMarkerContainer; // HUD 마스크 내부 부모
-    [SerializeField] private RectTransform _hudPlayerMarker;    // HUD의 내 마커
+    [SerializeField] private RectTransform _hudMarkerContainer;
+    [SerializeField] private RectTransform _hudPlayerMarker;
+    [SerializeField] private RectTransform _hudTopLayer; // 인스펙터에서 Canvas(MiniMap)을 꼭 할당해줘!
 
     [Header("[오버레이 미니맵 설정]")]
-    [SerializeField] private GameObject _overlayMiniMap;
     [SerializeField] private RectTransform _miniMapOverlay;
-    [SerializeField] private float _overlayWidth = 600f;       // 크게 띄울 오버레이 가로 크기
-    [SerializeField] private float _overlayHeight = 600f;      // 크게 띄울 오버레이 세로 크기
-    [SerializeField] private RectTransform _overlayMarkerContainer; // 오버레이 마스크 내부 부모
-    [SerializeField] private RectTransform _overlayPlayerMarker;    // 오버레이의 내 마커
+    [SerializeField] private float _overlayWidth = 600f;
+    [SerializeField] private float _overlayHeight = 600f;
+    [SerializeField] private RectTransform _overlayMarkerContainer;
+    [SerializeField] private RectTransform _overlayPlayerMarker;
 
-    [Header("공용 마커 설정")]
+    [Header("공용 마커 프리팹")]
     [SerializeField] private Camera _miniMapCamera;
     [SerializeField] private GameObject _markerPrefab;
+    [SerializeField] private GameObject _zoneAMarkerPrefab;
+    [SerializeField] private GameObject _zoneBMarkerPrefab;
+
+    [Header("[A / B 구역 월드 위치]")]
+    [SerializeField] private Transform _zoneATransform;
+    [SerializeField] private Transform _zoneBTransform;
 
     private Transform _localPlayerTransform;
     private Camera _localPlayerCamera;
 
     private List<MiniMapEnemy> _activeEnemies = new List<MiniMapEnemy>();
 
-    // HUD 마커와 오버레이 마커를 각각 따로 관리할 딕셔너리
     private Dictionary<MiniMapEnemy, RectTransform> _hudEnemyMarkers = new Dictionary<MiniMapEnemy, RectTransform>();
     private Dictionary<MiniMapEnemy, RectTransform> _overlayEnemyMarkers = new Dictionary<MiniMapEnemy, RectTransform>();
+
+    private RectTransform _zoneAMarker;
+    private RectTransform _zoneBMarker;
 
     private void Awake()
     {
@@ -41,11 +49,9 @@ public class MiniMapManager : MonoBehaviour
 
     private void Start()
     {
-        // HUD 미니맵 크기 설정
         if (_miniMapHUD != null) _miniMapHUD.sizeDelta = new Vector2(_hudWidth, _hudHeight);
         if (_hudPlayerMarker != null) _hudPlayerMarker.anchoredPosition = Vector2.zero;
 
-        // 오버레이 미니맵 크기 설정
         if (_miniMapOverlay != null) _miniMapOverlay.sizeDelta = new Vector2(_overlayWidth, _overlayHeight);
         if (_overlayPlayerMarker != null) _overlayPlayerMarker.anchoredPosition = Vector2.zero;
 
@@ -53,32 +59,19 @@ public class MiniMapManager : MonoBehaviour
         {
             _miniMapCamera = MiniMapCamera.Instance.GetComponent<Camera>();
         }
-    }
 
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.M))
-        {
-            var uiAnimator = _overlayMiniMap.GetComponent<UIAnimator>();
-
-            if (_overlayMiniMap.gameObject.activeSelf)
-            {
-                uiAnimator.Close();
-            }
-            else
-            {
-                uiAnimator.Show();
-            }
-        }
+        InitZoneMarkers();
     }
 
     private void LateUpdate()
     {
         UpdatePlayerMarkerRotation();
 
-        if (_miniMapCamera == null || _localPlayerCamera == null) return;
+        if (_miniMapCamera == null || _localPlayerTransform == null) return;
 
-        // 로컬 플레이어 카메라의 시야 평면 계산
+        UpdateZoneMarkerPositions();
+
+        if (_localPlayerCamera == null) return;
         Plane[] mainCamPlanes = GeometryUtility.CalculateFrustumPlanes(_localPlayerCamera);
 
         foreach (var enemy in _activeEnemies)
@@ -87,16 +80,92 @@ public class MiniMapManager : MonoBehaviour
 
             bool isVisibleInMainCam = GeometryUtility.TestPlanesAABB(mainCamPlanes, enemy.EnemyCollider.bounds);
 
-            if (isVisibleInMainCam)
+            if (isVisibleInMainCam) UpdateEnemyMarker(enemy);
+            else HideEnemyMarker(enemy);
+        }
+    }
+
+    private void InitZoneMarkers()
+    {
+        RectTransform parentLayer = _hudTopLayer != null ? _hudTopLayer : _hudMarkerContainer;
+
+        if (_zoneAMarkerPrefab != null && parentLayer != null && _zoneAMarker == null)
+        {
+            GameObject goA = Instantiate(_zoneAMarkerPrefab, parentLayer);
+            _zoneAMarker = goA.GetComponent<RectTransform>();
+            _zoneAMarker.localPosition = Vector3.zero;
+            _zoneAMarker.localScale = Vector3.one;
+            _zoneAMarker.localRotation = Quaternion.identity;
+            _zoneAMarker.gameObject.SetActive(true);
+        }
+
+        if (_zoneBMarkerPrefab != null && parentLayer != null && _zoneBMarker == null)
+        {
+            GameObject goB = Instantiate(_zoneBMarkerPrefab, parentLayer);
+            _zoneBMarker = goB.GetComponent<RectTransform>();
+            _zoneBMarker.localPosition = Vector3.zero;
+            _zoneBMarker.localScale = Vector3.one;
+            _zoneBMarker.localRotation = Quaternion.identity;
+            _zoneBMarker.gameObject.SetActive(true);
+        }
+    }
+
+    private void UpdateZoneMarkerPositions()
+    {
+        if (_miniMapCamera == null || _localPlayerTransform == null) return;
+
+        float cameraScale = _miniMapCamera.orthographic ? _miniMapCamera.orthographicSize : 30f;
+        Vector2 hudSize = _miniMapHUD != null ? _miniMapHUD.sizeDelta : new Vector2(_hudWidth, _hudHeight);
+
+        float margin = 22f;
+        float maxRadius = (hudSize.x * 0.5f) - margin;
+
+        // 카메라가 회전하므로 회전 각도(Y축) 만큼 2D 상에서 역회전 연산 적용
+        float cameraYaw = _miniMapCamera.transform.eulerAngles.y;
+        Quaternion rotationOffset = Quaternion.Euler(0, 0, cameraYaw);
+
+        // 1. A구역 연산
+        if (_zoneATransform != null && _zoneAMarker != null)
+        {
+            Vector3 deltaA = _zoneATransform.position - _localPlayerTransform.position;
+
+            // 월드 기준 상대 좌표를 미니맵 픽셀 단위로 환산
+            Vector3 basePos = new Vector3(
+                (deltaA.x / cameraScale) * (hudSize.x * 0.5f),
+                (deltaA.z / cameraScale) * (hudSize.y * 0.5f),
+                0f
+            );
+
+            // 카메라 회전 값을 적용해 텍스트 회전 방향 정렬
+            Vector2 targetPos = rotationOffset * basePos;
+
+            if (targetPos.magnitude > maxRadius)
             {
-                // 시야에 보이면 HUD와 오버레이 둘 다 마커 표시/업데이트
-                UpdateEnemyMarker(enemy);
+                targetPos = targetPos.normalized * maxRadius;
             }
-            else
+
+            _zoneAMarker.anchoredPosition = targetPos;
+        }
+
+        // 2. B구역 연산
+        if (_zoneBTransform != null && _zoneBMarker != null)
+        {
+            Vector3 deltaB = _zoneBTransform.position - _localPlayerTransform.position;
+
+            Vector3 basePos = new Vector3(
+                (deltaB.x / cameraScale) * (hudSize.x * 0.5f),
+                (deltaB.z / cameraScale) * (hudSize.y * 0.5f),
+                0f
+            );
+
+            Vector2 targetPos = rotationOffset * basePos;
+
+            if (targetPos.magnitude > maxRadius)
             {
-                // 시야에서 벗어나면 둘 다 숨기기
-                HideEnemyMarker(enemy);
+                targetPos = targetPos.normalized * maxRadius;
             }
+
+            _zoneBMarker.anchoredPosition = targetPos;
         }
     }
 
@@ -105,39 +174,30 @@ public class MiniMapManager : MonoBehaviour
         _localPlayerTransform = playerTransform;
         _localPlayerCamera = playerTransform.GetComponentInChildren<Camera>(true);
 
-        if (_localPlayerCamera == null)
-        {
-            Debug.LogError($"[MiniMapManager] {playerTransform.name}의 자식에서 Camera를 찾을 수 없습니다!");
-        }
-
         if (_hudPlayerMarker != null) _hudPlayerMarker.gameObject.SetActive(true);
         if (_overlayPlayerMarker != null) _overlayPlayerMarker.gameObject.SetActive(true);
+
+        if (_zoneAMarker != null) _zoneAMarker.gameObject.SetActive(true);
+        if (_zoneBMarker != null) _zoneBMarker.gameObject.SetActive(true);
     }
 
     private void UpdatePlayerMarkerRotation()
     {
-        if (_localPlayerTransform == null) return;
-
-        float playerYaw = _localPlayerTransform.eulerAngles.y;
-
-        // HUD와 오버레이 각각의 내 마커 회전 동기화
-        if (_hudPlayerMarker != null) _hudPlayerMarker.localRotation = Quaternion.Euler(0, 0, -playerYaw);
-        if (_overlayPlayerMarker != null) _overlayPlayerMarker.localRotation = Quaternion.Euler(0, 0, -playerYaw);
+        // 미니맵 카메라가 회전형일 때는 플레이어 마커는 언제나 중앙에서 정면(0도)을 바라봐야 해!
+        if (_hudPlayerMarker != null) _hudPlayerMarker.localRotation = Quaternion.identity;
+        if (_overlayPlayerMarker != null) _overlayPlayerMarker.localRotation = Quaternion.identity;
     }
 
     private void UpdateEnemyMarker(MiniMapEnemy enemy)
     {
         if (_localPlayerTransform == null) return;
 
-        // 1. 공통 월드 거리 차이 및 카메라 배율 계산
         Vector3 positionDelta = enemy.transform.position - _localPlayerTransform.position;
-        float cameraScale = 30f;
-        if (_miniMapCamera.orthographic)
-        {
-            cameraScale = _miniMapCamera.orthographicSize;
-        }
+        float cameraScale = _miniMapCamera.orthographic ? _miniMapCamera.orthographicSize : 30f;
 
-        // 2. HUD 미니맵 마커 생성 및 위치 업데이트
+        float cameraYaw = _miniMapCamera.transform.eulerAngles.y;
+        Quaternion rotationOffset = Quaternion.Euler(0, 0, cameraYaw);
+
         if (!_hudEnemyMarkers.ContainsKey(enemy))
         {
             GameObject markerGo = Instantiate(_markerPrefab, _hudMarkerContainer);
@@ -145,11 +205,14 @@ public class MiniMapManager : MonoBehaviour
         }
         RectTransform hudMarker = _hudEnemyMarkers[enemy];
         hudMarker.gameObject.SetActive(true);
-        float hudX = (positionDelta.x / cameraScale) * (_miniMapHUD.sizeDelta.x * 0.5f);
-        float hudY = (positionDelta.z / cameraScale) * (_miniMapHUD.sizeDelta.y * 0.5f);
-        hudMarker.anchoredPosition = new Vector2(hudX, hudY);
 
-        // 3. 오버레이 미니맵 마커 생성 및 위치 업데이트
+        Vector3 hudBase = new Vector3(
+            (positionDelta.x / cameraScale) * (_miniMapHUD.sizeDelta.x * 0.5f),
+            (positionDelta.z / cameraScale) * (_miniMapHUD.sizeDelta.y * 0.5f),
+            0f
+        );
+        hudMarker.anchoredPosition = rotationOffset * hudBase;
+
         if (!_overlayEnemyMarkers.ContainsKey(enemy))
         {
             GameObject markerGo = Instantiate(_markerPrefab, _overlayMarkerContainer);
@@ -157,21 +220,19 @@ public class MiniMapManager : MonoBehaviour
         }
         RectTransform overlayMarker = _overlayEnemyMarkers[enemy];
         overlayMarker.gameObject.SetActive(true);
-        float overlayX = (positionDelta.x / cameraScale) * (_miniMapOverlay.sizeDelta.x * 0.5f);
-        float overlayY = (positionDelta.z / cameraScale) * (_miniMapOverlay.sizeDelta.y * 0.5f);
-        overlayMarker.anchoredPosition = new Vector2(overlayX, overlayY);
+
+        Vector3 overlayBase = new Vector3(
+            (positionDelta.x / cameraScale) * (_miniMapOverlay.sizeDelta.x * 0.5f),
+            (positionDelta.z / cameraScale) * (_miniMapOverlay.sizeDelta.y * 0.5f),
+            0f
+        );
+        overlayMarker.anchoredPosition = rotationOffset * overlayBase;
     }
 
     private void HideEnemyMarker(MiniMapEnemy enemy)
     {
-        if (_hudEnemyMarkers.TryGetValue(enemy, out RectTransform hudMarker))
-        {
-            hudMarker.gameObject.SetActive(false);
-        }
-        if (_overlayEnemyMarkers.TryGetValue(enemy, out RectTransform overlayMarker))
-        {
-            overlayMarker.gameObject.SetActive(false);
-        }
+        if (_hudEnemyMarkers.TryGetValue(enemy, out RectTransform hudMarker)) hudMarker.gameObject.SetActive(false);
+        if (_overlayEnemyMarkers.TryGetValue(enemy, out RectTransform overlayMarker)) overlayMarker.gameObject.SetActive(false);
     }
 
     public void RegisterEnemy(MiniMapEnemy enemy)
@@ -188,7 +249,6 @@ public class MiniMapManager : MonoBehaviour
             if (hudMarker != null) Destroy(hudMarker.gameObject);
             _hudEnemyMarkers.Remove(enemy);
         }
-
         if (_overlayEnemyMarkers.TryGetValue(enemy, out RectTransform overlayMarker))
         {
             if (overlayMarker != null) Destroy(overlayMarker.gameObject);

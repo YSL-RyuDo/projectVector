@@ -20,13 +20,16 @@ public class MiniMapCamera : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (_targetPlayer == null)
-            return;
+        if (_targetPlayer == null) return;
 
+        // 위치 동기화
         transform.position = new Vector3(
             _targetPlayer.position.x,
             50f,
             _targetPlayer.position.z
         );
+
+        // 플레이어의 회전 각도를 미니맵 카메라도 똑같이 따라가게 설정
+        transform.rotation = Quaternion.Euler(90f, _targetPlayer.eulerAngles.y, 0f);
     }
 }
