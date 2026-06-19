@@ -54,8 +54,8 @@ public class PlayerMovement : MonoBehaviour
     private byte lastSentAnimIndex = 255;
 
     private float weaponWeight;
-
     private float currentMoveSpeed;
+    private bool isADS;
 
     private PlayerItem _playerItem;
 
@@ -190,7 +190,8 @@ public class PlayerMovement : MonoBehaviour
         {
             _verticalVelocity += _gravity * Time.deltaTime;
         }
-        Vector3 velocity = (move.normalized * _speed) + (Vector3.up * _verticalVelocity);
+        //Vector3 velocity = (move.normalized * _speed) + (Vector3.up * _verticalVelocity);
+        Vector3 velocity = (move.normalized * currentMoveSpeed) + (Vector3.up * _verticalVelocity);
         _cc.Move(velocity * Time.deltaTime);
 
         if (_animator != null)
@@ -576,6 +577,23 @@ public class PlayerMovement : MonoBehaviour
     public void SetWeaponWeight(float weight)
     {
         weaponWeight = Mathf.Max(1f, weight);
-        currentMoveSpeed = _speed - (1f - (1f / weaponWeight));
+        CalculateMoveSpeed();
+    }
+
+    public void SetADS(bool value)
+    {
+        isADS = value;
+        CalculateMoveSpeed();
+    }
+
+    private void CalculateMoveSpeed()
+    {
+        currentMoveSpeed =
+            _speed - (1f - (1f / weaponWeight));
+
+        if (isADS)
+        {
+            currentMoveSpeed /= 1.5f;
+        }
     }
 }

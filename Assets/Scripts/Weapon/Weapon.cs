@@ -42,12 +42,13 @@ public class Weapon : Item
 
     private PlayerIdentity _playerIdentity;
 
-
+    private PlayerMovement playerMovement;
 
     void Awake()
     {
         ownerHP = GetComponentInParent<PlayerHP>();
         isPlayer = GetComponentInParent<PlayerMovement>() != null;
+        playerMovement = GetComponentInParent<PlayerMovement>();
 
         if (!isPlayer)
         {
@@ -140,7 +141,7 @@ public class Weapon : Item
         if (Keyboard.current.rKey.wasPressedThisFrame)
         {
             currentShotIndex = 0;
-            recoilSystem?.StopRecoil();
+            //recoilSystem?.StopRecoil();
 
             StartCoroutine(Reload());
             return;
@@ -155,7 +156,7 @@ public class Weapon : Item
         else
         {
             currentShotIndex = 0;
-            recoilSystem?.StopRecoil();
+            //recoilSystem?.StopRecoil();
         }
     }
     void OnEnable()
@@ -214,6 +215,8 @@ public class Weapon : Item
 
             cameraLook?.SetADS(isADS);
             weaponADS?.SetADS(isADS);
+
+            playerMovement?.SetADS(isADS);
         }
 
         float targetFOV = isADS
