@@ -297,6 +297,7 @@ public class Weapon : Item
             case WeaponData.WeaponType.SMG:
             case WeaponData.WeaponType.LMG:
             case WeaponData.WeaponType.Pistol:
+            case WeaponData.WeaponType.DMR:
                 FireProjectile();
                 break;
 

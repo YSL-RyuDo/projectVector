@@ -5,7 +5,7 @@ public class DroppedItem : MonoBehaviour
     [Header("Server Drop Info")]
     public uint dropId;
 
-    [Header("Weapon 전용")]
+    [Header("Weapon Data")]
     public WeaponData weaponData;
     public int magAmmo;
     public int reserveAmmo;
@@ -35,7 +35,7 @@ public class DroppedItem : MonoBehaviour
 
         if (dropId == 0)
         {
-            Debug.LogWarning("[DROPPED ITEM] dropId is 0. 서버에서 생성된 아이템이 아닙니다.");
+            Debug.LogWarning("[DROPPED ITEM] invalid dropId=0");
             return;
         }
 
@@ -48,5 +48,10 @@ public class DroppedItem : MonoBehaviour
             $"weaponId={(weaponData != null ? weaponData.weaponId : -1)}, " +
             $"ammo={magAmmo}/{reserveAmmo}"
         );
+    }
+
+    public void ResetPickupRequest()
+    {
+        pickupRequested = false;
     }
 }

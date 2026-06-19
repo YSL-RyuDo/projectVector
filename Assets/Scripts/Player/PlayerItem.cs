@@ -1051,7 +1051,108 @@ public class PlayerItem : MonoBehaviour
         InGameUIManager.Instance.SetBulletText(0, 0);
     }
 
-// KSW : 에디터 무기 변경 테스트용 추가
+    public void ApplyPickedWeaponFromServer(
+    WeaponData weaponData,
+    int magAmmo,
+    int reserveAmmo)
+    {
+        if (weaponData == null)
+        {
+            Debug.LogError("[PLAYER ITEM] ApplyPickedWeaponFromServer failed. weaponData is null");
+            return;
+        }
+
+        EquipWeaponByServerData(weaponData, magAmmo, reserveAmmo);
+    }
+
+    private void EquipWeaponByServerData(
+    WeaponData weaponData,
+    int magAmmo,
+    int reserveAmmo)
+    {
+        int slot = GetSlotIndex(weaponData);
+
+        if (slot < 0 || slot >= items.Length)
+        {
+            Debug.LogError($"[PLAYER ITEM] invalid slot. weaponId={weaponData.weaponId}, slot={slot}");
+            return;
+        }
+
+        if (slot == 4)
+        {
+            Debug.LogWarning($"[PLAYER ITEM] spike slot cannot equip weapon. weaponId={weaponData.weaponId}");
+            return;
+        }
+
+        if (items[slot] != null)
+        {
+            Destroy(items[slot].gameObject);
+            items[slot] = null;
+        }
+
+        GameObject obj = Instantiate(weaponData.weaponPrefab, itemHolder);
+
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
+
+        DisableHeldWeaponPhysics(obj);
+
+        Item item = obj.GetComponent<Item>();
+        if (item == null)
+        {
+            Debug.LogError($"[PLAYER ITEM] Item component missing. weaponId={weaponData.weaponId}");
+            Destroy(obj);
+            return;
+        }
+
+        items[slot] = item;
+
+        Weapon weapon = obj.GetComponent<Weapon>();
+        if (weapon != null)
+        {
+            weapon.Initialize(
+                weaponData,
+                dropPoint,
+                magAmmo,
+                reserveAmmo
+            );
+        }
+
+        obj.SetActive(false);
+
+        bool isLocal =
+            _playerIdentity != null &&
+            NetworkManager.Instance != null &&
+            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+
+        if (isLocal)
+        {
+            Switch(slot);
+
+            if (InGameUIManager.Instance != null)
+            {
+                InGameUIManager.Instance.SetBulletText(magAmmo, reserveAmmo);
+
+                if (slot == 0)
+                    InGameUIManager.Instance.SetMainWeapon(weaponData);
+                else if (slot == 1)
+                    InGameUIManager.Instance.SetSubWeapon(weaponData.weaponIcon);
+                else if (slot == 2)
+                    InGameUIManager.Instance.SetKnife(weaponData.weaponIcon);
+            }
+        }
+        else
+        {
+            SwitchWeaponVisualOnlyBySlot(slot);
+        }
+
+        Debug.Log(
+            $"[PLAYER ITEM] weapon pickup equipped by server. " +
+            $"weaponId={weaponData.weaponId}, slot={slot}, ammo={magAmmo}/{reserveAmmo}"
+        );
+    }
+
+    // KSW : 에디터 무기 변경 테스트용 추가
 #if UNITY_EDITOR
     private void OnValidate()
     {

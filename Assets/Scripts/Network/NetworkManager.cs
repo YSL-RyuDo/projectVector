@@ -187,6 +187,7 @@ public class NetworkManager : MonoBehaviour
     public bool HasPendingReturnRoom => pendingReturnRoomId != 0;
     public uint PendingReturnRoomId => pendingReturnRoomId;
 
+    private readonly Dictionary<uint, GameObject> droppedItemMap = new();
     public void ClearPendingReturnRoom()
     {
         pendingReturnRoomId = 0;
@@ -3397,46 +3398,87 @@ public class NetworkManager : MonoBehaviour
         float dirZ = BitConverter.ToSingle(body, offset);
         offset += 4;
 
-        if (dropperPlayerId == MyPlayerId)
+        if (WeaponDropSpawner.Instance == null)
         {
-            if (StorePanelUI.Instance != null)
-            {
-                StorePanelUI.Instance.RemoveOwnedWeaponFromServer(weaponId);
-            }
+            Debug.LogError("[DROP SPAWN FAIL] WeaponDropSpawner.Instance is null");
+            return;
+        }
+
+        WeaponData data = WeaponDropSpawner.Instance.GetWeaponData(weaponId);
+        if (data == null)
+        {
+            Debug.LogError($"[DROP SPAWN FAIL] weaponData not found. weaponId={weaponId}");
+            return;
+        }
+
+        if (data.dropPrefab == null)
+        {
+            Debug.LogError($"[DROP SPAWN FAIL] dropPrefab is null. weaponId={weaponId}, name={data.name}");
+            return;
         }
 
         Vector3 pos = new Vector3(x, y, z);
         Vector3 dir = new Vector3(dirX, dirY, dirZ);
 
-        if (WeaponDropSpawner.Instance != null)
+        Quaternion rot = dir.sqrMagnitude > 0.0001f
+            ? Quaternion.LookRotation(dir.normalized)
+            : Quaternion.identity;
+
+        GameObject obj = Instantiate(data.dropPrefab, pos, rot);
+
+        DroppedItem droppedItem = obj.GetComponent<DroppedItem>();
+        if (droppedItem == null)
+            droppedItem = obj.GetComponentInChildren<DroppedItem>(true);
+
+        if (droppedItem != null)
         {
-            WeaponDropSpawner.Instance.SpawnDroppedWeapon(
+            droppedItem.InitFromServer(
                 dropId,
-                weaponId,
+                data,
                 magAmmo,
-                reserveAmmo,
-                pos,
-                dir
+                reserveAmmo
             );
         }
 
-        // 서버가 이 플레이어의 무기를 드랍했다고 확정했으므로 손에서 제거
-        PlayerIdentity dropper = FindPlayerIdentityById(dropperPlayerId);
+        RegisterDroppedItem(dropId, obj);
 
-        if (dropper != null)
+        // 핵심: 드랍 성공했으면 손에 든 무기에서도 제거
+        PlayerIdentity dropperIdentity = FindPlayerIdentityById(dropperPlayerId);
+        if (dropperIdentity != null)
         {
-            PlayerItem item = dropper.GetComponent<PlayerItem>();
+            PlayerItem dropperItem = dropperIdentity.GetComponent<PlayerItem>();
 
-            if (item == null)
-                item = dropper.GetComponentInChildren<PlayerItem>(true);
+            if (dropperItem == null)
+                dropperItem = dropperIdentity.GetComponentInChildren<PlayerItem>(true);
 
-            if (item != null)
-                item.RemoveWeaponFromServer(weaponId);
+            if (dropperItem != null)
+            {
+                dropperItem.RemoveWeaponFromServer(weaponId);
+
+                Debug.Log(
+                    $"[DROP REMOVE HELD WEAPON] dropper={dropperPlayerId}, weaponId={weaponId}"
+                );
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"[DROP REMOVE HELD WEAPON FAIL] PlayerItem missing. dropper={dropperPlayerId}"
+                );
+            }
+        }
+        else
+        {
+            Debug.LogWarning(
+                $"[DROP REMOVE HELD WEAPON FAIL] PlayerIdentity missing. dropper={dropperPlayerId}"
+            );
         }
 
         Debug.Log(
-            $"[WEAPON DROPPED RECV] dropId={dropId}, dropper={dropperPlayerId}, " +
-            $"weaponId={weaponId}, ammo={magAmmo}/{reserveAmmo}"
+            $"[DROP SPAWN] dropId={dropId}, " +
+            $"dropper={dropperPlayerId}, " +
+            $"weaponId={weaponId}, " +
+            $"weaponName={data.name}, " +
+            $"ammo={magAmmo}/{reserveAmmo}"
         );
     }
 
@@ -3459,47 +3501,40 @@ public class NetworkManager : MonoBehaviour
         int reserveAmmo = BitConverter.ToInt32(body, offset);
         offset += 4;
 
-        // dropId == 0 이면 상점 구매로 받은 무기다.
-        // 이 경우 바닥 아이템을 삭제하면 안 된다.
-        if (dropId != 0)
+        RemoveDroppedItem(dropId);
+
+        if (pickerPlayerId != MyPlayerId)
+            return;
+
+        if (WeaponDropSpawner.Instance == null)
         {
-            if (WeaponDropSpawner.Instance != null)
-            {
-                WeaponDropSpawner.Instance.DestroyDroppedWeapon(dropId);
-            }
+            Debug.LogError("[PICKUP FAIL] WeaponDropSpawner.Instance is null");
+            return;
         }
 
-        PlayerIdentity picker = FindPlayerIdentityById(pickerPlayerId);
-
-        if (picker != null)
+        WeaponData data = WeaponDropSpawner.Instance.GetWeaponData(weaponId);
+        if (data == null)
         {
-            PlayerItem item = picker.GetComponent<PlayerItem>();
-
-            if (item == null)
-                item = picker.GetComponentInChildren<PlayerItem>(true);
-
-            if (item != null)
-            {
-                item.ApplyWeaponPickupFromServer(
-                    weaponId,
-                    magAmmo,
-                    reserveAmmo
-                );
-            }
+            Debug.LogError($"[PICKUP FAIL] weaponData not found. weaponId={weaponId}");
+            return;
         }
 
-        // 내가 주운 경우에만 상점 UI 보유 상태 갱신
-        if (pickerPlayerId == myPlayerId)
+        PlayerItem playerItem = FindMyPlayerItem();
+        if (playerItem == null)
         {
-            if (StorePanelUI.Instance != null)
-            {
-                StorePanelUI.Instance.SetOwnedWeaponFromServer(weaponId);
-            }
+            Debug.LogError("[PICKUP FAIL] PlayerItem not found.");
+            return;
         }
+
+        playerItem.ApplyPickedWeaponFromServer(
+            data,
+            magAmmo,
+            reserveAmmo
+        );
 
         Debug.Log(
-            $"[WEAPON PICKUP NOTIFY] picker={pickerPlayerId}, dropId={dropId}, " +
-            $"weaponId={weaponId}, ammo={magAmmo}/{reserveAmmo}"
+            $"[PICKUP APPLY] dropId={dropId}, picker={pickerPlayerId}, " +
+            $"weaponId={weaponId}, weaponName={data.name}, ammo={magAmmo}/{reserveAmmo}"
         );
     }
 
@@ -3614,5 +3649,42 @@ public class NetworkManager : MonoBehaviour
         );
 
         return 255;
+    }
+
+    private void RegisterDroppedItem(uint dropId, GameObject obj)
+    {
+        if (droppedItemMap.TryGetValue(dropId, out GameObject oldObj))
+        {
+            if (oldObj != null)
+                Destroy(oldObj);
+        }
+
+        droppedItemMap[dropId] = obj;
+    }
+
+    private void RemoveDroppedItem(uint dropId)
+    {
+        if (!droppedItemMap.TryGetValue(dropId, out GameObject obj))
+            return;
+
+        if (obj != null)
+            Destroy(obj);
+
+        droppedItemMap.Remove(dropId);
+    }
+
+    private PlayerItem FindMyPlayerItem()
+    {
+        PlayerIdentity identity = FindPlayerIdentityById(MyPlayerId);
+
+        if (identity == null)
+            return null;
+
+        PlayerItem item = identity.GetComponent<PlayerItem>();
+
+        if (item == null)
+            item = identity.GetComponentInChildren<PlayerItem>(true);
+
+        return item;
     }
 }
