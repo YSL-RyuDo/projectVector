@@ -302,8 +302,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ab9e94617b5bb74b965999fa8b151f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  _localPosition: {x: -0.06, y: 0.04, z: 0}
-  _localRotation: {x: 16, y: -75, z: 0}
+  _pistolPreset:
+    localPosition: {x: -0.06, y: 0.04, z: 0}
+    localRotation: {x: 16, y: -75, z: 0}
+  _riflePreset:
+    localPosition: {x: -0.06, y: 0.04, z: 0}
+    localRotation: {x: 16, y: -75, z: 0}
+  _knifePreset:
+    localPosition: {x: -0.06, y: 0.04, z: 0}
+    localRotation: {x: 16, y: -75, z: 0}
 --- !u!1 &7894991582291376646
 GameObject:
   m_ObjectHideFlags: 0
@@ -409,7 +416,6 @@ GameObject:
   - component: {fileID: 3022143099333133632}
   - component: {fileID: 5169373442458704092}
   - component: {fileID: 4103103688302902310}
-  - component: {fileID: 3863222188582603598}
   m_Layer: 0
   m_Name: Initiator
   m_TagString: Untagged
@@ -481,7 +487,8 @@ MonoBehaviour:
   sendInterval: 0.05
   positionSendThreshold: 0.02
   yawSendThreshold: 1
-  weaponWeight: 1
+  _crouchHeightOffset: 0.5
+  _crouchSpeed: 8
 --- !u!114 &3165811004819219101
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -515,7 +522,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerItem
   primary: {fileID: 0}
   secondary: {fileID: 11400000, guid: d27b88a161774bc43b797ae0fd59076d, type: 2}
-  melee: {fileID: 11400000, guid: fa9f3bdacc8f6834896d125db3620060, type: 2}
+  melee: {fileID: 11400000, guid: 2063512ced6a4b74c904aa23d4cf5da7, type: 2}
   thrown: {fileID: 0}
   spike: {fileID: 0}
   itemHolder: {fileID: 6828722390972561072}
@@ -524,6 +531,7 @@ MonoBehaviour:
   itemLayer:
     serializedVersion: 2
     m_Bits: 1024
+  currentIndex: -1
 --- !u!114 &1275202334242850848
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -756,20 +764,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDeathController
   modelRoot: {fileID: 2394164600379191788}
---- !u!114 &3863222188582603598
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9177276548501388304}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fb13f0404a587d24d8b0f334e2a699b0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponViewController
-  firstPersonWeaponHolder: {fileID: 1806073796303525808}
-  thirdPersonWeaponHolder: {fileID: 4673739449566509290}
 --- !u!1001 &2394164600379225610
 PrefabInstance:
   m_ObjectHideFlags: 0
