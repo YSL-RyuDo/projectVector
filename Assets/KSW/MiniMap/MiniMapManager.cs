@@ -26,10 +26,6 @@ public class MiniMapManager : MonoBehaviour
     [SerializeField] private GameObject _zoneAMarkerPrefab;
     [SerializeField] private GameObject _zoneBMarkerPrefab;
 
-    [Header("[A / B 구역 월드 위치]")]
-    [SerializeField] private Transform _zoneATransform;
-    [SerializeField] private Transform _zoneBTransform;
-
     private Transform _localPlayerTransform;
     private Camera _localPlayerCamera;
 
@@ -38,8 +34,12 @@ public class MiniMapManager : MonoBehaviour
     private Dictionary<MiniMapEnemy, RectTransform> _hudEnemyMarkers = new Dictionary<MiniMapEnemy, RectTransform>();
     private Dictionary<MiniMapEnemy, RectTransform> _overlayEnemyMarkers = new Dictionary<MiniMapEnemy, RectTransform>();
 
-    private RectTransform _zoneAMarker;
-    private RectTransform _zoneBMarker;
+    [Header("[A / B 구역 표시 마크]")]
+    [SerializeField] private RectTransform _zoneAMarker;
+    [SerializeField] private RectTransform _zoneBMarker;
+
+    private Transform _zoneATransform;
+    private Transform _zoneBTransform;
 
     private void Awake()
     {
@@ -49,6 +49,12 @@ public class MiniMapManager : MonoBehaviour
 
     private void Start()
     {
+        GameObject Apos = GameObject.FindGameObjectWithTag("A Pos");
+        _zoneATransform = Apos.transform;
+
+        GameObject Bpos = GameObject.FindGameObjectWithTag("B Pos");
+        _zoneBTransform = Bpos.transform;
+
         if (_miniMapHUD != null) _miniMapHUD.sizeDelta = new Vector2(_hudWidth, _hudHeight);
         if (_hudPlayerMarker != null) _hudPlayerMarker.anchoredPosition = Vector2.zero;
 

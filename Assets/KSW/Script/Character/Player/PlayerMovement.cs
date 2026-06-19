@@ -53,6 +53,10 @@ public class PlayerMovement : MonoBehaviour
     private byte _targetAnimIndex = 0;
     private byte lastSentAnimIndex = 255;
 
+    private float weaponWeight;
+
+    private float currentMoveSpeed;
+
     private PlayerItem _playerItem;
 
     public float Speed
@@ -581,5 +585,11 @@ public class PlayerMovement : MonoBehaviour
         {
             MiniMapManager.Instance.RegisterLocalPlayer(transform);
         }
+    }
+
+    public void SetWeaponWeight(float weight)
+    {
+        weaponWeight = Mathf.Max(1f, weight);
+        currentMoveSpeed = _speed - (1f - (1f / weaponWeight));
     }
 }
