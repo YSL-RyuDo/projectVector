@@ -308,6 +308,8 @@ MonoBehaviour:
   sendInterval: 0.05
   positionSendThreshold: 0.02
   yawSendThreshold: 1
+  _crouchHeightOffset: 0.5
+  _crouchSpeed: 8
 --- !u!114 &3225505679923054622
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -350,6 +352,7 @@ MonoBehaviour:
   itemLayer:
     serializedVersion: 2
     m_Bits: 1024
+  currentIndex: -1
 --- !u!114 &5754477062383331201
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -626,8 +629,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ab9e94617b5bb74b965999fa8b151f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  _localPosition: {x: 0, y: 0.1, z: 0}
-  _localRotation: {x: 13, y: 90, z: -90}
+  _pistolPreset:
+    localPosition: {x: 0, y: 0.1, z: 0}
+    localRotation: {x: 13, y: 90, z: -90}
+  _riflePreset:
+    localPosition: {x: 0, y: 0.1, z: 0}
+    localRotation: {x: 13, y: 90, z: -90}
+  _knifePreset:
+    localPosition: {x: 0, y: 0.1, z: 0}
+    localRotation: {x: 13, y: 90, z: -90}
 --- !u!1 &9173829662598906387
 GameObject:
   m_ObjectHideFlags: 0

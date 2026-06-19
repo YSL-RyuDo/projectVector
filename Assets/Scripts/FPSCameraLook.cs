@@ -79,18 +79,6 @@ public class FPSCameraLook : MonoBehaviour
         if (GameController.Instance != null && GameController.Instance.IsPaused) return;
         if (Mouse.current == null) return;
 
-        // 앉기 코드
-        //if (Keyboard.current.leftCtrlKey.isPressed)
-        //{
-        //    targetPosition = originalPosition + Vector3.down * downDistance;
-        //}
-        //else
-        //{
-        //    targetPosition = originalPosition;
-        //}
-
-        //transform.localPosition = Vector3.Lerp(transform.localPosition, targetPosition, Time.deltaTime * moveSpeed);
-
         float sensitivity = _baseSensitivity * (_isADS ? _adsSensitivityMultiplier : 1f);
 
         // 마우스 델타(입력)값 읽기
