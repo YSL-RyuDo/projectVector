@@ -2892,11 +2892,11 @@ Transform:
   m_GameObject: {fileID: 200350455}
   serializedVersion: 2
   m_LocalRotation: {x: 0.5, y: 0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: -960.00006, y: -346.44183, z: 0}
-  m_LocalScale: {x: 3.2377741, y: 3.2377741, z: 3.2377741}
+  m_LocalPosition: {x: -0.000030517578, y: 81.80353, z: 0}
+  m_LocalScale: {x: 1.370995, y: 1.370995, z: 1.370995}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1395018038}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: -90}
 --- !u!114 &200350457
 MonoBehaviour:
@@ -12834,14 +12834,14 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 928815346}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 349818943}
   - {fileID: 958838731}
-  m_Father: {fileID: 1395018038}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -12875,8 +12875,8 @@ MonoBehaviour:
   _markerPrefab: {fileID: 9205278852551407610, guid: 15b2b0b0ace4f694d8deb2883b3aa0d9, type: 3}
   _zoneAMarkerPrefab: {fileID: 8972080185683835256, guid: 963adf8d5e2ecdb4ea3f425c3b0cd0dc, type: 3}
   _zoneBMarkerPrefab: {fileID: 9023692189715136409, guid: afa985cafe48d244293fda00383d4675, type: 3}
-  _zoneATransform: {fileID: 0}
-  _zoneBTransform: {fileID: 0}
+  _zoneAMarker: {fileID: 0}
+  _zoneBMarker: {fileID: 0}
 --- !u!114 &928815349
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18752,8 +18752,6 @@ RectTransform:
   - {fileID: 784630287}
   - {fileID: 205253705}
   - {fileID: 2096996114}
-  - {fileID: 928815347}
-  - {fileID: 200350456}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -32334,6 +32332,8 @@ SceneRoots:
   - {fileID: 1342717616}
   - {fileID: 50771147}
   - {fileID: 1824475333}
+  - {fileID: 928815347}
+  - {fileID: 200350456}
   - {fileID: 1395018038}
   - {fileID: 360824868}
   - {fileID: 117636835}
