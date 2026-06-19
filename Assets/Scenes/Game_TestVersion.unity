@@ -2892,11 +2892,11 @@ Transform:
   m_GameObject: {fileID: 200350455}
   serializedVersion: 2
   m_LocalRotation: {x: 0.5, y: 0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: -960.00006, y: -346.44183, z: 0}
-  m_LocalScale: {x: 3.2377741, y: 3.2377741, z: 3.2377741}
+  m_LocalPosition: {x: -0.000061035156, y: 193.55817, z: 0}
+  m_LocalScale: {x: 3, y: 3, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1395018038}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: -90}
 --- !u!114 &200350457
 MonoBehaviour:
@@ -2910,6 +2910,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 010a3a5549034134b8bdba7899f1bb2d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  cameraHeight: 50
 --- !u!114 &200350458
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2961,7 +2962,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 200350455}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!20 &200350460
 Camera:
   m_ObjectHideFlags: 0
@@ -2996,8 +2997,8 @@ Camera:
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60.000004
-  orthographic: 0
-  orthographic size: 5
+  orthographic: 1
+  orthographic size: 30
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
@@ -12834,14 +12835,14 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 928815346}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 349818943}
   - {fileID: 958838731}
-  m_Father: {fileID: 1395018038}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -12860,13 +12861,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c688f71391189a74ebdde02858369029, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MiniMapManager
-  _miniMapHUD: {fileID: 407743515}
+  _miniMapHUD: {fileID: 349818943}
   _hudWidth: 180
   _hudHeight: 180
   _hudMarkerContainer: {fileID: 911958486}
   _hudPlayerMarker: {fileID: 973288636}
-  _hudTopLayer: {fileID: 349818943}
-  _miniMapOverlay: {fileID: 878926696}
+  _hudTopLayer: {fileID: 911958486}
+  _miniMapOverlay: {fileID: 958838731}
   _overlayWidth: 800
   _overlayHeight: 800
   _overlayMarkerContainer: {fileID: 878926696}
@@ -12875,8 +12876,8 @@ MonoBehaviour:
   _markerPrefab: {fileID: 9205278852551407610, guid: 15b2b0b0ace4f694d8deb2883b3aa0d9, type: 3}
   _zoneAMarkerPrefab: {fileID: 8972080185683835256, guid: 963adf8d5e2ecdb4ea3f425c3b0cd0dc, type: 3}
   _zoneBMarkerPrefab: {fileID: 9023692189715136409, guid: afa985cafe48d244293fda00383d4675, type: 3}
-  _zoneATransform: {fileID: 0}
-  _zoneBTransform: {fileID: 0}
+  _zoneAMarker: {fileID: 0}
+  _zoneBMarker: {fileID: 0}
 --- !u!114 &928815349
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13673,6 +13674,7 @@ MonoBehaviour:
   - {fileID: 50771143}
   - {fileID: 1824475332}
   gameUIs: {fileID: 2096996113}
+  sceneMainCamera: {fileID: 0}
 --- !u!114 &971832605
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18752,8 +18754,6 @@ RectTransform:
   - {fileID: 784630287}
   - {fileID: 205253705}
   - {fileID: 2096996114}
-  - {fileID: 928815347}
-  - {fileID: 200350456}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -28567,7 +28567,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2096996114
 RectTransform:
   m_ObjectHideFlags: 0
@@ -32331,9 +32331,11 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 1849014481}
+  - {fileID: 200350456}
   - {fileID: 1342717616}
   - {fileID: 50771147}
   - {fileID: 1824475333}
+  - {fileID: 928815347}
   - {fileID: 1395018038}
   - {fileID: 360824868}
   - {fileID: 117636835}

@@ -9,6 +9,7 @@ public class PlayerCameraController : MonoBehaviour
 
     private PlayerWeaponViewController weaponViewController;
     private PlayerDeathController deathController;
+    private PlayerItem playerItem;
 
     private bool isLocalView;
     private bool isSpectatorView;
@@ -19,19 +20,55 @@ public class PlayerCameraController : MonoBehaviour
     private void Awake()
     {
         if (playerCamera == null)
-            playerCamera = GetComponentInChildren<Camera>(true);
+        {
+            playerCamera =
+                GetComponentInChildren<Camera>(true);
+        }
 
-        if (audioListener == null && playerCamera != null)
-            audioListener = playerCamera.GetComponent<AudioListener>();
+        if (audioListener == null &&
+            playerCamera != null)
+        {
+            audioListener =
+                playerCamera.GetComponent<AudioListener>();
+        }
 
         if (cameraLook == null)
-            cameraLook = GetComponentInChildren<FPSCameraLook>(true);
+        {
+            cameraLook =
+                GetComponentInChildren<FPSCameraLook>(true);
+        }
 
         weaponViewController =
             GetComponent<PlayerWeaponViewController>();
 
+        if (weaponViewController == null)
+        {
+            weaponViewController =
+                GetComponentInChildren<PlayerWeaponViewController>(true);
+        }
+
         deathController =
             GetComponent<PlayerDeathController>();
+
+        if (deathController == null)
+        {
+            deathController =
+                GetComponentInChildren<PlayerDeathController>(true);
+        }
+
+        playerItem =
+            GetComponent<PlayerItem>();
+
+        if (playerItem == null)
+        {
+            playerItem =
+                GetComponentInChildren<PlayerItem>(true);
+        }
+
+        isLocalView = false;
+        isSpectatorView = false;
+
+        SetCameraActive(false);
     }
 
     public void SetLocalPlayer(bool isLocal)
@@ -50,6 +87,12 @@ public class PlayerCameraController : MonoBehaviour
         }
 
         RefreshViewVisuals();
+
+        Debug.Log(
+            $"[LOCAL VIEW] player={name}, " +
+            $"isLocal={isLocal}, " +
+            $"cameraEnabled={(playerCamera != null && playerCamera.enabled)}"
+        );
     }
 
     public void SetSpectatorView(bool active)
@@ -57,9 +100,9 @@ public class PlayerCameraController : MonoBehaviour
         isLocalView = false;
         isSpectatorView = active;
 
-        SetCameraActive(active);
+        // 관전 대상의 실제 카메라는 끈 상태로 유지한다.
+        SetCameraActive(false);
 
-        // 관전 중에는 상대 캐릭터의 시선 입력을 조작하지 않는다.
         if (cameraLook != null)
         {
             cameraLook.SetLocalPlayer(
@@ -71,7 +114,33 @@ public class PlayerCameraController : MonoBehaviour
         RefreshViewVisuals();
 
         Debug.Log(
-            $"[SPECTATOR VIEW] player={name}, active={active}"
+            $"[SPECTATOR TARGET VIEW] " +
+            $"player={name}, active={active}"
+        );
+    }
+
+    /// <summary>
+    /// 일반 원격 플레이어 상태로 강제 초기화한다.
+    /// </summary>
+    public void ResetToRemoteView()
+    {
+        isLocalView = false;
+        isSpectatorView = false;
+
+        SetCameraActive(false);
+
+        if (cameraLook != null)
+        {
+            cameraLook.SetLocalPlayer(
+                false,
+                transform
+            );
+        }
+
+        RefreshViewVisuals();
+
+        Debug.Log(
+            $"[RESET REMOTE VIEW] player={name}"
         );
     }
 
@@ -79,13 +148,24 @@ public class PlayerCameraController : MonoBehaviour
     {
         if (playerCamera != null)
         {
+            if (active &&
+                !playerCamera.gameObject.activeSelf)
+            {
+                playerCamera.gameObject.SetActive(true);
+            }
+
             playerCamera.enabled = active;
+
             playerCamera.tag =
-                active ? "MainCamera" : "Untagged";
+                active
+                    ? "MainCamera"
+                    : "Untagged";
         }
 
         if (audioListener != null)
+        {
             audioListener.enabled = active;
+        }
     }
 
     public void RefreshViewVisuals()
@@ -93,30 +173,68 @@ public class PlayerCameraController : MonoBehaviour
         bool firstPersonView =
             isLocalView || isSpectatorView;
 
-        if (deathController != null &&
-            deathController.IsDead)
+        bool isDead =
+            deathController != null &&
+            deathController.IsDead;
+
+        // 죽은 플레이어는 모델과 양쪽 WeaponHolder 모두 숨긴다.
+        if (isDead)
         {
             if (weaponViewController != null)
+            {
                 weaponViewController.HideAll();
+            }
 
-            deathController.SetModelVisible(false);
+            if (playerItem != null)
+            {
+                playerItem.SetWeaponVisibility(false);
+            }
+
+            if (deathController != null)
+            {
+                deathController.SetModelVisible(false);
+            }
+
             return;
+        }
+
+        // 살아 있는 플레이어의 현재 무기 프리팹을 활성화한다.
+        if (playerItem != null)
+        {
+            playerItem.SetWeaponVisibility(true);
         }
 
         if (weaponViewController != null)
         {
             if (firstPersonView)
+            {
+                // 내 캐릭터 또는 현재 관전 대상
                 weaponViewController.ShowFirstPerson();
+            }
             else
+            {
+                // 일반 원격 플레이어
                 weaponViewController.ShowThirdPerson();
+            }
         }
 
         if (deathController != null)
         {
+            // 내 캐릭터와 관전 대상은 모델을 숨긴다.
+            // 일반 원격 플레이어는 모델을 표시한다.
             deathController.SetModelVisible(
                 !firstPersonView
             );
         }
+
+        Debug.Log(
+            $"[VIEW VISUAL REFRESH] " +
+            $"player={name}, " +
+            $"local={isLocalView}, " +
+            $"spectator={isSpectatorView}, " +
+            $"firstPerson={firstPersonView}, " +
+            $"dead={isDead}"
+        );
     }
 
     public void SetFOV(float fov)

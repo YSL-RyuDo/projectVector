@@ -90,25 +90,35 @@ public class PlayerMovement : MonoBehaviour
 
             lastSentPitch = _cam.GetPitch();
             _targetPitch = _cam.GetPitch();
+
+            _standingPos =
+                _cam.transform.localPosition;
+
+            _crouchingPos =
+                _standingPos -
+                new Vector3(
+                    0f,
+                    _crouchHeightOffset,
+                    0f
+                );
         }
         else
         {
-            lastSentYaw = transform.eulerAngles.y;
-            _targetYaw = transform.eulerAngles.y;
+            lastSentYaw =
+                transform.eulerAngles.y;
+
+            _targetYaw =
+                transform.eulerAngles.y;
 
             lastSentPitch = 0f;
             _targetPitch = 0f;
-        }
 
-        if (_isMine)
-        {
-            InitializeMiniMap();
+            Debug.LogError(
+                $"[PLAYER MOVEMENT] FPSCameraLook가 없습니다. object={name}"
+            );
         }
-
-        _standingPos = _cam.transform.localPosition;
-        _crouchingPos = _standingPos - new Vector3(0, _crouchHeightOffset, 0);
     }
-
+    
     void Update()
     {
         if (GameController.Instance != null && GameController.Instance.IsPaused) return;
@@ -471,8 +481,15 @@ public class PlayerMovement : MonoBehaviour
     public void SetLocalPlayer(bool isMine)
     {
         _isMine = isMine;
-        _cam = GetComponentInChildren<FPSCameraLook>(true);
-        Debug.Log($"[외부 호출] SetLocalPlayer 가 호출됨! 오브젝트: {gameObject.name}, isMine: {isMine}");
+
+        _cam =
+            GetComponentInChildren<FPSCameraLook>(true);
+
+        Debug.Log(
+            $"[외부 호출] SetLocalPlayer 호출. " +
+            $"object={gameObject.name}, " +
+            $"isMine={isMine}"
+        );
 
         if (_cam != null)
         {
@@ -484,17 +501,14 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            lastSentYaw = transform.eulerAngles.y;
-            _targetYaw = transform.eulerAngles.y;
+            lastSentYaw =
+                transform.eulerAngles.y;
+
+            _targetYaw =
+                transform.eulerAngles.y;
 
             lastSentPitch = 0f;
             _targetPitch = 0f;
-        }
-
-        // PlayerMovement.cs의 SetLocalPlayer 내부 수정
-        if (_isMine)
-        {
-            InitializeMiniMap();
         }
 
         Debug.Log(
@@ -557,34 +571,6 @@ public class PlayerMovement : MonoBehaviour
             currentPitch,
             currentAnimIndex
         );
-    }
-
-    private void InitializeMiniMap()
-    {
-        if (MiniMapCamera.Instance != null)
-        {
-            MiniMapCamera.Instance.SetTarget(transform);
-            Debug.Log($"[PlayerMovement] Start에서 미니맵 타겟 지정 성공 -> {gameObject.name}");
-        }
-        else
-        {
-            // 만약 싱글톤 인스턴스가 아직 없다면 씬에서 직접 찾기 시도
-            MiniMapCamera miniMapCam = FindFirstObjectByType<MiniMapCamera>();
-            if (miniMapCam != null)
-            {
-                miniMapCam.SetTarget(transform);
-                Debug.Log($"[PlayerMovement] FindFirstObjectByType으로 미니맵 타겟 지정 성공 -> {gameObject.name}");
-            }
-            else
-            {
-                Debug.LogError("[PlayerMovement] 씬에 MiniMapCamera가 존재하지 않습니다! 배치를 확인하세요.");
-            }
-        }
-
-        if (MiniMapManager.Instance != null)
-        {
-            MiniMapManager.Instance.RegisterLocalPlayer(transform);
-        }
     }
 
     public void SetWeaponWeight(float weight)

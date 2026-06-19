@@ -1,35 +1,92 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Camera))]
 public class MiniMapCamera : MonoBehaviour
 {
     public static MiniMapCamera Instance;
 
-    private Transform _targetPlayer;
+    [Header("Settings")]
+    [SerializeField] private float cameraHeight = 50f;
+
+    private Transform targetPlayer;
+    private Camera miniMapCamera;
 
     private void Awake()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+
+        miniMapCamera =
+            GetComponent<Camera>();
+
+        // 미니맵 카메라는 MainCamera가 아니다.
+        gameObject.tag = "Untagged";
+
+        if (miniMapCamera != null)
+        {
+            miniMapCamera.orthographic = true;
+
+            if (miniMapCamera.targetTexture == null)
+            {
+                Debug.LogError(
+                    "[MINIMAP CAMERA] Output Texture가 연결되지 않았습니다."
+                );
+            }
+        }
+
+        AudioListener listener =
+            GetComponent<AudioListener>();
+
+        if (listener != null)
+        {
+            listener.enabled = false;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 
     public void SetTarget(Transform target)
     {
-        _targetPlayer = target;
-        Debug.Log($"[MiniMapCamera] 타겟이 정상적으로 설정됨: {target.name}");
+        if (target == null)
+        {
+            Debug.LogError(
+                "[MINIMAP CAMERA] target이 null입니다."
+            );
+
+            return;
+        }
+
+        targetPlayer = target;
+
+        Debug.Log(
+            $"[MINIMAP CAMERA] 타겟 설정 완료: {target.name}"
+        );
     }
 
     private void LateUpdate()
     {
-        if (_targetPlayer == null) return;
+        if (targetPlayer == null)
+            return;
 
-        // 위치 동기화
         transform.position = new Vector3(
-            _targetPlayer.position.x,
-            50f,
-            _targetPlayer.position.z
+            targetPlayer.position.x,
+            targetPlayer.position.y + cameraHeight,
+            targetPlayer.position.z
         );
 
-        // 플레이어의 회전 각도를 미니맵 카메라도 똑같이 따라가게 설정
-        transform.rotation = Quaternion.Euler(90f, _targetPlayer.eulerAngles.y, 0f);
+        transform.rotation = Quaternion.Euler(
+            90f,
+            targetPlayer.eulerAngles.y,
+            0f
+        );
     }
 }

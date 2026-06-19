@@ -43,51 +43,122 @@ public class MiniMapManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+
+        HideAllMiniMaps();
     }
 
     private void Start()
     {
-        GameObject Apos = GameObject.FindGameObjectWithTag("A Pos");
-        _zoneATransform = Apos.transform;
-
-        GameObject Bpos = GameObject.FindGameObjectWithTag("B Pos");
-        _zoneBTransform = Bpos.transform;
-
-        if (_miniMapHUD != null) _miniMapHUD.sizeDelta = new Vector2(_hudWidth, _hudHeight);
-        if (_hudPlayerMarker != null) _hudPlayerMarker.anchoredPosition = Vector2.zero;
-
-        if (_miniMapOverlay != null) _miniMapOverlay.sizeDelta = new Vector2(_overlayWidth, _overlayHeight);
-        if (_overlayPlayerMarker != null) _overlayPlayerMarker.anchoredPosition = Vector2.zero;
-
-        if (_miniMapCamera == null && MiniMapCamera.Instance != null)
+        if (_miniMapHUD != null)
         {
-            _miniMapCamera = MiniMapCamera.Instance.GetComponent<Camera>();
+            _miniMapHUD.sizeDelta =
+                new Vector2(
+                    _hudWidth,
+                    _hudHeight
+                );
+        }
+
+        if (_hudPlayerMarker != null)
+        {
+            _hudPlayerMarker.anchoredPosition =
+                Vector2.zero;
+
+            _hudPlayerMarker.gameObject.SetActive(false);
+        }
+
+        if (_miniMapOverlay != null)
+        {
+            _miniMapOverlay.sizeDelta =
+                new Vector2(
+                    _overlayWidth,
+                    _overlayHeight
+                );
+        }
+
+        if (_overlayPlayerMarker != null)
+        {
+            _overlayPlayerMarker.anchoredPosition =
+                Vector2.zero;
+
+            _overlayPlayerMarker.gameObject.SetActive(false);
+        }
+
+        if (_miniMapCamera == null &&
+            MiniMapCamera.Instance != null)
+        {
+            _miniMapCamera =
+                MiniMapCamera.Instance.GetComponent<Camera>();
         }
 
         InitZoneMarkers();
+
+        // 맵이 아직 생성되지 않았을 수 있으므로 null 안전하게 검색
+        RefreshZoneTargets();
+
+        // GAME_ALL_READY 전까지 미니맵 숨김
+        HideAllMiniMaps();
     }
 
     private void LateUpdate()
     {
         UpdatePlayerMarkerRotation();
 
-        if (_miniMapCamera == null || _localPlayerTransform == null) return;
+        if (_miniMapCamera == null)
+        {
+            if (MiniMapCamera.Instance != null)
+            {
+                _miniMapCamera =
+                    MiniMapCamera.Instance.GetComponent<Camera>();
+            }
+
+            if (_miniMapCamera == null)
+                return;
+        }
+
+        if (_localPlayerTransform == null)
+            return;
+
+        if (_zoneATransform == null ||
+            _zoneBTransform == null)
+        {
+            RefreshZoneTargets();
+        }
 
         UpdateZoneMarkerPositions();
 
-        if (_localPlayerCamera == null) return;
-        Plane[] mainCamPlanes = GeometryUtility.CalculateFrustumPlanes(_localPlayerCamera);
+        if (_localPlayerCamera == null)
+            return;
 
-        foreach (var enemy in _activeEnemies)
+        Plane[] mainCamPlanes =
+            GeometryUtility.CalculateFrustumPlanes(
+                _localPlayerCamera
+            );
+
+        foreach (MiniMapEnemy enemy in _activeEnemies)
         {
-            if (enemy == null || enemy.EnemyCollider == null) continue;
+            if (enemy == null ||
+                enemy.EnemyCollider == null)
+            {
+                continue;
+            }
 
-            bool isVisibleInMainCam = GeometryUtility.TestPlanesAABB(mainCamPlanes, enemy.EnemyCollider.bounds);
+            bool isVisibleInMainCam =
+                GeometryUtility.TestPlanesAABB(
+                    mainCamPlanes,
+                    enemy.EnemyCollider.bounds
+                );
 
-            if (isVisibleInMainCam) UpdateEnemyMarker(enemy);
-            else HideEnemyMarker(enemy);
+            if (isVisibleInMainCam)
+                UpdateEnemyMarker(enemy);
+            else
+                HideEnemyMarker(enemy);
         }
     }
 
@@ -175,16 +246,63 @@ public class MiniMapManager : MonoBehaviour
         }
     }
 
-    public void RegisterLocalPlayer(Transform playerTransform)
+    public void RegisterLocalPlayer(
+    Transform playerTransform,
+    Camera playerCamera)
     {
-        _localPlayerTransform = playerTransform;
-        _localPlayerCamera = playerTransform.GetComponentInChildren<Camera>(true);
+        if (playerTransform == null)
+        {
+            Debug.LogError(
+                "[MINIMAP] playerTransform이 null입니다."
+            );
 
-        if (_hudPlayerMarker != null) _hudPlayerMarker.gameObject.SetActive(true);
-        if (_overlayPlayerMarker != null) _overlayPlayerMarker.gameObject.SetActive(true);
+            return;
+        }
 
-        if (_zoneAMarker != null) _zoneAMarker.gameObject.SetActive(true);
-        if (_zoneBMarker != null) _zoneBMarker.gameObject.SetActive(true);
+        if (playerCamera == null)
+        {
+            Debug.LogError(
+                $"[MINIMAP] playerCamera가 null입니다. " +
+                $"player={playerTransform.name}"
+            );
+
+            return;
+        }
+
+        _localPlayerTransform =
+            playerTransform;
+
+        _localPlayerCamera =
+            playerCamera;
+
+        if (_hudPlayerMarker != null)
+        {
+            _hudPlayerMarker.anchoredPosition =
+                Vector2.zero;
+
+            _hudPlayerMarker.gameObject.SetActive(true);
+        }
+
+        if (_overlayPlayerMarker != null)
+        {
+            _overlayPlayerMarker.anchoredPosition =
+                Vector2.zero;
+
+            _overlayPlayerMarker.gameObject.SetActive(true);
+        }
+
+        if (_zoneAMarker != null)
+            _zoneAMarker.gameObject.SetActive(true);
+
+        if (_zoneBMarker != null)
+            _zoneBMarker.gameObject.SetActive(true);
+
+        Debug.Log(
+            $"[MINIMAP] 로컬 플레이어 등록 완료. " +
+            $"player={playerTransform.name}, " +
+            $"playerCamera={playerCamera.name}, " +
+            $"cameraEnabled={playerCamera.enabled}"
+        );
     }
 
     private void UpdatePlayerMarkerRotation()
@@ -260,5 +378,62 @@ public class MiniMapManager : MonoBehaviour
             if (overlayMarker != null) Destroy(overlayMarker.gameObject);
             _overlayEnemyMarkers.Remove(enemy);
         }
+    }
+
+    public void ShowHUDMiniMap()
+    {
+        if (_miniMapHUD != null)
+            _miniMapHUD.gameObject.SetActive(true);
+
+        if (_miniMapOverlay != null)
+            _miniMapOverlay.gameObject.SetActive(false);
+
+        Debug.Log(
+            "[MINIMAP] GAME_ALL_READY 이후 HUD 미니맵 활성화"
+        );
+    }
+
+    public void HideAllMiniMaps()
+    {
+        if (_miniMapHUD != null)
+            _miniMapHUD.gameObject.SetActive(false);
+
+        if (_miniMapOverlay != null)
+            _miniMapOverlay.gameObject.SetActive(false);
+    }
+
+    public void RefreshZoneTargets()
+    {
+        GameObject aPosition = null;
+        GameObject bPosition = null;
+
+        try
+        {
+            aPosition =
+                GameObject.FindGameObjectWithTag("A Pos");
+
+            bPosition =
+                GameObject.FindGameObjectWithTag("B Pos");
+        }
+        catch (UnityException exception)
+        {
+            Debug.LogWarning(
+                $"[MINIMAP] A Pos 또는 B Pos 태그가 없습니다. {exception.Message}"
+            );
+
+            return;
+        }
+
+        if (aPosition != null)
+            _zoneATransform = aPosition.transform;
+
+        if (bPosition != null)
+            _zoneBTransform = bPosition.transform;
+
+        Debug.Log(
+            $"[MINIMAP ZONE] " +
+            $"A={(_zoneATransform != null ? _zoneATransform.name : "NULL")}, " +
+            $"B={(_zoneBTransform != null ? _zoneBTransform.name : "NULL")}"
+        );
     }
 }

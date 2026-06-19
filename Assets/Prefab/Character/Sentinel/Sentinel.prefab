@@ -219,7 +219,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 593350853178283803}
-  - component: {fileID: 9095901964489468934}
   - component: {fileID: 6704828943575367137}
   - component: {fileID: 4794858652514534123}
   - component: {fileID: 7179143017235550764}
@@ -232,6 +231,7 @@ GameObject:
   - component: {fileID: 8893806549369827747}
   - component: {fileID: 1193098693382271854}
   - component: {fileID: 6538360918056891337}
+  - component: {fileID: 8129046092107247140}
   m_Layer: 0
   m_Name: Sentinel
   m_TagString: Untagged
@@ -257,33 +257,6 @@ Transform:
   - {fileID: 3153870165883415447}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!54 &9095901964489468934
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6886427744864830309}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 1
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
 --- !u!143 &6704828943575367137
 CharacterController:
   m_ObjectHideFlags: 0
@@ -494,7 +467,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8aea6e31888c5d4b91a2a9a455dcb1b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDeathController
-  modelRoot: {fileID: 0}
+  modelRoot: {fileID: 2346125370641527085}
+--- !u!114 &8129046092107247140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6886427744864830309}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb13f0404a587d24d8b0f334e2a699b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponViewController
+  firstPersonWeaponHolder: {fileID: 4003038213765283715}
+  thirdPersonWeaponHolder: {fileID: 2642260790466100471}
 --- !u!1 &7074205520252255424
 GameObject:
   m_ObjectHideFlags: 0
@@ -569,7 +556,7 @@ Camera:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8120185391415323245}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 2
   m_ClearFlags: 1
   m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
@@ -620,7 +607,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8120185391415323245}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!114 &3368147480181405176
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1221,6 +1208,11 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: -8700617353114198275, guid: f6082a2fbc19194478c242774495fdb0, type: 3}
+    - {fileID: 65702495048144492, guid: f6082a2fbc19194478c242774495fdb0, type: 3}
+    - {fileID: -7548532396336624913, guid: f6082a2fbc19194478c242774495fdb0, type: 3}
+    - {fileID: -345174089952144456, guid: f6082a2fbc19194478c242774495fdb0, type: 3}
+    - {fileID: -8680944589455851638, guid: f6082a2fbc19194478c242774495fdb0, type: 3}
+    - {fileID: 1033618268703280879, guid: f6082a2fbc19194478c242774495fdb0, type: 3}
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: -5385506588990771005, guid: f6082a2fbc19194478c242774495fdb0, type: 3}
       insertIndex: -1
