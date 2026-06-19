@@ -127,7 +127,7 @@ Camera:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4142911425823365623}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 2
   m_ClearFlags: 1
   m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
@@ -178,7 +178,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4142911425823365623}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!114 &6910272285972718600
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -416,6 +416,7 @@ GameObject:
   - component: {fileID: 3022143099333133632}
   - component: {fileID: 5169373442458704092}
   - component: {fileID: 4103103688302902310}
+  - component: {fileID: 6904899293832106362}
   m_Layer: 0
   m_Name: Initiator
   m_TagString: Untagged
@@ -764,6 +765,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDeathController
   modelRoot: {fileID: 2394164600379191788}
+--- !u!114 &6904899293832106362
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9177276548501388304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb13f0404a587d24d8b0f334e2a699b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponViewController
+  firstPersonWeaponHolder: {fileID: 1806073796303525808}
+  thirdPersonWeaponHolder: {fileID: 4673739449566509290}
 --- !u!1001 &2394164600379225610
 PrefabInstance:
   m_ObjectHideFlags: 0

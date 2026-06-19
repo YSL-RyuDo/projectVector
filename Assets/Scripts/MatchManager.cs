@@ -33,12 +33,37 @@ public class MatchManager : MonoBehaviour
     private GameObject spawnedMap;
     private MapInfo currentMapInfo;
 
+    [Header("Camera")]
+    [SerializeField] private Camera sceneMainCamera;
+
+    private PlayerCameraController localPlayerCameraController;
+    private Transform localPlayerTransform;
+
     private byte myTeam = 0;
     private bool matchStarted = false;
 
     private void Awake()
     {
         Instance = this;
+
+        if (sceneMainCamera == null)
+        {
+            GameObject mainCameraObject =
+                GameObject.Find("Main Camera");
+
+            if (mainCameraObject != null)
+            {
+                sceneMainCamera =
+                    mainCameraObject.GetComponent<Camera>();
+            }
+        }
+
+        if (sceneMainCamera == null)
+        {
+            Debug.LogError(
+                "[MATCH MANAGER] Scene Main Camera가 연결되지 않았습니다."
+            );
+        }
     }
 
     private void Start()
@@ -133,15 +158,50 @@ public class MatchManager : MonoBehaviour
 
         ApplyTeamCharacterImages(data);
 
-        Camera sceneMainCamera = GameObject.Find("Main Camera")?.GetComponent<Camera>();
+        localPlayerCameraController = null;
+        localPlayerTransform = null;
 
-        if (sceneMainCamera != null)
-            sceneMainCamera.gameObject.SetActive(false);
-
+        // 먼저 모든 캐릭터를 생성한다.
         SpawnCharacters(data);
 
+        // 로컬 플레이어 카메라가 정상적으로 설정됐는지 확인한다.
+        if (localPlayerCameraController == null ||
+            localPlayerCameraController.PlayerCamera == null ||
+            localPlayerTransform == null)
+        {
+            Debug.LogError(
+                "[CAMERA SWITCH] 로컬 플레이어 카메라를 찾지 못했습니다. " +
+                $"MyPlayerId={NetworkManager.Instance?.MyPlayerId}. " +
+                "안전을 위해 기존 Main Camera를 유지합니다."
+            );
+        }
+        else
+        {
+            // 로컬 카메라를 다시 한번 확실하게 활성화
+            localPlayerCameraController.SetLocalPlayer(true);
+
+            Camera localCamera =
+                localPlayerCameraController.PlayerCamera;
+
+            Debug.Log(
+                $"[CAMERA SWITCH] 로컬 카메라 준비 완료. " +
+                $"player={localPlayerTransform.name}, " +
+                $"camera={localCamera.name}, " +
+                $"enabled={localCamera.enabled}, " +
+                $"active={localCamera.gameObject.activeInHierarchy}"
+            );
+
+            // 미니맵 연결
+            SetupLocalPlayerMiniMap();
+
+            // 로컬 카메라가 켜진 다음 기존 씬 카메라를 끈다.
+            DisableSceneMainCamera();
+        }
+
         if (RoundManager.Instance != null)
+        {
             RoundManager.Instance.OnServerPrepareStarted();
+        }
 
         Debug.Log("[MATCH MANAGER] In-game setup complete");
     }
@@ -437,10 +497,30 @@ public class MatchManager : MonoBehaviour
             if (cameraController != null)
             {
                 cameraController.SetLocalPlayer(isMine);
+
+                if (isMine)
+                {
+                    localPlayerCameraController =
+                        cameraController;
+
+                    localPlayerTransform =
+                        characterObj.transform;
+
+                    Debug.Log(
+                        $"[LOCAL PLAYER FOUND] " +
+                        $"playerId={member.playerId}, " +
+                        $"myPlayerId={NetworkManager.Instance.MyPlayerId}, " +
+                        $"object={characterObj.name}, " +
+                        $"camera={cameraController.PlayerCamera?.name}"
+                    );
+                }
             }
             else
             {
-                Debug.LogError($"[SPAWN FAIL] PlayerCameraController not found. object={characterObj.name}");
+                Debug.LogError(
+                    $"[SPAWN FAIL] PlayerCameraController not found. " +
+                    $"object={characterObj.name}"
+                );
             }
 
             if (movement != null)
@@ -686,5 +766,91 @@ public class MatchManager : MonoBehaviour
         );
     }
 
+    private void SetupLocalPlayerMiniMap()
+    {
+        if (localPlayerTransform == null ||
+            localPlayerCameraController == null ||
+            localPlayerCameraController.PlayerCamera == null)
+        {
+            Debug.LogError(
+                "[MINIMAP SETUP] 로컬 플레이어 또는 카메라가 없습니다."
+            );
 
+            return;
+        }
+
+        if (MiniMapCamera.Instance != null)
+        {
+            MiniMapCamera.Instance.SetTarget(
+                localPlayerTransform
+            );
+        }
+        else
+        {
+            Debug.LogError(
+                "[MINIMAP SETUP] MiniMapCamera.Instance가 없습니다."
+            );
+        }
+
+        if (MiniMapManager.Instance != null)
+        {
+            MiniMapManager.Instance.RefreshZoneTargets();
+
+            MiniMapManager.Instance.RegisterLocalPlayer(
+                localPlayerTransform,
+                localPlayerCameraController.PlayerCamera
+            );
+
+            MiniMapManager.Instance.ShowHUDMiniMap();
+        }
+        else
+        {
+            Debug.LogError(
+                "[MINIMAP SETUP] MiniMapManager.Instance가 없습니다."
+            );
+        }
+    }
+
+    private void DisableSceneMainCamera()
+    {
+        if (sceneMainCamera == null)
+        {
+            Debug.LogError(
+                "[CAMERA SWITCH] Scene Main Camera가 없습니다."
+            );
+
+            return;
+        }
+
+        Camera localCamera =
+            localPlayerCameraController != null
+                ? localPlayerCameraController.PlayerCamera
+                : null;
+
+        if (sceneMainCamera == localCamera)
+        {
+            Debug.LogError(
+                "[CAMERA SWITCH] Scene Camera와 Player Camera가 동일합니다."
+            );
+
+            return;
+        }
+
+        if (sceneMainCamera.CompareTag("MainCamera"))
+            sceneMainCamera.tag = "Untagged";
+
+        AudioListener sceneListener =
+            sceneMainCamera.GetComponent<AudioListener>();
+
+        if (sceneListener != null)
+            sceneListener.enabled = false;
+
+        // 기존 구조대로 씬 Main Camera 오브젝트를 종료
+        sceneMainCamera.gameObject.SetActive(false);
+
+        Debug.Log(
+            $"[CAMERA SWITCH] Scene Main Camera 종료. " +
+            $"localCamera={localCamera?.name}"
+        );
+    }
 }
