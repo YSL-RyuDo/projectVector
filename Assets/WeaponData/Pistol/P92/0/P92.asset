@@ -18,16 +18,16 @@ MonoBehaviour:
   dropPrefab: {fileID: 6485102419960048207, guid: e412146e247fcb84fa6949984065f1fd, type: 3}
   weaponIcon: {fileID: 21300000, guid: a89f0cbd2b3f40c4385afb2c23f441d3, type: 3}
   fireRate: 0.2
-  range: 45
+  range: 300
   damage: 20
-  muzzleVelocity: 70
+  muzzleVelocity: 380
   bulletHolePrefab: {fileID: 3341232432629068302, guid: b145402b672ee314e9bbbceeabeacce8, type: 3}
   magSize: 12
-  maxReserveAmmo: 24
+  maxReserveAmmo: 36
   reloadTime: 1.4
   normalFOV: 60
-  adsFOV: 42
-  adsSpeed: 11
+  adsFOV: 0
+  adsSpeed: 0
   recoilPattern:
   - {x: 0, y: 1}
   - {x: 0, y: 1}
@@ -42,7 +42,8 @@ MonoBehaviour:
   - {x: 0, y: 1}
   - {x: 0, y: 1}
   recoilMultiplier: 1
-  adsRecoilMultiplier: 1
-  hipFireSpread: 0.02
-  adsSpread: 0.005
+  adsRecoilMultiplier: 0
+  hipFireSpread: 0.01
+  adsSpread: 0
   moveSpreadMultiplier: 5
+  weight: 970

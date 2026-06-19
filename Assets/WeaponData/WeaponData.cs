@@ -56,4 +56,7 @@ public class WeaponData : ScriptableObject
     public float hipFireSpread = 0.02f;   // ÀÏ¹İ »ç°İ ÅºÆÛÁü
     public float adsSpread = 0.005f;      // ADS ÅºÆÛÁü
     public float moveSpreadMultiplier;    // ¿òÁ÷ÀÏ ½Ã ÅºÆÛÁü ¹èÀ²
+
+    [Header("Etc")]
+    public float weight;
 }
