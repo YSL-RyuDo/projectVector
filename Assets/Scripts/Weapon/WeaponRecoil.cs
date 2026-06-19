@@ -19,6 +19,11 @@ public class WeaponRecoil : MonoBehaviour
     private Vector3 currentRotation;
     private Vector3 targetRotation;
 
+    private Vector2 targetCameraRecoil;
+    private Vector2 currentCameraRecoil;
+
+    private Vector2 previousAppliedCameraRecoil;
+
     private FPSCameraLook cameraLook;
     private GeneralCameraShake cameraShake;
 
@@ -60,6 +65,26 @@ public class WeaponRecoil : MonoBehaviour
         );
 
         transform.localRotation = Quaternion.Euler(currentRotation);
+
+        targetCameraRecoil = Vector2.Lerp(
+            targetCameraRecoil,
+            Vector2.zero,
+            returnSpeed * Time.deltaTime);
+
+        currentCameraRecoil = Vector2.Lerp(
+            currentCameraRecoil,
+            targetCameraRecoil,
+            snappiness * Time.deltaTime);
+
+        Vector2 delta =currentCameraRecoil - previousAppliedCameraRecoil;
+
+        previousAppliedCameraRecoil = currentCameraRecoil;
+
+        if (cameraLook != null)
+        {
+            cameraLook.AddYaw(delta.x);
+            cameraLook.AddPitch(-delta.y);
+        }
     }
 
     public void FireRecoil(Vector2 recoilPattern, float multiplier, bool isADS)
@@ -82,6 +107,7 @@ public class WeaponRecoil : MonoBehaviour
             Random.Range(-1f, 1f)
         ) * (multiplier * weaponMultiplier);
 
+        /*
         if (cameraLook != null)
         {
             cameraLook.AddYaw(
@@ -92,6 +118,12 @@ public class WeaponRecoil : MonoBehaviour
                 -recoilPattern.y * multiplier * cameraMultiplier
             );
         }
+        */
+
+        targetCameraRecoil += new Vector2(
+        recoilPattern.x,
+        recoilPattern.y
+        ) * multiplier * cameraMultiplier;
 
         if (cameraShake != null)
         {

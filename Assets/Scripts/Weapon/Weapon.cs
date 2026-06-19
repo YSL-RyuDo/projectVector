@@ -141,7 +141,7 @@ public class Weapon : Item
         if (Keyboard.current.rKey.wasPressedThisFrame)
         {
             currentShotIndex = 0;
-            recoilSystem?.StopRecoil();
+            //recoilSystem?.StopRecoil();
 
             StartCoroutine(Reload());
             return;
@@ -156,7 +156,7 @@ public class Weapon : Item
         else
         {
             currentShotIndex = 0;
-            recoilSystem?.StopRecoil();
+            //recoilSystem?.StopRecoil();
         }
     }
     void OnEnable()
