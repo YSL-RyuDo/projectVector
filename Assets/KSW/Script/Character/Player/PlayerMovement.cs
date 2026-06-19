@@ -45,6 +45,10 @@ public class PlayerMovement : MonoBehaviour
     private byte _targetAnimIndex = 0;
     private byte lastSentAnimIndex = 255;
 
+    [SerializeField]
+    private float weaponWeight = 1f;
+    private float currentMoveSpeed;
+
     public float Speed
     {
         get => _speed;
@@ -63,6 +67,8 @@ public class PlayerMovement : MonoBehaviour
 
         _targetPosition = transform.position;
         _targetYaw = transform.eulerAngles.y;
+
+        currentMoveSpeed = _speed;
     }
 
     void Start()
@@ -142,7 +148,8 @@ public class PlayerMovement : MonoBehaviour
             _verticalVelocity += _gravity * Time.deltaTime;
         }
 
-        Vector3 velocity = (move.normalized * _speed) + (Vector3.up * _verticalVelocity);
+        //Vector3 velocity = (move.normalized * _speed) + (Vector3.up * _verticalVelocity);
+        Vector3 velocity = (move.normalized * currentMoveSpeed) + (Vector3.up * _verticalVelocity);
         _cc.Move(velocity * Time.deltaTime);
 
         bool isMoving = input.sqrMagnitude > 0;
@@ -400,5 +407,13 @@ public class PlayerMovement : MonoBehaviour
             currentPitch,
             currentAnimIndex
         );
+    }
+
+    public void SetWeaponWeight(float weight)
+    {
+        weaponWeight = Mathf.Max(1f, weight);
+
+        currentMoveSpeed =
+            _speed - (1f - (1f / weaponWeight));
     }
 }

@@ -268,6 +268,15 @@ public class PlayerItem : MonoBehaviour
 
         Weapon weapon = items[currentIndex].GetComponent<Weapon>();
 
+        PlayerMovement playerMovement = GetComponent<PlayerMovement>();
+
+        if (weapon != null && playerMovement != null)
+        {
+            playerMovement.SetWeaponWeight(
+                weapon.GetWeight()
+            );
+        }
+
         if (weapon != null &&
             _playerIdentity != null &&
             NetworkManager.Instance != null &&

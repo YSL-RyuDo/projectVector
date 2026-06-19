@@ -288,6 +288,10 @@ public class Weapon : Item
                 FireProjectile();
                 break;
 
+            case WeaponData.WeaponType.Shotgun:
+                fireStrategy?.Fire();
+                break;
+
             case WeaponData.WeaponType.Knife:
                 fireStrategy?.Fire();
                 break;
@@ -496,6 +500,10 @@ public class Weapon : Item
                 fireStrategy = null;
                 break;
 
+            case WeaponData.WeaponType.Shotgun:
+                fireStrategy = new ShotGunFire(this, 12);
+                break;
+
             case WeaponData.WeaponType.Knife:
                 fireStrategy = new MeleeFire(
                     this.transform,
@@ -658,5 +666,13 @@ public class Weapon : Item
             return 0;
 
         return weaponData.weaponId;
+    }
+
+    public float GetWeight()
+    {
+        if (weaponData == null)
+            return 1f;
+
+        return weaponData.weight;
     }
 }
