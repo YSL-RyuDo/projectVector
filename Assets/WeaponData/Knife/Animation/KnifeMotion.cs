@@ -20,6 +20,13 @@ public class KnifeMotion : MonoBehaviour
             StartCoroutine(AttackRoutine());
     }
 
+    // Ä®À» ¼±ÅÃ(È°¼ºÈ­)µÆÀ» ¶§ AttackReady·Î º¯°æ
+    private void OnEnable()
+    {
+        if (_animator != null) _animator.SetBool("AttackReady", true);
+    }
+
+    // Ä® ÈÖµÎ¸£±â ÄðÅ¸ÀÓ
     private IEnumerator AttackRoutine()
     {
         _isAttacking = true;
