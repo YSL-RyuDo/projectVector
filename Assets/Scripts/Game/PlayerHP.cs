@@ -31,4 +31,9 @@ public class PlayerHP : MonoBehaviour
         CurrentHP = Mathf.Clamp(hp, 0, MaxHP);
         CurrentBarrier = Mathf.Clamp(barrier, 0, MaxBarrier);
     }
+
+    public void SetHp(int amount)
+    {
+        CurrentHP = amount;
+    }
 }
