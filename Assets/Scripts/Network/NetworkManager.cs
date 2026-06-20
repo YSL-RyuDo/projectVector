@@ -1678,6 +1678,7 @@ public class NetworkManager : MonoBehaviour
             $"[KNIFE ATTACK NOTIFY] playerId={playerId}"
         );
     }
+
     private void HandleHPUpdate(byte[] body)
     {
         int offset = 0;
