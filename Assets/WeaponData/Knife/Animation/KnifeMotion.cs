@@ -5,7 +5,7 @@ public class KnifeMotion : MonoBehaviour
 {
     private Animator _animator;
 
-    private float _attackCooldown = 5.0f;
+    private float _attackCooldown = 0.5f;
 
     private bool _isAttacking = false;
 

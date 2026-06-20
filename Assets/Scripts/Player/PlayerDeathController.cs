@@ -7,6 +7,7 @@ public class PlayerDeathController : MonoBehaviour
     private PlayerSpike playerSpike;
     private CharacterController characterController;
     private PlayerIdentity identity;
+    private PlayerHP _playerHp;
 
     [SerializeField] private GameObject modelRoot;
 
@@ -25,6 +26,7 @@ public class PlayerDeathController : MonoBehaviour
         characterController = GetComponent<CharacterController>();
         weaponViewController = GetComponent<PlayerWeaponViewController>();
         cameraController = GetComponent<PlayerCameraController>();
+        _playerHp = GetComponent<PlayerHP>();
 
         if (modelRoot == null)
         {
@@ -41,6 +43,7 @@ public class PlayerDeathController : MonoBehaviour
     public void OnDead()
     {
         IsDead = true;
+        _playerHp.SetHp(0);
 
         if (movement != null)
         {
