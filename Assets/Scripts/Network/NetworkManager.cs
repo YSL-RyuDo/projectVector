@@ -531,6 +531,10 @@ public class NetworkManager : MonoBehaviour
                 HandleStoreBuyResult(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_KNIFE_ATTACK_NOTIFY:
+                HandleKnifeAttackNotify(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -1632,6 +1636,48 @@ public class NetworkManager : MonoBehaviour
         );
     }
 
+    private void HandleKnifeAttackNotify(byte[] body)
+    {
+        if (body == null || body.Length < 4)
+        {
+            Debug.LogWarning(
+                "[KNIFE ATTACK NOTIFY] invalid body"
+            );
+
+            return;
+        }
+
+        int offset = 0;
+
+        uint playerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        // 로컬 플레이어는 클릭 순간 이미 애니메이션을 실행했다.
+        // 서버에서 돌아온 패킷으로 다시 실행하지 않는다.
+        if (playerId == MyPlayerId)
+            return;
+
+        PlayerMovement movement =
+            FindPlayerMovementById(playerId);
+
+        if (movement == null)
+        {
+            Debug.LogWarning(
+                $"[KNIFE ATTACK NOTIFY] " +
+                $"PlayerMovement not found. " +
+                $"playerId={playerId}"
+            );
+
+            return;
+        }
+
+        movement.PlayKnifeAttackAnimation();
+
+        Debug.Log(
+            $"[KNIFE ATTACK NOTIFY] playerId={playerId}"
+        );
+    }
     private void HandleHPUpdate(byte[] body)
     {
         int offset = 0;
@@ -2371,6 +2417,38 @@ public class NetworkManager : MonoBehaviour
         client.Send(buffer);
 
         Debug.Log("[SEND FIRE]");
+    }
+
+    public void SendKnifeAttack()
+    {
+        ushort size = 4;
+        ushort type =
+            (ushort)PacketType.PKT_CS_KNIFE_ATTACK;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+
+        client.Send(buffer);
+
+        Debug.Log("[SEND KNIFE ATTACK]");
     }
 
     private void HandleMatchResultDetail(byte[] body)

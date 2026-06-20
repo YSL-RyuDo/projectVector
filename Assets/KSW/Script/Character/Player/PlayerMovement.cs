@@ -155,12 +155,20 @@ public class PlayerMovement : MonoBehaviour
         {
             if (_playerItem != null)
             {
-                Weapon currentWeapon = _playerItem.GetCurrentWeapon();
-                if (currentWeapon != null && currentWeapon.GetWeaponType() == WeaponData.WeaponType.Knife)
+                Weapon currentWeapon =
+                    _playerItem.GetCurrentWeapon();
+
+                if (currentWeapon != null &&
+                    currentWeapon.GetWeaponType() ==
+                    WeaponData.WeaponType.Knife)
                 {
-                    if (_animator != null)
+                    // 내 화면에서 즉시 실행
+                    PlayKnifeAttackAnimation();
+
+                    // 서버를 통해 다른 플레이어에게 전달
+                    if (NetworkManager.Instance != null)
                     {
-                        _animator.SetTrigger("Knife_Attack");
+                        NetworkManager.Instance.SendKnifeAttack();
                     }
                 }
             }
@@ -205,6 +213,47 @@ public class PlayerMovement : MonoBehaviour
 
         // 로컬 플레이어 애니메이션 상태 판단 및 로그 출력
         UpdateAnimationStateLog(isMoving, _isCrouching);
+    }
+
+    public void PlayKnifeAttackAnimation()
+    {
+        if (_animator == null)
+        {
+            _animator =
+                GetComponentInChildren<Animator>(true);
+        }
+
+        if (_animator == null)
+        {
+            Debug.LogWarning(
+                $"[KNIFE ATTACK] Animator not found. " +
+                $"object={gameObject.name}"
+            );
+
+            return;
+        }
+
+        // 칼 애니메이션 구역으로 맞춤
+        _animator.SetInteger(
+            "WeaponType",
+            2
+        );
+
+        // 이전 Trigger가 남아 있을 경우 정리
+        _animator.ResetTrigger(
+            "Knife_Attack"
+        );
+
+        _animator.SetTrigger(
+            "Knife_Attack"
+        );
+
+        Debug.Log(
+            $"[KNIFE ATTACK PLAY] " +
+            $"object={gameObject.name}, " +
+            $"isMine={_isMine}, " +
+            $"playerId={_playerIdentity?.PlayerId}"
+        );
     }
 
     // 외부(NetworkManager 등 패킷 수신부)에서 호출해 줄 함수
