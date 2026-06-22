@@ -3,38 +3,134 @@ using UnityEngine;
 
 public class KnifeMotion : MonoBehaviour
 {
-    private Animator _animator;
+    [SerializeField] private float attackCooldown = 0.5f;
 
-    private float _attackCooldown = 0.5f;
+    private Animator animator;
+    private PlayerIdentity ownerIdentity;
+    private Coroutine attackCoroutine;
+    private bool isAttacking;
 
-    private bool _isAttacking = false;
-
-    private void Start()
+    private void Awake()
     {
-        _animator = GetComponentInChildren<Animator>();
+        animator =
+            GetComponentInChildren<Animator>(true);
+
+        ownerIdentity =
+            GetComponentInParent<PlayerIdentity>();
+    }
+
+    private void OnEnable()
+    {
+        if (animator == null)
+        {
+            animator =
+                GetComponentInChildren<Animator>(true);
+        }
+
+        if (animator != null)
+        {
+            animator.SetBool(
+                "AttackReady",
+                true
+            );
+        }
+
+        isAttacking = false;
+        attackCoroutine = null;
+    }
+
+    private void OnDisable()
+    {
+        if (attackCoroutine != null)
+        {
+            StopCoroutine(attackCoroutine);
+            attackCoroutine = null;
+        }
+
+        isAttacking = false;
     }
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0) && !_isAttacking)
-            StartCoroutine(AttackRoutine());
+        if (!IsLocalOwner())
+            return;
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            PlayAttack();
+        }
     }
 
-    // Ä®À» ¼±ÅÃ(È°¼ºÈ­)µÆÀ» ¶§ AttackReady·Î º¯°æ
-    private void OnEnable()
+    private bool IsLocalOwner()
     {
-        if (_animator != null) _animator.SetBool("AttackReady", true);
+        if (ownerIdentity == null)
+        {
+            ownerIdentity =
+                GetComponentInParent<PlayerIdentity>();
+        }
+
+        if (ownerIdentity == null)
+            return false;
+
+        if (NetworkManager.Instance == null)
+            return false;
+
+        return ownerIdentity.PlayerId ==
+               NetworkManager.Instance.MyPlayerId;
     }
 
-    // Ä® ÈÖµÎ¸£±â ÄðÅ¸ÀÓ
+    public void PlayAttack()
+    {
+        if (!gameObject.activeInHierarchy)
+            return;
+
+        if (isAttacking)
+            return;
+
+        attackCoroutine =
+            StartCoroutine(
+                AttackRoutine()
+            );
+    }
+
+
+    public void PlayAttackFromServer()
+    {
+        PlayAttack();
+    }
+
     private IEnumerator AttackRoutine()
     {
-        _isAttacking = true;
+        isAttacking = true;
 
-        if (_animator != null) _animator.SetTrigger("Attack");
+        if (animator == null)
+        {
+            animator =
+                GetComponentInChildren<Animator>(true);
+        }
 
-        yield return new WaitForSeconds(_attackCooldown);
+        if (animator != null)
+        {
+            animator.ResetTrigger(
+                "Attack"
+            );
 
-        _isAttacking = false;
+            animator.SetTrigger(
+                "Attack"
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                $"[KNIFE MOTION] Animator not found. object={name}"
+            );
+        }
+
+        yield return new WaitForSeconds(
+            attackCooldown
+        );
+
+        isAttacking = false;
+        attackCoroutine = null;
     }
 }

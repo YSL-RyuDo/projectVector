@@ -237,6 +237,7 @@ GameObject:
   - component: {fileID: 4570866465746137452}
   - component: {fileID: 156818204742268206}
   - component: {fileID: 9004387883631023109}
+  - component: {fileID: 7896314653323184102}
   m_Layer: 0
   m_Name: Entry
   m_TagString: Untagged
@@ -493,6 +494,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83cb550fec81fc94aa6c30229bee6326, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHP
+--- !u!114 &7896314653323184102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7286507536929022138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c447532c18743347b0b71c9b6781cde, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MiniMapEnemy
+  _enemyCollider: {fileID: 628989166336261260}
+  _markerPoint: {fileID: 3365465223917956775}
 --- !u!1 &7740857516947110529
 GameObject:
   m_ObjectHideFlags: 0

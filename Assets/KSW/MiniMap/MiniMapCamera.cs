@@ -5,11 +5,44 @@ public class MiniMapCamera : MonoBehaviour
 {
     public static MiniMapCamera Instance;
 
-    [Header("Settings")]
+    [Header("HUD 미니맵")]
     [SerializeField] private float cameraHeight = 50f;
+
+    [Tooltip("0 이하이면 Camera의 현재 Orthographic Size를 사용합니다.")]
+    [SerializeField] private float hudOrthographicSize = 0f;
+
+    [Header("전체 맵 오버레이")]
+    [Tooltip("맵 프리팹 안에 MiniMapFullCenter라는 빈 오브젝트를 만들어도 됩니다.")]
+    [SerializeField] private Transform overlayMapCenter;
+
+    [SerializeField]
+    private string overlayCenterObjectName =
+        "MiniMapFullCenter";
+
+    [Tooltip("중앙 오브젝트를 찾지 못했을 때 사용할 위치")]
+    [SerializeField]
+    private Vector3 overlayCenterFallback =
+        Vector3.zero;
+
+    [SerializeField] private float overlayCameraHeight = 100f;
+
+    [Tooltip("전체 맵이 들어오도록 설정")]
+    [SerializeField] private float overlayOrthographicSize = 70f;
+
+    [Tooltip("전체 맵의 북쪽 방향 보정")]
+    [SerializeField] private float overlayYaw = 0f;
+    [SerializeField] private float attackerOverlayYaw = 90f;
+    [SerializeField] private float defenderOverlayYaw = -90f;
+
+    private byte currentSpawnTeam; // 0 = 공격, 1 = 수비
 
     private Transform targetPlayer;
     private Camera miniMapCamera;
+
+    private bool isOverlayMode;
+
+    public bool IsOverlayMode => isOverlayMode;
+    public Camera Camera => miniMapCamera;
 
     private void Awake()
     {
@@ -24,28 +57,28 @@ public class MiniMapCamera : MonoBehaviour
         miniMapCamera =
             GetComponent<Camera>();
 
-        // 미니맵 카메라는 MainCamera가 아니다.
         gameObject.tag = "Untagged";
 
-        if (miniMapCamera != null)
-        {
-            miniMapCamera.orthographic = true;
+        miniMapCamera.orthographic = true;
 
-            if (miniMapCamera.targetTexture == null)
-            {
-                Debug.LogError(
-                    "[MINIMAP CAMERA] Output Texture가 연결되지 않았습니다."
-                );
-            }
+        if (hudOrthographicSize <= 0f)
+        {
+            hudOrthographicSize =
+                miniMapCamera.orthographicSize;
+        }
+
+        if (miniMapCamera.targetTexture == null)
+        {
+            Debug.LogError(
+                "[MINIMAP CAMERA] Output Texture가 연결되지 않았습니다."
+            );
         }
 
         AudioListener listener =
             GetComponent<AudioListener>();
 
         if (listener != null)
-        {
             listener.enabled = false;
-        }
     }
 
     private void OnDestroy()
@@ -72,21 +105,143 @@ public class MiniMapCamera : MonoBehaviour
         );
     }
 
+    public void SetOverlayMode(bool value)
+    {
+        isOverlayMode = value;
+
+        if (isOverlayMode)
+            ResolveOverlayCenter();
+
+        ApplyCameraTransform();
+
+        Debug.Log(
+            $"[MINIMAP CAMERA] overlayMode={isOverlayMode}"
+        );
+    }
+
+    private void ResolveOverlayCenter()
+    {
+        if (overlayMapCenter != null)
+            return;
+
+        if (string.IsNullOrEmpty(overlayCenterObjectName))
+            return;
+
+        GameObject centerObject =
+            GameObject.Find(overlayCenterObjectName);
+
+        if (centerObject != null)
+        {
+            overlayMapCenter =
+                centerObject.transform;
+
+            Debug.Log(
+                $"[MINIMAP CAMERA] 전체 맵 중앙 발견: " +
+                $"{overlayMapCenter.name}"
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                $"[MINIMAP CAMERA] {overlayCenterObjectName}을 찾지 못해 " +
+                $"Fallback 위치를 사용합니다. pos={overlayCenterFallback}"
+            );
+        }
+    }
+
     private void LateUpdate()
     {
+        ApplyCameraTransform();
+    }
+
+    private void ApplyCameraTransform()
+    {
+        if (miniMapCamera == null)
+            return;
+
+        if (isOverlayMode)
+        {
+            Vector3 centerPosition =
+                overlayMapCenter != null
+                    ? overlayMapCenter.position
+                    : overlayCenterFallback;
+
+            transform.position =
+                new Vector3(
+                    centerPosition.x,
+                    centerPosition.y + overlayCameraHeight,
+                    centerPosition.z
+                );
+
+            float roleYaw =
+                currentSpawnTeam == 0
+                    ? attackerOverlayYaw
+                    : defenderOverlayYaw;
+
+            transform.rotation =
+                Quaternion.Euler(
+                    90f,
+                    overlayYaw + roleYaw,
+                    0f
+                );
+
+            miniMapCamera.orthographicSize =
+                overlayOrthographicSize;
+
+            return;
+        }
+
         if (targetPlayer == null)
             return;
 
-        transform.position = new Vector3(
-            targetPlayer.position.x,
-            targetPlayer.position.y + cameraHeight,
-            targetPlayer.position.z
-        );
+        transform.position =
+            new Vector3(
+                targetPlayer.position.x,
+                targetPlayer.position.y + cameraHeight,
+                targetPlayer.position.z
+            );
 
-        transform.rotation = Quaternion.Euler(
-            90f,
-            targetPlayer.eulerAngles.y,
-            0f
+        transform.rotation =
+            Quaternion.Euler(
+                90f,
+                targetPlayer.eulerAngles.y,
+                0f
+            );
+
+        miniMapCamera.orthographicSize =
+            hudOrthographicSize;
+    }
+
+    public void SetOverlayMapCenter(
+    Transform mapCenter)
+    {
+        if (mapCenter == null)
+        {
+            Debug.LogError(
+                "[MINIMAP CAMERA] 전체 맵 중앙이 null입니다."
+            );
+
+            return;
+        }
+
+        overlayMapCenter = mapCenter;
+
+        Debug.Log(
+            $"[MINIMAP CAMERA] 전체 맵 중앙 등록: " +
+            $"{overlayMapCenter.name}, " +
+            $"position={overlayMapCenter.position}"
+        );
+    }
+
+    public void SetLocalRoundRole(byte spawnTeam)
+    {
+        currentSpawnTeam = spawnTeam;
+
+        ApplyCameraTransform();
+
+        Debug.Log(
+            $"[MINIMAP ROLE] spawnTeam={spawnTeam}, " +
+            $"overlayYaw={(spawnTeam == 0 ? attackerOverlayYaw : defenderOverlayYaw)}"
         );
     }
 }

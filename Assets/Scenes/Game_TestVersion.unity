@@ -1790,6 +1790,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f57daa3e086e9e4589e2b32013fb813, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameController
+  gameSceneName: GameScene
   settingsUI: {fileID: 360824863}
   isLoading: 0
 --- !u!4 &117636835
@@ -2911,6 +2912,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   cameraHeight: 50
+  hudOrthographicSize: 0
+  overlayMapCenter: {fileID: 0}
+  overlayCenterObjectName: MiniMapFullCenter
+  overlayCenterFallback: {x: 0, y: 0, z: 0}
+  overlayCameraHeight: 100
+  overlayOrthographicSize: 70
+  overlayYaw: 0
+  attackerOverlayYaw: 90
+  defenderOverlayYaw: -90
 --- !u!114 &200350458
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3002,7 +3012,7 @@ Camera:
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 8
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 8400000, guid: 191d710e5375ea14e8bccc5180bd57b3, type: 2}
   m_TargetDisplay: 0
@@ -5056,7 +5066,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &360824864
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5069,6 +5079,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e9239bf8c766dda46872f00bc85e6ae4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SettingsMenu
+  gameSceneName: Game_TestVersion
+  settingsPanel: {fileID: 2051077650}
   sensitivityUIList:
   - type: 0
     slider: {fileID: 1693626534}
@@ -12872,12 +12884,26 @@ MonoBehaviour:
   _overlayHeight: 800
   _overlayMarkerContainer: {fileID: 878926696}
   _overlayPlayerMarker: {fileID: 48350889}
-  _miniMapCamera: {fileID: 200350460}
+  _overlayTopLayer: {fileID: 878926696}
   _markerPrefab: {fileID: 9205278852551407610, guid: 15b2b0b0ace4f694d8deb2883b3aa0d9, type: 3}
+  _characterSprites:
+  - {fileID: 21300000, guid: e5783f8d6cbb674419efa7ac9ba46478, type: 3}
+  - {fileID: 21300000, guid: 339d1da6f54573741936bc521cb2c812, type: 3}
+  - {fileID: 21300000, guid: 4694d5e8a5872dd42a61e74f581ddf19, type: 3}
+  - {fileID: 21300000, guid: 7d51bfb3645a6f145bbd95b57be9b2d5, type: 3}
+  _allyOutlineColor: {r: 0.2, g: 0.7, b: 1, a: 1}
+  _enemyOutlineColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  _hudMarkerEdgePadding: 18
+  _enemyVisibilityMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  _miniMapCamera: {fileID: 200350460}
   _zoneAMarkerPrefab: {fileID: 8972080185683835256, guid: 963adf8d5e2ecdb4ea3f425c3b0cd0dc, type: 3}
   _zoneBMarkerPrefab: {fileID: 9023692189715136409, guid: afa985cafe48d244293fda00383d4675, type: 3}
   _zoneAMarker: {fileID: 0}
   _zoneBMarker: {fileID: 0}
+  _overlayZoneAMarker: {fileID: 0}
+  _overlayZoneBMarker: {fileID: 0}
 --- !u!114 &928815349
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13670,6 +13696,7 @@ MonoBehaviour:
   - {fileID: 1281799978}
   - {fileID: 2123092307}
   - {fileID: 1822369455}
+  deadGrayscaleMaterial: {fileID: 0}
   targets:
   - {fileID: 50771143}
   - {fileID: 1824475332}
@@ -25514,10 +25541,10 @@ MonoBehaviour:
   - {fileID: 1628211991}
   roundHistoryUI: {fileID: 235226921}
   characterSprites:
-  - {fileID: 21300000, guid: 12deff9c334b3084cadf51843813e4bf, type: 3}
-  - {fileID: 21300000, guid: b56d744bbed93bb46a00c15edea894cd, type: 3}
-  - {fileID: 21300000, guid: a132300c40dbc6b4aaa51cec0092f680, type: 3}
-  - {fileID: 21300000, guid: b241a5f4fe098914e93d46ce36ac92be, type: 3}
+  - {fileID: 21300000, guid: e5783f8d6cbb674419efa7ac9ba46478, type: 3}
+  - {fileID: 21300000, guid: 339d1da6f54573741936bc521cb2c812, type: 3}
+  - {fileID: 21300000, guid: 4694d5e8a5872dd42a61e74f581ddf19, type: 3}
+  - {fileID: 21300000, guid: 7d51bfb3645a6f145bbd95b57be9b2d5, type: 3}
 --- !u!1 &1913755742
 GameObject:
   m_ObjectHideFlags: 0
@@ -28276,7 +28303,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2051077651
 RectTransform:
   m_ObjectHideFlags: 0

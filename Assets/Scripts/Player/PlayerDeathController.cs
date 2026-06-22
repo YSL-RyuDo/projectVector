@@ -16,6 +16,7 @@ public class PlayerDeathController : MonoBehaviour
     public bool IsDead { get; private set; }
     private PlayerWeaponViewController weaponViewController;
     private PlayerCameraController cameraController;
+    private FPSCameraLook cameraLook;
 
     private void Awake()
     {
@@ -38,6 +39,8 @@ public class PlayerDeathController : MonoBehaviour
 
         if (modelRoot != null)
             modelRenderers = modelRoot.GetComponentsInChildren<Renderer>(true);
+
+        cameraLook = GetComponentInChildren<FPSCameraLook>(true);
     }
 
     public void OnDead()
@@ -47,8 +50,15 @@ public class PlayerDeathController : MonoBehaviour
 
         if (movement != null)
         {
+            movement.ResetMoveSpeedState();
             movement.CanMove = false;
-            movement.SetLocalPlayer(false);
+            movement.enabled = false;
+        }
+
+        if (cameraLook != null)
+        {
+            cameraLook.ForceExitADS();
+            cameraLook.enabled = false;
         }
 
         if (playerItem != null)
@@ -64,6 +74,14 @@ public class PlayerDeathController : MonoBehaviour
             weaponViewController.HideAll();
 
         SetModelVisible(false);
+
+        if (MatchManager.Instance != null && identity != null)
+        {
+            MatchManager.Instance.SetPlayerDeadVisual(
+                identity.PlayerId,
+                true
+            );
+        }
 
         Debug.Log($"[DEAD] disabled object={name}, playerId={identity?.PlayerId}");
     }
@@ -82,8 +100,26 @@ public class PlayerDeathController : MonoBehaviour
 
         if (movement != null)
         {
-            movement.CanMove = true;
+            movement.enabled = true;
             movement.SetLocalPlayer(isMine);
+            movement.ResetMoveSpeedState();
+            movement.CanMove = true;
+
+            movement.ResetAfterRespawn(
+                transform.eulerAngles.y
+            );
+        }
+
+        if (cameraLook != null)
+        {
+            cameraLook.enabled = isMine;
+
+            if (isMine)
+            {
+                cameraLook.ResetLookRotation(
+                    transform.eulerAngles.y
+                );
+            }
         }
 
         if (playerItem != null)
@@ -104,6 +140,14 @@ public class PlayerDeathController : MonoBehaviour
             cameraController.RefreshViewVisuals();
         else
             SetModelVisible(!isMine);
+
+        if (MatchManager.Instance != null && identity != null)
+        {
+            MatchManager.Instance.SetPlayerDeadVisual(
+                identity.PlayerId,
+                false
+            );
+        }
 
         Debug.Log($"[RESPAWN] restored object={name}, playerId={identity?.PlayerId}, isMine={isMine}");
     }

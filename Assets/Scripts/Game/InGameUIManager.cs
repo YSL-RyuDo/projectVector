@@ -135,8 +135,6 @@ public class InGameUIManager : MonoBehaviour
         SetKnife(defaultKnifeSprite);
         SetThrowWeapon(defaultThrowWeaponSprite);
         SetSpike(defaultSpikeSprite);
-
-        SetBulletText(0, 0);
     }
 
     public void SetMainWeapon(WeaponData weaponData)
@@ -199,5 +197,84 @@ public class InGameUIManager : MonoBehaviour
         bulletText.text = $"{currentAmmo} / {reserveAmmo}";
     }
 
-    
+    public void SetSpectatorPlayerUI(
+    int characterId,
+    Sprite characterSprite,
+    int hp,
+    int barrier,
+    int maxHpValue,
+    int maxBarrierValue,
+    int weaponId,
+    int magAmmo,
+    int reserveAmmo)
+    {
+        // 관전 대상 캐릭터 초상화
+        SetCharacterImage(
+            characterSprite
+        );
+
+        // 관전 대상 캐릭터 스킬 이미지
+        if (PickManager.Instance != null)
+        {
+            PickCharacterData characterData =
+                PickManager.Instance.GetCharacterData(
+                    characterId
+                );
+
+            if (characterData != null)
+            {
+                SetSkillIcons(
+                    characterData
+                );
+            }
+        }
+
+        // HP와 베리어
+        SetHpBarrier(
+            hp,
+            barrier,
+            maxHpValue,
+            maxBarrierValue
+        );
+
+        // 현재 탄약
+        SetBulletText(
+            magAmmo,
+            reserveAmmo
+        );
+
+        // 현재 무기 아이콘
+        if (WeaponDropSpawner.Instance != null &&
+            weaponId >= 0)
+        {
+            WeaponData weaponData =
+                WeaponDropSpawner.Instance.GetWeaponData(
+                    weaponId
+                );
+
+            if (weaponData != null)
+            {
+                switch (weaponData.weaponType)
+                {
+                    case WeaponData.WeaponType.Pistol:
+                        SetSubWeapon(
+                            weaponData.weaponIcon
+                        );
+                        break;
+
+                    case WeaponData.WeaponType.Knife:
+                        SetKnife(
+                            weaponData.weaponIcon
+                        );
+                        break;
+
+                    default:
+                        SetMainWeapon(
+                            weaponData
+                        );
+                        break;
+                }
+            }
+        }
+    }
 }

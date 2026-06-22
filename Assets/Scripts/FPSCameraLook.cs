@@ -170,6 +170,13 @@ public class FPSCameraLook : MonoBehaviour
         if (cam != null)
             cam.fieldOfView = 60f;
 
+        PlayerMovement movement = GetComponentInParent<PlayerMovement>();
+
+        if (movement != null)
+        {
+            movement.SetADS(false);
+        }
+
         Debug.Log("[ADS] force exit by death");
     }
 

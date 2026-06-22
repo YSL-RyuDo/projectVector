@@ -54,11 +54,12 @@ public class PlayerMovement : MonoBehaviour
     private byte lastSentAnimIndex = 255;
     private bool _remoteIsMoving;
 
-    private float weaponWeight;
+    private float weaponWeight = 1f;
     private float currentMoveSpeed;
-    private bool isADS;
+    private bool isADS = false;
 
     private PlayerItem _playerItem;
+    private bool lastSentCrouching;
 
     public float Speed
     {
@@ -81,6 +82,10 @@ public class PlayerMovement : MonoBehaviour
 
         _targetPosition = transform.position;
         _targetYaw = transform.eulerAngles.y;
+
+        weaponWeight = 1f;
+        isADS = false;
+        CalculateMoveSpeed();
     }
 
     void Start()
@@ -141,17 +146,29 @@ public class PlayerMovement : MonoBehaviour
     // 로컬 플레이어(나)의 직접적인 조종 로직
     private void movement()
     {
-        if (!CanMove) return;
+        if (!CanMove)
+            return;
 
         Vector2 input = getInput();
-        Vector3 move = transform.right * input.x + transform.forward * input.y;
 
-        if (Keyboard.current.leftCtrlKey.wasPressedThisFrame)
+        Vector3 move =
+            transform.right * input.x +
+            transform.forward * input.y;
+
+        bool isGrounded = _cc.isGrounded;
+
+        if (!isGrounded)
+        {
+            _isCrouching = false;
+        }
+        else if (Keyboard.current != null &&
+                 Keyboard.current.leftCtrlKey.wasPressedThisFrame)
         {
             _isCrouching = !_isCrouching;
         }
 
-        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        if (Mouse.current != null &&
+            Mouse.current.leftButton.wasPressedThisFrame)
         {
             if (_playerItem != null)
             {
@@ -162,10 +179,8 @@ public class PlayerMovement : MonoBehaviour
                     currentWeapon.GetWeaponType() ==
                     WeaponData.WeaponType.Knife)
                 {
-                    // 내 화면에서 즉시 실행
                     PlayKnifeAttackAnimation();
 
-                    // 서버를 통해 다른 플레이어에게 전달
                     if (NetworkManager.Instance != null)
                     {
                         NetworkManager.Instance.SendKnifeAttack();
@@ -174,12 +189,10 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        bool isMoving = input.sqrMagnitude > 0;
+        bool isMoving =
+            input.sqrMagnitude > 0f;
 
-        Vector3 targetPos = _isCrouching ? _crouchingPos : _standingPos;
-        _cam.transform.localPosition = Vector3.Lerp(_cam.transform.localPosition, targetPos, Time.deltaTime * _crouchSpeed);
-
-        if (_cc.isGrounded)
+        if (isGrounded)
         {
             if (_verticalVelocity < -2f)
             {
@@ -190,29 +203,56 @@ public class PlayerMovement : MonoBehaviour
                 Keyboard.current.spaceKey.wasPressedThisFrame)
             {
                 _verticalVelocity = _jumpPower;
+
+                // 점프하면 무조건 일어서기
                 _isCrouching = false;
 
-                // 실제 점프 애니메이션은
-                // 5, 11, 17 인덱스를 통해 처리한다.
                 OnJumpEvent?.Invoke();
             }
         }
         else
         {
-            _verticalVelocity += _gravity * Time.deltaTime;
+            _verticalVelocity +=
+                _gravity * Time.deltaTime;
         }
-        //Vector3 velocity = (move.normalized * _speed) + (Vector3.up * _verticalVelocity);
-        Vector3 velocity = (move.normalized * currentMoveSpeed) + (Vector3.up * _verticalVelocity);
-        _cc.Move(velocity * Time.deltaTime);
+
+        if (_cam != null)
+        {
+            Vector3 targetPos =
+                _isCrouching
+                    ? _crouchingPos
+                    : _standingPos;
+
+            _cam.transform.localPosition =
+                Vector3.Lerp(
+                    _cam.transform.localPosition,
+                    targetPos,
+                    Time.deltaTime * _crouchSpeed
+                );
+        }
+
+        Vector3 velocity =
+            move.normalized * currentMoveSpeed +
+            Vector3.up * _verticalVelocity;
+
+        _cc.Move(
+            velocity * Time.deltaTime
+        );
 
         if (_animator != null)
         {
-            int myAnimIndex = GetCurrentAnimIndex();
-            ApplyAnimationIndexFromServer((byte)myAnimIndex);
+            int myAnimIndex =
+                GetCurrentAnimIndex();
+
+            ApplyAnimationIndexFromServer(
+                (byte)myAnimIndex
+            );
         }
 
-        // 로컬 플레이어 애니메이션 상태 판단 및 로그 출력
-        UpdateAnimationStateLog(isMoving, _isCrouching);
+        UpdateAnimationStateLog(
+            isMoving,
+            _isCrouching
+        );
     }
 
     public void PlayKnifeAttackAnimation()
@@ -261,7 +301,8 @@ public class PlayerMovement : MonoBehaviour
     Vector3 serverPos,
     float serverYaw,
     float serverPitch,
-    byte serverAnimIndex)
+    byte serverAnimIndex,
+    bool serverIsCrouching)
     {
         if (_isMine)
             return;
@@ -303,7 +344,7 @@ public class PlayerMovement : MonoBehaviour
         _targetYaw = serverYaw;
         _targetPitch = serverPitch;
         _targetAnimIndex = serverAnimIndex;
-
+        _isCrouching = serverIsCrouching;
         ApplyAnimationIndexFromServer(
             _targetAnimIndex
         );
@@ -468,14 +509,34 @@ public class PlayerMovement : MonoBehaviour
 
         if (_cam != null)
         {
-            Transform camTransform = _cam.transform;
-            Quaternion targetCamRot = Quaternion.Euler(_targetPitch, 0f, 0f);
+            Transform camTransform =
+                _cam.transform;
 
-            camTransform.localRotation = Quaternion.Lerp(
-                camTransform.localRotation,
-                targetCamRot,
-                Time.deltaTime * _lerpSpeed
-            );
+            Quaternion targetCamRot =
+                Quaternion.Euler(
+                    _targetPitch,
+                    0f,
+                    0f
+                );
+
+            camTransform.localRotation =
+                Quaternion.Lerp(
+                    camTransform.localRotation,
+                    targetCamRot,
+                    Time.deltaTime * _lerpSpeed
+                );
+
+            Vector3 targetCameraPosition =
+                _isCrouching
+                    ? _crouchingPos
+                    : _standingPos;
+
+            camTransform.localPosition =
+                Vector3.Lerp(
+                    camTransform.localPosition,
+                    targetCameraPosition,
+                    Time.deltaTime * _crouchSpeed
+                );
         }
 
         ApplyAnimationIndexFromServer(_targetAnimIndex);
@@ -671,14 +732,19 @@ public class PlayerMovement : MonoBehaviour
         bool animChanged =
             currentAnimIndex != lastSentAnimIndex;
 
-        if (!positionChanged && !yawChanged && !pitchChanged && !animChanged)
+        bool crouchingChanged =_isCrouching !=lastSentCrouching;
+
+        if (!positionChanged &&!yawChanged &&!pitchChanged &&!animChanged &&!crouchingChanged)
+        {
             return;
+        }
 
         lastSendTime = Time.time;
         lastSentPos = currentPos;
         lastSentYaw = currentYaw;
         lastSentPitch = currentPitch;
         lastSentAnimIndex = currentAnimIndex;
+        lastSentCrouching = _isCrouching;
 
         NetworkManager.Instance.SendMoveState(
             currentPos.x,
@@ -686,7 +752,8 @@ public class PlayerMovement : MonoBehaviour
             currentPos.z,
             currentYaw,
             currentPitch,
-            currentAnimIndex
+            currentAnimIndex,
+            _isCrouching
         );
     }
 
@@ -711,5 +778,80 @@ public class PlayerMovement : MonoBehaviour
         {
             currentMoveSpeed /= 1.5f;
         }
+    }
+
+    public void ResetAfterRespawn(float spawnYaw)
+    {
+        _verticalVelocity = -2f;
+        _isCrouching = false;
+
+        _targetPosition =
+            transform.position;
+
+        _targetYaw =
+            spawnYaw;
+
+        _targetPitch =
+            0f;
+
+        lastSentPos =
+            transform.position;
+
+        lastSentYaw =
+            spawnYaw;
+
+        lastSentPitch =
+            0f;
+
+        lastSendTime = 0f;
+        lastSentAnimIndex = 255;
+
+        _remoteIsMoving = false;
+        _currentAnimIndex = -1;
+
+        if (_cam == null)
+        {
+            _cam =
+                GetComponentInChildren<FPSCameraLook>(true);
+        }
+
+        if (_cam != null)
+        {
+            // 관전 중 변경된 카메라 위치 제거
+            _cam.transform.localPosition =
+                _standingPos;
+
+            _cam.ResetLookRotation(
+                spawnYaw
+            );
+        }
+
+        Debug.Log(
+            $"[PLAYER RESPAWN RESET] " +
+            $"object={gameObject.name}, " +
+            $"position={transform.position}, " +
+            $"yaw={spawnYaw}"
+        );
+    }
+
+    public void ResetMoveSpeedState()
+    {
+        // 사망 전에 ADS 중이었더라도 무조건 해제
+        isADS = false;
+
+        // 현재 장착 무기의 무게는 유지하고
+        // ADS 감속만 제거해서 다시 계산
+        if (weaponWeight < 1f)
+            weaponWeight = 1f;
+
+        CalculateMoveSpeed();
+
+        Debug.Log(
+            $"[PLAYER MOVE SPEED RESET] " +
+            $"baseSpeed={_speed}, " +
+            $"weaponWeight={weaponWeight}, " +
+            $"currentMoveSpeed={currentMoveSpeed}, " +
+            $"isADS={isADS}"
+        );
     }
 }

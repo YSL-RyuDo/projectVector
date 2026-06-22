@@ -37,6 +37,7 @@ public class Weapon : Item
 
     [Header("Recoil Logic")]
     private int currentShotIndex = 0;
+    private float lastAttackVisualTime = -999f;
 
     private IFireStrategy fireStrategy;
 
@@ -124,6 +125,11 @@ public class Weapon : Item
         if (_playerIdentity == null) return;
         if (NetworkManager.Instance == null) return;
         if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
+
+        if (SettingsMenu.Instance != null && SettingsMenu.Instance.IsOpen)
+        {
+            return;
+        }
 
         if (!isPlayer) return;
         if (ownerHP != null && ownerHP.IsDead) return;
@@ -248,36 +254,105 @@ public class Weapon : Item
         if (ownerHP != null && ownerHP.IsDead)
             return;
 
-        nextFireTime = Time.time + weaponData.fireRate;
+        nextFireTime =
+            Time.time + weaponData.fireRate;
 
         if (UsesAmmo())
         {
             currentAmmo--;
+
             UpdateAmmoUI();
 
             if (NetworkManager.Instance != null)
+            {
                 NetworkManager.Instance.SendFire();
+            }
         }
 
-        if (recoilSystem != null && weaponData.recoilPattern.Length > 0)
-        {
-            int index = Mathf.Min(currentShotIndex, weaponData.recoilPattern.Length - 1);
+        PlayAttackRecoilVisual();
 
-            float recoilMultiplier = isADS
+        FireCurrentWeapon();
+
+        Debug.Log(
+            $"[WEAPON USE] " +
+            $"weapon={weaponData.name}, " +
+            $"ammo={currentAmmo}/{reserveAmmo}"
+        );
+    }
+
+    public void PlayFireVisualFromServer()
+    {
+        PlayAttackRecoilVisual();
+    }
+
+
+    public void PlayKnifeAttackVisualFromServer()
+    {
+        PlayAttackRecoilVisual();
+    }
+    private void PlayAttackRecoilVisual()
+    {
+        if (weaponData == null)
+            return;
+
+        if (recoilSystem == null)
+        {
+            recoilSystem =
+                GetComponentInParent<WeaponRecoil>();
+        }
+
+        if (recoilSystem == null)
+        {
+            Debug.LogWarning(
+                $"[ATTACK VISUAL] WeaponRecoil not found. " +
+                $"weapon={name}"
+            );
+
+            return;
+        }
+
+        if (weaponData.recoilPattern == null ||
+            weaponData.recoilPattern.Length == 0)
+        {
+            Debug.LogWarning(
+                $"[ATTACK VISUAL] recoilPattern is empty. " +
+                $"weapon={weaponData.name}"
+            );
+
+            return;
+        }
+
+        float resetDelay =
+            Mathf.Max(
+                weaponData.fireRate * 2f,
+                0.15f
+            );
+
+        if (Time.time - lastAttackVisualTime >
+            resetDelay)
+        {
+            currentShotIndex = 0;
+        }
+
+        int index =
+            Mathf.Min(
+                currentShotIndex,
+                weaponData.recoilPattern.Length - 1
+            );
+
+        float recoilMultiplier =
+            isADS
                 ? weaponData.adsRecoilMultiplier
                 : weaponData.recoilMultiplier;
 
-            recoilSystem.FireRecoil(
-                weaponData.recoilPattern[index],
-                recoilMultiplier,
-                isADS
-            );
-        }
+        recoilSystem.FireRecoil(
+            weaponData.recoilPattern[index],
+            recoilMultiplier,
+            isADS
+        );
 
-        FireCurrentWeapon();
         currentShotIndex++;
-
-        Debug.Log($"[WEAPON USE] weapon={weaponData.name}, ammo={currentAmmo}/{reserveAmmo}");
+        lastAttackVisualTime = Time.time;
     }
 
     private void FireCurrentWeapon()
@@ -558,17 +633,35 @@ public class Weapon : Item
 
         isReloading = false;
     }
-    void UpdateAmmoUI()
+    private void UpdateAmmoUI()
     {
+        if (!ShouldUpdateAmmoUI())
+            return;
+
         if (ammoText != null)
-        {
             ammoText.text = $"{currentAmmo} / {reserveAmmo}";
-        }
 
         if (InGameUIManager.Instance != null)
-        {
             InGameUIManager.Instance.SetBulletText(currentAmmo, reserveAmmo);
+    }
+
+    private bool ShouldUpdateAmmoUI()
+    {
+        if (_playerIdentity == null)
+            _playerIdentity = GetComponentInParent<PlayerIdentity>();
+
+        if (_playerIdentity == null || NetworkManager.Instance == null)
+            return false;
+
+        if (SpectatorManager.Instance != null &&
+            SpectatorManager.Instance.IsSpectating)
+        {
+            return SpectatorManager.Instance.CurrentTargetPlayerId ==
+                   _playerIdentity.PlayerId;
         }
+
+        return _playerIdentity.PlayerId ==
+               NetworkManager.Instance.MyPlayerId;
     }
 
     public void ReloadFull()

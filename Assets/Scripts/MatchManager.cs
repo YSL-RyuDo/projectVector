@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
+using System.Collections.Generic;
 
 public class MatchManager : MonoBehaviour
 {
@@ -25,6 +27,12 @@ public class MatchManager : MonoBehaviour
     [SerializeField] private GameObject enemyTeamListRoot;
     [SerializeField] private Image[] ourTeamImages;
     [SerializeField] private Image[] enemyTeamImages;
+
+    [Header("Dead Player Image")]
+    [SerializeField] private Material deadGrayscaleMaterial;
+
+    private readonly Dictionary<Image, Material>
+        originalTeamImageMaterials = new();
 
     [Header("Invisiables")]
     [SerializeField] private GameObject[] targets;
@@ -591,6 +599,9 @@ public class MatchManager : MonoBehaviour
                     Debug.LogError("[MATCH MANAGER] InGameUIManager.Instance is null");
                 }
 
+                StartCoroutine(RefreshLocalPlayerAmmoAfterSpawn(characterObj)
+);
+
                 PlayerSpike playerSpike = characterObj.GetComponent<PlayerSpike>();
 
                 if (playerSpike != null && InGameUIManager.Instance != null)
@@ -690,7 +701,10 @@ public class MatchManager : MonoBehaviour
         }
     }
 
-    private void SetTeamImage(Image[] images, byte slotIndex, Sprite sprite)
+    private void SetTeamImage(
+    Image[] images,
+    byte slotIndex,
+    Sprite sprite)
     {
         if (images == null)
             return;
@@ -698,11 +712,30 @@ public class MatchManager : MonoBehaviour
         if (slotIndex >= images.Length)
             return;
 
-        if (images[slotIndex] == null)
+        Image image =
+            images[slotIndex];
+
+        if (image == null)
             return;
 
-        images[slotIndex].enabled = sprite != null;
-        images[slotIndex].sprite = sprite;
+        if (!originalTeamImageMaterials.ContainsKey(
+            image))
+        {
+            originalTeamImageMaterials[image] =
+                image.material;
+        }
+
+        image.enabled =
+            sprite != null;
+
+        image.sprite =
+            sprite;
+
+        image.color =
+            Color.white;
+
+        image.material =
+            originalTeamImageMaterials[image];
     }
 
     private Sprite GetCharacterSprite(int characterId)
@@ -714,6 +747,145 @@ public class MatchManager : MonoBehaviour
             return null;
 
         return characterSprites[characterId];
+    }
+
+    public Sprite GetCharacterSpriteForUI(
+    int characterId)
+    {
+        return GetCharacterSprite(
+            characterId
+        );
+    }
+
+    public void SetPlayerDeadVisual(
+    uint playerId,
+    bool isDead)
+    {
+        PlayerIdentity[] identities =
+            FindObjectsByType<PlayerIdentity>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        PlayerIdentity target = null;
+
+        for (int i = 0; i < identities.Length; i++)
+        {
+            PlayerIdentity identity =
+                identities[i];
+
+            if (identity == null)
+                continue;
+
+            if (identity.PlayerId != playerId)
+                continue;
+
+            target = identity;
+            break;
+        }
+
+        if (target == null)
+            return;
+
+        Image[] images =
+            target.Team == myTeam
+                ? ourTeamImages
+                : enemyTeamImages;
+
+        int slotIndex =
+            target.SlotIndex;
+
+        if (images == null)
+            return;
+
+        if (slotIndex < 0 ||
+            slotIndex >= images.Length)
+        {
+            return;
+        }
+
+        Image image =
+            images[slotIndex];
+
+        if (image == null)
+            return;
+
+        if (!originalTeamImageMaterials.ContainsKey(
+            image))
+        {
+            originalTeamImageMaterials[image] =
+                image.material;
+        }
+
+        if (isDead)
+        {
+            if (deadGrayscaleMaterial != null)
+            {
+                image.material =
+                    deadGrayscaleMaterial;
+
+                image.color =
+                    Color.white;
+            }
+            else
+            {
+                /*
+                 * Grayscale Material이 연결되지 않은 경우
+                 * 최소한 회색으로 표시한다.
+                 */
+                image.material =
+                    originalTeamImageMaterials[image];
+
+                image.color =
+                    Color.gray;
+            }
+        }
+        else
+        {
+            image.material =
+                originalTeamImageMaterials[image];
+
+            image.color =
+                Color.white;
+        }
+    }
+
+    public void ResetAllPlayerDeadVisuals()
+    {
+        ResetTeamImageVisuals(
+            ourTeamImages
+        );
+
+        ResetTeamImageVisuals(
+            enemyTeamImages
+        );
+    }
+
+    private void ResetTeamImageVisuals(
+        Image[] images)
+    {
+        if (images == null)
+            return;
+
+        for (int i = 0; i < images.Length; i++)
+        {
+            Image image =
+                images[i];
+
+            if (image == null)
+                continue;
+
+            if (originalTeamImageMaterials.TryGetValue(
+                image,
+                out Material originalMaterial))
+            {
+                image.material =
+                    originalMaterial;
+            }
+
+            image.color =
+                Color.white;
+        }
     }
 
     private GameObject GetCharacterPrefab(int characterId)
@@ -889,5 +1061,34 @@ public class MatchManager : MonoBehaviour
             $"[CAMERA SWITCH] Scene Main Camera 종료. " +
             $"localCamera={localCamera?.name}"
         );
+    }
+
+    private IEnumerator RefreshLocalPlayerAmmoAfterSpawn(
+    GameObject playerObject)
+    {
+        yield return null;
+
+        if (playerObject == null)
+            yield break;
+
+        PlayerItem playerItem =
+            playerObject.GetComponent<PlayerItem>();
+
+        if (playerItem == null)
+        {
+            playerItem =
+                playerObject.GetComponentInChildren<PlayerItem>(true);
+        }
+
+        if (playerItem == null)
+        {
+            Debug.LogError(
+                "[INITIAL AMMO UI] PlayerItem not found"
+            );
+
+            yield break;
+        }
+
+        playerItem.RefreshCurrentWeaponAmmoFromServer();
     }
 }

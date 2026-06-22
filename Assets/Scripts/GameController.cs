@@ -1,96 +1,229 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class GameController : MonoBehaviour
 {
-    // 외부에서 접근할 수 있는 싱글톤 인스턴스
-    public static GameController Instance { get; private set; }
+    public static GameController Instance
+    {
+        get;
+        private set;
+    }
+
+    public enum GameFlowState
+    {
+        OutsideGame,
+        Pick,
+        Loading,
+        Playing
+    }
+
+    [Header("Scene")]
+    [SerializeField]
+    private string gameSceneName = "GameScene";
 
     public GameObject settingsUI;
 
-    public bool isLoading = false;
+    public bool isLoading;
 
-    // 외부에서는 읽기만 가능 (get), 내부에서만 수정 가능 (private set)
-    public bool IsPaused { get; private set; } = false;
-
-    void Awake()
+    public bool IsPaused
     {
-        // 싱글톤 세팅
+        get;
+        private set;
+    }
+
+    public GameFlowState CurrentState
+    {
+        get;
+        private set;
+    } = GameFlowState.OutsideGame;
+
+    /*
+     * ESC 설정창은 실제 인게임 상태에서만 사용할 수 있다.
+     */
+    public bool CanOpenSettings =>
+        CurrentState == GameFlowState.Playing &&
+        !isLoading;
+
+    private void Awake()
+    {
         if (Instance == null)
         {
             Instance = this;
+
             DontDestroyOnLoad(gameObject);
         }
         else
         {
             Destroy(gameObject);
+            return;
+        }
+
+        IsPaused = false;
+        Time.timeScale = 1f;
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void Start()
+    {
+        isLoading = false;
+        IsPaused = false;
+        Time.timeScale = 1f;
+
+        ApplyStateFromCurrentScene();
+    }
+
+    private void OnSceneLoaded(
+        Scene scene,
+        LoadSceneMode mode)
+    {
+        if (scene.name == gameSceneName)
+        {
+            /*
+             * GameScene 진입 직후에는 아직 픽 또는 로딩 단계다.
+             * GAME_ALL_READY가 오기 전까지 Playing으로 두지 않는다.
+             */
+            EnterPickPhase();
+        }
+        else
+        {
+            EnterOutsideGamePhase();
         }
     }
 
-    void Start()
+    private void ApplyStateFromCurrentScene()
     {
-        TryFindSettingsUI();
+        Scene currentScene =
+            SceneManager.GetActiveScene();
+
+        if (currentScene.name == gameSceneName)
+        {
+            EnterPickPhase();
+        }
+        else
+        {
+            EnterOutsideGamePhase();
+        }
+    }
+
+    public void EnterOutsideGamePhase()
+    {
+        CurrentState =
+            GameFlowState.OutsideGame;
 
         isLoading = false;
+        IsPaused = false;
+        Time.timeScale = 1f;
+
+        ShowUICursor();
+
+        Debug.Log(
+            "[GAME FLOW] OutsideGame"
+        );
     }
 
-    void Update()
+    public void EnterPickPhase()
     {
-        if (isLoading) return;
+        CurrentState =
+            GameFlowState.Pick;
 
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        isLoading = false;
+        IsPaused = false;
+        Time.timeScale = 1f;
+
+        /*
+         * 픽 화면에서는 마우스가 반드시 보여야 한다.
+         */
+        ShowUICursor();
+
+        Debug.Log(
+            "[GAME FLOW] Pick"
+        );
+    }
+
+    public void EnterLoadingPhase()
+    {
+        CurrentState =
+            GameFlowState.Loading;
+
+        isLoading = true;
+        IsPaused = false;
+        Time.timeScale = 1f;
+
+        /*
+         * 로딩 화면에서도 커서를 잠그지 않는다.
+         */
+        ShowUICursor();
+
+        Debug.Log(
+            "[GAME FLOW] Loading"
+        );
+    }
+
+    public void EnterPlayingPhase()
+    {
+        CurrentState =
+            GameFlowState.Playing;
+
+        isLoading = false;
+        IsPaused = false;
+        Time.timeScale = 1f;
+
+        /*
+         * 설정창이 닫혀 있을 때만 게임 커서를 잠근다.
+         */
+        bool settingsOpen =
+            SettingsMenu.Instance != null &&
+            SettingsMenu.Instance.IsOpen;
+
+        if (!settingsOpen)
         {
-            // 만약 다른 씬으로 넘어가면서 settingsUI 연결이 끊겼을 때를 대비한 안전장치
-            if (settingsUI == null)
-            {
-                TryFindSettingsUI();
-            }
-
-            if (IsPaused) ResumeGame();
-            else PauseGame();
+            LockGameplayCursor();
         }
+
+        Debug.Log(
+            "[GAME FLOW] Playing"
+        );
     }
 
-    // SettingsMenu 싱글톤을 찾아 UI 오브젝트를 안전하게 매핑하는 함수
-    private void TryFindSettingsUI()
+    public void EnsureGameplayRunning()
     {
-        if (SettingsMenu.Instance != null)
-        {
-            settingsUI = SettingsMenu.Instance.transform.root.gameObject;
-
-            // 처음에는 꺼둔 상태로 설정 (켜져 있다면 꺼줌)
-            if (!IsPaused && settingsUI.activeSelf)
-            {
-                settingsUI.SetActive(false);
-            }
-        }
+        IsPaused = false;
+        Time.timeScale = 1f;
     }
 
-    void PauseGame()
+    public void LockGameplayCursor()
     {
-        IsPaused = true;
+        if (!CanOpenSettings)
+            return;
 
-        if (settingsUI != null)
-            settingsUI.SetActive(true);
+        Cursor.lockState =
+            CursorLockMode.Locked;
 
-        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = false;
+    }
+
+    public void ShowUICursor()
+    {
+        Cursor.lockState =
+            CursorLockMode.None;
+
         Cursor.visible = true;
     }
 
-    void ResumeGame()
+    private void OnDestroy()
     {
-        IsPaused = false;
-
-        if (SettingsMenu.Instance != null && settingsUI != null && settingsUI.activeSelf)
+        if (Instance == this)
         {
-            SettingsMenu.Instance.CloseSettingsMenu();
+            Instance = null;
         }
-        else if (settingsUI != null)
-        {
-            settingsUI.SetActive(false);
-        }
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
     }
 }

@@ -162,6 +162,19 @@ public class ScoreboardData
     public List<ScoreboardMemberData> members = new();
 }
 
+public class PlayerCombatSnapshot
+{
+    public int hp;
+    public int barrier;
+    public int maxHp;
+    public int maxBarrier;
+
+    public int weaponId = -1;
+    public int magAmmo;
+    public int reserveAmmo;
+
+    public bool isADS;
+}
 
 public class NetworkManager : MonoBehaviour
 {
@@ -188,6 +201,7 @@ public class NetworkManager : MonoBehaviour
     public uint PendingReturnRoomId => pendingReturnRoomId;
 
     private readonly Dictionary<uint, GameObject> droppedItemMap = new();
+    private readonly Dictionary<uint, PlayerCombatSnapshot> playerCombatSnapshots = new();
     public void ClearPendingReturnRoom()
     {
         pendingReturnRoomId = 0;
@@ -214,8 +228,8 @@ public class NetworkManager : MonoBehaviour
             }
         };
 
-        client.Connect("127.0.0.1", 9000);
-        //client.Connect("211.247.47.240", 9000);
+        //client.Connect("127.0.0.1", 9000);
+        client.Connect("211.247.47.240", 9000);
     }
 
     void Update()
@@ -533,6 +547,14 @@ public class NetworkManager : MonoBehaviour
 
             case (ushort)PacketType.PKT_SC_KNIFE_ATTACK_NOTIFY:
                 HandleKnifeAttackNotify(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_FIRE_NOTIFY:
+                HandleFireNotify(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_RELOAD_VISUAL:
+                HandleReloadVisual(body);
                 break;
 
             default:
@@ -1254,6 +1276,11 @@ public class NetworkManager : MonoBehaviour
 
     private void HandlePickState(byte[] body)
     {
+        if (GameController.Instance != null)
+        {
+            GameController.Instance.EnterPickPhase();
+        }
+
         int offset = 0;
 
         PickStateData state = new PickStateData();
@@ -1354,6 +1381,11 @@ public class NetworkManager : MonoBehaviour
 
     private void HandleMatchLoadingInfo(byte[] body)
     {
+        if (GameController.Instance != null)
+        {
+            GameController.Instance.EnterLoadingPhase();
+        }
+
         int offset = 0;
 
         MatchLoadingInfoData data = new MatchLoadingInfoData();
@@ -1424,7 +1456,13 @@ public class NetworkManager : MonoBehaviour
 
     private void HandleMatchStart(byte[] body)
     {
-        uint roomId = BitConverter.ToUInt32(body, 0);
+        if (GameController.Instance != null)
+        {
+            GameController.Instance.EnterLoadingPhase();
+        }
+
+        uint roomId =
+            BitConverter.ToUInt32(body,0);
 
         Debug.Log($"[MATCH START] roomId={roomId}");
 
@@ -1450,41 +1488,45 @@ public class NetworkManager : MonoBehaviour
     {
         Debug.Log("[RECV] GAME ALL READY");
 
+        playerCombatSnapshots.Clear();
+
         int offset = 0;
+
         GameAllReadyData data = new GameAllReadyData();
 
-        data.roomId = BitConverter.ToUInt32(body, offset);
+        data.roomId =BitConverter.ToUInt32(body,offset);
         offset += 4;
 
-        data.prepareSeconds = BitConverter.ToUInt16(body, offset);
+        data.prepareSeconds =BitConverter.ToUInt16(body,offset);
         offset += 2;
 
-        byte memberCount = body[offset];
+        byte memberCount =body[offset];
         offset += 1;
 
-        for(int i=0; i<6; i++)
+        for (int i = 0; i < 6; i++)
         {
-            GameReadyMemberData member = new GameReadyMemberData();
+            GameReadyMemberData member =
+                new GameReadyMemberData();
 
-            member.playerId = BitConverter.ToUInt32(body, offset);
+            member.playerId =BitConverter.ToUInt32(body,offset);
             offset += 4;
 
-            member.userId = Packet.ReadFixedString(body, offset, 20);
+            member.userId =Packet.ReadFixedString(body,offset,20);
             offset += 20;
 
-            member.nickname = Packet.ReadFixedString(body, offset, 20);
+            member.nickname =Packet.ReadFixedString(body,offset,20);
             offset += 20;
 
-            member.team = body[offset];
+            member.team =body[offset];
             offset += 1;
 
-            member.slotIndex = body[offset];
+            member.slotIndex =body[offset];
             offset += 1;
 
-            member.characterId = BitConverter.ToInt32(body, offset);
+            member.characterId =BitConverter.ToInt32(body,offset);
             offset += 4;
 
-            member.rankImageId = BitConverter.ToInt32(body, offset);
+            member.rankImageId =BitConverter.ToInt32(body,offset);
             offset += 4;
 
             Debug.Log(
@@ -1500,26 +1542,61 @@ public class NetworkManager : MonoBehaviour
             );
 
             if (i < memberCount)
+            {
                 data.members.Add(member);
+            }
         }
 
-        Debug.Log($"[RECV] GAME ALL READY roomId={data.roomId}, memberCount={data.members.Count}");
+        Debug.Log(
+            $"[RECV] GAME ALL READY " +
+            $"roomId={data.roomId}, " +
+            $"memberCount={data.members.Count}"
+        );
 
-        if (matchManager != null)
+        if (matchManager == null)
         {
-            matchManager.OnRecvGameAllReady(data);
+            Debug.LogError(
+                "[NETWORK] matchManager is null"
+            );
 
-            foreach (GameReadyMemberData member in data.members)
+            return;
+        }
+
+        matchManager.OnRecvGameAllReady(
+            data
+        );
+
+        foreach (GameReadyMemberData member in data.members)
+        {
+            ApplyTeamToPlayer(member.playerId,member.team);
+
+            if (member.playerId ==MyPlayerId &&MiniMapCamera.Instance != null)
             {
-                ApplyTeamToPlayer(member.playerId, member.team);
-            }
+                byte firstRoundSpawnTeam =member.team == 0? (byte)0: (byte)1;
 
-            RefreshPlayerTagsByTeam();
+                MiniMapCamera.Instance.SetLocalRoundRole(firstRoundSpawnTeam);
+            }
+        }
+
+        RefreshPlayerTagsByTeam();
+
+        if (GameController.Instance != null)
+        {
+            GameController.Instance.EnterPlayingPhase();
         }
         else
         {
-            Debug.LogError("[NETWORK] matchManager is null");
+            Debug.LogWarning(
+                "[GAME ALL READY] " +
+                "GameController.Instance is null"
+            );
         }
+
+        Debug.Log(
+            "[GAME ALL READY] " +
+            "all player data applied, " +
+            "game state changed to Playing"
+        );
     }
 
     private void HandleGamePrepareTimer(byte[] body)
@@ -1557,9 +1634,10 @@ public class NetworkManager : MonoBehaviour
     float z,
     float yaw,
     float pitch,
-    byte animIndex)
+    byte animIndex,
+    bool isCrouching)
     {
-        ushort size = 4 + 4 + 4 + 4 + 4 + 4 + 1;
+        ushort size = 4 + 4 + 4 + 4 + 4 + 4 + 1 + 1;
         ushort type = (ushort)PacketType.PKT_CS_MOVE_STATE;
 
         byte[] buffer = new byte[size];
@@ -1588,6 +1666,10 @@ public class NetworkManager : MonoBehaviour
         offset += 4;
 
         buffer[offset] = animIndex;
+        offset += 1;
+
+        buffer[offset] =isCrouching? (byte)1: (byte)0;
+        offset += 1;
 
         client.Send(buffer);
     }
@@ -1617,6 +1699,7 @@ public class NetworkManager : MonoBehaviour
         byte animIndex = body[offset];
         offset += 1;
 
+        bool isCrouching =body[offset] != 0;offset += 1;
         if (playerId == MyPlayerId)
             return;
 
@@ -1632,13 +1715,16 @@ public class NetworkManager : MonoBehaviour
             new Vector3(x, y, z),
             yaw,
             pitch,
-            animIndex
+            animIndex,
+            isCrouching
         );
     }
 
-    private void HandleKnifeAttackNotify(byte[] body)
+    private void HandleKnifeAttackNotify(
+    byte[] body)
     {
-        if (body == null || body.Length < 4)
+        if (body == null ||
+            body.Length < 4)
         {
             Debug.LogWarning(
                 "[KNIFE ATTACK NOTIFY] invalid body"
@@ -1650,37 +1736,90 @@ public class NetworkManager : MonoBehaviour
         int offset = 0;
 
         uint playerId =
-            BitConverter.ToUInt32(body, offset);
+            BitConverter.ToUInt32(
+                body,
+                offset
+            );
         offset += 4;
 
-        // 로컬 플레이어는 클릭 순간 이미 애니메이션을 실행했다.
-        // 서버에서 돌아온 패킷으로 다시 실행하지 않는다.
+
         if (playerId == MyPlayerId)
             return;
 
-        PlayerMovement movement =
-            FindPlayerMovementById(playerId);
+        PlayerIdentity identity =
+            FindPlayerIdentityById(
+                playerId
+            );
 
-        if (movement == null)
+        if (identity == null)
         {
             Debug.LogWarning(
                 $"[KNIFE ATTACK NOTIFY] " +
-                $"PlayerMovement not found. " +
+                $"PlayerIdentity not found. " +
                 $"playerId={playerId}"
             );
 
             return;
         }
 
-        movement.PlayKnifeAttackAnimation();
+
+        PlayerMovement movement =
+            identity.GetComponent<PlayerMovement>();
+
+        if (movement == null)
+        {
+            movement =
+                identity.GetComponentInChildren<PlayerMovement>(
+                    true
+                );
+        }
+
+        if (movement != null)
+        {
+            movement.PlayKnifeAttackAnimation();
+        }
+
+
+        PlayerItem playerItem =
+            identity.GetComponent<PlayerItem>();
+
+        if (playerItem == null)
+        {
+            playerItem =
+                identity.GetComponentInChildren<PlayerItem>(
+                    true
+                );
+        }
+
+        if (playerItem != null)
+        {
+            playerItem.PlayKnifeAttackVisualFromServer();
+        }
+        else
+        {
+            Debug.LogWarning(
+                $"[KNIFE ATTACK NOTIFY] " +
+                $"PlayerItem not found. " +
+                $"playerId={playerId}"
+            );
+        }
 
         Debug.Log(
-            $"[KNIFE ATTACK NOTIFY] playerId={playerId}"
+            $"[KNIFE ATTACK NOTIFY] " +
+            $"playerId={playerId}, " +
+            $"thirdPerson={(movement != null)}, " +
+            $"firstPerson={(playerItem != null)}"
         );
     }
 
     private void HandleHPUpdate(byte[] body)
     {
+        if (body == null || body.Length < 20)
+        {
+            Debug.LogWarning($"[HP UPDATE] invalid body length={body?.Length ?? 0}");
+            return;
+        }
+
         int offset = 0;
 
         uint playerId = BitConverter.ToUInt32(body, offset);
@@ -1699,8 +1838,16 @@ public class NetworkManager : MonoBehaviour
         offset += 4;
 
         Debug.Log(
-            $"[HP UPDATE] playerId={playerId}, hp={hp}, barrier={barrier}, maxHp={maxHp}, maxBarrier={maxBarrier}"
+            $"[HP UPDATE] playerId={playerId}, hp={hp}, barrier={barrier}, " +
+            $"maxHp={maxHp}, maxBarrier={maxBarrier}"
         );
+
+        PlayerCombatSnapshot snapshot = GetOrCreateCombatSnapshot(playerId);
+
+        snapshot.hp = hp;
+        snapshot.barrier = barrier;
+        snapshot.maxHp = maxHp;
+        snapshot.maxBarrier = maxBarrier;
 
         PlayerIdentity target = FindPlayerIdentityById(playerId);
 
@@ -1722,7 +1869,11 @@ public class NetworkManager : MonoBehaviour
             }
         }
 
-        if (playerId == myPlayerId)
+        bool isSpectating =
+            SpectatorManager.Instance != null &&
+            SpectatorManager.Instance.IsSpectating;
+
+        if (playerId == MyPlayerId && !isSpectating)
         {
             if (InGameUIManager.Instance != null)
             {
@@ -1736,8 +1887,17 @@ public class NetworkManager : MonoBehaviour
 
             if (StorePanelUI.Instance != null)
             {
-                StorePanelUI.Instance.SetOwnedArmorFromServer(maxBarrier);
+                StorePanelUI.Instance.SetOwnedArmorFromServer(
+                    maxBarrier
+                );
             }
+        }
+
+        if (SpectatorManager.Instance != null)
+        {
+            SpectatorManager.Instance.NotifyPlayerStateChanged(
+                playerId
+            );
         }
     }
 
@@ -1945,6 +2105,11 @@ public class NetworkManager : MonoBehaviour
             StorePanelUI.Instance.ResetOwnedItemsForNewRound();
         }
 
+        if (MatchManager.Instance != null)
+        {
+            MatchManager.Instance.ResetAllPlayerDeadVisuals();
+        }
+
         int offset = 0;
 
         byte currentRound = body[offset];
@@ -2042,6 +2207,23 @@ public class NetworkManager : MonoBehaviour
             int knifeReserveAmmo = BitConverter.ToInt32(body, offset);
             offset += 4;
 
+            if (playerId == MyPlayerId &&MiniMapCamera.Instance != null)
+            {
+                MiniMapCamera.Instance.SetLocalRoundRole(spawnTeam);
+            }
+
+            PlayerCombatSnapshot snapshot = GetOrCreateCombatSnapshot(playerId);
+
+            snapshot.hp = hp;
+            snapshot.barrier = barrier;
+            snapshot.maxHp = maxHp;
+            snapshot.maxBarrier = maxBarrier;
+
+            snapshot.weaponId = currentWeaponId;
+            snapshot.magAmmo = magAmmo;
+            snapshot.reserveAmmo = reserveAmmo;
+            snapshot.isADS = false;
+
             ApplyRoundResetMember(
                 playerId,
                 actualTeam,
@@ -2117,6 +2299,11 @@ public class NetworkManager : MonoBehaviour
 
         bool isMine = playerId == MyPlayerId;
 
+        if (isMine && SpectatorManager.Instance != null)
+        {
+            SpectatorManager.Instance.StopSpectating();
+        }
+
         MapInfo mapInfo = FindFirstObjectByType<MapInfo>();
 
         if (mapInfo == null)
@@ -2171,9 +2358,6 @@ public class NetworkManager : MonoBehaviour
 
         if (isMine)
         {
-            if (SpectatorManager.Instance != null)
-                SpectatorManager.Instance.StopSpectating();
-
             if (InGameUIManager.Instance != null)
             {
                 InGameUIManager.Instance.SetHpBarrier(
@@ -2203,12 +2387,6 @@ public class NetworkManager : MonoBehaviour
             if (cameraController != null)
             {
                 cameraController.SetLocalPlayer(true);
-
-                if (cameraController.PlayerCamera != null)
-                {
-                    cameraController.PlayerCamera.transform.localPosition = Vector3.zero;
-                    cameraController.PlayerCamera.transform.localRotation = Quaternion.identity;
-                }
             }
 
             FPSCameraLook look =
@@ -2353,7 +2531,18 @@ public class NetworkManager : MonoBehaviour
 
     private void HandleAmmoUpdate(byte[] body)
     {
+        if (body == null || body.Length < 16)
+        {
+            Debug.LogWarning(
+                $"[AMMO UPDATE] invalid body length={body?.Length ?? 0}"
+            );
+            return;
+        }
+
         int offset = 0;
+
+        uint playerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
 
         int weaponId = BitConverter.ToInt32(body, offset);
         offset += 4;
@@ -2364,40 +2553,59 @@ public class NetworkManager : MonoBehaviour
         int reserveAmmo = BitConverter.ToInt32(body, offset);
         offset += 4;
 
-        Debug.Log(
-            $"[AMMO UPDATE] weaponId={weaponId}, magAmmo={magAmmo}, reserveAmmo={reserveAmmo}"
-        );
+        PlayerCombatSnapshot snapshot =
+            GetOrCreateCombatSnapshot(playerId);
 
-        if (InGameUIManager.Instance != null)
+        snapshot.weaponId = weaponId;
+        snapshot.magAmmo = magAmmo;
+        snapshot.reserveAmmo = reserveAmmo;
+
+        PlayerIdentity identity =
+            FindPlayerIdentityById(playerId);
+
+        if (identity != null)
         {
-            InGameUIManager.Instance.SetBulletText(magAmmo, reserveAmmo);
-        }
+            PlayerItem item =
+                identity.GetComponent<PlayerItem>();
 
-        PlayerIdentity[] identities =
-            FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
-
-        for (int i = 0; i < identities.Length; i++)
-        {
-            PlayerIdentity identity = identities[i];
-
-            if (identity == null)
-                continue;
-
-            if (identity.PlayerId != MyPlayerId)
-                continue;
-
-            PlayerItem item = identity.GetComponent<PlayerItem>();
             if (item == null)
-                break;
+                item = identity.GetComponentInChildren<PlayerItem>(true);
 
-            Weapon weapon = item.GetCurrentWeapon();
-            if (weapon != null && weapon.GetWeaponId() == weaponId)
+            if (item != null)
             {
-                weapon.SetAmmo(magAmmo, reserveAmmo);
+                item.SetWeaponAmmoFromServer(
+                    weaponId,
+                    magAmmo,
+                    reserveAmmo
+                );
             }
-
-            break;
         }
+
+        bool isSpectating =
+            SpectatorManager.Instance != null &&
+            SpectatorManager.Instance.IsSpectating;
+
+        if (playerId == MyPlayerId &&
+            !isSpectating &&
+            InGameUIManager.Instance != null)
+        {
+            InGameUIManager.Instance.SetBulletText(
+                magAmmo,
+                reserveAmmo
+            );
+        }
+
+        if (SpectatorManager.Instance != null)
+        {
+            SpectatorManager.Instance.NotifyPlayerStateChanged(
+                playerId
+            );
+        }
+
+        Debug.Log(
+            $"[AMMO UPDATE] playerId={playerId}, " +
+            $"weaponId={weaponId}, ammo={magAmmo}/{reserveAmmo}"
+        );
     }
 
     public void SendFire()
@@ -3197,43 +3405,94 @@ public class NetworkManager : MonoBehaviour
     {
         int offset = 0;
 
-        uint playerId = BitConverter.ToUInt32(body, offset);
+        uint playerId =
+            BitConverter.ToUInt32(body, offset);
         offset += 4;
 
-        int weaponId = BitConverter.ToInt32(body, offset);
+        int weaponId =
+            BitConverter.ToInt32(body, offset);
         offset += 4;
 
-        Debug.Log($"[WEAPON SWITCH NOTIFY] playerId={playerId}, weaponId={weaponId}");
+        Debug.Log(
+            $"[WEAPON SWITCH NOTIFY] " +
+            $"playerId={playerId}, weaponId={weaponId}"
+        );
 
-        // 자기 자신은 이미 로컬 Switch()나 PickupNotify에서 처리됨
+        PlayerCombatSnapshot snapshot =
+            GetOrCreateCombatSnapshot(playerId);
+
+        snapshot.weaponId = weaponId;
+        snapshot.isADS = false;
+
+        // 본인은 로컬 Switch에서 이미 처리됨
         if (playerId == MyPlayerId)
         {
-            Debug.Log($"[WEAPON SWITCH NOTIFY] ignored self. weaponId={weaponId}");
+            Debug.Log(
+                $"[WEAPON SWITCH NOTIFY] " +
+                $"ignored self. weaponId={weaponId}"
+            );
+
             return;
         }
 
-        PlayerIdentity identity = FindPlayerIdentityById(playerId);
+        PlayerIdentity identity =
+            FindPlayerIdentityById(playerId);
 
-        if (identity == null)
+        if (identity != null)
         {
-            Debug.LogWarning($"[WEAPON SWITCH NOTIFY] player not found. playerId={playerId}");
-            return;
+            PlayerItem item =
+                identity.GetComponent<PlayerItem>();
+
+            if (item == null)
+            {
+                item =
+                    identity.GetComponentInChildren<PlayerItem>(
+                        true
+                    );
+            }
+
+            if (item != null)
+            {
+                item.ApplyWeaponSwitchFromServer(
+                    weaponId
+                );
+
+                // 무기 변경 시 이전 ADS 외형 제거
+                item.SetADSVisualFromServer(false);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"[WEAPON SWITCH NOTIFY] " +
+                    $"PlayerItem missing. playerId={playerId}"
+                );
+            }
+
+            FPSCameraLook look =
+                identity.GetComponentInChildren<FPSCameraLook>(
+                    true
+                );
+
+            if (look != null)
+            {
+                look.SetADSFromServer(false);
+            }
         }
-
-        PlayerItem item = identity.GetComponent<PlayerItem>();
-
-        if (item == null)
-            item = identity.GetComponentInChildren<PlayerItem>(true);
-
-        if (item == null)
+        else
         {
-            Debug.LogWarning($"[WEAPON SWITCH NOTIFY] PlayerItem missing. playerId={playerId}");
-            return;
+            Debug.LogWarning(
+                $"[WEAPON SWITCH NOTIFY] " +
+                $"player not found. playerId={playerId}"
+            );
         }
 
-        item.ApplyWeaponSwitchFromServer(weaponId);
+        if (SpectatorManager.Instance != null)
+        {
+            SpectatorManager.Instance.NotifyPlayerStateChanged(
+                playerId
+            );
+        }
     }
-
     public void SendADSState(bool isADS)
     {
         ushort size = 4 + 1;
@@ -3260,36 +3519,74 @@ public class NetworkManager : MonoBehaviour
     {
         int offset = 0;
 
-        uint playerId = BitConverter.ToUInt32(body, offset);
+        uint playerId =
+            BitConverter.ToUInt32(body, offset);
         offset += 4;
 
-        bool isADS = body[offset] != 0;
+        bool isADS =
+            body[offset] != 0;
         offset += 1;
 
-        Debug.Log($"[ADS STATE] playerId={playerId}, isADS={isADS}");
+        Debug.Log(
+            $"[ADS STATE] " +
+            $"playerId={playerId}, isADS={isADS}"
+        );
 
-        PlayerIdentity identity = FindPlayerIdentityById(playerId);
+        PlayerCombatSnapshot snapshot =
+            GetOrCreateCombatSnapshot(playerId);
 
-        if (identity == null)
+        snapshot.isADS = isADS;
+
+        PlayerIdentity identity =
+            FindPlayerIdentityById(playerId);
+
+        if (identity != null)
         {
-            Debug.LogWarning($"[ADS STATE] player not found. playerId={playerId}");
-            return;
+            FPSCameraLook look =
+                identity.GetComponentInChildren<FPSCameraLook>(
+                    true
+                );
+
+            if (look != null)
+            {
+                look.SetADSFromServer(
+                    isADS
+                );
+            }
+
+            PlayerItem item =
+                identity.GetComponent<PlayerItem>();
+
+            if (item == null)
+            {
+                item =
+                    identity.GetComponentInChildren<PlayerItem>(
+                        true
+                    );
+            }
+
+            if (item != null)
+            {
+                item.SetADSVisualFromServer(
+                    isADS
+                );
+            }
+        }
+        else
+        {
+            Debug.LogWarning(
+                $"[ADS STATE] PlayerIdentity not found. " +
+                $"playerId={playerId}"
+            );
         }
 
-        FPSCameraLook look = identity.GetComponentInChildren<FPSCameraLook>(true);
-
-        if (look != null)
-            look.SetADSFromServer(isADS);
-
-        PlayerItem item = identity.GetComponent<PlayerItem>();
-
-        if (item == null)
-            item = identity.GetComponentInChildren<PlayerItem>(true);
-
-        if (item != null)
-            item.SetADSVisualFromServer(isADS);
+        if (SpectatorManager.Instance != null)
+        {
+            SpectatorManager.Instance.NotifyPlayerStateChanged(
+                playerId
+            );
+        }
     }
-
     private void ClearAllSpikeObjectsForNewRound()
     {
         DroppedSpikePickup[] droppedSpikes =
@@ -3565,55 +3862,123 @@ public class NetworkManager : MonoBehaviour
     {
         int offset = 0;
 
-        uint dropId = BitConverter.ToUInt32(body, offset);
+        uint dropId =
+            BitConverter.ToUInt32(body, offset);
         offset += 4;
 
-        uint pickerPlayerId = BitConverter.ToUInt32(body, offset);
+        uint pickerPlayerId =
+            BitConverter.ToUInt32(body, offset);
         offset += 4;
 
-        int weaponId = BitConverter.ToInt32(body, offset);
+        int weaponId =
+            BitConverter.ToInt32(body, offset);
         offset += 4;
 
-        int magAmmo = BitConverter.ToInt32(body, offset);
+        int magAmmo =
+            BitConverter.ToInt32(body, offset);
         offset += 4;
 
-        int reserveAmmo = BitConverter.ToInt32(body, offset);
+        int reserveAmmo =
+            BitConverter.ToInt32(body, offset);
         offset += 4;
 
-        RemoveDroppedItem(dropId);
-
-        if (pickerPlayerId != MyPlayerId)
-            return;
+        if (dropId != 0)
+        {
+            RemoveDroppedItem(
+                dropId
+            );
+        }
 
         if (WeaponDropSpawner.Instance == null)
         {
-            Debug.LogError("[PICKUP FAIL] WeaponDropSpawner.Instance is null");
+            Debug.LogError(
+                "[WEAPON PICKUP NOTIFY] " +
+                "WeaponDropSpawner.Instance is null"
+            );
+
             return;
         }
 
-        WeaponData data = WeaponDropSpawner.Instance.GetWeaponData(weaponId);
+        WeaponData data =
+            WeaponDropSpawner.Instance.GetWeaponData(
+                weaponId
+            );
+
         if (data == null)
         {
-            Debug.LogError($"[PICKUP FAIL] weaponData not found. weaponId={weaponId}");
+            Debug.LogError(
+                $"[WEAPON PICKUP NOTIFY] " +
+                $"WeaponData not found. weaponId={weaponId}"
+            );
+
             return;
         }
 
-        PlayerItem playerItem = FindMyPlayerItem();
-        if (playerItem == null)
+        PlayerIdentity pickerIdentity =
+            FindPlayerIdentityById(
+                pickerPlayerId
+            );
+
+        if (pickerIdentity == null)
         {
-            Debug.LogError("[PICKUP FAIL] PlayerItem not found.");
+            Debug.LogWarning(
+                $"[WEAPON PICKUP NOTIFY] " +
+                $"picker not found. playerId={pickerPlayerId}"
+            );
+
             return;
         }
 
-        playerItem.ApplyPickedWeaponFromServer(
+        PlayerItem pickerItem =
+            pickerIdentity.GetComponent<PlayerItem>();
+
+        if (pickerItem == null)
+        {
+            pickerItem =
+                pickerIdentity.GetComponentInChildren<PlayerItem>(
+                    true
+                );
+        }
+
+        if (pickerItem == null)
+        {
+            Debug.LogWarning(
+                $"[WEAPON PICKUP NOTIFY] " +
+                $"PlayerItem missing. playerId={pickerPlayerId}"
+            );
+
+            return;
+        }
+
+        pickerItem.ApplyPickedWeaponFromServer(
             data,
             magAmmo,
             reserveAmmo
         );
 
+        PlayerCombatSnapshot snapshot =
+            GetOrCreateCombatSnapshot(
+                pickerPlayerId
+            );
+
+        snapshot.weaponId = weaponId;
+        snapshot.magAmmo = magAmmo;
+        snapshot.reserveAmmo = reserveAmmo;
+        snapshot.isADS = false;
+
+        if (SpectatorManager.Instance != null)
+        {
+            SpectatorManager.Instance.NotifyPlayerStateChanged(
+                pickerPlayerId
+            );
+        }
+
         Debug.Log(
-            $"[PICKUP APPLY] dropId={dropId}, picker={pickerPlayerId}, " +
-            $"weaponId={weaponId}, weaponName={data.name}, ammo={magAmmo}/{reserveAmmo}"
+            $"[WEAPON PICKUP APPLY] " +
+            $"dropId={dropId}, " +
+            $"picker={pickerPlayerId}, " +
+            $"weaponId={weaponId}, " +
+            $"ammo={magAmmo}/{reserveAmmo}"
         );
     }
 
@@ -3765,5 +4130,207 @@ public class NetworkManager : MonoBehaviour
             item = identity.GetComponentInChildren<PlayerItem>(true);
 
         return item;
+    }
+
+    private PlayerCombatSnapshot GetOrCreateCombatSnapshot(
+    uint playerId)
+    {
+        if (!playerCombatSnapshots.TryGetValue(
+            playerId,
+            out PlayerCombatSnapshot snapshot))
+        {
+            snapshot =
+                new PlayerCombatSnapshot();
+
+            playerCombatSnapshots[playerId] =
+                snapshot;
+        }
+
+        return snapshot;
+    }
+
+    public bool TryGetCombatSnapshot(
+        uint playerId,
+        out PlayerCombatSnapshot snapshot)
+    {
+        return playerCombatSnapshots.TryGetValue(
+            playerId,
+            out snapshot
+        );
+    }
+
+    private void HandleFireNotify(
+    byte[] body)
+    {
+        if (body == null ||
+            body.Length < 8)
+        {
+            return;
+        }
+
+        int offset = 0;
+
+        uint playerId =
+            BitConverter.ToUInt32(
+                body,
+                offset
+            );
+        offset += 4;
+
+        int weaponId =
+            BitConverter.ToInt32(
+                body,
+                offset
+            );
+        offset += 4;
+
+        if (playerId == MyPlayerId)
+            return;
+
+        PlayerIdentity identity =
+            FindPlayerIdentityById(
+                playerId
+            );
+
+        if (identity == null)
+            return;
+
+        PlayerItem playerItem =
+            identity.GetComponent<PlayerItem>();
+
+        if (playerItem == null)
+        {
+            playerItem =
+                identity.GetComponentInChildren<PlayerItem>(
+                    true
+                );
+        }
+
+        if (playerItem == null)
+            return;
+
+        playerItem.PlayFireVisualFromServer(
+            weaponId
+        );
+    }
+
+    public void SendReloadVisual(
+    int weaponId,
+    bool isReloading)
+    {
+        ushort size =
+            4 + 4 + 4;
+
+        ushort type =
+            (ushort)
+            PacketType.PKT_CS_RELOAD_VISUAL;
+
+        byte[] buffer =
+            new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(weaponId),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(
+                isReloading ? 1 : 0
+            ),
+            0,
+            buffer,
+            offset,
+            4
+        );
+
+        client.Send(buffer);
+    }
+
+    private void HandleReloadVisual(
+    byte[] body)
+    {
+        if (body == null ||
+            body.Length < 12)
+        {
+            return;
+        }
+
+        int offset = 0;
+
+        uint playerId =
+            BitConverter.ToUInt32(
+                body,
+                offset
+            );
+        offset += 4;
+
+        int weaponId =
+            BitConverter.ToInt32(
+                body,
+                offset
+            );
+        offset += 4;
+
+        bool isReloading =
+            BitConverter.ToInt32(
+                body,
+                offset
+            ) != 0;
+        offset += 4;
+
+        // 내 화면은 이미 로컬에서 처리했다.
+        if (playerId == MyPlayerId)
+            return;
+
+        PlayerIdentity identity =
+            FindPlayerIdentityById(
+                playerId
+            );
+
+        if (identity == null)
+            return;
+
+        PlayerItem item =
+            identity.GetComponent<PlayerItem>();
+
+        if (item == null)
+        {
+            item =
+                identity.GetComponentInChildren<PlayerItem>(
+                    true
+                );
+        }
+
+        if (item == null)
+            return;
+
+        item.SetReloadVisualFromServer(
+            weaponId,
+            isReloading
+        );
     }
 }

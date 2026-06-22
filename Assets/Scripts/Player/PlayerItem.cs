@@ -1,3 +1,4 @@
+using System.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -23,8 +24,19 @@ public class PlayerItem : MonoBehaviour
 
     private PlayerIdentity _playerIdentity;
 
+    private bool isReloading;
+    private Coroutine reloadCoroutine;
+    private GameObject reloadingWeaponObject;
+
+    public bool IsReloading => isReloading;
+
     public Item[] Items => items;
     public int CurrentIndex => currentIndex;
+
+    private int reloadingWeaponId = -1;
+
+    private bool remoteIsReloading;
+    private int remoteReloadWeaponId = -1;
 
     private void Start()
     {
@@ -33,7 +45,9 @@ public class PlayerItem : MonoBehaviour
 
         InitializeDefaultItems();
 
-        // 시작 장비는 무조건 권총
+        // 프리팹 Inspector에 이전 값이 남아 있어도 강제로 초기화
+        currentIndex = -1;
+
         if (items[1] != null)
             Switch(1);
         else if (items[2] != null)
@@ -42,49 +56,65 @@ public class PlayerItem : MonoBehaviour
 
     void Update()
     {
-        if (!gameObject.CompareTag("Player")) return;
-        if (GameController.Instance != null && GameController.Instance.IsPaused) return;
-        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
+        if (!gameObject.CompareTag("Player"))
+            return;
 
-        if (Mouse.current.leftButton.wasPressedThisFrame)
+        if (GameController.Instance != null &&
+            GameController.Instance.IsPaused)
         {
-            if (IsAttackRestricted()) return;
-
-            items[currentIndex]?.OnUse();
-            Debug.Log("leftbutton");
+            return;
         }
-        if (Mouse.current.rightButton.wasPressedThisFrame)
+
+        if (_playerIdentity == null ||
+            NetworkManager.Instance == null)
         {
-            if (IsAttackRestricted()) return;
-
-            Weapon currentWeapon = GetCurrentWeapon();
-
-            if (currentWeapon != null &&
-                currentWeapon.GetWeaponType() == WeaponData.WeaponType.Knife)
-            {
-                Debug.Log("[PLAYER ITEM] Knife right click ignored.");
-                return;
-            }
-
-            items[currentIndex]?.OnAltUse();
-            Debug.Log("rightbutton");
+            return;
         }
+
+        if (_playerIdentity.PlayerId !=
+            NetworkManager.Instance.MyPlayerId)
+        {
+            return;
+        }
+
+        // R키 장전
+        if (Keyboard.current != null &&
+            Keyboard.current.rKey.wasPressedThisFrame)
+        {
+            TryStartReload();
+            return;
+        }
+
+        // 장전 중에는 아래 입력 전부 차단
+        if (isReloading)
+            return;
+
         if (Keyboard.current.gKey.wasPressedThisFrame)
         {
             DropCurrentItem();
             Debug.Log("g");
         }
+
         if (Keyboard.current.eKey.wasPressedThisFrame)
         {
             TryPickup();
             Debug.Log("e");
         }
 
-        if (Keyboard.current.digit1Key.wasPressedThisFrame) Switch(0);
-        if (Keyboard.current.digit2Key.wasPressedThisFrame) Switch(1);
-        if (Keyboard.current.digit3Key.wasPressedThisFrame) Switch(2);
-        if (Keyboard.current.digit4Key.wasPressedThisFrame) Switch(3);
-        if (Keyboard.current.digit5Key.wasPressedThisFrame) Switch(4);
+        if (Keyboard.current.digit1Key.wasPressedThisFrame)
+            Switch(0);
+
+        if (Keyboard.current.digit2Key.wasPressedThisFrame)
+            Switch(1);
+
+        if (Keyboard.current.digit3Key.wasPressedThisFrame)
+            Switch(2);
+
+        if (Keyboard.current.digit4Key.wasPressedThisFrame)
+            Switch(3);
+
+        if (Keyboard.current.digit5Key.wasPressedThisFrame)
+            Switch(4);
     }
 
     private void InitializeDefaultItems()
@@ -202,31 +232,97 @@ public class PlayerItem : MonoBehaviour
         Debug.LogWarning("[PLAYER ITEM] EquipItem is disabled. Use server pickup flow.");
     }
 
-    void DropCurrentItem()
+    private void DropCurrentItem()
     {
-        if (currentIndex < 0 || currentIndex >= items.Length)
+        if (currentIndex < 0 ||
+            currentIndex >= items.Length)
+        {
+            Debug.LogWarning(
+                $"[PLAYER ITEM DROP] invalid currentIndex={currentIndex}"
+            );
+
             return;
+        }
 
         if (items[currentIndex] == null)
-            return;
+        {
+            Debug.LogWarning(
+                $"[PLAYER ITEM DROP] current item is null. index={currentIndex}"
+            );
 
-        // 스파이크는 기존 PlayerSpike 드랍 로직을 써야 함
+            return;
+        }
+
+        // 4번 인덱스는 5번 슬롯 스파이크
         if (currentIndex == 4)
-            return;
+        {
+            if (playerSpike == null)
+            {
+                playerSpike =
+                    GetComponent<PlayerSpike>();
+            }
 
-        Weapon weapon = items[currentIndex].GetComponent<Weapon>();
+            if (playerSpike == null)
+            {
+                Debug.LogError(
+                    "[PLAYER ITEM DROP] PlayerSpike component not found"
+                );
+
+                return;
+            }
+
+            if (!playerSpike.hasSpike)
+            {
+                Debug.LogWarning(
+                    "[PLAYER ITEM DROP] player does not have spike"
+                );
+
+                return;
+            }
+
+            // 실제 스파이크 드랍 패킷 전송
+            playerSpike.RequestDrop();
+
+            Debug.Log(
+                "[PLAYER ITEM DROP] spike drop requested"
+            );
+
+            return;
+        }
+
+        Weapon weapon =
+            items[currentIndex].GetComponent<Weapon>();
 
         if (weapon == null)
+        {
+            Debug.LogWarning(
+                $"[PLAYER ITEM DROP] Weapon component missing. " +
+                $"index={currentIndex}"
+            );
+
             return;
+        }
 
         if (NetworkManager.Instance == null)
+        {
+            Debug.LogError(
+                "[PLAYER ITEM DROP] NetworkManager.Instance is null"
+            );
+
             return;
+        }
 
-        Vector3 dropPosition = dropPoint != null
-            ? dropPoint.position
-            : transform.position + transform.forward * 0.8f + Vector3.up * 0.5f;
+        Vector3 dropPosition =
+            dropPoint != null
+                ? dropPoint.position
+                : transform.position +
+                  transform.forward * 0.8f +
+                  Vector3.up * 0.5f;
 
-        Vector3 dropDirection = transform.forward;
+        Vector3 dropDirection =
+            dropPoint != null
+                ? dropPoint.forward
+                : transform.forward;
 
         NetworkManager.Instance.SendWeaponDropRequest(
             weapon.GetWeaponId(),
@@ -234,11 +330,25 @@ public class PlayerItem : MonoBehaviour
             dropDirection
         );
 
-        Debug.Log($"[PLAYER ITEM] weapon drop requested. weaponId={weapon.GetWeaponId()}");
+        Debug.Log(
+            $"[PLAYER ITEM DROP] weapon drop requested. " +
+            $"weaponId={weapon.GetWeaponId()}, " +
+            $"pos={dropPosition}, dir={dropDirection}"
+        );
     }
+
 
     void Switch(int index)
     {
+        if (isReloading)
+        {
+            Debug.Log(
+                "[PLAYER ITEM] weapon switch blocked while reloading."
+            );
+
+            return;
+        }
+
         if (index < 0 || index >= items.Length)
             return;
 
@@ -497,6 +607,143 @@ public class PlayerItem : MonoBehaviour
         return items[currentIndex].GetComponent<Weapon>();
     }
 
+    public void SetWeaponAmmoFromServer(
+    int weaponId,
+    int magAmmo,
+    int reserveAmmo)
+    {
+        for (int i = 0; i < items.Length; i++)
+        {
+            if (items[i] == null)
+                continue;
+
+            Weapon weapon =
+                items[i].GetComponent<Weapon>();
+
+            if (weapon == null)
+                continue;
+
+            if (weapon.GetWeaponId() != weaponId)
+                continue;
+
+            weapon.SetAmmo(
+                magAmmo,
+                reserveAmmo
+            );
+
+            Debug.Log(
+                $"[PLAYER ITEM AMMO APPLY] " +
+                $"weaponId={weaponId}, " +
+                $"ammo={magAmmo}/{reserveAmmo}"
+            );
+
+            return;
+        }
+
+        Debug.LogWarning(
+            $"[PLAYER ITEM AMMO APPLY] " +
+            $"weapon not found. weaponId={weaponId}"
+        );
+    }
+
+    public void PlayFireVisualFromServer(
+    int weaponId)
+    {
+        Weapon currentWeapon =
+            GetCurrentWeapon();
+
+        if (currentWeapon == null)
+            return;
+
+        if (currentWeapon.GetWeaponId() != weaponId)
+            return;
+
+        currentWeapon.PlayFireVisualFromServer();
+    }
+
+    public void PlayKnifeAttackVisualFromServer()
+    {
+        if (currentIndex < 0 ||
+            currentIndex >= items.Length)
+        {
+            Debug.LogWarning(
+                $"[REMOTE KNIFE] invalid currentIndex={currentIndex}"
+            );
+
+            return;
+        }
+
+        Item currentItem =
+            items[currentIndex];
+
+        if (currentItem == null)
+        {
+            Debug.LogWarning(
+                "[REMOTE KNIFE] current item is null"
+            );
+
+            return;
+        }
+
+        Weapon currentWeapon =
+            currentItem.GetComponent<Weapon>();
+
+        if (currentWeapon == null)
+        {
+            currentWeapon =
+                currentItem.GetComponentInChildren<Weapon>(true);
+        }
+
+        if (currentWeapon == null)
+        {
+            Debug.LogWarning(
+                "[REMOTE KNIFE] Weapon component not found"
+            );
+
+            return;
+        }
+
+        if (currentWeapon.GetWeaponType() !=
+            WeaponData.WeaponType.Knife)
+        {
+            Debug.LogWarning(
+                $"[REMOTE KNIFE] current weapon is not knife. " +
+                $"weaponId={currentWeapon.GetWeaponId()}"
+            );
+
+            return;
+        }
+
+        KnifeMotion knifeMotion =
+            currentItem.GetComponent<KnifeMotion>();
+
+        if (knifeMotion == null)
+        {
+            knifeMotion =
+                currentItem.GetComponentInChildren<KnifeMotion>(
+                    true
+                );
+        }
+
+        if (knifeMotion == null)
+        {
+            Debug.LogWarning(
+                $"[REMOTE KNIFE] KnifeMotion not found. " +
+                $"weaponId={currentWeapon.GetWeaponId()}"
+            );
+
+            return;
+        }
+
+        knifeMotion.PlayAttackFromServer();
+
+        Debug.Log(
+            $"[REMOTE KNIFE VISUAL] played. " +
+            $"playerId={_playerIdentity?.PlayerId}, " +
+            $"weaponId={currentWeapon.GetWeaponId()}"
+        );
+    }
+
     public void SetSpikeItemActive(bool value)
     {
         if (items[4] == null)
@@ -551,6 +798,11 @@ public class PlayerItem : MonoBehaviour
 
     public void DisableOnDeath()
     {
+        CancelReload(false);
+
+        remoteIsReloading = false;
+        remoteReloadWeaponId = -1;
+
         SetWeaponVisibility(false);
         enabled = false;
     }
@@ -792,6 +1044,11 @@ public class PlayerItem : MonoBehaviour
     int knifeMagAmmo,
     int knifeReserveAmmo)
     {
+        CancelReload(false);
+
+        remoteIsReloading = false;
+        remoteReloadWeaponId = -1;
+
         if (_playerIdentity == null)
             _playerIdentity = GetComponent<PlayerIdentity>();
 
@@ -1150,6 +1407,281 @@ public class PlayerItem : MonoBehaviour
             $"[PLAYER ITEM] weapon pickup equipped by server. " +
             $"weaponId={weaponData.weaponId}, slot={slot}, ammo={magAmmo}/{reserveAmmo}"
         );
+    }
+
+    public void RefreshCurrentWeaponAmmoFromServer()
+    {
+        if (_playerIdentity == null)
+            _playerIdentity = GetComponent<PlayerIdentity>();
+
+        if (_playerIdentity == null)
+        {
+            Debug.LogError(
+                "[PLAYER ITEM AMMO REFRESH] PlayerIdentity is null"
+            );
+
+            return;
+        }
+
+        if (NetworkManager.Instance == null)
+        {
+            Debug.LogError(
+                "[PLAYER ITEM AMMO REFRESH] NetworkManager.Instance is null"
+            );
+
+            return;
+        }
+
+        if (_playerIdentity.PlayerId !=
+            NetworkManager.Instance.MyPlayerId)
+        {
+            return;
+        }
+
+        Weapon currentWeapon =
+            GetCurrentWeapon();
+
+        if (currentWeapon == null)
+        {
+            Debug.LogWarning(
+                $"[PLAYER ITEM AMMO REFRESH] current weapon is null. " +
+                $"currentIndex={currentIndex}"
+            );
+
+            return;
+        }
+
+        NetworkManager.Instance.SendWeaponSwitch(
+            currentWeapon.GetWeaponId()
+        );
+
+        Debug.Log(
+            $"[PLAYER ITEM AMMO REFRESH] requested. " +
+            $"weaponId={currentWeapon.GetWeaponId()}"
+        );
+    }
+
+    private void TryStartReload()
+    {
+        if (isReloading)
+            return;
+
+        if (currentIndex < 0 ||
+            currentIndex >= items.Length)
+        {
+            return;
+        }
+
+        Item currentItem =
+            items[currentIndex];
+
+        if (currentItem == null)
+            return;
+
+        Weapon currentWeapon =
+            currentItem.GetComponent<Weapon>();
+
+        if (currentWeapon == null)
+            return;
+
+        // 칼은 장전 불가능
+        if (currentWeapon.GetWeaponType() ==
+            WeaponData.WeaponType.Knife)
+        {
+            return;
+        }
+
+        if (WeaponDropSpawner.Instance == null)
+        {
+            Debug.LogError(
+                "[RELOAD] WeaponDropSpawner.Instance is null"
+            );
+
+            return;
+        }
+
+        int weaponId =
+            currentWeapon.GetWeaponId();
+
+        WeaponData weaponData =
+            WeaponDropSpawner.Instance.GetWeaponData(
+                weaponId
+            );
+
+        if (weaponData == null)
+        {
+            Debug.LogError(
+                $"[RELOAD] WeaponData not found. " +
+                $"weaponId={weaponId}"
+            );
+
+            return;
+        }
+
+        if (weaponData.reloadTime <= 0f)
+        {
+            Debug.LogWarning(
+                $"[RELOAD] invalid reloadTime. " +
+                $"weaponId={weaponId}, " +
+                $"reloadTime={weaponData.reloadTime}"
+            );
+
+            return;
+        }
+
+        // 장전 시작 시 줌 해제
+        FPSCameraLook cameraLook =
+            GetComponentInChildren<FPSCameraLook>(true);
+
+        if (cameraLook != null)
+        {
+            cameraLook.ForceExitADS();
+        }
+
+        reloadCoroutine =
+            StartCoroutine(
+                ReloadRoutine(
+                    currentItem,
+                    weaponId,
+                    currentIndex,
+                    weaponData.reloadTime
+                )
+            );
+    }
+
+    private IEnumerator ReloadRoutine(Item reloadItem, int reloadWeaponId, int reloadSlot, float reloadTime)
+    {
+        isReloading = true;
+        reloadingWeaponId = reloadWeaponId;
+        reloadingWeaponObject = reloadItem != null ? reloadItem.gameObject : null;
+
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SendReloadVisual(reloadWeaponId, true);
+
+        if (reloadingWeaponObject != null)
+            reloadingWeaponObject.SetActive(false);
+
+        Debug.Log($"[RELOAD START] weaponId={reloadWeaponId}, reloadTime={reloadTime}");
+
+        yield return new WaitForSeconds(reloadTime);
+
+        if (!isReloading)
+            yield break;
+
+        bool sameWeapon =
+            reloadSlot >= 0 &&
+            reloadSlot < items.Length &&
+            currentIndex == reloadSlot &&
+            items[reloadSlot] != null &&
+            items[reloadSlot] == reloadItem;
+
+        if (!sameWeapon)
+        {
+            FinishReloadState(false);
+            yield break;
+        }
+
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SendReload();
+
+        if (reloadingWeaponObject != null)
+            reloadingWeaponObject.SetActive(true);
+
+        Debug.Log($"[RELOAD COMPLETE] weaponId={reloadWeaponId}");
+
+        FinishReloadState(false);
+    }
+
+    private void FinishReloadState(bool restoreWeapon)
+    {
+        if (restoreWeapon && reloadingWeaponObject != null)
+            reloadingWeaponObject.SetActive(true);
+
+        if (reloadingWeaponId >= 0 && NetworkManager.Instance != null)
+            NetworkManager.Instance.SendReloadVisual(reloadingWeaponId, false);
+
+        isReloading = false;
+        reloadCoroutine = null;
+        reloadingWeaponObject = null;
+        reloadingWeaponId = -1;
+    }
+
+
+    public void CancelReload(bool restoreWeapon)
+    {
+        if (reloadCoroutine != null)
+        {
+            StopCoroutine(reloadCoroutine);
+            reloadCoroutine = null;
+        }
+
+        if (isReloading || reloadingWeaponId >= 0)
+            FinishReloadState(restoreWeapon);
+        else
+        {
+            isReloading = false;
+            reloadingWeaponObject = null;
+            reloadingWeaponId = -1;
+        }
+
+        Debug.Log("[RELOAD CANCEL]");
+    }
+
+    public void SetReloadVisualFromServer(int weaponId, bool isReloadingValue)
+    {
+        int slot = FindSlotByWeaponId(weaponId);
+
+        if (slot == -1)
+        {
+            Debug.LogWarning($"[REMOTE RELOAD] weapon not found. weaponId={weaponId}");
+            return;
+        }
+
+        remoteIsReloading = isReloadingValue;
+        remoteReloadWeaponId = isReloadingValue ? weaponId : -1;
+
+        if (!IsCurrentlySpectated())
+            return;
+
+        if (slot != currentIndex || items[slot] == null)
+            return;
+
+        PlayerDeathController death = GetComponent<PlayerDeathController>();
+
+        if (death != null && death.IsDead)
+            return;
+
+        items[slot].gameObject.SetActive(!isReloadingValue);
+
+        Debug.Log($"[REMOTE RELOAD] playerId={_playerIdentity?.PlayerId}, weaponId={weaponId}, isReloading={isReloadingValue}");
+    }
+
+    public void RefreshRemoteReloadVisual()
+    {
+        if (!IsCurrentlySpectated())
+            return;
+
+        if (!remoteIsReloading || remoteReloadWeaponId < 0)
+            return;
+
+        int slot = FindSlotByWeaponId(remoteReloadWeaponId);
+
+        if (slot == -1 || slot != currentIndex || items[slot] == null)
+            return;
+
+        items[slot].gameObject.SetActive(false);
+    }
+
+    private bool IsCurrentlySpectated()
+    {
+        if (_playerIdentity == null)
+            _playerIdentity = GetComponent<PlayerIdentity>();
+
+        if (_playerIdentity == null || SpectatorManager.Instance == null)
+            return false;
+
+        return SpectatorManager.Instance.IsSpectating &&
+               SpectatorManager.Instance.CurrentTargetPlayerId == _playerIdentity.PlayerId;
     }
 
     // KSW : 에디터 무기 변경 테스트용 추가

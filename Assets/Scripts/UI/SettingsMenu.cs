@@ -1,14 +1,21 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class SettingsMenu : MonoBehaviour
 {
-    public static SettingsMenu Instance { get; private set; }
+    public static SettingsMenu Instance
+    {
+        get;
+        private set;
+    }
 
-    // 상용화 게임처럼 직관적인 UI 관리를 위한 구조체 정의
     [Serializable]
     public struct SensitivityUIElements
     {
@@ -17,114 +24,505 @@ public class SettingsMenu : MonoBehaviour
         public TMP_InputField inputField;
     }
 
+    [Header("Game Scene")]
+    [Tooltip("실제 인게임 씬 이름을 확장자 없이 입력")]
+    [SerializeField]
+    private string gameSceneName = "GameScene";
+
+    [Header("Settings Panel")]
+    [Tooltip("실제로 켜고 끌 자식 설정 패널")]
+    [SerializeField]
+    private GameObject settingsPanel;
+
     [Header("Sensitivity Settings UI")]
-    [SerializeField] private List<SensitivityUIElements> sensitivityUIList;
+    [SerializeField]
+    private List<SensitivityUIElements>
+        sensitivityUIList;
 
-    // 값 변경 시 무한 루프(이벤트 핑퐁)를 방지하기 위한 플래그
-    private bool isUpdatingUI = false;
+    private bool isUpdatingUI;
+    private bool listenersInitialized;
 
-    void Awake()
+    private Coroutine restoreCursorCoroutine;
+
+    public bool IsOpen
     {
-        if (Instance == null)
+        get
         {
-            Instance = this;
-            DontDestroyOnLoad(transform.root.gameObject);
+            return settingsPanel != null &&
+                   settingsPanel.activeSelf;
+        }
+    }
+
+    private void Awake()
+    {
+        if (Instance != null &&
+            Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
+    private void Start()
+    {
+        if (!IsCurrentGameScene())
+        {
+            if (settingsPanel != null)
+            {
+                settingsPanel.SetActive(false);
+            }
+
+            return;
+        }
+
+        InitializeUI();
+
+        if (settingsPanel != null)
+        {
+            settingsPanel.SetActive(false);
+        }
+
+        if (GameController.Instance != null)
+        {
+            if (GameController.Instance.CanOpenSettings)
+            {
+                GameController.Instance
+                    .LockGameplayCursor();
+            }
+            else
+            {
+                GameController.Instance
+                    .ShowUICursor();
+            }
+        }
+    }
+
+    private void Update()
+    {
+        if (!CanUseSettingsMenu())
+            return;
+
+        if (Keyboard.current == null)
+            return;
+
+        if (!Keyboard.current.escapeKey
+            .wasPressedThisFrame)
+        {
+            return;
+        }
+
+        ToggleSettingsMenu();
+    }
+
+    private void OnDestroy()
+    {
+        MouseSettings.SaveSettings();
+
+        if (restoreCursorCoroutine != null)
+        {
+            StopCoroutine(
+                restoreCursorCoroutine
+            );
+
+            restoreCursorCoroutine = null;
+        }
+
+        if (GameController.Instance != null &&
+            GameController.Instance.settingsUI ==
+            settingsPanel)
+        {
+            GameController.Instance.settingsUI = null;
+        }
+
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+
+        if (Application.isPlaying)
+        {
+            Cursor.lockState =
+                CursorLockMode.None;
+
+            Cursor.visible = true;
+        }
+    }
+
+    private bool IsCurrentGameScene()
+    {
+        Scene activeScene =
+            SceneManager.GetActiveScene();
+
+        return activeScene.name ==
+               gameSceneName;
+    }
+
+    private bool CanUseSettingsMenu()
+    {
+        if (!IsCurrentGameScene())
+            return false;
+
+        if (GameController.Instance == null)
+            return false;
+
+        return GameController.Instance.CanOpenSettings;
+    }
+
+    public void ToggleSettingsMenu()
+    {
+        if (!CanUseSettingsMenu())
+            return;
+
+        if (IsOpen)
+            CloseSettingsMenu();
+        else
+            OpenSettingsMenu();
+    }
+
+    public void OpenSettingsMenu()
+    {
+        if (!CanUseSettingsMenu())
+            return;
+
+        if (settingsPanel == null)
+        {
+            Debug.LogError(
+                "[SETTINGS] Settings Panel이 연결되지 않았습니다."
+            );
+
+            return;
+        }
+
+        if (restoreCursorCoroutine != null)
+        {
+            StopCoroutine(
+                restoreCursorCoroutine
+            );
+
+            restoreCursorCoroutine = null;
+        }
+
+        if (GameController.Instance != null)
+        {
+            GameController.Instance
+                .EnsureGameplayRunning();
+        }
+
+        settingsPanel.SetActive(true);
+
+        if (EventSystem.current != null)
+        {
+            EventSystem.current
+                .SetSelectedGameObject(null);
+        }
+
+        Cursor.lockState =
+            CursorLockMode.None;
+
+        Cursor.visible = true;
+
+        Debug.Log(
+            "[SETTINGS] opened"
+        );
+    }
+
+    public void CloseSettingsMenu()
+    {
+        MouseSettings.SaveSettings();
+
+        if (EventSystem.current != null)
+        {
+            GameObject selectedObject =
+                EventSystem.current
+                    .currentSelectedGameObject;
+
+            if (selectedObject != null)
+            {
+                TMP_InputField inputField =
+                    selectedObject
+                        .GetComponent<TMP_InputField>();
+
+                if (inputField != null)
+                {
+                    inputField
+                        .DeactivateInputField();
+                }
+            }
+
+            EventSystem.current
+                .SetSelectedGameObject(null);
+        }
+
+        if (settingsPanel != null)
+        {
+            settingsPanel.SetActive(false);
+        }
+
+        if (GameController.Instance != null)
+        {
+            GameController.Instance
+                .EnsureGameplayRunning();
+        }
+
+        if (restoreCursorCoroutine != null)
+        {
+            StopCoroutine(
+                restoreCursorCoroutine
+            );
+        }
+
+        restoreCursorCoroutine =
+            StartCoroutine(
+                RestoreCursorByCurrentState()
+            );
+
+        Debug.Log(
+            "[SETTINGS] closed"
+        );
+    }
+
+    private IEnumerator RestoreCursorByCurrentState()
+    {
+        Time.timeScale = 1f;
+
+        yield return null;
+
+        if (GameController.Instance != null &&
+            GameController.Instance.CanOpenSettings)
+        {
+            GameController.Instance
+                .LockGameplayCursor();
         }
         else
         {
-            Destroy(transform.root.gameObject);
+            Cursor.lockState =
+                CursorLockMode.None;
+
+            Cursor.visible = true;
+        }
+
+        restoreCursorCoroutine = null;
+    }
+
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (!hasFocus)
             return;
+
+        if (!IsCurrentGameScene())
+            return;
+
+        // 설정창이 열려 있으면 UI 커서를 유지한다.
+        if (IsOpen)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            return;
+        }
+
+        // 실제 플레이 상태일 때만 커서를 잠근다.
+        // 픽/로딩 상태에서는 커서를 계속 보여준다.
+        if (GameController.Instance != null)
+        {
+            if (GameController.Instance.CanOpenSettings)
+            {
+                GameController.Instance.LockGameplayCursor();
+            }
+            else
+            {
+                GameController.Instance.ShowUICursor();
+            }
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
     }
 
-    void Start()
-    {
-        InitializeUI();
-    }
-
-    private void OnDisable()
-    {
-        CloseSettingsMenu();
-    }
 
     private void InitializeUI()
     {
-        foreach (var element in sensitivityUIList)
+        if (listenersInitialized)
+            return;
+
+        if (sensitivityUIList == null)
+            return;
+
+        foreach (
+            SensitivityUIElements element
+            in sensitivityUIList)
         {
-            // 저장된 데이터 로드
-            float savedValue = MouseSettings.GetSensitivity(element.type);
+            if (element.slider == null ||
+                element.inputField == null)
+            {
+                Debug.LogWarning(
+                    $"[SETTINGS] UI reference missing. " +
+                    $"type={element.type}"
+                );
 
-            // UI 초기화 (이벤트 실행 방지를 위해 플래그 설정)
-            isUpdatingUI = true;
-            element.slider.value = savedValue;
-            element.inputField.text = savedValue.ToString("F3");
-            isUpdatingUI = false;
+                continue;
+            }
 
-            // 리스너 등록 (람다식을 활용해 어떤 타입의 UI가 변경되었는지 전달)
-            SensitivityType currentType = element.type;
-            Slider currentSlider = element.slider;
-            TMP_InputField currentInputField = element.inputField;
+            float savedValue =
+                MouseSettings.GetSensitivity(
+                    element.type
+                );
 
-            currentSlider.onValueChanged.AddListener((value) =>
-                OnSliderValueChanged(currentType, value, currentInputField));
+            savedValue =
+                Mathf.Clamp(
+                    savedValue,
+                    element.slider.minValue,
+                    element.slider.maxValue
+                );
 
-            currentInputField.onEndEdit.AddListener((text) =>
-                OnInputFieldEndEdit(currentType, text, currentSlider, currentInputField));
+            savedValue =
+                Mathf.Round(
+                    savedValue * 1000f
+                ) / 1000f;
+
+            element.slider
+                .SetValueWithoutNotify(
+                    savedValue
+                );
+
+            element.inputField
+                .SetTextWithoutNotify(
+                    savedValue.ToString("F3")
+                );
+
+            SensitivityType currentType =
+                element.type;
+
+            Slider currentSlider =
+                element.slider;
+
+            TMP_InputField currentInputField =
+                element.inputField;
+
+            currentSlider
+                .onValueChanged
+                .AddListener(
+                    value =>
+                        OnSliderValueChanged(
+                            currentType,
+                            value,
+                            currentInputField
+                        )
+                );
+
+            currentInputField
+                .onEndEdit
+                .AddListener(
+                    text =>
+                        OnInputFieldEndEdit(
+                            currentType,
+                            text,
+                            currentSlider,
+                            currentInputField
+                        )
+                );
         }
+
+        listenersInitialized = true;
     }
 
-    // 슬라이더 조작 시 호출
-    private void OnSliderValueChanged(SensitivityType type, float value, TMP_InputField inputField)
+    private void OnSliderValueChanged(
+        SensitivityType type,
+        float value,
+        TMP_InputField inputField)
     {
-        if (isUpdatingUI) return;
+        if (isUpdatingUI)
+            return;
 
-        float roundedValue = Mathf.Round(value * 1000f) / 1000f;
+        float roundedValue =
+            Mathf.Round(
+                value * 1000f
+            ) / 1000f;
 
-        // 데이터 저장
-        MouseSettings.SetSensitivity(type, roundedValue);
+        MouseSettings.SetSensitivity(
+            type,
+            roundedValue
+        );
 
-        // 인풋필드 동기화
         isUpdatingUI = true;
-        inputField.text = roundedValue.ToString("F3");
+
+        inputField.SetTextWithoutNotify(
+            roundedValue.ToString("F3")
+        );
+
         isUpdatingUI = false;
     }
 
-    // 인풋필드 입력 종료 시 호출
-    private void OnInputFieldEndEdit(SensitivityType type, string text, Slider slider, TMP_InputField inputField)
+    private void OnInputFieldEndEdit(
+        SensitivityType type,
+        string text,
+        Slider slider,
+        TMP_InputField inputField)
     {
-        if (isUpdatingUI) return;
+        if (isUpdatingUI)
+            return;
 
-        if (float.TryParse(text, out float newValue))
+        if (float.TryParse(
+            text,
+            out float newValue))
         {
-            // 슬라이더의 Min/Max 범위를 기준으로 클램핑
-            newValue = Mathf.Clamp(newValue, slider.minValue, slider.maxValue);
-            newValue = Mathf.Round(newValue * 1000f) / 1000f;
+            newValue =
+                Mathf.Clamp(
+                    newValue,
+                    slider.minValue,
+                    slider.maxValue
+                );
 
-            // 데이터 저장
-            MouseSettings.SetSensitivity(type, newValue);
+            newValue =
+                Mathf.Round(
+                    newValue * 1000f
+                ) / 1000f;
 
-            // 슬라이더 및 인풋필드 UI 동기화
+            MouseSettings.SetSensitivity(
+                type,
+                newValue
+            );
+
             isUpdatingUI = true;
-            slider.value = newValue;
-            inputField.text = newValue.ToString("F3");
+
+            slider.SetValueWithoutNotify(
+                newValue
+            );
+
+            inputField.SetTextWithoutNotify(
+                newValue.ToString("F3")
+            );
+
             isUpdatingUI = false;
         }
         else
         {
-            // 잘못된 문자 입력 시 기존에 저장되어 있던 값으로 복구
+            float savedValue =
+                MouseSettings.GetSensitivity(
+                    type
+                );
+
+            savedValue =
+                Mathf.Clamp(
+                    savedValue,
+                    slider.minValue,
+                    slider.maxValue
+                );
+
             isUpdatingUI = true;
-            inputField.text = MouseSettings.GetSensitivity(type).ToString("F3");
+
+            slider.SetValueWithoutNotify(
+                savedValue
+            );
+
+            inputField.SetTextWithoutNotify(
+                savedValue.ToString("F3")
+            );
+
             isUpdatingUI = false;
         }
-    }
-
-    // 설정 창을 닫을 때 호출하는 함수 (배경 클릭, X 버튼, ESC 키 입력 등)
-    public void CloseSettingsMenu()
-    {
-        // 변경된 모든 세팅값을 실제 디스크에 동기화 (최적화)
-        MouseSettings.SaveSettings();
-
-        // UI 비활성화 등의 연출 추가 가능
-        gameObject.SetActive(false);
     }
 }

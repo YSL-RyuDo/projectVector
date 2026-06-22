@@ -233,6 +233,7 @@ GameObject:
   - component: {fileID: 6538360918056891337}
   - component: {fileID: 8129046092107247140}
   - component: {fileID: 2417307762536056903}
+  - component: {fileID: 3910757125052037258}
   m_Layer: 0
   m_Name: Sentinel
   m_TagString: Untagged
@@ -495,6 +496,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83cb550fec81fc94aa6c30229bee6326, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHP
+--- !u!114 &3910757125052037258
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6886427744864830309}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c447532c18743347b0b71c9b6781cde, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MiniMapEnemy
+  _enemyCollider: {fileID: 6704828943575367137}
+  _markerPoint: {fileID: 593350853178283803}
 --- !u!1 &7074205520252255424
 GameObject:
   m_ObjectHideFlags: 0

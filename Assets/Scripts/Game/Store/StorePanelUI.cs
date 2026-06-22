@@ -61,18 +61,14 @@ public class StorePanelUI : MonoBehaviour
                 TryOpen();
         }
 
-        if (Keyboard.current.escapeKey.wasPressedThisFrame)
+        if (Keyboard.current.escapeKey.wasPressedThisFrame && IsOpen())
         {
-            if (IsOpen())
-                Close();
+            Close();
         }
 
-        if (IsOpen())
+        if (IsOpen() && !CanOpenStore())
         {
-            RefreshPlayerInfo();
-
-            if (!CanOpenStore())
-                Close();
+            Close();
         }
     }
 
@@ -109,14 +105,10 @@ public class StorePanelUI : MonoBehaviour
         RefreshItemButtons();
 
         storePanelRoot.SetActive(true);
-
-        storePanelRoot.SetActive(true);
         storePanelRoot.transform.SetAsLastSibling();
 
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
-
-        Debug.Log("[STORE] open");
     }
 
     public void Close()
