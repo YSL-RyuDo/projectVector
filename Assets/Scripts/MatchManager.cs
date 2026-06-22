@@ -476,11 +476,48 @@ public class MatchManager : MonoBehaviour
                 $"characterId={identity.CharacterId}"
             );
 
-            bool isMine = member.playerId == NetworkManager.Instance.MyPlayerId;
-            bool isMyTeam = member.team == myTeam;
+            bool isMine =
+    member.playerId ==
+    NetworkManager.Instance.MyPlayerId;
 
-            characterObj.tag = isMyTeam ? "Player" : "Enemy";
-            SetCharacterModelVisible(characterObj, !isMine);
+            bool isMyTeam =
+                member.team == myTeam;
+
+            characterObj.tag =
+                isMyTeam ? "Player" : "Enemy";
+
+            SetCharacterModelVisible(
+                characterObj,
+                !isMine
+            );
+
+            // 외곽선 설정
+            PlayerOutline playerOutline =
+                characterObj.GetComponent<PlayerOutline>();
+
+            if (playerOutline == null)
+            {
+                playerOutline =
+                    characterObj.GetComponentInChildren<PlayerOutline>(true);
+            }
+
+            if (playerOutline != null)
+            {
+                playerOutline.Configure(
+                    isMine,
+                    isMyTeam
+                );
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"[PLAYER OUTLINE] PlayerOutline을 찾지 못했습니다. " +
+                    $"object={characterObj.name}, " +
+                    $"playerId={member.playerId}, " +
+                    $"isMine={isMine}, " +
+                    $"isMyTeam={isMyTeam}"
+                );
+            }
 
             PlayerCameraController cameraController =
                 characterObj.GetComponent<PlayerCameraController>();

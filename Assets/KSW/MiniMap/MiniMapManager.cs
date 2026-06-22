@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class MiniMapManager : MonoBehaviour
 {
@@ -28,6 +29,7 @@ public class MiniMapManager : MonoBehaviour
 
     private Transform _localPlayerTransform;
     private Camera _localPlayerCamera;
+    private bool _isOverlayOpen;
 
     private List<MiniMapEnemy> _activeEnemies = new List<MiniMapEnemy>();
 
@@ -104,6 +106,20 @@ public class MiniMapManager : MonoBehaviour
 
         // GAME_ALL_READY 전까지 미니맵 숨김
         HideAllMiniMaps();
+    }
+
+    private void Update()
+    {
+        if (_localPlayerTransform == null)
+            return;
+
+        if (Keyboard.current == null)
+            return;
+
+        if (Keyboard.current.mKey.wasPressedThisFrame)
+        {
+            ToggleMiniMap();
+        }
     }
 
     private void LateUpdate()
@@ -382,24 +398,36 @@ public class MiniMapManager : MonoBehaviour
 
     public void ShowHUDMiniMap()
     {
+        _isOverlayOpen = false;
+
         if (_miniMapHUD != null)
+        {
             _miniMapHUD.gameObject.SetActive(true);
+        }
 
         if (_miniMapOverlay != null)
+        {
             _miniMapOverlay.gameObject.SetActive(false);
+        }
 
         Debug.Log(
-            "[MINIMAP] GAME_ALL_READY 이후 HUD 미니맵 활성화"
+            "[MINIMAP] HUD 미니맵 활성화"
         );
     }
 
     public void HideAllMiniMaps()
     {
+        _isOverlayOpen = false;
+
         if (_miniMapHUD != null)
+        {
             _miniMapHUD.gameObject.SetActive(false);
+        }
 
         if (_miniMapOverlay != null)
+        {
             _miniMapOverlay.gameObject.SetActive(false);
+        }
     }
 
     public void RefreshZoneTargets()
@@ -434,6 +462,58 @@ public class MiniMapManager : MonoBehaviour
             $"[MINIMAP ZONE] " +
             $"A={(_zoneATransform != null ? _zoneATransform.name : "NULL")}, " +
             $"B={(_zoneBTransform != null ? _zoneBTransform.name : "NULL")}"
+        );
+    }
+
+    public void ToggleMiniMap()
+    {
+        if (_miniMapHUD == null)
+        {
+            Debug.LogError(
+                "[MINIMAP TOGGLE] HUD 미니맵이 연결되지 않았습니다."
+            );
+
+            return;
+        }
+
+        if (_miniMapOverlay == null)
+        {
+            Debug.LogError(
+                "[MINIMAP TOGGLE] 오버레이 미니맵이 연결되지 않았습니다."
+            );
+
+            return;
+        }
+
+        _isOverlayOpen = !_isOverlayOpen;
+
+        if (_isOverlayOpen)
+        {
+            ShowOverlayMiniMap();
+        }
+        else
+        {
+            ShowHUDMiniMap();
+        }
+    }
+
+    public void ShowOverlayMiniMap()
+    {
+        _isOverlayOpen = true;
+
+        if (_miniMapHUD != null)
+        {
+            _miniMapHUD.gameObject.SetActive(false);
+        }
+
+        if (_miniMapOverlay != null)
+        {
+            _miniMapOverlay.gameObject.SetActive(true);
+            _miniMapOverlay.SetAsLastSibling();
+        }
+
+        Debug.Log(
+            "[MINIMAP] 오버레이 미니맵 활성화"
         );
     }
 }

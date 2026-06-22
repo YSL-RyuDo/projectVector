@@ -62,6 +62,7 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private GameObject roomListPanel;
     [SerializeField] private Transform roomListContent;
     [SerializeField] private GameObject roomSlotPrefab;
+    [SerializeField] private Button roomRefreshButton;
 
     [Header("Room Panel")]
     [SerializeField] private RoomPanelUI roomPanelUI;
@@ -293,6 +294,20 @@ public class LobbyManager : MonoBehaviour
         {
             kickButton.onClick.RemoveAllListeners();
             kickButton.onClick.AddListener(OnClickKickMember);
+        }
+
+        if (roomRefreshButton != null)
+        {
+            roomRefreshButton.onClick.RemoveAllListeners();
+            roomRefreshButton.onClick.AddListener(
+                OnClickRefreshRoomList
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[ROOM LIST] 방 조회 버튼이 연결되지 않았습니다."
+            );
         }
 
         HideAllTempGameSlots();
@@ -918,24 +933,101 @@ public class LobbyManager : MonoBehaviour
         EnterTempGameRoom();
     }
 
+    public void OnClickRefreshRoomList()
+    {
+        Debug.Log("[ROOM LIST] RefreshButton Click");
+
+        if (NetworkManager.Instance == null)
+        {
+            Debug.LogError(
+                "[ROOM LIST] NetworkManager.Instance is null"
+            );
+
+            return;
+        }
+
+        // 현재 방 안에 들어가 있는 상태라면
+        // 방 목록으로 강제로 넘어가지 않는다.
+        if (IsInCustomRoom())
+        {
+            ShowRoomMessage(
+                "방에 들어가 있는 동안에는 방 목록을 조회할 수 없습니다."
+            );
+
+            return;
+        }
+
+        // 메인 게임 메뉴가 닫혀 있어도 방 목록 화면을 열어 준다.
+        SelectLobbyMainMenu(
+            LobbyMainMenu.Game
+        );
+
+        if (currentGameMode != GameMode.Custom)
+        {
+            previousModeBeforeCustom =
+                currentGameMode;
+
+            SelectGameMode(
+                GameMode.Custom
+            );
+        }
+
+        ShowRoomListPanel();
+
+        // 현재 서버에 존재하는 방 목록을 새로 요청한다.
+        NetworkManager.Instance.SendRoomList();
+
+        Debug.Log(
+            "[ROOM LIST] room list request sent"
+        );
+    }
+
     public void OnClickUserRoomButton()
     {
         Debug.Log("[ROOM LIST] UserRoomButton Click");
 
-        if (currentGameMode == GameMode.Custom)
+        if (NetworkManager.Instance == null)
         {
-            Debug.Log("[GAME MODE] already custom");
+            Debug.LogError(
+                "[ROOM LIST] NetworkManager.Instance is null"
+            );
+
             return;
         }
 
-        previousModeBeforeCustom = currentGameMode;
+        if (IsInCustomRoom())
+        {
+            ShowRoomMessage(
+                "현재 방에 들어가 있습니다."
+            );
 
-        SelectGameMode(GameMode.Custom);
+            return;
+        }
+
+        // 이미 사설방 모드여도 종료하지 않고
+        // 현재 방 목록을 다시 요청한다.
+        if (currentGameMode == GameMode.Custom)
+        {
+            ShowRoomListPanel();
+            NetworkManager.Instance.SendRoomList();
+
+            Debug.Log(
+                "[ROOM LIST] custom mode refresh request"
+            );
+
+            return;
+        }
+
+        previousModeBeforeCustom =
+            currentGameMode;
+
+        SelectGameMode(
+            GameMode.Custom
+        );
 
         ShowRoomListPanel();
         NetworkManager.Instance.SendRoomList();
     }
-
     public void OnClickTempGameStart()
     {
         Debug.Log("[TEMP GAME ROOM] StartButton Click - not used in prototype");
