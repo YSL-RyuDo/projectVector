@@ -93,6 +93,8 @@ public class StorePanelUI : MonoBehaviour
             return;
         }
 
+        GameController.Instance.isLoading = true;
+
         Open();
     }
 
@@ -115,6 +117,8 @@ public class StorePanelUI : MonoBehaviour
     {
         if (storePanelRoot == null)
             return;
+
+        GameController.Instance.isLoading = false;
 
         storePanelRoot.SetActive(false);
 

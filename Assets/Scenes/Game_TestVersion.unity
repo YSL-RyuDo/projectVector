@@ -2465,8 +2465,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 331, y: -490}
-  m_SizeDelta: {x: 169.3525, y: 60.6088}
+  m_AnchoredPosition: {x: 335, y: -490}
+  m_SizeDelta: {x: 200, y: 60.6088}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &158683345
 MonoBehaviour:
@@ -2488,7 +2488,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 40 / 40
+  m_text: 100 / 200
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 13af2200542643b4f8569493aa50ebc2, type: 2}
   m_sharedMaterial: {fileID: -3175930758971999068, guid: 13af2200542643b4f8569493aa50ebc2, type: 2}
@@ -13932,7 +13932,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 75, y: 75}
+  m_SizeDelta: {x: 200, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &981558170
 MonoBehaviour:
@@ -13985,6 +13985,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HitMarkerUI
   hitmarkerImage: {fileID: 981558170}
+  visibleDuration: 0.08
+  fadeDuration: 0.15
 --- !u!1 &992142823
 GameObject:
   m_ObjectHideFlags: 0
@@ -28793,7 +28795,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2096996114
 RectTransform:
   m_ObjectHideFlags: 0

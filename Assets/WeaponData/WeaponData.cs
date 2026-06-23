@@ -59,4 +59,5 @@ public class WeaponData : ScriptableObject
 
     [Header("Etc")]
     public float weight;
+    public AudioClip gunSound;
 }

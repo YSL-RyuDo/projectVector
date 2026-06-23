@@ -202,7 +202,7 @@ public class PlayerMovement : MonoBehaviour
             if (Keyboard.current != null &&
                 Keyboard.current.spaceKey.wasPressedThisFrame)
             {
-                _verticalVelocity = _jumpPower;
+                _verticalVelocity = CalculateJumpSpeed();
 
                 // 점프하면 무조건 일어서기
                 _isCrouching = false;
@@ -761,6 +761,7 @@ public class PlayerMovement : MonoBehaviour
     {
         weaponWeight = Mathf.Max(1f, weight);
         CalculateMoveSpeed();
+        CalculateJumpSpeed();
     }
 
     public void SetADS(bool value)
@@ -778,6 +779,14 @@ public class PlayerMovement : MonoBehaviour
         {
             currentMoveSpeed /= 1.5f;
         }
+    }
+
+    private float CalculateJumpSpeed()
+    {
+        float currenntJumpPower =
+            _jumpPower - (1f - (1f / weaponWeight));
+
+        return currenntJumpPower;
     }
 
     public void ResetAfterRespawn(float spawnYaw)
@@ -853,5 +862,10 @@ public class PlayerMovement : MonoBehaviour
             $"currentMoveSpeed={currentMoveSpeed}, " +
             $"isADS={isADS}"
         );
+    }
+
+    public bool GetIsGrounded()
+    {
+        return _cc.isGrounded;
     }
 }

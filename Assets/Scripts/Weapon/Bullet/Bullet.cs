@@ -19,12 +19,7 @@ public class Bullet : MonoBehaviour
     private Rigidbody rb;
     private Collider bulletCollider;
 
-    public void Init(
-        PlayerIdentity owner,
-        float range,
-        float speed,
-        Vector3 dir,
-        bool sendHitFromThisBullet)
+    public void Init(PlayerIdentity owner, float range, float speed, Vector3 dir, bool sendHitFromThisBullet)
     {
         ownerIdentity = owner;
         ownerPlayerId = owner != null ? (int)owner.PlayerId : -1;
@@ -36,7 +31,6 @@ public class Bullet : MonoBehaviour
 
         canSendHit = sendHitFromThisBullet;
         hitSent = false;
-
         startPos = transform.position;
 
         rb = GetComponent<Rigidbody>();
@@ -69,9 +63,7 @@ public class Bullet : MonoBehaviour
     private void Update()
     {
         if (Vector3.Distance(startPos, transform.position) > maxDistance)
-        {
             Destroy(gameObject);
-        }
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -79,8 +71,7 @@ public class Bullet : MonoBehaviour
         if (collision == null || collision.collider == null)
             return;
 
-        PlayerIdentity targetIdentity =
-            collision.collider.GetComponentInParent<PlayerIdentity>();
+        PlayerIdentity targetIdentity = collision.collider.GetComponentInParent<PlayerIdentity>();
 
         if (targetIdentity != null)
         {
@@ -102,23 +93,16 @@ public class Bullet : MonoBehaviour
         if (targetIdentity == null)
             return;
 
-        // 자기 자신은 무시
-        if (ownerIdentity != null &&
-            targetIdentity.PlayerId == ownerIdentity.PlayerId)
+        if (ownerIdentity != null && targetIdentity.PlayerId == ownerIdentity.PlayerId)
         {
             IgnoreThisCollision(collision.collider);
             RestoreVelocity();
             return;
         }
 
-        // 같은 팀은 클라에서 관통 처리
-        // 서버에도 아군 사격 방어가 있으므로 이중 방어 구조
-        if (ownerIdentity != null &&
-            targetIdentity.Team == ownerTeam)
+        if (ownerIdentity != null && targetIdentity.Team == ownerTeam)
         {
-            Debug.Log(
-                $"[BULLET] Friendly ignored. owner={ownerPlayerId}, target={targetIdentity.PlayerId}"
-            );
+            Debug.Log($"[BULLET] Friendly ignored. owner={ownerPlayerId}, target={targetIdentity.PlayerId}");
 
             IgnoreThisCollision(collision.collider);
             RestoreVelocity();
@@ -127,25 +111,31 @@ public class Bullet : MonoBehaviour
 
         PlayerHP targetHP = targetIdentity.GetComponent<PlayerHP>();
 
+        if (targetHP == null)
+            targetHP = targetIdentity.GetComponentInChildren<PlayerHP>(true);
+
         if (targetHP != null && targetHP.IsDead)
         {
             Destroy(gameObject);
             return;
         }
 
-        // 쏜 사람 클라이언트에서 생성된 총알만 서버에 Hit 전송
         if (canSendHit && !hitSent)
         {
             hitSent = true;
 
+            Debug.Log($"[BULLET HIT] targetPlayerId={targetIdentity.PlayerId}, owner={ownerPlayerId}");
+
+            // 네트워크 상태와 상관없이 로컬 히트마커를 먼저 표시한다.
+            HitManager.TriggerEnemyHit();
+
             if (NetworkManager.Instance != null)
             {
-                Debug.Log(
-                    $"[BULLET HIT SEND] targetPlayerId={targetIdentity.PlayerId}, owner={ownerPlayerId}"
-                );
-
                 NetworkManager.Instance.SendHit(targetIdentity.PlayerId);
-                HitManager.TriggerEnemyHit();
+            }
+            else
+            {
+                Debug.LogWarning("[BULLET HIT] NetworkManager.Instance is null.");
             }
         }
 
@@ -157,15 +147,11 @@ public class Bullet : MonoBehaviour
         if (ownerIdentity == null || bulletCollider == null)
             return;
 
-        Collider[] ownerColliders =
-            ownerIdentity.GetComponentsInChildren<Collider>(true);
+        Collider[] ownerColliders = ownerIdentity.GetComponentsInChildren<Collider>(true);
 
         foreach (Collider col in ownerColliders)
         {
-            if (col == null)
-                continue;
-
-            if (col == bulletCollider)
+            if (col == null || col == bulletCollider)
                 continue;
 
             Physics.IgnoreCollision(bulletCollider, col, true);

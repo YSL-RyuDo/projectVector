@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 4536253042818456331}
   - component: {fileID: 7164750265179195943}
   - component: {fileID: 219577382454957403}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Bullet
-  m_TagString: Untagged
+  m_TagString: Bullet
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -150,9 +150,17 @@ PrefabInstance:
       propertyPath: m_Name
       value: BulletBody
       objectReference: {fileID: 0}
+    - target: {fileID: 891545962844786467, guid: d5c5913c4307b3c499792a7343155582, type: 3}
+      propertyPath: m_Layer
+      value: 11
+      objectReference: {fileID: 0}
     - target: {fileID: 3200981254380455901, guid: d5c5913c4307b3c499792a7343155582, type: 3}
       propertyPath: m_Enabled
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8858204736761385911, guid: d5c5913c4307b3c499792a7343155582, type: 3}
+      propertyPath: m_Layer
+      value: 11
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 8571788021091494547, guid: d5c5913c4307b3c499792a7343155582, type: 3}

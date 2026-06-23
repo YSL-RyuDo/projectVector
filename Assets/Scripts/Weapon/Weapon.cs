@@ -26,6 +26,8 @@ public class Weapon : Item
     [Header("Drop")]
     [SerializeField] private Transform dropPoint;
 
+    private AudioSource audioSource;
+
     private PlayerHP ownerHP;
     private bool isPlayer;
 
@@ -47,6 +49,7 @@ public class Weapon : Item
 
     void Awake()
     {
+        audioSource = GetComponent<AudioSource>();
         ownerHP = GetComponentInParent<PlayerHP>();
         isPlayer = GetComponentInParent<PlayerMovement>() != null;
         playerMovement = GetComponentInParent<PlayerMovement>();
@@ -187,9 +190,10 @@ public class Weapon : Item
         if (cameraController.PlayerCamera == null)
             return;
 
-        // ±ÇÃÑ°ú Ä®Àº ADS ±ÝÁö
+        // ±ÇÃÑ°ú ¼¦°Ç, Ä®Àº ADS ±ÝÁö
         bool cannotADS =
             weaponData.weaponType == WeaponData.WeaponType.Pistol ||
+            weaponData.weaponType == WeaponData.WeaponType.Shotgun ||
             weaponData.weaponType == WeaponData.WeaponType.Knife;
 
         if (cannotADS)
@@ -242,7 +246,7 @@ public class Weapon : Item
     {
         base.OnUse();
 
-        if (weaponData == null)
+        if (weaponData == null || audioSource == null)
             return;
 
         if (Time.time < nextFireTime)
@@ -272,6 +276,9 @@ public class Weapon : Item
         PlayAttackRecoilVisual();
 
         FireCurrentWeapon();
+
+        if (weaponData.gunSound != null)
+            audioSource.PlayOneShot(weaponData.gunSound);
 
         Debug.Log(
             $"[WEAPON USE] " +
@@ -705,7 +712,8 @@ public class Weapon : Item
             Keyboard.current.wKey.isPressed ||
             Keyboard.current.aKey.isPressed ||
             Keyboard.current.sKey.isPressed ||
-            Keyboard.current.dKey.isPressed;
+            Keyboard.current.dKey.isPressed ||
+            !playerMovement.GetIsGrounded();
     }
 
     Vector3 GetSpreadDirection(Vector3 baseDirection)
