@@ -4159,59 +4159,42 @@ public class NetworkManager : MonoBehaviour
         );
     }
 
-    private void HandleFireNotify(
-    byte[] body)
+    private void HandleFireNotify(byte[] body)
     {
-        if (body == null ||
-            body.Length < 8)
-        {
+        if (body == null || body.Length < 8)
             return;
-        }
 
         int offset = 0;
 
-        uint playerId =
-            BitConverter.ToUInt32(
-                body,
-                offset
-            );
+        uint playerId = BitConverter.ToUInt32(body, offset);
         offset += 4;
 
-        int weaponId =
-            BitConverter.ToInt32(
-                body,
-                offset
-            );
+        int weaponId = BitConverter.ToInt32(body, offset);
         offset += 4;
 
         if (playerId == MyPlayerId)
             return;
 
-        PlayerIdentity identity =
-            FindPlayerIdentityById(
-                playerId
-            );
+        PlayerIdentity identity = FindPlayerIdentityById(playerId);
 
         if (identity == null)
+        {
+            Debug.LogWarning($"[FIRE NOTIFY] player not found. playerId={playerId}");
             return;
+        }
 
-        PlayerItem playerItem =
-            identity.GetComponent<PlayerItem>();
+        PlayerItem playerItem = identity.GetComponent<PlayerItem>();
+
+        if (playerItem == null)
+            playerItem = identity.GetComponentInChildren<PlayerItem>(true);
 
         if (playerItem == null)
         {
-            playerItem =
-                identity.GetComponentInChildren<PlayerItem>(
-                    true
-                );
+            Debug.LogWarning($"[FIRE NOTIFY] PlayerItem not found. playerId={playerId}");
+            return;
         }
 
-        if (playerItem == null)
-            return;
-
-        playerItem.PlayFireVisualFromServer(
-            weaponId
-        );
+        playerItem.PlayFireVisualFromServer(weaponId);
     }
 
     public void SendReloadVisual(

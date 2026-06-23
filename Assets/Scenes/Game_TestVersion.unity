@@ -5152,7 +5152,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 100
   m_TargetDisplay: 0
 --- !u!224 &360824868
 RectTransform:
@@ -13908,6 +13908,7 @@ GameObject:
   - component: {fileID: 981558171}
   - component: {fileID: 981558170}
   - component: {fileID: 981558172}
+  - component: {fileID: 981558173}
   m_Layer: 5
   m_Name: Hit UI
   m_TagString: Untagged
@@ -13987,6 +13988,18 @@ MonoBehaviour:
   hitmarkerImage: {fileID: 981558170}
   visibleDuration: 0.08
   fadeDuration: 0.15
+--- !u!225 &981558173
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 981558168}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &992142823
 GameObject:
   m_ObjectHideFlags: 0
@@ -28836,7 +28849,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:

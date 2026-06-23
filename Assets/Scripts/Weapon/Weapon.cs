@@ -50,6 +50,10 @@ public class Weapon : Item
     void Awake()
     {
         audioSource = GetComponent<AudioSource>();
+
+        if (audioSource == null)
+            audioSource = GetComponentInChildren<AudioSource>(true);
+
         ownerHP = GetComponentInParent<PlayerHP>();
         isPlayer = GetComponentInParent<PlayerMovement>() != null;
         playerMovement = GetComponentInParent<PlayerMovement>();
@@ -246,7 +250,7 @@ public class Weapon : Item
     {
         base.OnUse();
 
-        if (weaponData == null || audioSource == null)
+        if (weaponData == null)
             return;
 
         if (Time.time < nextFireTime)
@@ -258,40 +262,81 @@ public class Weapon : Item
         if (ownerHP != null && ownerHP.IsDead)
             return;
 
-        nextFireTime =
-            Time.time + weaponData.fireRate;
+        nextFireTime = Time.time + weaponData.fireRate;
 
         if (UsesAmmo())
         {
             currentAmmo--;
-
             UpdateAmmoUI();
 
             if (NetworkManager.Instance != null)
-            {
                 NetworkManager.Instance.SendFire();
-            }
         }
 
         PlayAttackRecoilVisual();
-
         FireCurrentWeapon();
+        PlayLocalGunSound();
 
-        if (weaponData.gunSound != null)
-            audioSource.PlayOneShot(weaponData.gunSound);
-
-        Debug.Log(
-            $"[WEAPON USE] " +
-            $"weapon={weaponData.name}, " +
-            $"ammo={currentAmmo}/{reserveAmmo}"
-        );
+        Debug.Log($"[WEAPON USE] weapon={weaponData.name}, ammo={currentAmmo}/{reserveAmmo}");
     }
 
     public void PlayFireVisualFromServer()
     {
         PlayAttackRecoilVisual();
+        PlayRemoteGunSound();
+
+        Debug.Log($"[REMOTE FIRE SOUND] playerId={_playerIdentity?.PlayerId}, weaponId={GetWeaponId()}");
     }
 
+    private void PlayLocalGunSound()
+    {
+        if (weaponData == null || weaponData.gunSound == null)
+            return;
+
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+
+            if (audioSource == null)
+                audioSource = GetComponentInChildren<AudioSource>(true);
+        }
+
+        if (audioSource != null && audioSource.isActiveAndEnabled)
+        {
+            audioSource.PlayOneShot(weaponData.gunSound);
+            return;
+        }
+
+        AudioSource.PlayClipAtPoint(weaponData.gunSound, transform.position, 1f);
+    }
+
+    private void PlayRemoteGunSound()
+    {
+        if (weaponData == null || weaponData.gunSound == null)
+            return;
+
+        Vector3 soundPosition = _playerIdentity != null
+            ? _playerIdentity.transform.position
+            : transform.position;
+
+        GameObject soundObject = new GameObject($"RemoteGunSound_{GetWeaponId()}");
+        soundObject.transform.position = soundPosition;
+
+        AudioSource source = soundObject.AddComponent<AudioSource>();
+        source.clip = weaponData.gunSound;
+        source.playOnAwake = false;
+        source.loop = false;
+        source.volume = 1f;
+        source.spatialBlend = 1f;
+        source.rolloffMode = AudioRolloffMode.Logarithmic;
+        source.minDistance = 3f;
+        source.maxDistance = 80f;
+        source.dopplerLevel = 0f;
+
+        source.Play();
+
+        Destroy(soundObject, weaponData.gunSound.length + 0.2f);
+    }
 
     public void PlayKnifeAttackVisualFromServer()
     {
