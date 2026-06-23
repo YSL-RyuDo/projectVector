@@ -1883,9 +1883,6 @@ public class NetworkManager : MonoBehaviour
                     maxHp,
                     maxBarrier
                 );
-
-                HitEffect hitEffect = FindFirstObjectByType<HitEffect>();
-                hitEffect.OnHit();
             }
 
             if (StorePanelUI.Instance != null)

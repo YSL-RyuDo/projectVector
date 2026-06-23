@@ -100,11 +100,20 @@ public class InGameUIManager : MonoBehaviour
 
     public void SetHpBarrier(int hp, int barrier, int maxHpValue, int maxBarrierValue)
     {
+        int prevHp = currentHp;
+        int prevBarrier = currentBarrier;
+
         currentHp = Mathf.Clamp(hp, 0, Mathf.Max(1, maxHpValue));
         currentBarrier = Mathf.Clamp(barrier, 0, 100);
 
         maxHp = Mathf.Max(1, maxHpValue);
         maxBarrier = Mathf.Max(0, maxBarrierValue);
+
+        if (currentHp < prevHp || currentBarrier < prevBarrier)
+        {
+            HitEffect hitEffect = FindFirstObjectByType<HitEffect>();
+            hitEffect.OnHit();
+        }
 
         int currentTotal = currentHp + currentBarrier;
         int maxTotal = maxHp + maxBarrier;
