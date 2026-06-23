@@ -145,6 +145,7 @@ public class Bullet : MonoBehaviour
                 );
 
                 NetworkManager.Instance.SendHit(targetIdentity.PlayerId);
+                HitManager.TriggerEnemyHit();
             }
         }
 

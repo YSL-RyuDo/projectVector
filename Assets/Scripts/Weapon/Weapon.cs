@@ -441,6 +441,7 @@ public class Weapon : Item
                         $"userId={targetIdentity.UserId}"
                     );
 
+                    HitManager.TriggerEnemyHit();
                     NetworkManager.Instance.SendHit(targetIdentity.PlayerId);
                 }
             }
@@ -512,7 +513,7 @@ public class Weapon : Item
             bulletScript.Init(
                 _playerIdentity,
                 weaponData.range,
-                weaponData.muzzleVelocity,
+                1000f,
                 shootDir,
                 false
             );
