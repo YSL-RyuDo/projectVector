@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 7991346560593711154}
   - component: {fileID: 479913203436587391}
   - component: {fileID: -4526259013401920665}
-  - component: {fileID: 7996374949223036764}
   - component: {fileID: 7179332133226150461}
   m_Layer: 10
   m_Name: AK47
@@ -172,28 +171,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!95 &7996374949223036764
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4528968629229385109}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 230594bd74eb663409ee674735abec44, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!114 &7179332133226150461
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -332,7 +309,10 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7865335533641420436, guid: f178cae6049a5694e8156f17cb81181b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2736294140652616860}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3862400414543541480, guid: f178cae6049a5694e8156f17cb81181b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4092144979438464758}
   m_SourcePrefab: {fileID: 100100000, guid: f178cae6049a5694e8156f17cb81181b, type: 3}
 --- !u!4 &1356119222548273845 stripped
 Transform:
@@ -349,3 +329,30 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3862400414544029896, guid: f178cae6049a5694e8156f17cb81181b, type: 3}
   m_PrefabInstance: {fileID: 9220750533451961377}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5362854182964797641 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3862400414543541480, guid: f178cae6049a5694e8156f17cb81181b, type: 3}
+  m_PrefabInstance: {fileID: 9220750533451961377}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &4092144979438464758
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5362854182964797641}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 230594bd74eb663409ee674735abec44, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
