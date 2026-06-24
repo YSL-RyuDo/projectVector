@@ -43,6 +43,7 @@ GameObject:
   - component: {fileID: 5654228350653661241}
   - component: {fileID: 8274801237981965129}
   - component: {fileID: 5647385947225953180}
+  - component: {fileID: 2725805463305172046}
   m_Layer: 0
   m_Name: Dragunov_0
   m_TagString: Untagged
@@ -201,6 +202,18 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &2725805463305172046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1628603641264953458}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0df1671eec929634b984439e6446b85f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ARMotion
 --- !u!1 &8887544126148890262
 GameObject:
   m_ObjectHideFlags: 0
@@ -358,10 +371,40 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3252620881445125349, guid: 0bd20e858c5b8c24d927ee741656c089, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8627781013443321546}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3252620881444888773, guid: 0bd20e858c5b8c24d927ee741656c089, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7536474924711098541}
   m_SourcePrefab: {fileID: 100100000, guid: 0bd20e858c5b8c24d927ee741656c089, type: 3}
 --- !u!4 &6954186178392883136 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3252620881445125349, guid: 0bd20e858c5b8c24d927ee741656c089, type: 3}
   m_PrefabInstance: {fileID: 5593921577269068581}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6954186178393170912 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3252620881444888773, guid: 0bd20e858c5b8c24d927ee741656c089, type: 3}
+  m_PrefabInstance: {fileID: 5593921577269068581}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &7536474924711098541
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6954186178393170912}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: fab2952897150bb4b97227b05d16ba40, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
