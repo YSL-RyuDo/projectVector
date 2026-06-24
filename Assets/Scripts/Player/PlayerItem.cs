@@ -1558,8 +1558,8 @@ public class PlayerItem : MonoBehaviour
         if (NetworkManager.Instance != null)
             NetworkManager.Instance.SendReloadVisual(reloadWeaponId, true);
 
-        if (reloadingWeaponObject != null)
-            reloadingWeaponObject.SetActive(false);
+        //if (reloadingWeaponObject != null)
+        //    reloadingWeaponObject.SetActive(false);
 
         Debug.Log($"[RELOAD START] weaponId={reloadWeaponId}, reloadTime={reloadTime}");
 
@@ -1584,8 +1584,8 @@ public class PlayerItem : MonoBehaviour
         if (NetworkManager.Instance != null)
             NetworkManager.Instance.SendReload();
 
-        if (reloadingWeaponObject != null)
-            reloadingWeaponObject.SetActive(true);
+        //if (reloadingWeaponObject != null)
+        //    reloadingWeaponObject.SetActive(true);
 
         Debug.Log($"[RELOAD COMPLETE] weaponId={reloadWeaponId}");
 

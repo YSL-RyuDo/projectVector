@@ -43,6 +43,7 @@ GameObject:
   - component: {fileID: 5302500098676246487}
   - component: {fileID: 4236501269954194893}
   - component: {fileID: 2815656241807998252}
+  - component: {fileID: 8619540579154734918}
   m_Layer: 0
   m_Name: AA-12_0
   m_TagString: Untagged
@@ -201,6 +202,18 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &8619540579154734918
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3030174618948520911}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0df1671eec929634b984439e6446b85f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ARMotion
 --- !u!1 &6899471629592772757
 GameObject:
   m_ObjectHideFlags: 0
@@ -304,6 +317,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 188266799360477453, guid: 0c87e0ef4b2d10c41b0e7ce2c7ba9a9f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 824380178418284262}
+    - targetCorrespondingSourceObject: {fileID: 188266799360477453, guid: 0c87e0ef4b2d10c41b0e7ce2c7ba9a9f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6644507441309294953}
   m_SourcePrefab: {fileID: 100100000, guid: 0c87e0ef4b2d10c41b0e7ce2c7ba9a9f, type: 3}
 --- !u!1 &6405090504443774561 stripped
 GameObject:
@@ -331,6 +347,28 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.9412072, y: 0.24128708, z: 0.042253226}
   m_Center: {x: -0.1739202, y: 0.0035503432, z: 0.000000022351747}
+--- !u!95 &6644507441309294953
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6405090504443774561}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 2a277a90c4ac006498705ccda455f120, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!4 &6405090504444140097 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 188266799360775469, guid: 0c87e0ef4b2d10c41b0e7ce2c7ba9a9f, type: 3}

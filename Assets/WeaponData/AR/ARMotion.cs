@@ -15,17 +15,18 @@ public class ARMotion : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.R) && !isReloading)
         {
-            StartCoroutine(reLoadTime(3f));
+            StartCoroutine(reLoadTime(2.4f));
         }
     }
 
     private IEnumerator reLoadTime(float time)
     {
         isReloading = true;
-        _animator.SetTrigger("ReLoad");
+        _animator.SetBool("ReLoad", true);
 
         yield return new WaitForSeconds(time);
 
+        _animator.SetBool("ReLoad", false);
         isReloading = false;
     }
 }
