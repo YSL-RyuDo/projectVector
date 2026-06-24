@@ -5,16 +5,19 @@ public class Spike : Item
 {
     private bool isPlayerInside;
     private PlayerSpike playerSpike;
+
     public bool isPlanted = false;
 
     [Header("Defuse")]
     public float defuseTime = 5f;
+
     private float currentDefuseTime;
     private bool isDefusing;
-    private bool isHalfDefused = false;
+    private bool isHalfDefused;
 
     [Header("Explosion")]
     public float explosionTime = 40f;
+
     private bool isExploded;
 
     [Header("UI")]
@@ -28,6 +31,7 @@ public class Spike : Item
 
     [Header("Spectator")]
     [SerializeField] private Transform spectatePoint;
+
     public Transform SpectatePoint => spectatePoint;
 
     private void Start()
@@ -37,6 +41,9 @@ public class Spike : Item
 
     private void OnDestroy()
     {
+        if (IsLocalDefuser())
+            CombatFeedbackUI.Instance?.HideSpikeProgress();
+
         if (PlantedSpike == this)
             PlantedSpike = null;
     }
@@ -51,6 +58,10 @@ public class Spike : Item
         if (ps == null)
             return;
 
+        // 각 클라이언트에서는 자기 플레이어만 해체 입력 대상으로 등록한다.
+        if (!ps.IsLocalPlayer())
+            return;
+
         playerSpike = ps;
         isPlayerInside = true;
 
@@ -61,7 +72,7 @@ public class Spike : Item
         if (sliderObject != null)
             defuseSlider = sliderObject.GetComponent<Slider>();
 
-        Debug.Log($"[SPIKE] Player in defuse range. player={other.name}");
+        Debug.Log($"[SPIKE] Local player entered defuse range. player={other.name}");
     }
 
     private void OnTriggerExit(Collider other)
@@ -71,22 +82,26 @@ public class Spike : Item
         if (ps == null)
             ps = other.GetComponentInParent<PlayerSpike>();
 
-        if (ps == null)
+        if (ps == null || ps != playerSpike)
             return;
 
-        if (playerSpike != null && ps == playerSpike)
-        {
-            CancelDefuse();
+        CancelDefuse();
 
-            playerSpike.SetSpike(null);
+        playerSpike.SetSpike(null);
 
-            isPlayerInside = false;
-            playerSpike = null;
-            sliderObject = null;
-            defuseSlider = null;
+        isPlayerInside = false;
+        playerSpike = null;
+        sliderObject = null;
+        defuseSlider = null;
 
-            Debug.Log($"[SPIKE] Player out defuse range. player={other.name}");
-        }
+        CombatFeedbackUI.Instance?.HideSpikeProgress();
+
+        Debug.Log($"[SPIKE] Local player left defuse range. player={other.name}");
+    }
+
+    private bool IsLocalDefuser()
+    {
+        return playerSpike != null && playerSpike.IsLocalPlayer();
     }
 
     public override void OnUse()
@@ -108,6 +123,7 @@ public class Spike : Item
 
         isHalfDefused = false;
         halfSentToServer = false;
+        defuseStartRequested = false;
         currentDefuseTime = 0f;
 
         PlantedSpike = this;
@@ -115,6 +131,7 @@ public class Spike : Item
         if (spectatePoint == null)
         {
             Transform found = transform.Find("SpectatePoint");
+
             if (found != null)
                 spectatePoint = found;
         }
@@ -127,14 +144,16 @@ public class Spike : Item
 
     public void TryStartDefuse()
     {
-        if (!isPlayerInside) return;
-        if (isExploded) return;
-        if (playerSpike == null) return;
-
-        if (isDefusing)
+        if (!isPlayerInside)
             return;
 
-        if (defuseStartRequested)
+        if (isExploded)
+            return;
+
+        if (playerSpike == null || !IsLocalDefuser())
+            return;
+
+        if (isDefusing || defuseStartRequested)
             return;
 
         defuseStartRequested = true;
@@ -147,13 +166,22 @@ public class Spike : Item
 
     public void Defusing()
     {
-        if (!isDefusing)
+        if (!isDefusing || !IsLocalDefuser())
             return;
 
         currentDefuseTime += Time.deltaTime;
 
+        float progress = defuseTime > 0f
+            ? Mathf.Clamp01(currentDefuseTime / defuseTime)
+            : 0f;
+
         if (defuseSlider != null)
-            defuseSlider.value = currentDefuseTime / defuseTime;
+            defuseSlider.value = progress;
+
+        CombatFeedbackUI.Instance?.ShowSpikeProgress(
+            "스파이크를 해체하는 중입니다.",
+            progress
+        );
 
         if (!isHalfDefused && currentDefuseTime >= defuseTime * 0.5f)
         {
@@ -180,22 +208,29 @@ public class Spike : Item
         if (!isDefusing && !defuseStartRequested)
             return;
 
+        bool localDefuser = IsLocalDefuser();
+
         isDefusing = false;
         defuseStartRequested = false;
 
-        if (NetworkManager.Instance != null)
+        if (NetworkManager.Instance != null && localDefuser)
             NetworkManager.Instance.SendSpikeDefuseCancel();
 
-        if (playerSpike != null)
+        if (playerSpike != null && localDefuser)
             playerSpike.SetPlayerControl(true);
 
-        if (sliderObject != null)
+        if (sliderObject != null && localDefuser)
             sliderObject.SetActive(false);
+
+        if (localDefuser)
+            CombatFeedbackUI.Instance?.HideSpikeProgress();
+
+        Debug.Log("[SPIKE] Defuse cancelled");
     }
 
     private void CompleteDefuse()
     {
-        if (isExploded)
+        if (isExploded || !IsLocalDefuser())
             return;
 
         isDefusing = false;
@@ -206,6 +241,8 @@ public class Spike : Item
 
         if (sliderObject != null)
             sliderObject.SetActive(false);
+
+        CombatFeedbackUI.Instance?.HideSpikeProgress();
 
         if (NetworkManager.Instance != null)
             NetworkManager.Instance.SendSpikeDefuseComplete();
@@ -221,8 +258,20 @@ public class Spike : Item
             ? defuseTime * 0.5f
             : 0f;
 
+        float progress = defuseTime > 0f
+            ? Mathf.Clamp01(currentDefuseTime / defuseTime)
+            : 0f;
+
         if (defuseSlider != null)
-            defuseSlider.value = currentDefuseTime / defuseTime;
+            defuseSlider.value = progress;
+
+        if (isDefusing && IsLocalDefuser())
+        {
+            CombatFeedbackUI.Instance?.ShowSpikeProgress(
+                "스파이크를 해체하는 중입니다.",
+                progress
+            );
+        }
 
         Debug.Log($"[SPIKE] half defused from server={isHalfDefused}");
     }
@@ -233,10 +282,14 @@ public class Spike : Item
 
         isDefusing = true;
         isHalfDefused = halfDefused;
+        halfSentToServer = halfDefused;
 
         currentDefuseTime = isHalfDefused
             ? defuseTime * 0.5f
             : 0f;
+
+        if (!IsLocalDefuser())
+            return;
 
         if (playerSpike != null)
             playerSpike.SetPlayerControl(false);
@@ -244,8 +297,17 @@ public class Spike : Item
         if (sliderObject != null)
             sliderObject.SetActive(true);
 
+        float progress = defuseTime > 0f
+            ? Mathf.Clamp01(currentDefuseTime / defuseTime)
+            : 0f;
+
         if (defuseSlider != null)
-            defuseSlider.value = currentDefuseTime / defuseTime;
+            defuseSlider.value = progress;
+
+        CombatFeedbackUI.Instance?.ShowSpikeProgress(
+            "스파이크를 해체하는 중입니다.",
+            progress
+        );
     }
 
     public void CancelDefuseFromServer(bool halfDefused)
@@ -254,11 +316,15 @@ public class Spike : Item
 
         isDefusing = false;
         isHalfDefused = halfDefused;
+        halfSentToServer = halfDefused;
 
         currentDefuseTime = isHalfDefused
             ? defuseTime * 0.5f
             : 0f;
 
+        if (!IsLocalDefuser())
+            return;
+
         if (playerSpike != null)
             playerSpike.SetPlayerControl(true);
 
@@ -266,22 +332,34 @@ public class Spike : Item
             sliderObject.SetActive(false);
 
         if (defuseSlider != null)
-            defuseSlider.value = currentDefuseTime / defuseTime;
+            defuseSlider.value = defuseTime > 0f
+                ? currentDefuseTime / defuseTime
+                : 0f;
+
+        CombatFeedbackUI.Instance?.HideSpikeProgress();
     }
 
     public void ForceCancelInteraction()
     {
-        isDefusing = false;
-        currentDefuseTime = 0f;
+        bool localDefuser = IsLocalDefuser();
 
-        if (playerSpike != null)
+        isDefusing = false;
+        defuseStartRequested = false;
+        currentDefuseTime = 0f;
+        isHalfDefused = false;
+        halfSentToServer = false;
+
+        if (playerSpike != null && localDefuser)
             playerSpike.SetPlayerControl(true);
 
-        if (sliderObject != null)
+        if (sliderObject != null && localDefuser)
             sliderObject.SetActive(false);
 
-        if (defuseSlider != null)
+        if (defuseSlider != null && localDefuser)
             defuseSlider.value = 0f;
+
+        if (localDefuser)
+            CombatFeedbackUI.Instance?.HideSpikeProgress();
 
         Debug.Log("[SPIKE] Force cancel interaction");
     }

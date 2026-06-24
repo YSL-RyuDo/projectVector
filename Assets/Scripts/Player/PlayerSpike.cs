@@ -12,7 +12,7 @@ public class PlayerSpike : MonoBehaviour
     [SerializeField] private GameObject spikeItemPrefab;
     public bool hasSpike = true;
 
-    private Spike spikeInRange;   // 설치된 스파이크 (해체용)
+    private Spike spikeInRange;
 
     [Header("Plant")]
     public float plantTime = 3f;
@@ -30,7 +30,7 @@ public class PlayerSpike : MonoBehaviour
     private PlayerIdentity _playerIdentity;
     private bool spikeDropRequested;
 
-    void Start()
+    private void Start()
     {
         playerItem = GetComponent<PlayerItem>();
         playerMove = GetComponent<PlayerMovement>();
@@ -39,24 +39,29 @@ public class PlayerSpike : MonoBehaviour
         hasSpike = false;
 
         if (spikeSlider == null)
-        {
             SetSpikeSlider(FindSpikeSliderInScene());
-        }
         else
-        {
             SetSpikeSlider(spikeSlider);
-        }
     }
 
-    void Update()
+    private void Update()
     {
-        if (GameController.Instance != null && GameController.Instance.IsPaused) return;
-        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
+        if (GameController.Instance != null && GameController.Instance.IsPaused)
+            return;
 
-        // F 눌렀을 때
+        if (!IsLocalPlayer())
+            return;
+
+        if (Keyboard.current == null)
+            return;
+
         if (Keyboard.current.fKey.wasPressedThisFrame)
         {
-            if (RoundManager.Instance.currentState == RoundManager.RoundState.Preparation) return;
+            if (RoundManager.Instance != null &&
+                RoundManager.Instance.currentState == RoundManager.RoundState.Preparation)
+            {
+                return;
+            }
 
             if (hasSpike)
                 TryStartPlant();
@@ -64,10 +69,13 @@ public class PlayerSpike : MonoBehaviour
                 spikeInRange.TryStartDefuse();
         }
 
-        // F 누르고 있는 동안
         if (Keyboard.current.fKey.isPressed)
         {
-            if (RoundManager.Instance.currentState == RoundManager.RoundState.Preparation) return;
+            if (RoundManager.Instance != null &&
+                RoundManager.Instance.currentState == RoundManager.RoundState.Preparation)
+            {
+                return;
+            }
 
             if (isPlanting)
                 Planting();
@@ -76,16 +84,29 @@ public class PlayerSpike : MonoBehaviour
                 spikeInRange.Defusing();
         }
 
-        // F 떼면
         if (Keyboard.current.fKey.wasReleasedThisFrame)
         {
-            if (RoundManager.Instance.currentState == RoundManager.RoundState.Preparation) return;
+            if (RoundManager.Instance != null &&
+                RoundManager.Instance.currentState == RoundManager.RoundState.Preparation)
+            {
+                return;
+            }
 
             CancelPlant();
 
             if (spikeInRange != null)
                 spikeInRange.CancelDefuse();
         }
+    }
+
+    public bool IsLocalPlayer()
+    {
+        if (_playerIdentity == null)
+            _playerIdentity = GetComponent<PlayerIdentity>();
+
+        return _playerIdentity != null &&
+               NetworkManager.Instance != null &&
+               _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
     }
 
     private GameObject FindSpikeSliderInScene()
@@ -112,13 +133,34 @@ public class PlayerSpike : MonoBehaviour
 
     public void SetHasSpikeFromServer(bool value)
     {
+        bool previouslyHadSpike = hasSpike;
+
         hasSpike = value;
         spikeDropRequested = false;
 
-        if (!hasSpike)
+        if (_playerIdentity == null)
+            _playerIdentity = GetComponent<PlayerIdentity>();
+
+        bool isLocalPlayer =
+            _playerIdentity != null &&
+            NetworkManager.Instance != null &&
+            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+
+        if (isLocalPlayer && InGameUIManager.Instance != null)
         {
-            ForceCancelPlant();
+            InGameUIManager.Instance.SetSpikePossession(hasSpike);
+
+            if (hasSpike && !previouslyHadSpike)
+            {
+                CombatFeedbackUI.Instance?.ShowObjectiveNotice(
+                    "스파이크를 획득했습니다.",
+                    false
+                );
+            }
         }
+
+        if (!hasSpike)
+            ForceCancelPlant();
 
         if (playerItem == null)
             playerItem = GetComponent<PlayerItem>();
@@ -127,11 +169,16 @@ public class PlayerSpike : MonoBehaviour
         {
             if (spikeItemPrefab == null)
             {
-                Debug.LogError("[PLAYER SPIKE] spikeItemPrefab is null. 손에 들 스파이크 프리팹을 넣어야 합니다.");
+                Debug.LogError(
+                    "[PLAYER SPIKE] spikeItemPrefab is null. " +
+                    "손에 들 스파이크 프리팹을 넣어야 합니다."
+                );
+
                 return;
             }
 
-            playerItem.GiveSpike(spikeItemPrefab);
+            if (playerItem != null)
+                playerItem.GiveSpike(spikeItemPrefab);
         }
         else
         {
@@ -139,10 +186,12 @@ public class PlayerSpike : MonoBehaviour
                 playerItem.RemoveSpike();
         }
 
-        Debug.Log($"[PLAYER SPIKE] hasSpike={hasSpike}");
+        Debug.Log(
+            $"[PLAYER SPIKE] playerId={_playerIdentity?.PlayerId}, " +
+            $"hasSpike={hasSpike}, local={isLocalPlayer}"
+        );
     }
 
-    //  Spike 연결
     public void SetSpike(Spike spike)
     {
         spikeInRange = spike;
@@ -151,9 +200,11 @@ public class PlayerSpike : MonoBehaviour
     public void SetPlantZone(bool value)
     {
         isInsidePlantZone = value;
+
+        if (!isInsidePlantZone)
+            ForceCancelPlant();
     }
 
-    //  설치 시작
     public void TryStartPlant()
     {
         if (spikeDropRequested)
@@ -168,11 +219,7 @@ public class PlayerSpike : MonoBehaviour
         if (!isInsidePlantZone)
             return;
 
-        if (_playerIdentity == null)
-            _playerIdentity = GetComponent<PlayerIdentity>();
-
-        if (NetworkManager.Instance == null ||
-            _playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
+        if (!IsLocalPlayer())
             return;
 
         if (spikeSlider == null)
@@ -190,7 +237,7 @@ public class PlayerSpike : MonoBehaviour
             return;
         }
 
-        Debug.Log("Start Planting");
+        Debug.Log("[SPIKE] Start planting");
 
         isPlanting = true;
         currentPlantTime = 0f;
@@ -199,47 +246,75 @@ public class PlayerSpike : MonoBehaviour
 
         spikeSlider.SetActive(true);
         slider.value = 0f;
+
+        CombatFeedbackUI.Instance?.ShowSpikeProgress(
+            "스파이크를 설치 중입니다.",
+            0f
+        );
     }
 
-    void Planting()
+    private void Planting()
     {
+        if (!isPlanting)
+            return;
+
+        if (!hasSpike || !isInsidePlantZone)
+        {
+            CancelPlant();
+            return;
+        }
+
         currentPlantTime += Time.deltaTime;
 
+        float progress = plantTime > 0f
+            ? Mathf.Clamp01(currentPlantTime / plantTime)
+            : 0f;
+
         if (slider != null)
-            slider.value = currentPlantTime / plantTime;
+            slider.value = progress;
+
+        CombatFeedbackUI.Instance?.ShowSpikeProgress(
+            "스파이크를 설치 중입니다.",
+            progress
+        );
 
         if (currentPlantTime >= plantTime)
-        {
             CompletePlant();
-        }
     }
 
-    void CompletePlant()
+    private void CompletePlant()
     {
+        if (!isPlanting)
+            return;
+
         isPlanting = false;
         currentPlantTime = 0f;
 
+        CombatFeedbackUI.Instance?.HideSpikeProgress();
+
         SetPlayerControl(true);
-        Vector3 plantPos =transform.position +transform.forward * 1.0f;
+
+        Vector3 plantPos = transform.position + transform.forward * 1f;
 
         if (NetworkManager.Instance != null)
-        {
             NetworkManager.Instance.SendSpikePlantComplete(plantPos);
-        }
 
         Debug.Log("[SPIKE] Plant request sent to server");
     }
 
-    void CancelPlant()
+    private void CancelPlant()
     {
-        if (!isPlanting) return;
+        if (!isPlanting)
+            return;
 
-        Debug.Log("Cancel Planting");
+        Debug.Log("[SPIKE] Cancel planting");
 
         isPlanting = false;
         currentPlantTime = 0f;
 
-        SetPlayerControl(true); // 제어권 돌려주기
+        CombatFeedbackUI.Instance?.HideSpikeProgress();
+
+        SetPlayerControl(true);
     }
 
     public void RequestDrop()
@@ -247,13 +322,7 @@ public class PlayerSpike : MonoBehaviour
         if (!hasSpike)
             return;
 
-        if (_playerIdentity == null)
-            return;
-
-        if (NetworkManager.Instance == null)
-            return;
-
-        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
+        if (!IsLocalPlayer())
             return;
 
         Vector3 dropPosition;
@@ -266,11 +335,12 @@ public class PlayerSpike : MonoBehaviour
         }
         else
         {
-            dropPosition = transform.position + transform.forward * 1.0f + Vector3.up * 0.8f;
+            dropPosition = transform.position + transform.forward * 1f + Vector3.up * 0.8f;
             dropDirection = transform.forward;
         }
 
         spikeDropRequested = true;
+
         ForceCancelPlant();
 
         NetworkManager.Instance.SendSpikeDropRequest(dropPosition, dropDirection);
@@ -286,29 +356,33 @@ public class PlayerSpike : MonoBehaviour
         if (playerMove != null)
             playerMove.CanMove = canControl;
 
-        if (canControl)
-        {
-            if (spikeSlider != null)
-                spikeSlider.SetActive(false);
+        if (!canControl)
+            return;
 
-            if (slider != null)
-                slider.value = 0f;
-        }
+        if (spikeSlider != null)
+            spikeSlider.SetActive(false);
+
+        if (slider != null)
+            slider.value = 0f;
+
+        CombatFeedbackUI.Instance?.HideSpikeProgress();
     }
 
     public void SetSpikeSlider(GameObject sliderObj)
     {
         spikeSlider = sliderObj;
 
-        if (spikeSlider != null)
-        {
-            slider = spikeSlider.GetComponent<Slider>();
-            spikeSlider.SetActive(false);
-        }
-        else
+        if (spikeSlider == null)
         {
             Debug.LogError("[PLAYER SPIKE] Spike Slider UI is null");
+            return;
         }
+
+        slider = spikeSlider.GetComponent<Slider>();
+        spikeSlider.SetActive(false);
+
+        if (slider != null)
+            slider.value = 0f;
     }
 
     public void ForceCancelPlant()
@@ -317,6 +391,8 @@ public class PlayerSpike : MonoBehaviour
 
         isPlanting = false;
         currentPlantTime = 0f;
+
+        CombatFeedbackUI.Instance?.HideSpikeProgress();
 
         if (wasPlanting)
         {
@@ -332,5 +408,14 @@ public class PlayerSpike : MonoBehaviour
         }
 
         Debug.Log("[SPIKE PLANT CANCEL] force cancel");
+    }
+
+    private void OnDisable()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        if (IsLocalPlayer())
+            CombatFeedbackUI.Instance?.HideSpikeProgress();
     }
 }

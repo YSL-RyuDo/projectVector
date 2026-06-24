@@ -32,6 +32,7 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private Sprite defaultThrowWeaponSprite;
     [SerializeField] private Sprite defaultSpikeSprite;
 
+    private Sprite cachedSpikeSprite;
     private int currentHp;
     private int currentBarrier;
     private int maxHp;
@@ -44,6 +45,15 @@ public class InGameUIManager : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+
+        if (spikeImage != null)
+        {
+            cachedSpikeSprite = defaultSpikeSprite != null
+                ? defaultSpikeSprite
+                : spikeImage.sprite;
+
+            spikeImage.gameObject.SetActive(false);
+        }
     }
 
     public void InitializeLocalPlayerUI(
@@ -284,6 +294,36 @@ public class InGameUIManager : MonoBehaviour
                         break;
                 }
             }
+        }
+    }
+
+    public void SetSpikePossession(bool hasSpike)
+    {
+        if (spikeImage == null)
+        {
+            Debug.LogWarning("[SPIKE UI] Spike Image가 연결되지 않았습니다.");
+            return;
+        }
+
+        if (hasSpike)
+        {
+            if (spikeImage.sprite == null)
+            {
+                spikeImage.sprite = defaultSpikeSprite != null
+                    ? defaultSpikeSprite
+                    : cachedSpikeSprite;
+            }
+
+            spikeImage.enabled = true;
+            spikeImage.gameObject.SetActive(true);
+
+            Debug.Log("[SPIKE UI] 스파이크 보유 아이콘 표시");
+        }
+        else
+        {
+            spikeImage.gameObject.SetActive(false);
+
+            Debug.Log("[SPIKE UI] 스파이크 보유 아이콘 숨김");
         }
     }
 }

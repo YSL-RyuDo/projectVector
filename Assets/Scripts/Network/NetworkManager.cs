@@ -228,8 +228,8 @@ public class NetworkManager : MonoBehaviour
             }
         };
 
-        //client.Connect("127.0.0.1", 9000);
-        client.Connect("211.247.47.240", 9000);
+        client.Connect("127.0.0.1", 9000);
+        //client.Connect("211.247.47.240", 9000);
     }
 
     void Update()
@@ -2050,6 +2050,19 @@ public class NetworkManager : MonoBehaviour
             $"matchEnd={matchEnd}, delay={delaySeconds}"
         );
 
+        byte localTeam = GetLocalTeamForRoundResult();
+
+        if (CombatFeedbackUI.Instance != null)
+        {
+            CombatFeedbackUI.Instance.ShowRoundResult(
+                localTeam,
+                winnerTeam,
+                winReason,
+                scoreA,
+                scoreB
+            );
+        }
+
         if (TopInfoUI.Instance != null)
         {
             TopInfoUI.Instance.StopLocalCountdown();
@@ -2090,6 +2103,9 @@ public class NetworkManager : MonoBehaviour
 
     private void HandleRoundReset(byte[] body)
     {
+        if (CombatFeedbackUI.Instance != null)
+            CombatFeedbackUI.Instance.ResetAll();
+
         if (KillLogManager.Instance != null)
         {
             KillLogManager.Instance.ClearAll();
@@ -3000,6 +3016,16 @@ public class NetworkManager : MonoBehaviour
             TopInfoUI.Instance.SetGameDescription("스파이크 설치됨");
             TopInfoUI.Instance.SetUnknownTimer();
         }
+
+        if (CombatFeedbackUI.Instance != null)
+        {
+            CombatFeedbackUI.Instance.HideSpikeProgress();
+
+            CombatFeedbackUI.Instance.ShowObjectiveNotice(
+                "공격팀이 스파이크를 설치했습니다.",
+                true
+            );
+        }
     }
 
     private PlayerSpike FindMyPlayerSpike()
@@ -3087,6 +3113,20 @@ public class NetworkManager : MonoBehaviour
 
         if (TopInfoUI.Instance != null)
             TopInfoUI.Instance.SetGameDescription("스파이크 해체됨");
+
+        if (CombatFeedbackUI.Instance != null)
+        {
+            CombatFeedbackUI.Instance.HideSpikeProgress();
+
+            // 기존 설치 상태 아이콘 제거
+            CombatFeedbackUI.Instance.ClearObjectiveState();
+
+            // 해체 완료 문구만 잠깐 표시
+            CombatFeedbackUI.Instance.ShowObjectiveNotice(
+                "수비팀이 스파이크를 해체했습니다.",
+                false
+            );
+        }
 
         Debug.Log($"[SPIKE DEFUSED] defuser={defuserPlayerId}");
     }
@@ -4315,5 +4355,16 @@ public class NetworkManager : MonoBehaviour
             weaponId,
             isReloading
         );
+    }
+
+    private byte GetLocalTeamForRoundResult()
+    {
+        PlayerIdentity localPlayer =
+            FindPlayerIdentityById(MyPlayerId);
+
+        if (localPlayer != null)
+            return localPlayer.Team;
+
+        return 255;
     }
 }
