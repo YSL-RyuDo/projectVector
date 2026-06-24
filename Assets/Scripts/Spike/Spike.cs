@@ -5,8 +5,11 @@ public class Spike : Item
 {
     private bool isPlayerInside;
     private PlayerSpike playerSpike;
+    private AudioSource audioSource;
 
     public bool isPlanted = false;
+
+    public AudioClip spikeSound;
 
     [Header("Defuse")]
     public float defuseTime = 5f;
@@ -37,6 +40,7 @@ public class Spike : Item
     private void Start()
     {
         playerSpike = GetComponentInParent<PlayerSpike>();
+        audioSource = GetComponent<AudioSource>();
     }
 
     private void OnDestroy()
@@ -135,6 +139,8 @@ public class Spike : Item
             if (found != null)
                 spectatePoint = found;
         }
+
+        PlaySpikeSound();
 
         Debug.Log("[SPIKE] Planted and registered as PlantedSpike");
 
@@ -362,5 +368,10 @@ public class Spike : Item
             CombatFeedbackUI.Instance?.HideSpikeProgress();
 
         Debug.Log("[SPIKE] Force cancel interaction");
+    }
+
+    private void PlaySpikeSound()
+    {
+        audioSource.PlayOneShot(spikeSound);
     }
 }

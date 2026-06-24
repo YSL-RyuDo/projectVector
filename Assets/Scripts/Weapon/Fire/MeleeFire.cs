@@ -64,6 +64,9 @@ public class MeleeFire : IFireStrategy
 
             Debug.Log($"[MELEE HIT SEND] targetPlayerId={targetIdentity.PlayerId}");
 
+            // 네트워크 상태와 상관없이 로컬 히트마커를 먼저 표시한다.
+            HitManager.TriggerEnemyHit();
+
             NetworkManager.Instance.SendHit(targetIdentity.PlayerId);
             return;
         }
