@@ -1549,19 +1549,34 @@ public class PlayerItem : MonoBehaviour
             );
     }
 
-    private IEnumerator ReloadRoutine(Item reloadItem, int reloadWeaponId, int reloadSlot, float reloadTime)
+    private IEnumerator ReloadRoutine(
+        Item reloadItem,
+        int reloadWeaponId,
+        int reloadSlot,
+        float reloadTime)
     {
         isReloading = true;
         reloadingWeaponId = reloadWeaponId;
-        reloadingWeaponObject = reloadItem != null ? reloadItem.gameObject : null;
+        reloadingWeaponObject =
+            reloadItem != null
+                ? reloadItem.gameObject
+                : null;
+
+        // 기존처럼 총기를 숨기지 않고 장전 애니메이션을 재생한다.
+        PlayReloadAnimation(reloadItem, reloadTime);
 
         if (NetworkManager.Instance != null)
-            NetworkManager.Instance.SendReloadVisual(reloadWeaponId, true);
+        {
+            NetworkManager.Instance.SendReloadVisual(
+                reloadWeaponId,
+                true
+            );
+        }
 
-        //if (reloadingWeaponObject != null)
-        //    reloadingWeaponObject.SetActive(false);
-
-        Debug.Log($"[RELOAD START] weaponId={reloadWeaponId}, reloadTime={reloadTime}");
+        Debug.Log(
+            $"[RELOAD START] weaponId={reloadWeaponId}, " +
+            $"reloadTime={reloadTime}"
+        );
 
         yield return new WaitForSeconds(reloadTime);
 
@@ -1584,28 +1599,38 @@ public class PlayerItem : MonoBehaviour
         if (NetworkManager.Instance != null)
             NetworkManager.Instance.SendReload();
 
-        //if (reloadingWeaponObject != null)
-        //    reloadingWeaponObject.SetActive(true);
-
-        Debug.Log($"[RELOAD COMPLETE] weaponId={reloadWeaponId}");
+        Debug.Log(
+            $"[RELOAD COMPLETE] weaponId={reloadWeaponId}"
+        );
 
         FinishReloadState(false);
     }
 
     private void FinishReloadState(bool restoreWeapon)
     {
-        if (restoreWeapon && reloadingWeaponObject != null)
-            reloadingWeaponObject.SetActive(true);
+        if (reloadingWeaponObject != null)
+        {
+            StopReloadAnimation(reloadingWeaponObject);
 
-        if (reloadingWeaponId >= 0 && NetworkManager.Instance != null)
-            NetworkManager.Instance.SendReloadVisual(reloadingWeaponId, false);
+            // 예전 장전 구현에서 비활성화된 상태가 남아 있을 때만 복구한다.
+            if (restoreWeapon && !reloadingWeaponObject.activeSelf)
+                reloadingWeaponObject.SetActive(true);
+        }
+
+        if (reloadingWeaponId >= 0 &&
+            NetworkManager.Instance != null)
+        {
+            NetworkManager.Instance.SendReloadVisual(
+                reloadingWeaponId,
+                false
+            );
+        }
 
         isReloading = false;
         reloadCoroutine = null;
         reloadingWeaponObject = null;
         reloadingWeaponId = -1;
     }
-
 
     public void CancelReload(bool restoreWeapon)
     {
@@ -1616,9 +1641,14 @@ public class PlayerItem : MonoBehaviour
         }
 
         if (isReloading || reloadingWeaponId >= 0)
+        {
             FinishReloadState(restoreWeapon);
+        }
         else
         {
+            if (reloadingWeaponObject != null)
+                StopReloadAnimation(reloadingWeaponObject);
+
             isReloading = false;
             reloadingWeaponObject = null;
             reloadingWeaponId = -1;
@@ -1627,49 +1657,200 @@ public class PlayerItem : MonoBehaviour
         Debug.Log("[RELOAD CANCEL]");
     }
 
-    public void SetReloadVisualFromServer(int weaponId, bool isReloadingValue)
+    public void SetReloadVisualFromServer(
+        int weaponId,
+        bool isReloadingValue)
     {
         int slot = FindSlotByWeaponId(weaponId);
 
         if (slot == -1)
         {
-            Debug.LogWarning($"[REMOTE RELOAD] weapon not found. weaponId={weaponId}");
+            Debug.LogWarning(
+                $"[REMOTE RELOAD] weapon not found. " +
+                $"weaponId={weaponId}"
+            );
+
             return;
         }
 
         remoteIsReloading = isReloadingValue;
-        remoteReloadWeaponId = isReloadingValue ? weaponId : -1;
+        remoteReloadWeaponId =
+            isReloadingValue
+                ? weaponId
+                : -1;
 
+        // 1인칭 장전 애니메이션은 현재 이 플레이어를 관전 중일 때만 표시한다.
         if (!IsCurrentlySpectated())
             return;
 
         if (slot != currentIndex || items[slot] == null)
             return;
 
-        PlayerDeathController death = GetComponent<PlayerDeathController>();
+        PlayerDeathController death =
+            GetComponent<PlayerDeathController>();
+
+        if (death == null)
+        {
+            death =
+                GetComponentInChildren<PlayerDeathController>(true);
+        }
 
         if (death != null && death.IsDead)
             return;
 
-        items[slot].gameObject.SetActive(!isReloadingValue);
+        Item reloadItem = items[slot];
 
-        Debug.Log($"[REMOTE RELOAD] playerId={_playerIdentity?.PlayerId}, weaponId={weaponId}, isReloading={isReloadingValue}");
+        // 장전 중 총기를 사라지게 하지 않는다.
+        if (!reloadItem.gameObject.activeSelf)
+            reloadItem.gameObject.SetActive(true);
+
+        if (isReloadingValue)
+        {
+            PlayReloadAnimation(reloadItem);
+        }
+        else
+        {
+            StopReloadAnimation(reloadItem);
+        }
+
+        Debug.Log(
+            $"[REMOTE RELOAD] " +
+            $"playerId={_playerIdentity?.PlayerId}, " +
+            $"weaponId={weaponId}, " +
+            $"isReloading={isReloadingValue}"
+        );
     }
 
-    public void RefreshRemoteReloadVisual()
+    public void RefreshRemoteReloadAnimation()
     {
         if (!IsCurrentlySpectated())
             return;
 
-        if (!remoteIsReloading || remoteReloadWeaponId < 0)
+        if (currentIndex < 0 ||
+            currentIndex >= items.Length)
+        {
+            return;
+        }
+
+        Item currentItem = items[currentIndex];
+
+        if (currentItem == null)
             return;
 
-        int slot = FindSlotByWeaponId(remoteReloadWeaponId);
+        // 관전 카메라 전환이나 상태 갱신 때문에 숨겨졌다면 다시 표시한다.
+        if (!currentItem.gameObject.activeSelf)
+            currentItem.gameObject.SetActive(true);
 
-        if (slot == -1 || slot != currentIndex || items[slot] == null)
+        Weapon currentWeapon =
+            currentItem.GetComponent<Weapon>();
+
+        if (currentWeapon == null)
+        {
+            currentWeapon =
+                currentItem.GetComponentInChildren<Weapon>(true);
+        }
+
+        bool shouldPlayReload =
+            remoteIsReloading &&
+            remoteReloadWeaponId >= 0 &&
+            currentWeapon != null &&
+            currentWeapon.GetWeaponId() ==
+                remoteReloadWeaponId;
+
+        if (shouldPlayReload)
+        {
+            PlayReloadAnimation(currentItem);
+        }
+        else
+        {
+            StopReloadAnimation(currentItem);
+        }
+    }
+
+    // 기존 호출부와의 호환성을 유지한다.
+    public void RefreshRemoteReloadVisual()
+    {
+        RefreshRemoteReloadAnimation();
+    }
+
+    private void PlayReloadAnimation(
+        Item item,
+        float reloadTime = -1f)
+    {
+        if (item == null)
             return;
 
-        items[slot].gameObject.SetActive(false);
+        ARMotion motion =
+            item.GetComponent<ARMotion>();
+
+        if (motion == null)
+        {
+            motion =
+                item.GetComponentInChildren<ARMotion>(true);
+        }
+
+        if (motion == null)
+        {
+            Debug.LogWarning(
+                $"[RELOAD ANIMATION] ARMotion not found. " +
+                $"item={item.name}"
+            );
+
+            return;
+        }
+
+        if (reloadTime <= 0f)
+        {
+            Weapon weapon =
+                item.GetComponent<Weapon>();
+
+            if (weapon == null)
+            {
+                weapon =
+                    item.GetComponentInChildren<Weapon>(true);
+            }
+
+            if (weapon != null)
+                reloadTime = weapon.GetWeaponReLoadTime();
+        }
+
+        if (reloadTime <= 0f)
+        {
+            Debug.LogWarning(
+                $"[RELOAD ANIMATION] invalid reloadTime. " +
+                $"item={item.name}, reloadTime={reloadTime}"
+            );
+
+            return;
+        }
+
+        motion.PlayReload(reloadTime);
+    }
+
+    private void StopReloadAnimation(Item item)
+    {
+        if (item == null)
+            return;
+
+        StopReloadAnimation(item.gameObject);
+    }
+
+    private void StopReloadAnimation(
+        GameObject weaponObject)
+    {
+        if (weaponObject == null)
+            return;
+
+        ARMotion motion =
+            weaponObject.GetComponent<ARMotion>();
+
+        if (motion == null)
+        {
+            motion =
+                weaponObject.GetComponentInChildren<ARMotion>(true);
+        }
+
+        motion?.StopReload();
     }
 
     private bool IsCurrentlySpectated()

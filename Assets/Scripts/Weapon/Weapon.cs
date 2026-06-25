@@ -46,6 +46,7 @@ public class Weapon : Item
     private PlayerIdentity _playerIdentity;
 
     private PlayerMovement playerMovement;
+    private ARMotion arMotion;
 
     void Awake()
     {
@@ -53,6 +54,11 @@ public class Weapon : Item
 
         if (audioSource == null)
             audioSource = GetComponentInChildren<AudioSource>(true);
+
+        arMotion = GetComponent<ARMotion>();
+
+        if (arMotion == null)
+            arMotion = GetComponentInChildren<ARMotion>(true);
 
         ownerHP = GetComponentInParent<PlayerHP>();
         isPlayer = GetComponentInParent<PlayerMovement>() != null;
@@ -677,15 +683,17 @@ public class Weapon : Item
         if (InGameUIManager.Instance != null)
             InGameUIManager.Instance.SetBulletText(0, reserveAmmo);
 
+        // 총기를 숨기지 않고 장전 애니메이션 실행
+        PlayReloadAnimation();
+
         yield return new WaitForSeconds(weaponData.reloadTime);
 
-        // 여기서 클라가 직접 탄약을 계산하지 않는다.
-        // 서버에 장전 요청을 보내고, 서버의 SC_AMMO_UPDATE를 받아서 갱신한다.
         if (NetworkManager.Instance != null)
             NetworkManager.Instance.SendReload();
 
         isReloading = false;
     }
+
     private void UpdateAmmoUI()
     {
         if (!ShouldUpdateAmmoUI())
@@ -841,5 +849,24 @@ public class Weapon : Item
     {
         if (weaponData == null) return 0;
         return weaponData.reloadTime;
+    }
+
+    public void PlayReloadAnimation()
+    {
+        if (weaponData == null)
+            return;
+
+        if (weaponData.weaponType == WeaponData.WeaponType.Knife)
+            return;
+
+        if (arMotion == null)
+        {
+            arMotion = GetComponent<ARMotion>();
+
+            if (arMotion == null)
+                arMotion = GetComponentInChildren<ARMotion>(true);
+        }
+
+        arMotion?.PlayReload(weaponData.reloadTime);
     }
 }

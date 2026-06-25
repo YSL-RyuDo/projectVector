@@ -37,7 +37,7 @@ public class Spike : Item
 
     public Transform SpectatePoint => spectatePoint;
 
-    private void Start()
+    private void Awake()
     {
         playerSpike = GetComponentInParent<PlayerSpike>();
         audioSource = GetComponent<AudioSource>();
@@ -372,6 +372,21 @@ public class Spike : Item
 
     private void PlaySpikeSound()
     {
-        audioSource.PlayOneShot(spikeSound);
+        if(audioSource == null)
+            audioSource = GetComponent<AudioSource>();
+
+        if(audioSource == null)
+        {
+            Debug.LogError("[SPIKE] AudioSource component is missing. Cannot play spike sound.");
+            return;
+        }
+
+        if(spikeSound == null)
+        {
+            Debug.LogError("[SPIKE] Spike sound AudioClip is not assigned. Cannot play spike sound.");
+            return;
+        }
+
+        audioSource.PlayOneShot(spikeSound, 0.5f);
     }
 }

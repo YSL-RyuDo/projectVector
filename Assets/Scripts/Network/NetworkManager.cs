@@ -228,8 +228,8 @@ public class NetworkManager : MonoBehaviour
             }
         };
 
-        client.Connect("127.0.0.1", 9000);
-        //client.Connect("211.247.47.240", 9000);
+        //client.Connect("127.0.0.1", 9000);
+        client.Connect("211.247.47.240", 9000);
     }
 
     void Update()
@@ -4244,12 +4244,9 @@ public class NetworkManager : MonoBehaviour
         ushort size =
             4 + 4 + 4;
 
-        ushort type =
-            (ushort)
-            PacketType.PKT_CS_RELOAD_VISUAL;
+        ushort type = (ushort) PacketType.PKT_CS_RELOAD_VISUAL;
 
-        byte[] buffer =
-            new byte[size];
+        byte[] buffer = new byte[size];
 
         int offset = 0;
 

@@ -3,32 +3,76 @@ using UnityEngine;
 
 public class ARMotion : MonoBehaviour
 {
-    private Animator _animator;
-    private bool isReloading = false;
-    private Weapon _weapon;
+    private static readonly int ReloadHash =
+        Animator.StringToHash("ReLoad");
 
-    private void Start()
-    {
-        _weapon = GetComponent<Weapon>();
-        _animator = GetComponentInChildren<Animator>();
-    }
+    private Animator animator;
+    private Coroutine reloadCoroutine;
 
-    private void Update()
+    public bool IsReloading { get; private set; }
+
+    private void Awake()
     {
-        if (Input.GetKeyDown(KeyCode.R) && !isReloading)
+        animator = GetComponentInChildren<Animator>(true);
+
+        if (animator == null)
         {
-            StartCoroutine(reLoadTime(_weapon.GetWeaponReLoadTime()));
+            Debug.LogWarning(
+                $"[AR MOTION] Animator를 찾을 수 없습니다. " +
+                $"object={name}",
+                this
+            );
         }
     }
 
-    private IEnumerator reLoadTime(float time)
+    public void PlayReload(float reloadTime)
     {
-        isReloading = true;
-        _animator.SetBool("ReLoad", true);
+        if (animator == null)
+            return;
 
-        yield return new WaitForSeconds(time);
+        if (reloadTime <= 0f)
+            return;
 
-        _animator.SetBool("ReLoad", false);
-        isReloading = false;
+        // SpectatorManager의 상태 갱신이 반복되어도
+        // 장전 애니메이션을 처음부터 다시 재생하지 않는다.
+        if (IsReloading)
+            return;
+
+        reloadCoroutine =
+            StartCoroutine(
+                ReloadRoutine(reloadTime)
+            );
+    }
+
+    public void StopReload()
+    {
+        if (reloadCoroutine != null)
+        {
+            StopCoroutine(reloadCoroutine);
+            reloadCoroutine = null;
+        }
+
+        IsReloading = false;
+
+        if (animator != null)
+            animator.SetBool(ReloadHash, false);
+    }
+
+    private IEnumerator ReloadRoutine(float reloadTime)
+    {
+        IsReloading = true;
+        animator.SetBool(ReloadHash, true);
+
+        yield return new WaitForSeconds(reloadTime);
+
+        animator.SetBool(ReloadHash, false);
+
+        IsReloading = false;
+        reloadCoroutine = null;
+    }
+
+    private void OnDisable()
+    {
+        StopReload();
     }
 }

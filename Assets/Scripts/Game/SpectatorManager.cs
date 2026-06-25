@@ -337,15 +337,8 @@ public class SpectatorManager : MonoBehaviour
 
         targetController.SetSpectatorView(true);
 
+        // 이 함수 내부에서 무기, 탄약, ADS, 장전 상태를 전부 갱신한다.
         RefreshCurrentTargetState();
-
-        PlayerItem targetItem = newTarget.GetComponent<PlayerItem>();
-
-        if (targetItem == null)
-            targetItem = newTarget.GetComponentInChildren<PlayerItem>(true);
-
-        if (targetItem != null)
-            targetItem.RefreshRemoteReloadVisual();
 
         Debug.Log(
             $"[SPECTATOR TARGET APPLY] " +
@@ -422,7 +415,7 @@ public class SpectatorManager : MonoBehaviour
         }
 
         if (playerItem != null)
-            playerItem.RefreshRemoteReloadVisual();
+            playerItem.RefreshRemoteReloadAnimation();
 
         RefreshSpectatorUI(target, snapshot);
 
