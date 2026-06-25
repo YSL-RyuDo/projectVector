@@ -27,6 +27,7 @@ public class PlayerMovement : MonoBehaviour
     private FPSCameraLook _cam;
     private Animator _animator;
     private PlayerIdentity _playerIdentity;
+    private FootstepManager _footstepManager;
 
     private float _verticalVelocity;
     [SerializeField] private bool _isMine; // 내 캐릭터인지 여부 저장
@@ -76,6 +77,7 @@ public class PlayerMovement : MonoBehaviour
 
         _playerIdentity = GetComponent<PlayerIdentity>();
         _playerItem = GetComponent<PlayerItem>();
+        _footstepManager = GetComponent<FootstepManager>();
 
         lastSentPos = transform.position;
         lastSentYaw = transform.eulerAngles.y;
@@ -272,6 +274,14 @@ public class PlayerMovement : MonoBehaviour
             isMoving,
             _isCrouching
         );
+
+        if (_isMine && isGrounded && isMoving)
+        {
+            if (_footstepManager != null)
+            {
+                _footstepManager.PlayFootstep();
+            }
+        }
     }
 
     public void PlayKnifeAttackAnimation()
