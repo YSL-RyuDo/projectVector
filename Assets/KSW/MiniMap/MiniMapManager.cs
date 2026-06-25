@@ -142,6 +142,9 @@ public class MiniMapManager : MonoBehaviour
 
     private void Update()
     {
+        if (InGameChatUI.BlocksGameplayInput)
+            return;
+
         if (_localPlayerTransform == null)
             return;
 

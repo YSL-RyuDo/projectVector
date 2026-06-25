@@ -149,26 +149,38 @@ public class PlayerMovement : MonoBehaviour
         if (!CanMove)
             return;
 
-        Vector2 input = getInput();
+        bool chatOpen =
+            InGameChatUI.IsChatOpen;
+
+        Vector2 input =
+            chatOpen
+                ? Vector2.zero
+                : getInput();
 
         Vector3 move =
             transform.right * input.x +
             transform.forward * input.y;
 
-        bool isGrounded = _cc.isGrounded;
+        bool isGrounded =
+            _cc.isGrounded;
 
         if (!isGrounded)
         {
             _isCrouching = false;
         }
-        else if (Keyboard.current != null &&
-                 Keyboard.current.leftCtrlKey.wasPressedThisFrame)
+        else if (!chatOpen &&
+                 Keyboard.current != null &&
+                 Keyboard.current.leftCtrlKey
+                     .wasPressedThisFrame)
         {
-            _isCrouching = !_isCrouching;
+            _isCrouching =
+                !_isCrouching;
         }
 
-        if (Mouse.current != null &&
-            Mouse.current.leftButton.wasPressedThisFrame)
+        if (!chatOpen &&
+            Mouse.current != null &&
+            Mouse.current.leftButton
+                .wasPressedThisFrame)
         {
             if (_playerItem != null)
             {
@@ -183,7 +195,8 @@ public class PlayerMovement : MonoBehaviour
 
                     if (NetworkManager.Instance != null)
                     {
-                        NetworkManager.Instance.SendKnifeAttack();
+                        NetworkManager.Instance
+                            .SendKnifeAttack();
                     }
                 }
             }
@@ -199,12 +212,14 @@ public class PlayerMovement : MonoBehaviour
                 _verticalVelocity = -2f;
             }
 
-            if (Keyboard.current != null &&
-                Keyboard.current.spaceKey.wasPressedThisFrame)
+            if (!chatOpen &&
+                Keyboard.current != null &&
+                Keyboard.current.spaceKey
+                    .wasPressedThisFrame)
             {
-                _verticalVelocity = CalculateJumpSpeed();
+                _verticalVelocity =
+                    CalculateJumpSpeed();
 
-                // 점프하면 무조건 일어서기
                 _isCrouching = false;
 
                 OnJumpEvent?.Invoke();
@@ -227,16 +242,20 @@ public class PlayerMovement : MonoBehaviour
                 Vector3.Lerp(
                     _cam.transform.localPosition,
                     targetPos,
-                    Time.deltaTime * _crouchSpeed
+                    Time.deltaTime *
+                    _crouchSpeed
                 );
         }
 
         Vector3 velocity =
-            move.normalized * currentMoveSpeed +
-            Vector3.up * _verticalVelocity;
+            move.normalized *
+            currentMoveSpeed +
+            Vector3.up *
+            _verticalVelocity;
 
         _cc.Move(
-            velocity * Time.deltaTime
+            velocity *
+            Time.deltaTime
         );
 
         if (_animator != null)
@@ -606,7 +625,7 @@ public class PlayerMovement : MonoBehaviour
             }
 
             // --- [추가/수정] 긴총을 들고 있고 마우스 우클릭 유지 중일 때 처리 ---
-            if (weaponOffset == 6 && Mouse.current != null && Mouse.current.rightButton.isPressed)
+            if (!InGameChatUI.IsChatOpen && weaponOffset == 6 && Mouse.current != null && Mouse.current.rightButton.isPressed)
             {
                 // 점프 중이 아닐 때만 사격 자세(10번) 고정 (원한다면 점프 중에도 적용 가능)
                 if (!isJumping)
@@ -637,13 +656,30 @@ public class PlayerMovement : MonoBehaviour
 
     private Vector2 getInput()
     {
-        var kb = Keyboard.current;
-        if (kb == null) return Vector2.zero;
-        Vector2 input = Vector2.zero;
-        if (kb.aKey.isPressed) input.x -= 1;
-        if (kb.dKey.isPressed) input.x += 1;
-        if (kb.sKey.isPressed) input.y -= 1;
-        if (kb.wKey.isPressed) input.y += 1;
+        if (InGameChatUI.IsChatOpen)
+            return Vector2.zero;
+
+        Keyboard keyboard =
+            Keyboard.current;
+
+        if (keyboard == null)
+            return Vector2.zero;
+
+        Vector2 input =
+            Vector2.zero;
+
+        if (keyboard.aKey.isPressed)
+            input.x -= 1f;
+
+        if (keyboard.dKey.isPressed)
+            input.x += 1f;
+
+        if (keyboard.sKey.isPressed)
+            input.y -= 1f;
+
+        if (keyboard.wKey.isPressed)
+            input.y += 1f;
+
         return input;
     }
 

@@ -127,6 +127,9 @@ public enum PacketType : ushort
 
     PKT_CS_STORE_BUY_REQUEST = 164,
     PKT_SC_STORE_BUY_RESULT = 165,
+
+    PKT_CS_IN_GAME_CHAT = 166,
+    PKT_SC_IN_GAME_CHAT = 167,
 }
 
 public enum RegisterResult : byte

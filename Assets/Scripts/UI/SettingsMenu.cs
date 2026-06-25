@@ -104,14 +104,16 @@ public class SettingsMenu : MonoBehaviour
         if (!CanUseSettingsMenu())
             return;
 
-        if (Keyboard.current == null)
+        Keyboard keyboard = Keyboard.current;
+
+        if (keyboard == null)
             return;
 
-        if (!Keyboard.current.escapeKey
-            .wasPressedThisFrame)
-        {
+        if (!keyboard.escapeKey.wasPressedThisFrame)
             return;
-        }
+
+        if (InGameChatUI.TryCloseChatByEscape())
+            return;
 
         ToggleSettingsMenu();
     }

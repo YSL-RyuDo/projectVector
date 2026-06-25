@@ -46,6 +46,11 @@ public class PlayerSpike : MonoBehaviour
 
     private void Update()
     {
+        if (InGameChatUI.BlocksGameplayInput)
+        {
+            return;
+        }
+
         if (GameController.Instance != null && GameController.Instance.IsPaused)
             return;
 

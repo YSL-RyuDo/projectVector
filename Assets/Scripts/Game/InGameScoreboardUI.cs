@@ -20,9 +20,10 @@ public class InGameScoreboardUI : MonoBehaviour
 
     private ScoreboardData currentData;
     private byte myTeam;
-    private bool roundHistoryInitialized = false;
+    private bool roundHistoryInitialized;
 
-    private bool isScoreboardOpen = false;
+    private bool isScoreboardOpen;
+    private bool suppressTabUntilReleased;
 
     private void Awake()
     {
@@ -30,18 +31,26 @@ public class InGameScoreboardUI : MonoBehaviour
 
         if (rootPanel == null)
         {
-            Debug.LogError("[SCOREBOARD] Root Panel is null.");
+            Debug.LogError(
+                "[SCOREBOARD] Root Panel is null."
+            );
+
             return;
         }
 
         if (rootPanel == gameObject)
         {
-            Debug.LogError("[SCOREBOARD] Root Panel에 자기 자신을 넣으면 안 됩니다.");
+            Debug.LogError(
+                "[SCOREBOARD] Root Panel에 자기 자신을 넣으면 안 됩니다."
+            );
+
             return;
         }
 
         rootPanel.SetActive(false);
+
         isScoreboardOpen = false;
+        suppressTabUntilReleased = false;
     }
 
     private void OnDestroy()
@@ -55,13 +64,44 @@ public class InGameScoreboardUI : MonoBehaviour
         if (rootPanel == null)
             return;
 
-        bool tabPressed = IsTabPressed();
+        bool tabPressed =
+            IsTabPressed();
 
-        if (tabPressed && !isScoreboardOpen)
+        if (InGameChatUI.IsChatOpen ||
+            InGameChatUI.WasTabConsumedThisFrame)
+        {
+            suppressTabUntilReleased = true;
+
+            if (isScoreboardOpen)
+                Close();
+
+            return;
+        }
+
+        if (suppressTabUntilReleased)
+        {
+            if (!tabPressed)
+            {
+                suppressTabUntilReleased = false;
+            }
+
+            if (isScoreboardOpen)
+                Close();
+
+            return;
+        }
+
+        if (tabPressed &&
+            !isScoreboardOpen)
+        {
             Open();
+        }
 
-        if (!tabPressed && isScoreboardOpen)
+        if (!tabPressed &&
+            isScoreboardOpen)
+        {
             Close();
+        }
 
         if (isScoreboardOpen)
             Draw();
@@ -69,10 +109,8 @@ public class InGameScoreboardUI : MonoBehaviour
 
     private bool IsTabPressed()
     {
-        if (Keyboard.current != null && Keyboard.current.tabKey.isPressed)
-            return true;
-
-        return false;
+        return Keyboard.current != null &&
+               Keyboard.current.tabKey.isPressed;
     }
 
     public void Open()
@@ -80,10 +118,12 @@ public class InGameScoreboardUI : MonoBehaviour
         if (rootPanel == null)
             return;
 
-        isScoreboardOpen = true;
-        rootPanel.SetActive(true);
+        if (InGameChatUI.IsChatOpen)
+            return;
 
-        // 상점 패널이 떠 있어도 스코어보드가 위로 오게 함
+        isScoreboardOpen = true;
+
+        rootPanel.SetActive(true);
         rootPanel.transform.SetAsLastSibling();
 
         Draw();
@@ -107,7 +147,8 @@ public class InGameScoreboardUI : MonoBehaviour
         return isScoreboardOpen;
     }
 
-    public void OnRecvScoreboardUpdate(ScoreboardData data)
+    public void OnRecvScoreboardUpdate(
+        ScoreboardData data)
     {
         currentData = data;
         myTeam = data.myTeam;
@@ -115,7 +156,11 @@ public class InGameScoreboardUI : MonoBehaviour
         if (!roundHistoryInitialized)
         {
             if (roundHistoryUI != null)
-                roundHistoryUI.Init(myTeam);
+            {
+                roundHistoryUI.Init(
+                    myTeam
+                );
+            }
 
             roundHistoryInitialized = true;
         }
@@ -143,12 +188,17 @@ public class InGameScoreboardUI : MonoBehaviour
         );
     }
 
-    public void InitRoundHistory(byte myTeamValue)
+    public void InitRoundHistory(
+        byte myTeamValue)
     {
         myTeam = myTeamValue;
 
         if (roundHistoryUI != null)
-            roundHistoryUI.Init(myTeam);
+        {
+            roundHistoryUI.Init(
+                myTeam
+            );
+        }
     }
 
     private void Draw()
@@ -158,10 +208,14 @@ public class InGameScoreboardUI : MonoBehaviour
         if (currentData == null)
             return;
 
-        List<ScoreboardMemberData> ourTeam = new();
-        List<ScoreboardMemberData> enemyTeam = new();
+        List<ScoreboardMemberData> ourTeam =
+            new List<ScoreboardMemberData>();
 
-        foreach (ScoreboardMemberData member in currentData.members)
+        List<ScoreboardMemberData> enemyTeam =
+            new List<ScoreboardMemberData>();
+
+        foreach (ScoreboardMemberData member
+                 in currentData.members)
         {
             if (member.team == myTeam)
                 ourTeam.Add(member);
@@ -172,62 +226,90 @@ public class InGameScoreboardUI : MonoBehaviour
         SortByKda(ourTeam);
         SortByKda(enemyTeam);
 
-        uint myPlayerId = NetworkManager.Instance != null
-            ? NetworkManager.Instance.MyPlayerId
-            : 0;
+        uint myPlayerId =
+            NetworkManager.Instance != null
+                ? NetworkManager.Instance.MyPlayerId
+                : 0;
 
-        for (int i = 0; i < ourTeamRows.Length && i < ourTeam.Count; i++)
+        for (int i = 0;
+             i < ourTeamRows.Length &&
+             i < ourTeam.Count;
+             i++)
         {
             if (ourTeamRows[i] == null)
                 continue;
 
             ourTeamRows[i].SetData(
                 ourTeam[i],
-                GetCharacterSprite(ourTeam[i].characterId),
+                GetCharacterSprite(
+                    ourTeam[i].characterId
+                ),
                 myPlayerId
             );
         }
 
-        for (int i = 0; i < enemyTeamRows.Length && i < enemyTeam.Count; i++)
+        for (int i = 0;
+             i < enemyTeamRows.Length &&
+             i < enemyTeam.Count;
+             i++)
         {
             if (enemyTeamRows[i] == null)
                 continue;
 
             enemyTeamRows[i].SetData(
                 enemyTeam[i],
-                GetCharacterSprite(enemyTeam[i].characterId),
+                GetCharacterSprite(
+                    enemyTeam[i].characterId
+                ),
                 myPlayerId
             );
         }
     }
 
-    private void SortByKda(List<ScoreboardMemberData> list)
+    private void SortByKda(
+        List<ScoreboardMemberData> list)
     {
-        list.Sort((a, b) =>
-        {
-            int scoreA = GetKdaScore(a);
-            int scoreB = GetKdaScore(b);
+        list.Sort(
+            (a, b) =>
+            {
+                int scoreA =
+                    GetKdaScore(a);
 
-            int compare = scoreB.CompareTo(scoreA);
-            if (compare != 0)
-                return compare;
+                int scoreB =
+                    GetKdaScore(b);
 
-            return a.slotIndex.CompareTo(b.slotIndex);
-        });
+                int compare =
+                    scoreB.CompareTo(scoreA);
+
+                if (compare != 0)
+                    return compare;
+
+                return a.slotIndex.CompareTo(
+                    b.slotIndex
+                );
+            }
+        );
     }
 
-    private int GetKdaScore(ScoreboardMemberData data)
+    private int GetKdaScore(
+        ScoreboardMemberData data)
     {
-        return data.kills * 100 + data.assists * 50 - data.deaths * 20;
+        return data.kills * 100 +
+               data.assists * 50 -
+               data.deaths * 20;
     }
 
-    private Sprite GetCharacterSprite(int characterId)
+    private Sprite GetCharacterSprite(
+        int characterId)
     {
         if (characterSprites == null)
             return null;
 
-        if (characterId < 0 || characterId >= characterSprites.Length)
+        if (characterId < 0 ||
+            characterId >= characterSprites.Length)
+        {
             return null;
+        }
 
         return characterSprites[characterId];
     }
@@ -236,7 +318,8 @@ public class InGameScoreboardUI : MonoBehaviour
     {
         if (ourTeamRows != null)
         {
-            foreach (ScoreboardRowUI row in ourTeamRows)
+            foreach (ScoreboardRowUI row
+                     in ourTeamRows)
             {
                 if (row != null)
                     row.Clear();
@@ -245,7 +328,8 @@ public class InGameScoreboardUI : MonoBehaviour
 
         if (enemyTeamRows != null)
         {
-            foreach (ScoreboardRowUI row in enemyTeamRows)
+            foreach (ScoreboardRowUI row
+                     in enemyTeamRows)
             {
                 if (row != null)
                     row.Clear();

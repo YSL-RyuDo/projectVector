@@ -557,6 +557,10 @@ public class NetworkManager : MonoBehaviour
                 HandleReloadVisual(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_IN_GAME_CHAT:
+                HandleInGameChat(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -4290,8 +4294,7 @@ public class NetworkManager : MonoBehaviour
         client.Send(buffer);
     }
 
-    private void HandleReloadVisual(
-    byte[] body)
+    private void HandleReloadVisual(byte[] body)
     {
         if (body == null ||
             body.Length < 12)
@@ -4363,5 +4366,80 @@ public class NetworkManager : MonoBehaviour
             return localPlayer.Team;
 
         return 255;
+    }
+
+    public void SendInGameChat(InGameChatChannel channel,string message)
+    {
+        message =message?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(message))
+            return;
+
+        const int messageSize = 256;
+
+        ushort size =4 + 1 + messageSize;
+
+        ushort type =(ushort)PacketType.PKT_CS_IN_GAME_CHAT;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size),0,buffer,offset,2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type),0,buffer,offset,2);
+        offset += 2;
+
+        buffer[offset] =(byte)channel;
+        offset += 1;
+
+        Packet.WriteFixedString(buffer,offset,message,messageSize);
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND IN GAME CHAT] " +$"channel={channel}, message={message}");
+    }
+
+    private void HandleInGameChat(byte[] body)
+    {
+        const int nicknameSize = 20;
+        const int messageSize = 256;
+        const int requiredBodySize =4 + 1 + 1 + nicknameSize + messageSize;
+
+        if (body == null || body.Length < requiredBodySize)
+        {
+            Debug.LogWarning($"[IN GAME CHAT] invalid body length=" + $"{body?.Length ?? 0}");
+            return;
+        }
+
+        int offset = 0;
+
+        uint senderPlayerId =BitConverter.ToUInt32(body,offset);
+        offset += 4;
+
+        InGameChatChannel channel = (InGameChatChannel)body[offset];
+        offset += 1;
+
+        byte senderTeam = body[offset];
+        offset += 1;
+
+        string nickname =Packet.ReadFixedString(body,offset,nicknameSize);
+        offset += nicknameSize;
+
+        string message =Packet.ReadFixedString(body,offset,messageSize);
+        offset += messageSize;
+
+        if (InGameChatUI.Instance != null)
+        {
+            InGameChatUI.Instance.OnReceiveChat(senderPlayerId,channel,senderTeam,nickname,message);
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[IN GAME CHAT] " +
+                "InGameChatUI.Instance is null"
+            );
+        }
     }
 }

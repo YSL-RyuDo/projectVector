@@ -56,6 +56,9 @@ public class PlayerItem : MonoBehaviour
 
     void Update()
     {
+        if (InGameChatUI.BlocksGameplayInput)
+            return;
+
         if (!gameObject.CompareTag("Player"))
             return;
 
@@ -77,15 +80,49 @@ public class PlayerItem : MonoBehaviour
             return;
         }
 
+        if (Keyboard.current == null)
+            return;
+
+        // 장전 중에도 무기 슬롯 변경은 허용한다.
+        // 실제 취소 처리는 Switch() 안에서 수행한다.
+        if (Keyboard.current.digit1Key.wasPressedThisFrame)
+        {
+            Switch(0);
+            return;
+        }
+
+        if (Keyboard.current.digit2Key.wasPressedThisFrame)
+        {
+            Switch(1);
+            return;
+        }
+
+        if (Keyboard.current.digit3Key.wasPressedThisFrame)
+        {
+            Switch(2);
+            return;
+        }
+
+        if (Keyboard.current.digit4Key.wasPressedThisFrame)
+        {
+            Switch(3);
+            return;
+        }
+
+        if (Keyboard.current.digit5Key.wasPressedThisFrame)
+        {
+            Switch(4);
+            return;
+        }
+
         // R키 장전
-        if (Keyboard.current != null &&
-            Keyboard.current.rKey.wasPressedThisFrame)
+        if (Keyboard.current.rKey.wasPressedThisFrame)
         {
             TryStartReload();
             return;
         }
 
-        // 장전 중에는 아래 입력 전부 차단
+        // 장전 중에는 드롭/픽업 같은 나머지 입력만 차단한다.
         if (isReloading)
             return;
 
@@ -100,21 +137,6 @@ public class PlayerItem : MonoBehaviour
             TryPickup();
             Debug.Log("e");
         }
-
-        if (Keyboard.current.digit1Key.wasPressedThisFrame)
-            Switch(0);
-
-        if (Keyboard.current.digit2Key.wasPressedThisFrame)
-            Switch(1);
-
-        if (Keyboard.current.digit3Key.wasPressedThisFrame)
-            Switch(2);
-
-        if (Keyboard.current.digit4Key.wasPressedThisFrame)
-            Switch(3);
-
-        if (Keyboard.current.digit5Key.wasPressedThisFrame)
-            Switch(4);
     }
 
     private void InitializeDefaultItems()
@@ -340,15 +362,6 @@ public class PlayerItem : MonoBehaviour
 
     void Switch(int index)
     {
-        if (isReloading)
-        {
-            Debug.Log(
-                "[PLAYER ITEM] weapon switch blocked while reloading."
-            );
-
-            return;
-        }
-
         if (index < 0 || index >= items.Length)
             return;
 
@@ -365,6 +378,20 @@ public class PlayerItem : MonoBehaviour
         {
             Debug.Log("스파이크가 없어서 5번 슬롯으로 전환할 수 없습니다.");
             return;
+        }
+
+        // 장전 중 다른 슬롯으로 바꾸면 기존 장전을 즉시 취소한다.
+        // CancelReload()가 코루틴 정지, 애니메이션 정지,
+        // 서버 장전 상태 취소 패킷 전송까지 처리한다.
+        if (isReloading)
+        {
+            int canceledWeaponId = reloadingWeaponId;
+            CancelReload(false);
+
+            Debug.Log(
+                $"[PLAYER ITEM] reload canceled by weapon switch. " +
+                $"weaponId={canceledWeaponId}, targetSlot={index}"
+            );
         }
 
         if (currentIndex >= 0 && currentIndex < items.Length)
