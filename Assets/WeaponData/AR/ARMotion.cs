@@ -5,9 +5,11 @@ public class ARMotion : MonoBehaviour
 {
     private Animator _animator;
     private bool isReloading = false;
+    private Weapon _weapon;
 
     private void Start()
     {
+        _weapon = GetComponent<Weapon>();
         _animator = GetComponentInChildren<Animator>();
     }
 
@@ -15,7 +17,7 @@ public class ARMotion : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.R) && !isReloading)
         {
-            StartCoroutine(reLoadTime(2.4f));
+            StartCoroutine(reLoadTime(_weapon.GetWeaponReLoadTime()));
         }
     }
 

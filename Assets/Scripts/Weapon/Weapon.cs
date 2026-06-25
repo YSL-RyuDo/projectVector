@@ -835,4 +835,11 @@ public class Weapon : Item
 
         return weaponData.weight;
     }
+
+    // KSW: 무기 재장전 시간 리턴 함수 추가
+    public float GetWeaponReLoadTime()
+    {
+        if (weaponData == null) return 0;
+        return weaponData.reloadTime;
+    }
 }
