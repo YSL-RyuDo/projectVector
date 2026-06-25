@@ -377,6 +377,17 @@ public class PlayerMovement : MonoBehaviour
         ApplyAnimationIndexFromServer(
             _targetAnimIndex
         );
+
+        // 惯家府 贸府
+        bool remoteIsGrounded = (serverAnimIndex % 6 != 5);
+
+        if (remoteIsGrounded && _remoteIsMoving)
+        {
+            if (_footstepManager != null)
+            {
+                _footstepManager.PlayFootstep();
+            }
+        }
     }
 
     private void ApplyAnimationIndexFromServer(byte animIndex)
