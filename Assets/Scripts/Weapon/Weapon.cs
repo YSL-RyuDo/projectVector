@@ -48,6 +48,8 @@ public class Weapon : Item
     private PlayerMovement playerMovement;
     private ARMotion arMotion;
 
+    private GameObject crosshair;
+
     void Awake()
     {
         audioSource = GetComponent<AudioSource>();
@@ -102,7 +104,11 @@ public class Weapon : Item
         if (ammoObj != null)
             ammoText = ammoObj.GetComponent<TMP_Text>();
         //else
-            //Debug.LogWarning($"[WEAPON] AmmoText object not found. object={name}", this);
+        //Debug.LogWarning($"[WEAPON] AmmoText object not found. object={name}", this);
+
+        GameObject crosshairObj = GameObject.Find("CrossHair");
+        if (crosshairObj != null)
+            crosshair = crosshairObj;
     }
 
     public void Initialize(WeaponData data, Transform dp, int mag, int reserve)
@@ -186,6 +192,8 @@ public class Weapon : Item
     void OnDisable()
     {
         isReloading = false;
+        isADS = false;
+        crosshair?.SetActive(true);
         StopAllCoroutines();
     }
 
@@ -206,6 +214,24 @@ public class Weapon : Item
             weaponData.weaponType == WeaponData.WeaponType.Shotgun ||
             weaponData.weaponType == WeaponData.WeaponType.Knife;
 
+        if (cannotADS || isReloading)
+        {
+            if (isADS)
+            {
+                isADS = false;
+                cameraLook?.SetADS(false);
+                weaponADS?.SetADS(false);
+
+                playerMovement?.SetADS(false);
+
+                crosshair?.SetActive(true);
+            }
+
+            cameraController.SetFOV(weaponData.normalFOV);
+            return;
+        }
+
+        /*
         if (cannotADS)
         {
             // 이전 무기에서 ADS 중이었다면 강제로 해제
@@ -222,6 +248,7 @@ public class Weapon : Item
 
             return;
         }
+        */
 
         if (Mouse.current == null)
             return;
@@ -237,6 +264,8 @@ public class Weapon : Item
             weaponADS?.SetADS(isADS);
 
             playerMovement?.SetADS(isADS);
+
+            crosshair?.SetActive(true);
         }
 
         float targetFOV = isADS
@@ -250,7 +279,7 @@ public class Weapon : Item
         );
 
         cameraController.SetFOV(nextFOV);
-}
+    }
 
     public override void OnUse()
     {
