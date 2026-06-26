@@ -28,13 +28,17 @@ public class Weapon : Item
 
     private AudioSource audioSource;
 
+    [Header("3D Gun Audio")]
+    [SerializeField, Range(0f, 1f)] private float gunVolume = 1f;
+    [SerializeField, Min(0.01f)] private float gunMinDistance = 3f;
+    [SerializeField, Min(0.01f)] private float gunMaxDistance = 80f;
+
     private PlayerHP ownerHP;
     private bool isPlayer;
 
     private int currentAmmo;
     private int reserveAmmo;
     private float nextFireTime;
-    private bool isReloading;
     private bool isADS;
 
     [Header("Recoil Logic")]
@@ -50,12 +54,16 @@ public class Weapon : Item
 
     private GameObject crosshair;
 
+    private PlayerItem playerItem;
+
     void Awake()
     {
         audioSource = GetComponent<AudioSource>();
 
         if (audioSource == null)
             audioSource = GetComponentInChildren<AudioSource>(true);
+
+        ConfigureWeaponAudioSource(audioSource);
 
         arMotion = GetComponent<ARMotion>();
 
@@ -109,6 +117,8 @@ public class Weapon : Item
         GameObject crosshairObj = GameObject.Find("CrossHair");
         if (crosshairObj != null)
             crosshair = crosshairObj;
+
+        playerItem = GetComponentInParent<PlayerItem>();
     }
 
     public void Initialize(WeaponData data, Transform dp, int mag, int reserve)
@@ -157,20 +167,12 @@ public class Weapon : Item
 
         HandleADS();
 
-        if (isReloading) return;
+        if (playerItem != null && playerItem.IsReloading)
+            return;
 
         bool isFiringInput = IsAutomatic()
             ? Mouse.current.leftButton.isPressed
             : Mouse.current.leftButton.wasPressedThisFrame;
-
-        if (Keyboard.current.rKey.wasPressedThisFrame)
-        {
-            currentShotIndex = 0;
-            //recoilSystem?.StopRecoil();
-
-            StartCoroutine(Reload());
-            return;
-        }
 
         if (isFiringInput)
         {
@@ -186,12 +188,13 @@ public class Weapon : Item
     }
     void OnEnable()
     {
+        isADS = false;
+        crosshair?.SetActive(true);
         UpdateAmmoUI();
     }
 
     void OnDisable()
     {
-        isReloading = false;
         isADS = false;
         crosshair?.SetActive(true);
         StopAllCoroutines();
@@ -203,7 +206,7 @@ public class Weapon : Item
             return;
 
         if (cameraController == null)
-                    return;
+            return;
 
         if (cameraController.PlayerCamera == null)
             return;
@@ -214,7 +217,9 @@ public class Weapon : Item
             weaponData.weaponType == WeaponData.WeaponType.Shotgun ||
             weaponData.weaponType == WeaponData.WeaponType.Knife;
 
-        if (cannotADS || isReloading)
+        bool reloading = playerItem != null && playerItem.IsReloading;
+
+        if (cannotADS || reloading)
         {
             if (isADS)
             {
@@ -223,9 +228,10 @@ public class Weapon : Item
                 weaponADS?.SetADS(false);
 
                 playerMovement?.SetADS(false);
-
-                crosshair?.SetActive(true);
             }
+
+            // ADS가 불가능하거나 장전 중이면 일반 크로스헤어를 표시한다.
+            crosshair?.SetActive(true);
 
             cameraController.SetFOV(weaponData.normalFOV);
             return;
@@ -265,7 +271,8 @@ public class Weapon : Item
 
             playerMovement?.SetADS(isADS);
 
-            crosshair?.SetActive(true);
+            // 조준 중에는 숨기고, 조준이 풀리면 다시 표시한다.
+            crosshair?.SetActive(!isADS);
         }
 
         float targetFOV = isADS
@@ -286,6 +293,9 @@ public class Weapon : Item
         base.OnUse();
 
         if (weaponData == null)
+            return;
+
+        if (playerItem != null && playerItem.IsReloading)
             return;
 
         if (Time.time < nextFireTime)
@@ -323,6 +333,20 @@ public class Weapon : Item
         Debug.Log($"[REMOTE FIRE SOUND] playerId={_playerIdentity?.PlayerId}, weaponId={GetWeaponId()}");
     }
 
+    private void ConfigureWeaponAudioSource(AudioSource source)
+    {
+        if (source == null)
+            return;
+
+        source.playOnAwake = false;
+        source.spatialBlend = 1f;
+        source.rolloffMode = AudioRolloffMode.Logarithmic;
+        source.minDistance = Mathf.Max(0.01f, gunMinDistance);
+        source.maxDistance = Mathf.Max(source.minDistance, gunMaxDistance);
+        source.dopplerLevel = 0f;
+        source.volume = gunVolume;
+    }
+
     private void PlayLocalGunSound()
     {
         if (weaponData == null || weaponData.gunSound == null)
@@ -338,11 +362,18 @@ public class Weapon : Item
 
         if (audioSource != null && audioSource.isActiveAndEnabled)
         {
+            // 로컬 총소리도 같은 AudioSource를 사용하고 반드시 3D로 설정한다.
+            ConfigureWeaponAudioSource(audioSource);
             audioSource.PlayOneShot(weaponData.gunSound);
             return;
         }
 
-        AudioSource.PlayClipAtPoint(weaponData.gunSound, transform.position, 1f);
+        // AudioSource가 없는 예외 상황에서도 3D 임시 소스로 재생한다.
+        PlayTemporarySpatialSound(
+            weaponData.gunSound,
+            transform.position,
+            $"LocalGunSound_{GetWeaponId()}"
+        );
     }
 
     private void PlayRemoteGunSound()
@@ -354,23 +385,32 @@ public class Weapon : Item
             ? _playerIdentity.transform.position
             : transform.position;
 
-        GameObject soundObject = new GameObject($"RemoteGunSound_{GetWeaponId()}");
-        soundObject.transform.position = soundPosition;
+        PlayTemporarySpatialSound(
+            weaponData.gunSound,
+            soundPosition,
+            $"RemoteGunSound_{GetWeaponId()}"
+        );
+    }
+
+    private void PlayTemporarySpatialSound(
+        AudioClip clip,
+        Vector3 position,
+        string objectName)
+    {
+        if (clip == null)
+            return;
+
+        GameObject soundObject = new GameObject(objectName);
+        soundObject.transform.position = position;
 
         AudioSource source = soundObject.AddComponent<AudioSource>();
-        source.clip = weaponData.gunSound;
-        source.playOnAwake = false;
+        source.clip = clip;
         source.loop = false;
-        source.volume = 1f;
-        source.spatialBlend = 1f;
-        source.rolloffMode = AudioRolloffMode.Logarithmic;
-        source.minDistance = 3f;
-        source.maxDistance = 80f;
-        source.dopplerLevel = 0f;
 
+        ConfigureWeaponAudioSource(source);
         source.Play();
 
-        Destroy(soundObject, weaponData.gunSound.length + 0.2f);
+        Destroy(soundObject, clip.length + 0.2f);
     }
 
     public void PlayKnifeAttackVisualFromServer()
@@ -690,37 +730,55 @@ public class Weapon : Item
         }
     }
 
-    IEnumerator Reload()
+    private int GetMagazineCapacity()
     {
         if (weaponData == null)
-            yield break;
+            return 0;
 
-        if (isReloading)
-            yield break;
+        // 서버 ServerWeaponData의 weaponId별 탄창 크기와 동일하게 유지한다.
+        switch (weaponData.weaponId)
+        {
+            case 0: return 12;  // P92
+            case 1: return 7;   // P1911
+            case 2: return 6;   // R1895
+            case 3: return 20;  // UZI
+            case 4: return 30;  // UMP
+            case 5: return 5;   // S1897
+            case 6: return 5;   // AA12
+            case 7: return 12;  // Dragunov
+            case 8: return 30;  // M416
+            case 9: return 25;  // AK47
+            case 10: return 100; // M249
+            case 11: return 5;   // Kar98
+            case 12: return 5;   // AWM
+            case 13: return 0;   // Knife
+            default:
+                return Mathf.Max(0, weaponData.magSize);
+        }
+    }
+
+    public bool CanReloadNow()
+    {
+        if (weaponData == null)
+            return false;
 
         if (weaponData.weaponType == WeaponData.WeaponType.Knife)
-            yield break;
+            return false;
 
-        if (currentAmmo >= weaponData.magSize || reserveAmmo <= 0)
-            yield break;
+        int maxAmmo = GetMagazineCapacity();
 
-        isReloading = true;
+        if (maxAmmo <= 0)
+            return false;
 
-        if (ammoText != null)
-            ammoText.text = "Reloading...";
+        // 탄창이 이미 가득 차 있음
+        if (currentAmmo >= maxAmmo)
+            return false;
 
-        if (InGameUIManager.Instance != null)
-            InGameUIManager.Instance.SetBulletText(0, reserveAmmo);
+        // 옮겨 담을 예비 탄약이 없음
+        if (reserveAmmo <= 0)
+            return false;
 
-        // 총기를 숨기지 않고 장전 애니메이션 실행
-        PlayReloadAnimation();
-
-        yield return new WaitForSeconds(weaponData.reloadTime);
-
-        if (NetworkManager.Instance != null)
-            NetworkManager.Instance.SendReload();
-
-        isReloading = false;
+        return true;
     }
 
     private void UpdateAmmoUI()
@@ -756,7 +814,7 @@ public class Weapon : Item
 
     public void ReloadFull()
     {
-        currentAmmo = weaponData.magSize;
+        currentAmmo = GetMagazineCapacity();
         reserveAmmo = weaponData.maxReserveAmmo;
         UpdateAmmoUI();
     }
@@ -878,24 +936,5 @@ public class Weapon : Item
     {
         if (weaponData == null) return 0;
         return weaponData.reloadTime;
-    }
-
-    public void PlayReloadAnimation()
-    {
-        if (weaponData == null)
-            return;
-
-        if (weaponData.weaponType == WeaponData.WeaponType.Knife)
-            return;
-
-        if (arMotion == null)
-        {
-            arMotion = GetComponent<ARMotion>();
-
-            if (arMotion == null)
-                arMotion = GetComponentInChildren<ARMotion>(true);
-        }
-
-        arMotion?.PlayReload(weaponData.reloadTime);
     }
 }

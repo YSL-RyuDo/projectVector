@@ -1518,6 +1518,16 @@ public class PlayerItem : MonoBehaviour
             return;
         }
 
+        if (!currentWeapon.CanReloadNow())
+        {
+            Debug.Log(
+                $"[RELOAD BLOCK] cannot reload. " +
+                $"weaponId={currentWeapon.GetWeaponId()}"
+            );
+
+            return;
+        }
+
         if (WeaponDropSpawner.Instance == null)
         {
             Debug.LogError(
@@ -1905,5 +1915,6 @@ public class PlayerItem : MonoBehaviour
             Debug.Log($"[EDITOR DEBUG] Inspector forced switch to Slot {targetIndex}");
         }
     }
+
 #endif
 }
