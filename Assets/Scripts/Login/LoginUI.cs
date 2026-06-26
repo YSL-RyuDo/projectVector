@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
 using UnityEngine.UI;
@@ -12,7 +12,7 @@ public enum LoginMode
 public class LoginUI : MonoBehaviour
 {
     // =========================
-    // 1. º¯¼ö
+    // 1. ë³€ìˆ˜
     // =========================
 
     public LoginMode mode = LoginMode.Login;
@@ -46,7 +46,7 @@ public class LoginUI : MonoBehaviour
     private bool isLoginSuccess = false;
 
     // =========================
-    // 2. ÃÊ±âÈ­
+    // 2. ì´ˆê¸°í™”
     // =========================
 
     void Start()
@@ -63,16 +63,16 @@ public class LoginUI : MonoBehaviour
     }
 
     // =========================
-    // 3. ÀÔ·Â Ã³¸®
+    // 3. ì…ë ¥ ì²˜ë¦¬
     // =========================
 
     void Update()
     {
-        // TAB ÀÌµ¿
+        // TAB ì´ë™
         if (Input.GetKeyDown(KeyCode.Tab))
             HandleTab();
 
-        // ENTER ½ÇÇà
+        // ENTER ì‹¤í–‰
         if (Input.GetKeyDown(KeyCode.Return))
         {
             if (!isLoginSuccess)
@@ -81,7 +81,7 @@ public class LoginUI : MonoBehaviour
                 OnClickEnter();
         }
 
-        // ESC ÆË¾÷ ´İ±â
+        // ESC íŒì—… ë‹«ê¸°
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             if (popupImage.activeSelf)
@@ -90,7 +90,7 @@ public class LoginUI : MonoBehaviour
     }
 
     // =========================
-    // 4. ¸ğµå Á¦¾î
+    // 4. ëª¨ë“œ ì œì–´
     // =========================
 
     public void SetMode(LoginMode newMode)
@@ -129,7 +129,7 @@ public class LoginUI : MonoBehaviour
     }
 
     // =========================
-    // 5. ¹öÆ° µ¿ÀÛ
+    // 5. ë²„íŠ¼ ë™ì‘
     // =========================
 
     public void OnClickSend()
@@ -154,7 +154,7 @@ public class LoginUI : MonoBehaviour
     }
 
     // =========================
-    // 6. ¼­¹ö ¿äÃ»
+    // 6. ì„œë²„ ìš”ì²­
     // =========================
 
     void TryLogin()
@@ -164,7 +164,7 @@ public class LoginUI : MonoBehaviour
 
         if (id == "" || pw == "")
         {
-            ShowError("¾ÆÀÌµğ / ºñ¹Ğ¹øÈ£ ÀÔ·Â");
+            ShowError("ì•„ì´ë”” / ë¹„ë°€ë²ˆí˜¸ ì…ë ¥");
             return;
         }
 
@@ -180,7 +180,7 @@ public class LoginUI : MonoBehaviour
 
         if (pw != confirm)
         {
-            ShowError("ºñ¹Ğ¹øÈ£ ºÒÀÏÄ¡");
+            ShowError("ë¹„ë°€ë²ˆí˜¸ ë¶ˆì¼ì¹˜");
             return;
         }
 
@@ -188,14 +188,14 @@ public class LoginUI : MonoBehaviour
     }
 
     // =========================
-    // 7. ¼­¹ö ÀÀ´ä
+    // 7. ì„œë²„ ì‘ë‹µ
     // =========================
 
     public void OnLoginResult(bool success)
     {
         if (!success)
         {
-            ShowError("·Î±×ÀÎ ½ÇÆĞ");
+            ShowError("ë¡œê·¸ì¸ ì‹¤íŒ¨");
             return;
         }
 
@@ -213,7 +213,7 @@ public class LoginUI : MonoBehaviour
     {
         if (!success)
         {
-            ShowError("È¸¿ø°¡ÀÔ ½ÇÆĞ");
+            ShowError("íšŒì›ê°€ì… ì‹¤íŒ¨");
             return;
         }
 
@@ -222,7 +222,7 @@ public class LoginUI : MonoBehaviour
     }
 
     // =========================
-    // 8. UI Ã³¸®
+    // 8. UI ì²˜ë¦¬
     // =========================
 
     public void ShowError(string msg)
@@ -247,7 +247,7 @@ public class LoginUI : MonoBehaviour
     }
 
     // =========================
-    // 9. TAB ÀÌµ¿
+    // 9. TAB ì´ë™
     // =========================
 
     void HandleTab()

@@ -32,6 +32,9 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private Sprite defaultThrowWeaponSprite;
     [SerializeField] private Sprite defaultSpikeSprite;
 
+    [Header("Crosshair")]
+    [SerializeField] private GameObject crosshairObject;
+
     private Sprite cachedSpikeSprite;
     private int currentHp;
     private int currentBarrier;
@@ -42,9 +45,12 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private GameObject spikeSliderObject;
 
     public GameObject SpikeSliderObject => spikeSliderObject;
+
     private void Awake()
     {
         Instance = this;
+
+        ResolveCrosshairReference();
 
         if (spikeImage != null)
         {
@@ -56,15 +62,75 @@ public class InGameUIManager : MonoBehaviour
         }
     }
 
+    private void ResolveCrosshairReference()
+    {
+        if (crosshairObject != null)
+            return;
+
+        crosshairObject = GameObject.Find("CrossHair");
+
+        if (crosshairObject == null)
+        {
+            Debug.LogWarning(
+                "[INGAME UI] CrossHair 오브젝트를 찾지 못했습니다. " +
+                "Inspector의 Crosshair Object에 직접 연결하세요."
+            );
+        }
+    }
+
+    public void SetCrosshairVisible(bool visible)
+    {
+        ResolveCrosshairReference();
+
+        if (crosshairObject == null)
+            return;
+
+        if (crosshairObject.activeSelf != visible)
+            crosshairObject.SetActive(visible);
+    }
+
+    public void SetDisplayedPlayerADS(bool isADS)
+    {
+        SetCrosshairVisible(!isADS);
+    }
+
+    public void RefreshSpectatorCrosshair()
+    {
+        bool isSpectating =
+            SpectatorManager.Instance != null &&
+            SpectatorManager.Instance.IsSpectating;
+
+        if (!isSpectating)
+        {
+            SetCrosshairVisible(true);
+            return;
+        }
+
+        bool targetIsADS = false;
+        uint targetPlayerId =
+            SpectatorManager.Instance.CurrentTargetPlayerId;
+
+        if (NetworkManager.Instance != null &&
+            NetworkManager.Instance.TryGetCombatSnapshot(
+                targetPlayerId,
+                out PlayerCombatSnapshot snapshot))
+        {
+            targetIsADS = snapshot.isADS;
+        }
+
+        SetDisplayedPlayerADS(targetIsADS);
+    }
+
     public void InitializeLocalPlayerUI(
-    int characterId,
-    Sprite characterSprite,
-    PickCharacterData characterData)
+        int characterId,
+        Sprite characterSprite,
+        PickCharacterData characterData)
     {
         SetCharacterImage(characterSprite);
         SetSkillIcons(characterData);
 
         InitializeWeaponUI();
+        SetCrosshairVisible(true);
 
         Debug.Log($"[INGAME UI INIT] characterId={characterId}");
     }
@@ -124,15 +190,12 @@ public class InGameUIManager : MonoBehaviour
 
         if (hpBar != null)
         {
-            // HP바의 최대치는 항상 maxHp, 보통 100
             hpBar.fillAmount =
                 Mathf.Clamp01((float)currentHp / Mathf.Max(1, maxHp));
         }
 
         if (barrierBar != null)
         {
-            // 베리어바의 UI 최대치는 항상 100
-            // Light 50이면 0.5, Heavy 100이면 1.0
             barrierBar.fillAmount =
                 Mathf.Clamp01((float)currentBarrier / 100f);
         }
@@ -218,22 +281,18 @@ public class InGameUIManager : MonoBehaviour
     }
 
     public void SetSpectatorPlayerUI(
-    int characterId,
-    Sprite characterSprite,
-    int hp,
-    int barrier,
-    int maxHpValue,
-    int maxBarrierValue,
-    int weaponId,
-    int magAmmo,
-    int reserveAmmo)
+        int characterId,
+        Sprite characterSprite,
+        int hp,
+        int barrier,
+        int maxHpValue,
+        int maxBarrierValue,
+        int weaponId,
+        int magAmmo,
+        int reserveAmmo)
     {
-        // 관전 대상 캐릭터 초상화
-        SetCharacterImage(
-            characterSprite
-        );
+        SetCharacterImage(characterSprite);
 
-        // 관전 대상 캐릭터 스킬 이미지
         if (PickManager.Instance != null)
         {
             PickCharacterData characterData =
@@ -249,7 +308,6 @@ public class InGameUIManager : MonoBehaviour
             }
         }
 
-        // HP와 베리어
         SetHpBarrier(
             hp,
             barrier,
@@ -257,13 +315,11 @@ public class InGameUIManager : MonoBehaviour
             maxBarrierValue
         );
 
-        // 현재 탄약
         SetBulletText(
             magAmmo,
             reserveAmmo
         );
 
-        // 현재 무기 아이콘
         if (WeaponDropSpawner.Instance != null &&
             weaponId >= 0)
         {
@@ -296,6 +352,9 @@ public class InGameUIManager : MonoBehaviour
                 }
             }
         }
+
+        // 관전 대상을 변경했을 때 이미 ADS 중인 대상이면 즉시 크로스헤어를 숨긴다.
+        RefreshSpectatorCrosshair();
     }
 
     public void SetSpikePossession(bool hasSpike)

@@ -1,14 +1,14 @@
-using System.Collections;
+ï»¿using System.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 public class HitEffect : MonoBehaviour
 {
-    [Header("ÄÄÆ÷³ÍÆ® ¿¬°á")]
+    [Header("ì»´í¬ë„ŒíŠ¸ ì—°ê²°")]
     public Volume postProcessVolume;
 
-    [Header("Vignette ¼³Á¤")]
+    [Header("Vignette ì„¤ì •")]
     public float hitIntensity = 0.6f;
     public float normalIntensity = 0.2f;
     public float fadeSpeed = 3f;

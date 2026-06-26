@@ -1,4 +1,4 @@
-using System.Collections;
+ï»¿using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -192,17 +192,17 @@ public class CombatFeedbackUI : MonoBehaviour
         {
             if (!teamKnown)
             {
-                resultTitleText.text = "¶ó¿îµå Á¾·á";
+                resultTitleText.text = "ë¼ìš´ë“œ ì¢…ë£Œ";
                 resultTitleText.color = Color.white;
             }
             else if (victory)
             {
-                resultTitleText.text = "¶ó¿îµå ½Â¸®";
+                resultTitleText.text = "ë¼ìš´ë“œ ìŠ¹ë¦¬";
                 resultTitleText.color = victoryColor;
             }
             else
             {
-                resultTitleText.text = "¶ó¿îµå ÆĞ¹è";
+                resultTitleText.text = "ë¼ìš´ë“œ íŒ¨ë°°";
                 resultTitleText.color = defeatColor;
             }
         }
@@ -253,22 +253,22 @@ public class CombatFeedbackUI : MonoBehaviour
         switch (reason)
         {
             case RoundWinReason.ATTACK_ELIMINATION:
-                return "¼öºñÆÀ Àü¸ê";
+                return "ìˆ˜ë¹„íŒ€ ì „ë©¸";
 
             case RoundWinReason.ATTACK_SPIKE_EXPLODE:
-                return "½ºÆÄÀÌÅ© ÆøÆÄ";
+                return "ìŠ¤íŒŒì´í¬ í­íŒŒ";
 
             case RoundWinReason.DEFENSE_ELIMINATION:
-                return "°ø°İÆÀ Àü¸ê";
+                return "ê³µê²©íŒ€ ì „ë©¸";
 
             case RoundWinReason.DEFENSE_TIME_OUT:
-                return "½Ã°£ ÃÊ°ú";
+                return "ì‹œê°„ ì´ˆê³¼";
 
             case RoundWinReason.DEFENSE_SPIKE_DEFUSE:
-                return "½ºÆÄÀÌÅ© ÇØÃ¼";
+                return "ìŠ¤íŒŒì´í¬ í•´ì²´";
 
             default:
-                return "¶ó¿îµå Á¾·á";
+                return "ë¼ìš´ë“œ ì¢…ë£Œ";
         }
     }
 

@@ -390,7 +390,7 @@ public class NetworkManager : MonoBehaviour
             case (ushort)PacketType.PKT_SC_TEMP_GAME_START_RESULT:
                 HandleTempGameStartResult(body);
                 break;
-            
+
             case (ushort)PacketType.PKT_SC_ROOM_LIST:
                 HandleRoomList(body);
                 break;
@@ -564,7 +564,7 @@ public class NetworkManager : MonoBehaviour
                 break;
 
             default:
-                Debug.LogWarning($"ó�� �� �� ��Ŷ type={type}");
+                Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
         }
     }
@@ -583,11 +583,11 @@ public class NetworkManager : MonoBehaviour
         {
             string msg = result switch
             {
-                (byte)RegisterResult.ID_DUPLICATE => "���̵� �ߺ�",
-                (byte)RegisterResult.NICK_DUPLICATE => "�г��� �ߺ�",
-                (byte)RegisterResult.PASSWORD_MISMATCH => "��й�ȣ ����ġ",
-                (byte)RegisterResult.INVALID_INPUT => "�Է� ����",
-                _ => "ȸ������ ����"
+                (byte)RegisterResult.ID_DUPLICATE => "아이디 중복",
+                (byte)RegisterResult.NICK_DUPLICATE => "닉네임 중복",
+                (byte)RegisterResult.PASSWORD_MISMATCH => "비밀번호 불일치",
+                (byte)RegisterResult.INVALID_INPUT => "입력 오류",
+                _ => "회원가입 실패"
             };
 
             loginUI?.ShowError(msg);
@@ -610,11 +610,11 @@ public class NetworkManager : MonoBehaviour
 
             string msg = result switch
             {
-                (byte)LoginResult.NO_ID => "���̵� ����",
-                (byte)LoginResult.WRONG_PASSWORD => "��й�ȣ Ʋ��",
-                (byte)LoginResult.INVALID_INPUT => "�Է� ����",
-                (byte)LoginResult.ALREADY_LOGIN => "�̹� �α��ε� �����Դϴ�.",
-                _ => "�α��� ����"
+                (byte)LoginResult.NO_ID => "아이디 없음",
+                (byte)LoginResult.WRONG_PASSWORD => "비밀번호 틀림",
+                (byte)LoginResult.INVALID_INPUT => "입력 오류",
+                (byte)LoginResult.ALREADY_LOGIN => "이미 로그인된 계정입니다.",
+                _ => "로그인 실패"
             };
 
             loginUI?.ShowError(msg);
@@ -663,7 +663,7 @@ public class NetworkManager : MonoBehaviour
         byte result = body[0];
         int modelId = BitConverter.ToInt32(body, 1);
 
-        
+
         lobbyManager?.OnRecvLobbyCharacterSelectResult(result, modelId);
     }
 
@@ -796,7 +796,7 @@ public class NetworkManager : MonoBehaviour
             room.roomId = BitConverter.ToUInt32(body, offset);
             offset += 4;
 
-            // ���ڿ� raw ����Ʈ Ȯ��
+            // 문자열 raw 바이트 확인
             Debug.Log($"[RAW roomName bytes] {BitConverter.ToString(body, offset, 32)}");
             room.roomName = Packet.ReadFixedString(body, offset, 32);
             offset += 32;
@@ -1343,7 +1343,7 @@ public class NetworkManager : MonoBehaviour
             member.isMe = body[offset] != 0;
             offset += 1;
 
-            if(i<memberCount)
+            if (i < memberCount)
             {
                 state.members.Add(member);
 
@@ -1468,7 +1468,7 @@ public class NetworkManager : MonoBehaviour
         }
 
         uint roomId =
-            BitConverter.ToUInt32(body,0);
+            BitConverter.ToUInt32(body, 0);
 
         Debug.Log($"[MATCH START] roomId={roomId}");
 
@@ -1500,13 +1500,13 @@ public class NetworkManager : MonoBehaviour
 
         GameAllReadyData data = new GameAllReadyData();
 
-        data.roomId =BitConverter.ToUInt32(body,offset);
+        data.roomId = BitConverter.ToUInt32(body, offset);
         offset += 4;
 
-        data.prepareSeconds =BitConverter.ToUInt16(body,offset);
+        data.prepareSeconds = BitConverter.ToUInt16(body, offset);
         offset += 2;
 
-        byte memberCount =body[offset];
+        byte memberCount = body[offset];
         offset += 1;
 
         for (int i = 0; i < 6; i++)
@@ -1514,25 +1514,25 @@ public class NetworkManager : MonoBehaviour
             GameReadyMemberData member =
                 new GameReadyMemberData();
 
-            member.playerId =BitConverter.ToUInt32(body,offset);
+            member.playerId = BitConverter.ToUInt32(body, offset);
             offset += 4;
 
-            member.userId =Packet.ReadFixedString(body,offset,20);
+            member.userId = Packet.ReadFixedString(body, offset, 20);
             offset += 20;
 
-            member.nickname =Packet.ReadFixedString(body,offset,20);
+            member.nickname = Packet.ReadFixedString(body, offset, 20);
             offset += 20;
 
-            member.team =body[offset];
+            member.team = body[offset];
             offset += 1;
 
-            member.slotIndex =body[offset];
+            member.slotIndex = body[offset];
             offset += 1;
 
-            member.characterId =BitConverter.ToInt32(body,offset);
+            member.characterId = BitConverter.ToInt32(body, offset);
             offset += 4;
 
-            member.rankImageId =BitConverter.ToInt32(body,offset);
+            member.rankImageId = BitConverter.ToInt32(body, offset);
             offset += 4;
 
             Debug.Log(
@@ -1574,11 +1574,11 @@ public class NetworkManager : MonoBehaviour
 
         foreach (GameReadyMemberData member in data.members)
         {
-            ApplyTeamToPlayer(member.playerId,member.team);
+            ApplyTeamToPlayer(member.playerId, member.team);
 
-            if (member.playerId ==MyPlayerId &&MiniMapCamera.Instance != null)
+            if (member.playerId == MyPlayerId && MiniMapCamera.Instance != null)
             {
-                byte firstRoundSpawnTeam =member.team == 0? (byte)0: (byte)1;
+                byte firstRoundSpawnTeam = member.team == 0 ? (byte)0 : (byte)1;
 
                 MiniMapCamera.Instance.SetLocalRoundRole(firstRoundSpawnTeam);
             }
@@ -1674,7 +1674,7 @@ public class NetworkManager : MonoBehaviour
         buffer[offset] = animIndex;
         offset += 1;
 
-        buffer[offset] =isCrouching? (byte)1: (byte)0;
+        buffer[offset] = isCrouching ? (byte)1 : (byte)0;
         offset += 1;
 
         client.Send(buffer);
@@ -1705,7 +1705,7 @@ public class NetworkManager : MonoBehaviour
         byte animIndex = body[offset];
         offset += 1;
 
-        bool isCrouching =body[offset] != 0;offset += 1;
+        bool isCrouching = body[offset] != 0; offset += 1;
         if (playerId == MyPlayerId)
             return;
 
@@ -2254,7 +2254,7 @@ public class NetworkManager : MonoBehaviour
             int knifeReserveAmmo = BitConverter.ToInt32(body, offset);
             offset += 4;
 
-            if (playerId == MyPlayerId &&MiniMapCamera.Instance != null)
+            if (playerId == MyPlayerId && MiniMapCamera.Instance != null)
             {
                 MiniMapCamera.Instance.SetLocalRoundRole(spawnTeam);
             }
@@ -2516,7 +2516,7 @@ public class NetworkManager : MonoBehaviour
                 if (knifeWeaponId >= 0)
                     StorePanelUI.Instance.SetOwnedWeaponFromServer(knifeWeaponId);
 
-                // ������� ���帶�� �ʱ�ȭ
+                // 방어구를 0으로 초기화
                 StorePanelUI.Instance.SetOwnedArmorFromServer(0);
             }
         }
@@ -2998,7 +2998,7 @@ public class NetworkManager : MonoBehaviour
             ps.SetHasSpikeFromServer(hasSpike);
         }
 
-        // �ٽ�: ��� Ŭ�󿡼� �ٴ� ������ũ ����
+        // 핵심: 모든 클라에서 바닥 스파이크 제거
         DroppedSpikePickup[] droppedSpikes =
             FindObjectsByType<DroppedSpikePickup>(
                 FindObjectsInactive.Include,
@@ -3053,7 +3053,7 @@ public class NetworkManager : MonoBehaviour
             CombatFeedbackUI.Instance.HideSpikeProgress();
 
             CombatFeedbackUI.Instance.ShowObjectiveNotice(
-                "�������� ������ũ�� ��ġ�߽��ϴ�.",
+                "공격팀이 스파이크를 설치했습니다.",
                 true
             );
         }
@@ -3093,7 +3093,7 @@ public class NetworkManager : MonoBehaviour
         if (SpikeSpawner.Instance != null)
             SpikeSpawner.Instance.SpawnDroppedAt(pos, dir, dropperPlayerId);
 
-        // �ٽ�: ������ũ�� ���� �÷��̾�� �� �̻� ������ũ �����ڰ� �ƴ�
+        // 핵심: 스파이크를 버린 플레이어는 더 이상 스파이크 소유자가 아님
         ApplySpikeDroppedToPlayer(dropperPlayerId);
     }
 
@@ -3149,12 +3149,12 @@ public class NetworkManager : MonoBehaviour
         {
             CombatFeedbackUI.Instance.HideSpikeProgress();
 
-            // ���� ��ġ ���� ������ ����
+            // 기존 설치 상태 아이콘 제거
             CombatFeedbackUI.Instance.ClearObjectiveState();
 
-            // ��ü �Ϸ� ������ ��� ǥ��
+            // 해체 완료 메시지만 잠깐 표시
             CombatFeedbackUI.Instance.ShowObjectiveNotice(
-                "�������� ������ũ�� ��ü�߽��ϴ�.",
+                "수비팀이 스파이크를 해체했습니다.",
                 false
             );
         }
@@ -3242,14 +3242,14 @@ public class NetworkManager : MonoBehaviour
             $"deadCharacter={deadCharacterId}"
         );
 
-        // ų���� ���������� �����ϴ� ����� ų�α� ǥ��
+        // 킬러가 정상적으로 존재하는 경우만 킬로그 표시
         if (killerPlayerId != 0 &&
             KillLogManager.Instance != null)
         {
             byte myTeam = GetMyTeamForKillLog();
 
-            // ų���� �� ���̸� OurKillLogPrefab
-            // ų���� ��� ���̸� EnemyKillLogPrefab
+            // 킬러가 내 팀이면 OurKillLogPrefab
+            // 킬러가 상대 팀이면 EnemyKillLogPrefab
             bool isOurKill =
                 killerTeam == myTeam;
 
@@ -3495,7 +3495,7 @@ public class NetworkManager : MonoBehaviour
         snapshot.weaponId = weaponId;
         snapshot.isADS = false;
 
-        // ������ ���� Switch���� �̹� ó����
+        // 로컬은 무기 Switch에서 이미 처리함
         if (playerId == MyPlayerId)
         {
             Debug.Log(
@@ -3528,7 +3528,7 @@ public class NetworkManager : MonoBehaviour
                     weaponId
                 );
 
-                // ���� ���� �� ���� ADS ���� ����
+                // 무기 변경 후 기존 ADS 상태 해제
                 item.SetADSVisualFromServer(false);
             }
             else
@@ -3555,6 +3555,18 @@ public class NetworkManager : MonoBehaviour
                 $"[WEAPON SWITCH NOTIFY] " +
                 $"player not found. playerId={playerId}"
             );
+        }
+
+        bool isCurrentSpectatorTarget =
+            SpectatorManager.Instance != null &&
+            SpectatorManager.Instance.IsSpectating &&
+            SpectatorManager.Instance.CurrentTargetPlayerId == playerId;
+
+        if (isCurrentSpectatorTarget &&
+            InGameUIManager.Instance != null)
+        {
+            // 무기를 변경하면 서버 스냅샷의 ADS도 false로 초기화된다.
+            InGameUIManager.Instance.SetDisplayedPlayerADS(false);
         }
 
         if (SpectatorManager.Instance != null)
@@ -3649,6 +3661,18 @@ public class NetworkManager : MonoBehaviour
                 $"[ADS STATE] PlayerIdentity not found. " +
                 $"playerId={playerId}"
             );
+        }
+
+        bool isCurrentSpectatorTarget =
+            SpectatorManager.Instance != null &&
+            SpectatorManager.Instance.IsSpectating &&
+            SpectatorManager.Instance.CurrentTargetPlayerId == playerId;
+
+        if (isCurrentSpectatorTarget &&
+            InGameUIManager.Instance != null)
+        {
+            // 관전 중인 대상의 ADS 상태를 크로스헤어에 즉시 반영한다.
+            InGameUIManager.Instance.SetDisplayedPlayerADS(isADS);
         }
 
         if (SpectatorManager.Instance != null)
@@ -3889,7 +3913,7 @@ public class NetworkManager : MonoBehaviour
 
         RegisterDroppedItem(dropId, obj);
 
-        // �ٽ�: ��� ���������� �տ� �� ���⿡���� ����
+        // 핵심: 모든 클라이언트에서 손에 든 무기에서도 제거
         PlayerIdentity dropperIdentity = FindPlayerIdentityById(dropperPlayerId);
         if (dropperIdentity != null)
         {
@@ -4134,12 +4158,12 @@ public class NetworkManager : MonoBehaviour
         {
             if (itemType == 0)
             {
-                // ���� ���� ����
+                // 무기 구매 성공
                 StorePanelUI.Instance.SetOwnedWeaponFromServer(weaponId);
             }
             else if (itemType == 1)
             {
-                // �� ���� ����
+                // 방어구 구매 성공
                 StorePanelUI.Instance.SetOwnedArmorFromServer(maxBarrier);
             }
         }
@@ -4149,7 +4173,7 @@ public class NetworkManager : MonoBehaviour
 
     private byte GetMyTeamForKillLog()
     {
-        // Scoreboard���� ������ ���� �� �� ���� �� ������ ��� �ִ�.
+        // Scoreboard에서 받은 내 팀 정보가 가장 정확하다.
         if (latestScoreboardData != null)
             return latestScoreboardData.myTeam;
 
@@ -4275,7 +4299,7 @@ public class NetworkManager : MonoBehaviour
         ushort size =
             4 + 4 + 4;
 
-        ushort type = (ushort) PacketType.PKT_CS_RELOAD_VISUAL;
+        ushort type = (ushort)PacketType.PKT_CS_RELOAD_VISUAL;
 
         byte[] buffer = new byte[size];
 
@@ -4352,7 +4376,7 @@ public class NetworkManager : MonoBehaviour
             ) != 0;
         offset += 4;
 
-        // �� ȭ���� �̹� ���ÿ��� ó���ߴ�.
+        // 내 화면은 이미 로컬에서 처리했다.
         if (playerId == MyPlayerId)
             return;
 
@@ -4395,44 +4419,44 @@ public class NetworkManager : MonoBehaviour
         return 255;
     }
 
-    public void SendInGameChat(InGameChatChannel channel,string message)
+    public void SendInGameChat(InGameChatChannel channel, string message)
     {
-        message =message?.Trim() ?? string.Empty;
+        message = message?.Trim() ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(message))
             return;
 
         const int messageSize = 256;
 
-        ushort size =4 + 1 + messageSize;
+        ushort size = 4 + 1 + messageSize;
 
-        ushort type =(ushort)PacketType.PKT_CS_IN_GAME_CHAT;
+        ushort type = (ushort)PacketType.PKT_CS_IN_GAME_CHAT;
 
         byte[] buffer = new byte[size];
 
         int offset = 0;
 
-        Buffer.BlockCopy(BitConverter.GetBytes(size),0,buffer,offset,2);
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
         offset += 2;
 
-        Buffer.BlockCopy(BitConverter.GetBytes(type),0,buffer,offset,2);
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
         offset += 2;
 
-        buffer[offset] =(byte)channel;
+        buffer[offset] = (byte)channel;
         offset += 1;
 
-        Packet.WriteFixedString(buffer,offset,message,messageSize);
+        Packet.WriteFixedString(buffer, offset, message, messageSize);
 
         client.Send(buffer);
 
-        Debug.Log($"[SEND IN GAME CHAT] " +$"channel={channel}, message={message}");
+        Debug.Log($"[SEND IN GAME CHAT] " + $"channel={channel}, message={message}");
     }
 
     private void HandleInGameChat(byte[] body)
     {
         const int nicknameSize = 20;
         const int messageSize = 256;
-        const int requiredBodySize =4 + 1 + 1 + nicknameSize + messageSize;
+        const int requiredBodySize = 4 + 1 + 1 + nicknameSize + messageSize;
 
         if (body == null || body.Length < requiredBodySize)
         {
@@ -4442,7 +4466,7 @@ public class NetworkManager : MonoBehaviour
 
         int offset = 0;
 
-        uint senderPlayerId =BitConverter.ToUInt32(body,offset);
+        uint senderPlayerId = BitConverter.ToUInt32(body, offset);
         offset += 4;
 
         InGameChatChannel channel = (InGameChatChannel)body[offset];
@@ -4451,15 +4475,15 @@ public class NetworkManager : MonoBehaviour
         byte senderTeam = body[offset];
         offset += 1;
 
-        string nickname =Packet.ReadFixedString(body,offset,nicknameSize);
+        string nickname = Packet.ReadFixedString(body, offset, nicknameSize);
         offset += nicknameSize;
 
-        string message =Packet.ReadFixedString(body,offset,messageSize);
+        string message = Packet.ReadFixedString(body, offset, messageSize);
         offset += messageSize;
 
         if (InGameChatUI.Instance != null)
         {
-            InGameChatUI.Instance.OnReceiveChat(senderPlayerId,channel,senderTeam,nickname,message);
+            InGameChatUI.Instance.OnReceiveChat(senderPlayerId, channel, senderTeam, nickname, message);
         }
         else
         {
