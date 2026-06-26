@@ -169,6 +169,8 @@ public class PlayerCombatSnapshot
     public int maxHp;
     public int maxBarrier;
 
+    public bool hasHpState;
+
     public int weaponId = -1;
     public int magAmmo;
     public int reserveAmmo;
@@ -562,7 +564,7 @@ public class NetworkManager : MonoBehaviour
                 break;
 
             default:
-                Debug.LogWarning($"Ã³¸® ¾È µÈ ÆĞÅ¶ type={type}");
+                Debug.LogWarning($"Ã³ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½Å¶ type={type}");
                 break;
         }
     }
@@ -581,11 +583,11 @@ public class NetworkManager : MonoBehaviour
         {
             string msg = result switch
             {
-                (byte)RegisterResult.ID_DUPLICATE => "¾ÆÀÌµğ Áßº¹",
-                (byte)RegisterResult.NICK_DUPLICATE => "´Ğ³×ÀÓ Áßº¹",
-                (byte)RegisterResult.PASSWORD_MISMATCH => "ºñ¹Ğ¹øÈ£ ºÒÀÏÄ¡",
-                (byte)RegisterResult.INVALID_INPUT => "ÀÔ·Â ¿À·ù",
-                _ => "È¸¿ø°¡ÀÔ ½ÇÆĞ"
+                (byte)RegisterResult.ID_DUPLICATE => "ï¿½ï¿½ï¿½Ìµï¿½ ï¿½ßºï¿½",
+                (byte)RegisterResult.NICK_DUPLICATE => "ï¿½Ğ³ï¿½ï¿½ï¿½ ï¿½ßºï¿½",
+                (byte)RegisterResult.PASSWORD_MISMATCH => "ï¿½ï¿½Ğ¹ï¿½È£ ï¿½ï¿½ï¿½ï¿½Ä¡",
+                (byte)RegisterResult.INVALID_INPUT => "ï¿½Ô·ï¿½ ï¿½ï¿½ï¿½ï¿½",
+                _ => "È¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½"
             };
 
             loginUI?.ShowError(msg);
@@ -608,11 +610,11 @@ public class NetworkManager : MonoBehaviour
 
             string msg = result switch
             {
-                (byte)LoginResult.NO_ID => "¾ÆÀÌµğ ¾øÀ½",
-                (byte)LoginResult.WRONG_PASSWORD => "ºñ¹Ğ¹øÈ£ Æ²¸²",
-                (byte)LoginResult.INVALID_INPUT => "ÀÔ·Â ¿À·ù",
-                (byte)LoginResult.ALREADY_LOGIN => "ÀÌ¹Ì ·Î±×ÀÎµÈ °èÁ¤ÀÔ´Ï´Ù.",
-                _ => "·Î±×ÀÎ ½ÇÆĞ"
+                (byte)LoginResult.NO_ID => "ï¿½ï¿½ï¿½Ìµï¿½ ï¿½ï¿½ï¿½ï¿½",
+                (byte)LoginResult.WRONG_PASSWORD => "ï¿½ï¿½Ğ¹ï¿½È£ Æ²ï¿½ï¿½",
+                (byte)LoginResult.INVALID_INPUT => "ï¿½Ô·ï¿½ ï¿½ï¿½ï¿½ï¿½",
+                (byte)LoginResult.ALREADY_LOGIN => "ï¿½Ì¹ï¿½ ï¿½Î±ï¿½ï¿½Îµï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ô´Ï´ï¿½.",
+                _ => "ï¿½Î±ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½"
             };
 
             loginUI?.ShowError(msg);
@@ -794,7 +796,7 @@ public class NetworkManager : MonoBehaviour
             room.roomId = BitConverter.ToUInt32(body, offset);
             offset += 4;
 
-            // ¹®ÀÚ¿­ raw ¹ÙÀÌÆ® È®ÀÎ
+            // ï¿½ï¿½ï¿½Ú¿ï¿½ raw ï¿½ï¿½ï¿½ï¿½Æ® È®ï¿½ï¿½
             Debug.Log($"[RAW roomName bytes] {BitConverter.ToString(body, offset, 32)}");
             room.roomName = Packet.ReadFixedString(body, offset, 32);
             offset += 32;
@@ -1618,7 +1620,7 @@ public class NetworkManager : MonoBehaviour
 
             if (remainingSeconds == 0)
             {
-                TopInfoUI.Instance.SetGameDescription("ÀüÅõ ´Ü°è");
+                TopInfoUI.Instance.SetGameDescription("ì „íˆ¬ ë‹¨ê³„");
             }
         }
 
@@ -1841,17 +1843,20 @@ public class NetworkManager : MonoBehaviour
         int maxBarrier = BitConverter.ToInt32(body, offset);
         offset += 4;
 
-        Debug.Log(
-            $"[HP UPDATE] playerId={playerId}, hp={hp}, barrier={barrier}, " +
-            $"maxHp={maxHp}, maxBarrier={maxBarrier}"
-        );
-
         PlayerCombatSnapshot snapshot = GetOrCreateCombatSnapshot(playerId);
+
+        int previousTotalHealth = snapshot.hp + snapshot.barrier;
+        int newTotalHealth = hp + barrier;
+
+        bool tookDamage =
+            snapshot.hasHpState &&
+            newTotalHealth < previousTotalHealth;
 
         snapshot.hp = hp;
         snapshot.barrier = barrier;
         snapshot.maxHp = maxHp;
         snapshot.maxBarrier = maxBarrier;
+        snapshot.hasHpState = true;
 
         PlayerIdentity target = FindPlayerIdentityById(playerId);
 
@@ -1876,6 +1881,13 @@ public class NetworkManager : MonoBehaviour
         bool isSpectating =
             SpectatorManager.Instance != null &&
             SpectatorManager.Instance.IsSpectating;
+
+        uint displayedPlayerId = isSpectating
+            ? SpectatorManager.Instance.CurrentTargetPlayerId
+            : MyPlayerId;
+
+        bool hpUpdateBelongsToDisplayedPlayer =
+            playerId == displayedPlayerId;
 
         if (playerId == MyPlayerId && !isSpectating)
         {
@@ -1903,6 +1915,21 @@ public class NetworkManager : MonoBehaviour
                 playerId
             );
         }
+
+        if (tookDamage &&
+            hpUpdateBelongsToDisplayedPlayer &&
+            InGameUIManager.Instance != null)
+        {
+            InGameUIManager.Instance.PlayDamageFeedback();
+        }
+
+        Debug.Log(
+            $"[HP UPDATE] playerId={playerId}, " +
+            $"previousTotal={previousTotalHealth}, " +
+            $"newTotal={newTotalHealth}, " +
+            $"tookDamage={tookDamage}, " +
+            $"displayedPlayerId={displayedPlayerId}"
+        );
     }
 
     private void ApplyHPUpdate(
@@ -2153,7 +2180,7 @@ public class NetworkManager : MonoBehaviour
         if (TopInfoUI.Instance != null)
         {
             TopInfoUI.Instance.SetScoreByTeam(scoreA, scoreB);
-            TopInfoUI.Instance.SetGameDescription("±¸¸Å ´Ü°è");
+            TopInfoUI.Instance.SetGameDescription("êµ¬ë§¤ ë‹¨ê³„");
         }
 
         if (RoundManager.Instance != null)
@@ -2489,7 +2516,7 @@ public class NetworkManager : MonoBehaviour
                 if (knifeWeaponId >= 0)
                     StorePanelUI.Instance.SetOwnedWeaponFromServer(knifeWeaponId);
 
-                // º£¸®¾î´Â ¶ó¿îµå¸¶´Ù ÃÊ±âÈ­
+                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½å¸¶ï¿½ï¿½ ï¿½Ê±ï¿½È­
                 StorePanelUI.Instance.SetOwnedArmorFromServer(0);
             }
         }
@@ -2892,7 +2919,7 @@ public class NetworkManager : MonoBehaviour
 
         if (TopInfoUI.Instance != null)
         {
-            TopInfoUI.Instance.SetGameDescription("ÀüÅõ ´Ü°è");
+            TopInfoUI.Instance.SetGameDescription("ì „íˆ¬ ë‹¨ê³„");
             TopInfoUI.Instance.SetTimer(remainingSeconds);
         }
         else
@@ -2971,7 +2998,7 @@ public class NetworkManager : MonoBehaviour
             ps.SetHasSpikeFromServer(hasSpike);
         }
 
-        // ÇÙ½É: ¸ğµç Å¬¶ó¿¡¼­ ¹Ù´Ú ½ºÆÄÀÌÅ© Á¦°Å
+        // ï¿½Ù½ï¿½: ï¿½ï¿½ï¿½ Å¬ï¿½ó¿¡¼ï¿½ ï¿½Ù´ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å© ï¿½ï¿½ï¿½ï¿½
         DroppedSpikePickup[] droppedSpikes =
             FindObjectsByType<DroppedSpikePickup>(
                 FindObjectsInactive.Include,
@@ -2991,9 +3018,9 @@ public class NetworkManager : MonoBehaviour
         if (TopInfoUI.Instance != null)
         {
             if (showCarrierInfo != 0)
-                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} ½ºÆÄÀÌÅ© È¹µæ");
+                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} ìŠ¤íŒŒì´í¬ íšë“");
             else
-                TopInfoUI.Instance.SetGameDescription("½ºÆÄÀÌÅ© È¹µæµÊ");
+                TopInfoUI.Instance.SetGameDescription("ìŠ¤íŒŒì´í¬ íšë“ë¨");
         }
     }
     private void HandleSpikePlanted(byte[] body)
@@ -3017,7 +3044,7 @@ public class NetworkManager : MonoBehaviour
 
         if (TopInfoUI.Instance != null)
         {
-            TopInfoUI.Instance.SetGameDescription("½ºÆÄÀÌÅ© ¼³Ä¡µÊ");
+            TopInfoUI.Instance.SetGameDescription("ìŠ¤íŒŒì´í¬ ì„¤ì¹˜ë¨");
             TopInfoUI.Instance.SetUnknownTimer();
         }
 
@@ -3026,7 +3053,7 @@ public class NetworkManager : MonoBehaviour
             CombatFeedbackUI.Instance.HideSpikeProgress();
 
             CombatFeedbackUI.Instance.ShowObjectiveNotice(
-                "°ø°İÆÀÀÌ ½ºÆÄÀÌÅ©¸¦ ¼³Ä¡Çß½À´Ï´Ù.",
+                "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å©ï¿½ï¿½ ï¿½ï¿½Ä¡ï¿½ß½ï¿½ï¿½Ï´ï¿½.",
                 true
             );
         }
@@ -3066,7 +3093,7 @@ public class NetworkManager : MonoBehaviour
         if (SpikeSpawner.Instance != null)
             SpikeSpawner.Instance.SpawnDroppedAt(pos, dir, dropperPlayerId);
 
-        // ÇÙ½É: ½ºÆÄÀÌÅ©¸¦ ¹ö¸° ÇÃ·¹ÀÌ¾î´Â ´õ ÀÌ»ó ½ºÆÄÀÌÅ© º¸À¯ÀÚ°¡ ¾Æ´Ô
+        // ï¿½Ù½ï¿½: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å©ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ï¿½ ï¿½ï¿½ ï¿½Ì»ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å© ï¿½ï¿½ï¿½ï¿½ï¿½Ú°ï¿½ ï¿½Æ´ï¿½
         ApplySpikeDroppedToPlayer(dropperPlayerId);
     }
 
@@ -3116,18 +3143,18 @@ public class NetworkManager : MonoBehaviour
         }
 
         if (TopInfoUI.Instance != null)
-            TopInfoUI.Instance.SetGameDescription("½ºÆÄÀÌÅ© ÇØÃ¼µÊ");
+            TopInfoUI.Instance.SetGameDescription("ìŠ¤íŒŒì´í¬ í•´ì²´ë¨");
 
         if (CombatFeedbackUI.Instance != null)
         {
             CombatFeedbackUI.Instance.HideSpikeProgress();
 
-            // ±âÁ¸ ¼³Ä¡ »óÅÂ ¾ÆÀÌÄÜ Á¦°Å
+            // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
             CombatFeedbackUI.Instance.ClearObjectiveState();
 
-            // ÇØÃ¼ ¿Ï·á ¹®±¸¸¸ Àá±ñ Ç¥½Ã
+            // ï¿½ï¿½Ã¼ ï¿½Ï·ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ Ç¥ï¿½ï¿½
             CombatFeedbackUI.Instance.ShowObjectiveNotice(
-                "¼öºñÆÀÀÌ ½ºÆÄÀÌÅ©¸¦ ÇØÃ¼Çß½À´Ï´Ù.",
+                "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å©ï¿½ï¿½ ï¿½ï¿½Ã¼ï¿½ß½ï¿½ï¿½Ï´ï¿½.",
                 false
             );
         }
@@ -3215,14 +3242,14 @@ public class NetworkManager : MonoBehaviour
             $"deadCharacter={deadCharacterId}"
         );
 
-        // Å³·¯°¡ Á¤»óÀûÀ¸·Î Á¸ÀçÇÏ´Â »ç¸Á¸¸ Å³·Î±× Ç¥½Ã
+        // Å³ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ Å³ï¿½Î±ï¿½ Ç¥ï¿½ï¿½
         if (killerPlayerId != 0 &&
             KillLogManager.Instance != null)
         {
             byte myTeam = GetMyTeamForKillLog();
 
-            // Å³·¯°¡ ³» ÆÀÀÌ¸é OurKillLogPrefab
-            // Å³·¯°¡ »ó´ë ÆÀÀÌ¸é EnemyKillLogPrefab
+            // Å³ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¸ï¿½ OurKillLogPrefab
+            // Å³ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¸ï¿½ EnemyKillLogPrefab
             bool isOurKill =
                 killerTeam == myTeam;
 
@@ -3468,7 +3495,7 @@ public class NetworkManager : MonoBehaviour
         snapshot.weaponId = weaponId;
         snapshot.isADS = false;
 
-        // º»ÀÎÀº ·ÎÄÃ Switch¿¡¼­ ÀÌ¹Ì Ã³¸®µÊ
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Switchï¿½ï¿½ï¿½ï¿½ ï¿½Ì¹ï¿½ Ã³ï¿½ï¿½ï¿½ï¿½
         if (playerId == MyPlayerId)
         {
             Debug.Log(
@@ -3501,7 +3528,7 @@ public class NetworkManager : MonoBehaviour
                     weaponId
                 );
 
-                // ¹«±â º¯°æ ½Ã ÀÌÀü ADS ¿ÜÇü Á¦°Å
+                // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ADS ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
                 item.SetADSVisualFromServer(false);
             }
             else
@@ -3862,7 +3889,7 @@ public class NetworkManager : MonoBehaviour
 
         RegisterDroppedItem(dropId, obj);
 
-        // ÇÙ½É: µå¶ø ¼º°øÇßÀ¸¸é ¼Õ¿¡ µç ¹«±â¿¡¼­µµ Á¦°Å
+        // ï¿½Ù½ï¿½: ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Õ¿ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½â¿¡ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
         PlayerIdentity dropperIdentity = FindPlayerIdentityById(dropperPlayerId);
         if (dropperIdentity != null)
         {
@@ -4107,12 +4134,12 @@ public class NetworkManager : MonoBehaviour
         {
             if (itemType == 0)
             {
-                // ¹«±â ±¸¸Å ¼º°ø
+                // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
                 StorePanelUI.Instance.SetOwnedWeaponFromServer(weaponId);
             }
             else if (itemType == 1)
             {
-                // ¹æ¾î±¸ ±¸¸Å ¼º°ø
+                // ï¿½ï¿½î±¸ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
                 StorePanelUI.Instance.SetOwnedArmorFromServer(maxBarrier);
             }
         }
@@ -4122,7 +4149,7 @@ public class NetworkManager : MonoBehaviour
 
     private byte GetMyTeamForKillLog()
     {
-        // Scoreboard¿¡´Â ¼­¹ö°¡ º¸³» ÁØ ³» ½ÇÁ¦ ÆÀ Á¤º¸°¡ µé¾î ÀÖ´Ù.
+        // Scoreboardï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½Ö´ï¿½.
         if (latestScoreboardData != null)
             return latestScoreboardData.myTeam;
 
@@ -4325,7 +4352,7 @@ public class NetworkManager : MonoBehaviour
             ) != 0;
         offset += 4;
 
-        // ³» È­¸éÀº ÀÌ¹Ì ·ÎÄÃ¿¡¼­ Ã³¸®Çß´Ù.
+        // ï¿½ï¿½ È­ï¿½ï¿½ï¿½ï¿½ ï¿½Ì¹ï¿½ ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½ï¿½ß´ï¿½.
         if (playerId == MyPlayerId)
             return;
 
