@@ -7,28 +7,27 @@ public class Playertutorial : MonoBehaviour
     public TextMeshProUGUI StepText;
     public TextAsset Tuto;
 
+    public Transform[] stepPositions;
 
     int step = 0;
     string[] lines;
+    GameObject currentStepPoint;
 
     void Start()
     {
         lines = Tuto.text.Replace("\r", "").Split('\n');
 
-        StepText.text = lines[step];
+        StepText.text = lines[step].Trim();
         step++;
-    }
 
+        SpawnStepPoint();
+    }
 
     void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Steppoint"))
             return;
 
-        Vector3 newPos = other.transform.position + new Vector3(0f, 0f, -30f);
-        Quaternion newRot = other.transform.rotation;
-
-        Instantiate(SteppointPrefab, newPos, newRot);
         Destroy(other.gameObject);
 
         if (step < lines.Length)
@@ -36,7 +35,19 @@ public class Playertutorial : MonoBehaviour
             StepText.text = lines[step].Trim();
             step++;
         }
+
+        SpawnStepPoint();
+    }
+
+    void SpawnStepPoint()
+    {
+        if (step - 1 >= stepPositions.Length)
+            return;
+
+        currentStepPoint = Instantiate(
+            SteppointPrefab,
+            stepPositions[step - 1].position,
+            stepPositions[step - 1].rotation
+        );
     }
 }
-
-   
