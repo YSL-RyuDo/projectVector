@@ -50,6 +50,25 @@ public class DroppedItem : MonoBehaviour
         );
     }
 
+    // 로컬용 함수
+    public void PickupLocal(TESTPlayerItem player)
+    {
+        if (pickupRequested) return;
+        if (weaponData == null)
+        {
+            Debug.LogWarning("[DROPPED ITEM] weaponData is null");
+            return;
+        }
+
+        pickupRequested = true;
+
+        player.ApplyPickedWeaponLocal(weaponData, magAmmo, reserveAmmo);
+
+        Debug.Log($"[DROPPED ITEM LOCAL PICKUP] weaponId={weaponData.weaponId}, ammo={magAmmo}/{reserveAmmo}");
+
+        Destroy(gameObject);
+    }
+
     public void ResetPickupRequest()
     {
         pickupRequested = false;
