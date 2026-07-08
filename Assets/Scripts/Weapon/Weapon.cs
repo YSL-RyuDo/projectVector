@@ -155,6 +155,25 @@ public class Weapon : Item
         if (NetworkManager.Instance == null) return;
         if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
 
+        if (InitiatorSkill_Q.IsLocalDroneMode)
+        {
+            if (isADS)
+            {
+                isADS = false;
+
+                cameraLook?.SetADS(false);
+                weaponADS?.SetADS(false);
+                playerMovement?.SetADS(false);
+
+                if (weaponData != null && cameraController != null)
+                    cameraController.SetFOV(weaponData.normalFOV);
+
+                crosshair?.SetActive(false);
+            }
+
+            return;
+        }
+
         if (SettingsMenu.Instance != null && SettingsMenu.Instance.IsOpen)
         {
             return;
@@ -535,9 +554,15 @@ public class Weapon : Item
         Vector3 shootDir = GetSpreadDirection(cam.transform.forward);
         Ray ray = new Ray(cam.transform.position, shootDir);
 
-        Vector3 visualTargetPoint = ray.origin + shootDir * weaponData.range;
+        Vector3 visualTargetPoint =
+            ray.origin + shootDir * weaponData.range;
 
-        bool hasHit = TryGetFirstValidHit(ray, weaponData.range, out RaycastHit hit);
+        bool hasHit =
+            TryGetFirstValidHit(
+                ray,
+                weaponData.range,
+                out RaycastHit hit
+            );
 
         if (hasHit)
         {
@@ -549,42 +574,29 @@ public class Weapon : Item
                 $"point={hit.point}"
             );
 
-            PlayerIdentity targetIdentity =
-                hit.collider.GetComponentInParent<PlayerIdentity>();
-
-            if (targetIdentity != null)
+            // 핵심: 플레이어보다 드론을 먼저 검사해야 함
+            if (TryHandleDroneHit(hit))
             {
-                if (NetworkManager.Instance == null)
-                    return;
+                SpawnBulletVisual(
+                    shootDir,
+                    visualTargetPoint
+                );
 
-                if (targetIdentity.PlayerId == NetworkManager.Instance.MyPlayerId)
-                {
-                    Debug.Log("[HITSCAN HIT] ignored self.");
-                }
-                else
-                {
-                    Debug.Log(
-                        $"[HITSCAN PLAYER] targetPlayerId={targetIdentity.PlayerId}, " +
-                        $"userId={targetIdentity.UserId}"
-                    );
+                return;
+            }
 
-                    HitManager.TriggerEnemyHit();
-                    NetworkManager.Instance.SendHit(targetIdentity.PlayerId);
-                }
-            }
-            else
-            {
-                Debug.Log("[HITSCAN HIT] hit object is not player.");
-            }
+            TryHandlePlayerHit(hit);
         }
         else
         {
             Debug.Log("[HITSCAN MISS]");
         }
 
-        SpawnBulletVisual(shootDir, visualTargetPoint);
+        SpawnBulletVisual(
+            shootDir,
+            visualTargetPoint
+        );
     }
-
     private bool TryGetFirstValidHit(Ray ray, float range, out RaycastHit result)
     {
         result = default;
@@ -619,6 +631,96 @@ public class Weapon : Item
         }
 
         return false;
+    }
+
+    private bool TryHandleDroneHit(RaycastHit hit)
+    {
+        if (hit.collider == null)
+            return false;
+
+        DroneHitbox droneHitbox =
+            hit.collider.GetComponent<DroneHitbox>();
+
+        if (droneHitbox == null)
+        {
+            droneHitbox =
+                hit.collider.GetComponentInParent<DroneHitbox>();
+        }
+
+        if (droneHitbox == null)
+            return false;
+
+        if (droneHitbox.DroneId == 0)
+        {
+            Debug.LogWarning("[DRONE HIT] DroneId is 0");
+            return false;
+        }
+
+        if (NetworkManager.Instance == null)
+            return true;
+
+        Drone drone = droneHitbox.Drone;
+
+        if (drone != null &&
+            drone.OwnerPlayerId == NetworkManager.Instance.MyPlayerId)
+        {
+            Debug.Log(
+                $"[DRONE HIT] ignored own drone. droneId={droneHitbox.DroneId}"
+            );
+
+            return true;
+        }
+
+        Debug.Log(
+            $"[DRONE HIT SEND] droneId={droneHitbox.DroneId}, " +
+            $"hitObject={hit.collider.name}"
+        );
+
+        HitManager.TriggerEnemyHit();
+
+        NetworkManager.Instance.SendDroneHit(
+            droneHitbox.DroneId
+        );
+
+        return true;
+    }
+
+    private bool TryHandlePlayerHit(RaycastHit hit)
+    {
+        if (hit.collider == null)
+            return false;
+
+        PlayerIdentity targetIdentity =
+            hit.collider.GetComponentInParent<PlayerIdentity>();
+
+        if (targetIdentity == null)
+        {
+            Debug.Log("[HITSCAN HIT] hit object is not player.");
+            return false;
+        }
+
+        if (NetworkManager.Instance == null)
+            return true;
+
+        if (targetIdentity.PlayerId ==
+            NetworkManager.Instance.MyPlayerId)
+        {
+            Debug.Log("[HITSCAN HIT] ignored self.");
+            return true;
+        }
+
+        Debug.Log(
+            $"[HITSCAN PLAYER] targetPlayerId={targetIdentity.PlayerId}, " +
+            $"userId={targetIdentity.UserId}"
+        );
+
+        HitManager.TriggerEnemyHit();
+
+        NetworkManager.Instance.SendHit(
+            targetIdentity.PlayerId
+        );
+
+        return true;
     }
 
     private void SpawnBulletVisual(Vector3 shootDir, Vector3 targetPoint)
@@ -661,36 +763,57 @@ public class Weapon : Item
         if (bulletPrefab == null || firePoint == null)
             return;
 
-        Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        Ray ray =
+            cam.ViewportPointToRay(
+                new Vector3(0.5f, 0.5f, 0f)
+            );
 
         Vector3 targetPoint;
 
-        if (Physics.Raycast(ray, out RaycastHit hit, weaponData.range, hitMask, QueryTriggerInteraction.Ignore))
+        bool hasHit =
+            TryGetFirstValidHit(
+                ray,
+                weaponData.range,
+                out RaycastHit hit
+            );
+
+        if (hasHit)
         {
             targetPoint = hit.point;
+
+            // 핵심:
+            // Projectile 총도 조준선에 드론이 있으면 서버에 드론 피격 전송
+            TryHandleDroneHit(hit);
         }
         else
         {
-            targetPoint = ray.origin + ray.direction * weaponData.range;
+            targetPoint =
+                ray.origin + ray.direction * weaponData.range;
         }
 
-        Vector3 baseDir = (targetPoint - firePoint.position).normalized;
-        Vector3 shootDir = GetSpreadDirection(baseDir);
+        Vector3 baseDir =
+            (targetPoint - firePoint.position).normalized;
 
-        GameObject bullet = Instantiate(
-            bulletPrefab,
-            firePoint.position,
-            Quaternion.LookRotation(shootDir)
-        );
+        Vector3 shootDir =
+            GetSpreadDirection(baseDir);
 
-        Bullet bulletScript = bullet.GetComponent<Bullet>();
+        GameObject bullet =
+            Instantiate(
+                bulletPrefab,
+                firePoint.position,
+                Quaternion.LookRotation(shootDir)
+            );
+
+        Bullet bulletScript =
+            bullet.GetComponent<Bullet>();
 
         if (bulletScript != null)
         {
             bool isOwnerBullet =
                 NetworkManager.Instance != null &&
                 _playerIdentity != null &&
-                _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+                _playerIdentity.PlayerId ==
+                NetworkManager.Instance.MyPlayerId;
 
             bulletScript.Init(
                 _playerIdentity,

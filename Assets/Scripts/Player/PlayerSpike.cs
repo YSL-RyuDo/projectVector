@@ -46,11 +46,6 @@ public class PlayerSpike : MonoBehaviour
 
     private void Update()
     {
-        if (InGameChatUI.BlocksGameplayInput)
-        {
-            return;
-        }
-
         if (GameController.Instance != null && GameController.Instance.IsPaused)
             return;
 
@@ -60,27 +55,36 @@ public class PlayerSpike : MonoBehaviour
         if (Keyboard.current == null)
             return;
 
+        UpdateInteractionPrompt();
+
+        if (RoundManager.Instance != null &&
+            RoundManager.Instance.currentState == RoundManager.RoundState.Preparation)
+        {
+            return;
+        }
+
         if (Keyboard.current.fKey.wasPressedThisFrame)
         {
-            if (RoundManager.Instance != null &&
-                RoundManager.Instance.currentState == RoundManager.RoundState.Preparation)
+            if (playerItem != null && playerItem.TryPickupLookedItem())
+                return;
+
+            if (hasSpike)
             {
+                TryStartPlant();
                 return;
             }
 
-            if (hasSpike)
-                TryStartPlant();
-            else if (spikeInRange != null)
+            if (spikeInRange != null)
+            {
                 spikeInRange.TryStartDefuse();
+                return;
+            }
         }
 
         if (Keyboard.current.fKey.isPressed)
         {
-            if (RoundManager.Instance != null &&
-                RoundManager.Instance.currentState == RoundManager.RoundState.Preparation)
-            {
+            if (playerItem != null && playerItem.IsLookingAtPickupItem())
                 return;
-            }
 
             if (isPlanting)
                 Planting();
@@ -91,17 +95,44 @@ public class PlayerSpike : MonoBehaviour
 
         if (Keyboard.current.fKey.wasReleasedThisFrame)
         {
-            if (RoundManager.Instance != null &&
-                RoundManager.Instance.currentState == RoundManager.RoundState.Preparation)
-            {
-                return;
-            }
-
             CancelPlant();
 
             if (spikeInRange != null)
                 spikeInRange.CancelDefuse();
         }
+    }
+
+    private void UpdateInteractionPrompt()
+    {
+        if (InteractionPromptUI.Instance == null)
+            return;
+
+        if (RoundManager.Instance != null &&
+            RoundManager.Instance.currentState == RoundManager.RoundState.Preparation)
+        {
+            InteractionPromptUI.Instance.Hide();
+            return;
+        }
+
+        if (playerItem != null && playerItem.IsLookingAtPickupItem())
+        {
+            InteractionPromptUI.Instance.Show("무기 변경");
+            return;
+        }
+
+        if (hasSpike && isInsidePlantZone && !isPlanting)
+        {
+            InteractionPromptUI.Instance.Show("스파이크 설치");
+            return;
+        }
+
+        if (!hasSpike && spikeInRange != null)
+        {
+            InteractionPromptUI.Instance.Show("스파이크 해체");
+            return;
+        }
+
+        InteractionPromptUI.Instance.Hide();
     }
 
     public bool IsLocalPlayer()
@@ -421,6 +452,9 @@ public class PlayerSpike : MonoBehaviour
             return;
 
         if (IsLocalPlayer())
+        {
             CombatFeedbackUI.Instance?.HideSpikeProgress();
+            InteractionPromptUI.Instance?.Hide();
+        }
     }
 }

@@ -131,12 +131,6 @@ public class PlayerItem : MonoBehaviour
             DropCurrentItem();
             Debug.Log("g");
         }
-
-        if (Keyboard.current.eKey.wasPressedThisFrame)
-        {
-            TryPickup();
-            Debug.Log("e");
-        }
     }
 
     private void InitializeDefaultItems()
@@ -1900,6 +1894,70 @@ public class PlayerItem : MonoBehaviour
 
         return SpectatorManager.Instance.IsSpectating &&
                SpectatorManager.Instance.CurrentTargetPlayerId == _playerIdentity.PlayerId;
+    }
+
+    public bool IsLookingAtPickupItem()
+    {
+        return GetLookedDroppedItem() != null;
+    }
+
+    public bool TryPickupLookedItem()
+    {
+        DroppedItem target = GetLookedDroppedItem();
+
+        if (target == null)
+            return false;
+
+        target.Pickup(this);
+        return true;
+    }
+
+    private DroppedItem GetLookedDroppedItem()
+    {
+        Camera interactionCamera = GetInteractionCamera();
+
+        if (interactionCamera == null)
+            return null;
+
+        Ray ray = new Ray(
+            interactionCamera.transform.position,
+            interactionCamera.transform.forward
+        );
+
+        if (!Physics.Raycast(
+                ray,
+                out RaycastHit hit,
+                pickupRange,
+                itemLayer,
+                QueryTriggerInteraction.Ignore))
+        {
+            return null;
+        }
+
+        DroppedItem droppedItem = hit.collider.GetComponent<DroppedItem>();
+
+        if (droppedItem == null)
+            droppedItem = hit.collider.GetComponentInParent<DroppedItem>();
+
+        return droppedItem;
+    }
+
+    private Camera GetInteractionCamera()
+    {
+        PlayerCameraController cameraController =
+            GetComponent<PlayerCameraController>();
+
+        if (cameraController == null)
+            cameraController =
+                GetComponentInChildren<PlayerCameraController>(true);
+
+        if (cameraController != null &&
+            cameraController.PlayerCamera != null)
+        {
+            return cameraController.PlayerCamera;
+        }
+
+        return Camera.main;
     }
 
     // KSW : 에디터 무기 변경 테스트용 추가

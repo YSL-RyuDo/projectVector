@@ -193,6 +193,7 @@ public class NetworkManager : MonoBehaviour
 
     private uint myPlayerId;
     public uint MyPlayerId => myPlayerId;
+    public PlayerIdentity MyPlayer => FindPlayerIdentityById(myPlayerId);
 
     private string myUserId = "";
     public string MyUserId => myUserId;
@@ -230,8 +231,8 @@ public class NetworkManager : MonoBehaviour
             }
         };
 
-        //client.Connect("127.0.0.1", 9000);
-        client.Connect("211.247.47.240", 9000);
+        client.Connect("127.0.0.1", 9000);
+        //client.Connect("211.247.47.240", 9000);
     }
 
     void Update()
@@ -561,6 +562,22 @@ public class NetworkManager : MonoBehaviour
 
             case (ushort)PacketType.PKT_SC_IN_GAME_CHAT:
                 HandleInGameChat(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_DRONE_SPAWN:
+                HandleDroneSpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_DRONE_STATE:
+                HandleDroneState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_DRONE_DESTROY:
+                HandleDroneDestroy(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_DRONE_TASER_FIRE:
+                HandleDroneTaserFire(body);
                 break;
 
             default:
@@ -4492,5 +4509,394 @@ public class NetworkManager : MonoBehaviour
                 "InGameChatUI.Instance is null"
             );
         }
+    }
+
+    public void SendDroneDeploy(
+    float x,
+    float y,
+    float z,
+    float yaw,
+    float pitch)
+    {
+        ushort size = 4 + 4 + 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_DRONE_DEPLOY;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(yaw), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(pitch), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND DRONE DEPLOY] pos=({x}, {y}, {z}), yaw={yaw}, pitch={pitch}");
+    }
+
+    public void SendDroneState(
+        uint droneId,
+        float x,
+        float y,
+        float z,
+        float yaw,
+        float pitch)
+    {
+        ushort size = 4 + 4 + 4 + 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_DRONE_STATE;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(droneId), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(yaw), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(pitch), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+    }
+
+    public void SendDroneExit(uint droneId)
+    {
+        ushort size = 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_DRONE_EXIT;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(droneId), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND DRONE EXIT] droneId={droneId}");
+    }
+
+    private void HandleDroneSpawn(byte[] body)
+    {
+        if (body == null || body.Length < 28)
+        {
+            Debug.LogWarning($"[DRONE SPAWN] invalid body length={body?.Length ?? 0}");
+            return;
+        }
+
+        int offset = 0;
+
+        uint droneId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float x = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float y = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float z = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float yaw = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float pitch = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (DroneNetworkManager.Instance == null)
+        {
+            Debug.LogError("[DRONE SPAWN] DroneNetworkManager.Instance is null");
+            return;
+        }
+
+        DroneNetworkManager.Instance.OnDroneSpawn(
+            droneId,
+            ownerPlayerId,
+            x,
+            y,
+            z,
+            yaw,
+            pitch
+        );
+
+        Debug.Log($"[DRONE SPAWN] droneId={droneId}, owner={ownerPlayerId}");
+    }
+
+    private void HandleDroneState(byte[] body)
+    {
+        if (body == null || body.Length < 28)
+            return;
+
+        int offset = 0;
+
+        uint droneId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float x = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float y = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float z = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float yaw = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float pitch = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (DroneNetworkManager.Instance == null)
+            return;
+
+        DroneNetworkManager.Instance.OnDroneState(
+            droneId,
+            ownerPlayerId,
+            x,
+            y,
+            z,
+            yaw,
+            pitch
+        );
+    }
+
+    private void HandleDroneDestroy(byte[] body)
+    {
+        if (body == null || body.Length < 9)
+        {
+            Debug.LogWarning($"[DRONE DESTROY] invalid body length={body?.Length ?? 0}");
+            return;
+        }
+
+        int offset = 0;
+
+        uint droneId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        byte reason = body[offset];
+        offset += 1;
+
+        if (DroneNetworkManager.Instance == null)
+        {
+            Debug.LogError("[DRONE DESTROY] DroneNetworkManager.Instance is null");
+            return;
+        }
+
+        DroneNetworkManager.Instance.OnDroneDestroy(
+            droneId,
+            ownerPlayerId,
+            reason
+        );
+
+        Debug.Log($"[DRONE DESTROY] droneId={droneId}, owner={ownerPlayerId}, reason={reason}");
+    }
+
+    public void SendDroneHit(uint droneId)
+    {
+        ushort size = 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_DRONE_HIT;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(droneId), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND DRONE HIT] droneId={droneId}");
+    }
+
+    public void SendDroneTaserFire(
+    uint droneId,
+    uint targetPlayerId)
+    {
+        ushort size = 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_DRONE_TASER_FIRE;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(droneId), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(targetPlayerId), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND DRONE TASER FIRE] " +
+            $"droneId={droneId}, targetPlayerId={targetPlayerId}"
+        );
+    }
+
+    private void HandleDroneTaserFire(byte[] body)
+    {
+        const int requiredSize = 4 + 4 + 4 + 1 + 1 + 4 + 4;
+
+        if (body == null || body.Length < requiredSize)
+        {
+            Debug.LogWarning(
+                $"[DRONE TASER FIRE] invalid body length={body?.Length ?? 0}"
+            );
+            return;
+        }
+
+        int offset = 0;
+
+        uint droneId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint targetPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        byte hit = body[offset];
+        offset += 1;
+
+        byte stack = body[offset];
+        offset += 1;
+
+        float duration = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        int damage = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        Debug.Log(
+            $"[DRONE TASER FIRE] droneId={droneId}, " +
+            $"owner={ownerPlayerId}, target={targetPlayerId}, " +
+            $"hit={hit}, stack={stack}, duration={duration}, damage={damage}"
+        );
+
+        bool isMyDroneTaser =
+            ownerPlayerId == MyPlayerId;
+
+        bool successHit =
+            hit != 0 &&
+            targetPlayerId != 0;
+
+        // 핵심:
+        // 서버 판정 결과를 내 드론 HUD에 반영
+        if (isMyDroneTaser && DroneHUDUI.Instance != null)
+        {
+            if (successHit)
+            {
+                DroneHUDUI.Instance.PlayTaserHitConfirm();
+            }
+            else
+            {
+                DroneHUDUI.Instance.PlayTaserMiss();
+            }
+        }
+
+        // 빗나감이면 HUD 피드백만 주고 종료
+        if (!successHit)
+            return;
+
+        PlayerIdentity targetIdentity =
+            FindPlayerIdentityById(targetPlayerId);
+
+        if (targetIdentity == null)
+        {
+            Debug.LogWarning(
+                $"[DRONE TASER FIRE] target player not found. " +
+                $"targetPlayerId={targetPlayerId}"
+            );
+            return;
+        }
+
+        ElectricShock shock =
+            targetIdentity.GetComponent<ElectricShock>();
+
+        if (shock == null)
+            shock = targetIdentity.GetComponentInChildren<ElectricShock>(true);
+
+        if (shock == null)
+        {
+            Debug.LogWarning(
+                $"[DRONE TASER FIRE] ElectricShock missing. " +
+                $"targetPlayerId={targetPlayerId}"
+            );
+            return;
+        }
+
+        shock.Shock(duration);
+
+        Debug.Log(
+            $"[DRONE TASER APPLY] target={targetPlayerId}, " +
+            $"duration={duration}, stack={stack}, damage={damage}"
+        );
+
+        // 나중에 ElectricShock에 스택 함수 만들면 이걸로 교체
+        // shock.ApplyStack(stack, duration);
     }
 }
