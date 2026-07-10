@@ -496,9 +496,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Scanner
   _baseForce: 12
-  _lineResolution: 30
-  _lineSpacing: 0.12
-  _scannerPrefab: {fileID: 3937076750133015356, guid: 9ba2acf52657cac49afc8b71244e8419, type: 3}
+  _lineResolution: 18
+  _lineSpacing: 0.09
+  _trajectoryWidth: 0.025
+  _maxTrajectoryTime: 1.5
+  _throwSpawnPoint: {fileID: 7999039813103860235}
 --- !u!114 &6644194911831367189
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -710,7 +712,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponViewController
   firstPersonWeaponHolder: {fileID: 1806073796303525808}
-  thirdPersonWeaponHolder: {fileID: 4673739449566509290}
+  thirdPersonWeaponHolder: {fileID: 0}
 --- !u!114 &2596992134137014300
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -949,10 +951,5 @@ GameObject:
 --- !u!4 &2394164600379354572 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1975292866561080809, guid: 40d023f3444e19a43b7d6533689dd76b, type: 3}
-  m_PrefabInstance: {fileID: 4201979817069989925}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &4673739449566509290 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 8830462816133933263, guid: 40d023f3444e19a43b7d6533689dd76b, type: 3}
   m_PrefabInstance: {fileID: 4201979817069989925}
   m_PrefabAsset: {fileID: 0}

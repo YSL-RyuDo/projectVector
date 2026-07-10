@@ -1,80 +1,184 @@
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class ScannerProjectile : MonoBehaviour
 {
-    [Header("Scanner Specs")]
-    [SerializeField] private float _scanRadius = 6.5f;
-    [SerializeField] private float _zapDuration = 0.15f; // 전기 줄기가 머무는 시간
-    [SerializeField] private float _delayBetweenZaps = 0.1f; // 적과 적 사이 공격 간격
-    [SerializeField] private LayerMask _enemyLayer;
+    [Header("Visual")]
+    [SerializeField] private float _zapDuration = 0.15f;
+    [SerializeField] private float _lifeTimeAfterAnchor = 3.5f;
+    [SerializeField] private int _zapSegmentCount = 8;
+    [SerializeField] private float _zapJitterAmount = 0.25f;
+    [SerializeField] private float _zapStartWidth = 0.025f;
+    [SerializeField] private float _zapEndWidth = 0.008f;
 
+    private uint _scannerId;
+    private uint _ownerPlayerId;
+    private bool _isMine;
+    private bool _isAnchored;
+
+    private Rigidbody _rb;
+    private Collider _collider;
     private LineRenderer _lineRenderer;
-    private bool _isAnchored = false;
+
+    public uint ScannerId => _scannerId;
+    public uint OwnerPlayerId => _ownerPlayerId;
 
     private void Awake()
     {
+        _rb = GetComponent<Rigidbody>();
+        _collider = GetComponent<Collider>();
+
         _lineRenderer = GetComponent<LineRenderer>();
-        if (_lineRenderer == null) _lineRenderer = gameObject.AddComponent<LineRenderer>();
+
+        if (_lineRenderer == null)
+            _lineRenderer = gameObject.AddComponent<LineRenderer>();
+
         _lineRenderer.positionCount = 2;
         _lineRenderer.enabled = false;
+        _lineRenderer.useWorldSpace = true;
+
+        _lineRenderer.startWidth = _zapStartWidth;
+        _lineRenderer.endWidth = _zapEndWidth;
+    }
+
+    public void Init(
+        uint scannerId,
+        uint ownerPlayerId,
+        bool isMine,
+        Vector3 velocity)
+    {
+        _scannerId = scannerId;
+        _ownerPlayerId = ownerPlayerId;
+        _isMine = isMine;
+        _isAnchored = false;
+
+        if (_rb != null)
+        {
+            _rb.isKinematic = false;
+            _rb.linearVelocity = velocity;
+        }
+
+        Debug.Log(
+            $"[SCANNER INIT] " +
+            $"scannerId={_scannerId}, owner={_ownerPlayerId}, " +
+            $"isMine={_isMine}, velocity={velocity}"
+        );
     }
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (_isAnchored || collision.gameObject.CompareTag("Player")) return;
+        if (_isAnchored)
+            return;
+
+        if (collision.gameObject.CompareTag("Player"))
+            return;
+
+        Vector3 anchorPos = transform.position;
+
+        ApplyAnchored(anchorPos);
+
+        // 핵심:
+        // 소유자 클라만 서버에 안착 보고한다.
+        if (_isMine && NetworkManager.Instance != null)
+        {
+            NetworkManager.Instance.SendScannerAnchor(
+                _scannerId,
+                anchorPos.x,
+                anchorPos.y,
+                anchorPos.z
+            );
+
+            Debug.Log(
+                $"[SCANNER ANCHOR REQUEST] " +
+                $"scannerId={_scannerId}, pos={anchorPos}"
+            );
+        }
+    }
+
+    public void ApplyAnchored(Vector3 position)
+    {
+        if (_isAnchored)
+            return;
+
         _isAnchored = true;
 
-        Rigidbody rb = GetComponent<Rigidbody>();
-        if (rb != null) { rb.isKinematic = true; }
+        transform.position = position;
 
-        // 안착 즉시 순차 공격 시작
-        StartCoroutine(sequentialZapRoutine());
-        Destroy(gameObject, 3.5f);
-    }
-
-    private IEnumerator sequentialZapRoutine()
-    {
-        // 범위 내 적들 다 긁어모으기
-        Collider[] targets = Physics.OverlapSphere(transform.position, _scanRadius, _enemyLayer);
-
-        // 거리순으로 정렬 (제일 가까운 놈이 0번)
-        var sortedTargets = targets
-            .OrderBy(t => Vector3.Distance(transform.position, t.transform.position))
-            .ToList();
-
-        // 가까운 놈부터 한 명씩 차례대로 공격
-        foreach (var target in sortedTargets)
+        if (_rb != null)
         {
-            if (target == null) continue;
-
-            // 전기 줄기 쏘기
-            yield return StartCoroutine(zapEffect(target.transform.position));
-
-            // 즉시 판정
-            if (target.TryGetComponent<ElectricShock>(out var shock))
-            {
-                shock.Shock(1.0f);
-            }
-
-            // 다음 적 쏘기 전 아주 잠깐의 간격
-            yield return new WaitForSeconds(_delayBetweenZaps);
+            _rb.linearVelocity = Vector3.zero;
+            _rb.angularVelocity = Vector3.zero;
+            _rb.isKinematic = true;
         }
 
-        // 모든 타겟 순회 끝나면 라인 끄기
-        _lineRenderer.enabled = false;
+        Destroy(gameObject, _lifeTimeAfterAnchor);
+
+        Debug.Log(
+            $"[SCANNER ANCHORED APPLY] " +
+            $"scannerId={_scannerId}, pos={position}"
+        );
     }
 
-    private IEnumerator zapEffect(Vector3 targetPos)
+    public void PlayZap(Vector3 targetPosition)
     {
-        _lineRenderer.enabled = true;
-        _lineRenderer.SetPosition(0, transform.position);
-        _lineRenderer.SetPosition(1, targetPos);
+        StopCoroutine(nameof(ZapEffectRoutine));
+        StartCoroutine(ZapEffectRoutine(targetPosition));
+    }
 
-        // 지정된 시간동안 전기를 보여줌
-        yield return new WaitForSeconds(_zapDuration);
+    private IEnumerator ZapEffectRoutine(Vector3 targetPosition)
+    {
+        if (_lineRenderer == null)
+            yield break;
+
+        int segmentCount = Mathf.Max(2, _zapSegmentCount);
+
+        _lineRenderer.enabled = true;
+        _lineRenderer.positionCount = segmentCount;
+
+        Vector3 start = transform.position;
+        Vector3 end = targetPosition;
+
+        float timer = 0f;
+
+        while (timer < _zapDuration)
+        {
+            timer += Time.deltaTime;
+
+            float normalized = Mathf.Clamp01(timer / _zapDuration);
+
+            float width = Mathf.Lerp(
+                _zapStartWidth,
+                _zapEndWidth,
+                normalized
+            );
+
+            _lineRenderer.startWidth = width;
+            _lineRenderer.endWidth = width;
+
+            for (int i = 0; i < segmentCount; i++)
+            {
+                float t = i / (float)(segmentCount - 1);
+
+                Vector3 point = Vector3.Lerp(
+                    start,
+                    end,
+                    t
+                );
+
+                if (i != 0 && i != segmentCount - 1)
+                {
+                    float fade = Mathf.Sin(t * Mathf.PI);
+
+                    point += Random.insideUnitSphere *
+                             _zapJitterAmount *
+                             fade;
+                }
+
+                _lineRenderer.SetPosition(i, point);
+            }
+
+            yield return null;
+        }
 
         _lineRenderer.enabled = false;
     }

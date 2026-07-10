@@ -580,6 +580,26 @@ public class NetworkManager : MonoBehaviour
                 HandleDroneTaserFire(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_DRONE_HP_UPDATE:
+                HandleDroneHpUpdate(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SCANNER_SPAWN:
+                HandleScannerSpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SCANNER_ANCHORED:
+                HandleScannerAnchored(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SCANNER_ZAP:
+                HandleScannerZap(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SCANNER_DESTROY:
+                HandleScannerDestroy(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -4663,6 +4683,8 @@ public class NetworkManager : MonoBehaviour
             pitch
         );
 
+
+
         Debug.Log($"[DRONE SPAWN] droneId={droneId}, owner={ownerPlayerId}");
     }
 
@@ -4898,5 +4920,280 @@ public class NetworkManager : MonoBehaviour
 
         // 나중에 ElectricShock에 스택 함수 만들면 이걸로 교체
         // shock.ApplyStack(stack, duration);
+    }
+
+    private void HandleDroneHpUpdate(byte[] body)
+    {
+        const int requiredSize = 4 + 4 + 4 + 4;
+
+        if (body == null || body.Length < requiredSize)
+        {
+            Debug.LogWarning(
+                $"[DRONE HP UPDATE] invalid body size. " +
+                $"size={(body == null ? 0 : body.Length)}"
+            );
+            return;
+        }
+
+        int offset = 0;
+
+        uint droneId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        int hp = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int maxHp = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        if (DroneNetworkManager.Instance != null)
+        {
+            DroneNetworkManager.Instance.OnDroneHpUpdate(
+                droneId,
+                ownerPlayerId,
+                hp,
+                maxHp
+            );
+        }
+    }
+
+    public void SendScannerThrow(
+    float x,
+    float y,
+    float z,
+    float vx,
+    float vy,
+    float vz)
+    {
+        ushort size = 4 + 4 + 4 + 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SCANNER_THROW;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(vx), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(vy), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(vz), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND SCANNER THROW] " +
+            $"pos=({x},{y},{z}), velocity=({vx},{vy},{vz})"
+        );
+    }
+
+    public void SendScannerAnchor(
+        uint scannerId,
+        float x,
+        float y,
+        float z)
+    {
+        ushort size = 4 + 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SCANNER_ANCHOR;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(scannerId), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(z), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND SCANNER ANCHOR] " +
+            $"scannerId={scannerId}, pos=({x},{y},{z})"
+        );
+    }
+
+    private void HandleScannerSpawn(byte[] body)
+    {
+        const int requiredSize = 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4;
+
+        if (body == null || body.Length < requiredSize)
+        {
+            Debug.LogWarning($"[SCANNER SPAWN] invalid body length={body?.Length ?? 0}");
+            return;
+        }
+
+        int offset = 0;
+
+        uint scannerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float x = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float y = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float z = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float vx = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float vy = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float vz = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (ScannerNetworkManager.Instance != null)
+        {
+            ScannerNetworkManager.Instance.OnScannerSpawn(
+                scannerId,
+                ownerPlayerId,
+                x,
+                y,
+                z,
+                vx,
+                vy,
+                vz
+            );
+        }
+    }
+
+    private void HandleScannerAnchored(byte[] body)
+    {
+        const int requiredSize = 4 + 4 + 4 + 4;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        int offset = 0;
+
+        uint scannerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float x = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float y = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float z = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (ScannerNetworkManager.Instance != null)
+        {
+            ScannerNetworkManager.Instance.OnScannerAnchored(
+                scannerId,
+                x,
+                y,
+                z
+            );
+        }
+    }
+
+    private void HandleScannerZap(byte[] body)
+    {
+        const int requiredSize = 4 + 4 + 1 + 4;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        int offset = 0;
+
+        uint scannerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint targetPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        byte stack = body[offset];
+        offset += 1;
+
+        float duration = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (ScannerNetworkManager.Instance != null)
+        {
+            ScannerNetworkManager.Instance.OnScannerZap(
+                scannerId,
+                targetPlayerId,
+                stack,
+                duration
+            );
+        }
+    }
+
+    private void HandleScannerDestroy(byte[] body)
+    {
+        if (body == null || body.Length < 4)
+            return;
+
+        uint scannerId = BitConverter.ToUInt32(body, 0);
+
+        if (ScannerNetworkManager.Instance != null)
+        {
+            ScannerNetworkManager.Instance.OnScannerDestroy(scannerId);
+        }
+    }
+
+    public void SendScannerHit(uint scannerId)
+    {
+        ushort size = 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SCANNER_HIT;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(scannerId), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND SCANNER HIT] scannerId={scannerId}");
     }
 }

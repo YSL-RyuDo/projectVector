@@ -15,6 +15,7 @@ public class SpectatorManager : MonoBehaviour
     private Camera myCamera;
     private PlayerIdentity currentSpectatorTarget;
 
+    private bool currentTargetDroneView;
     public bool IsSpectating => isSpectating;
     public uint CurrentTargetPlayerId => currentSpectatorTarget != null ? currentSpectatorTarget.PlayerId : 0;
 
@@ -146,6 +147,10 @@ public class SpectatorManager : MonoBehaviour
         isHoldingLastSpectatorView = false;
 
         RestoreSpectatorTarget();
+
+        if (DroneModeUIController.Instance != null)
+            DroneModeUIController.Instance.SetSpectatorDroneViewUI(false);
+
         RestoreLocalPlayerUI();
         RestoreMyCameraTransform();
 
@@ -270,43 +275,118 @@ public class SpectatorManager : MonoBehaviour
 
         isHoldingLastSpectatorView = false;
 
-        ApplySpectatorTarget(target);
+        Transform viewTransform = null;
+        float targetFov = myCamera.fieldOfView;
 
-        PlayerCameraController targetController = GetCameraController(target);
+        bool followingDrone = false;
 
-        if (targetController == null || targetController.PlayerCamera == null)
+        // 먼저 드론을 쓰고 있는지 확인한다.
+        // 중요: ApplySpectatorTarget보다 먼저 해야 함.
+        if (DroneNetworkManager.Instance != null &&
+            DroneNetworkManager.Instance.TryGetActiveDroneByOwner(
+                target.PlayerId,
+                out Drone drone))
         {
-            Debug.LogWarning($"[SPECTATOR] target camera missing. playerId={target.PlayerId}");
-            return;
+            if (drone != null && drone.ViewTransform != null)
+            {
+                viewTransform = drone.ViewTransform;
+                followingDrone = true;
+
+                Camera droneCamera =
+                    drone.ViewTransform.GetComponent<Camera>();
+
+                if (droneCamera != null)
+                    targetFov = droneCamera.fieldOfView;
+            }
         }
 
-        Camera targetCamera = targetController.PlayerCamera;
+        // 드론 관전인지 일반 플레이어 관전인지에 따라
+        // 대상 모델 표시 방식을 다르게 적용한다.
+        ApplySpectatorTarget(target, followingDrone);
+
+        if (viewTransform == null)
+        {
+            PlayerCameraController targetController =
+                GetCameraController(target);
+
+            if (targetController == null ||
+                targetController.PlayerCamera == null)
+            {
+                Debug.LogWarning(
+                    $"[SPECTATOR] target camera missing. " +
+                    $"playerId={target.PlayerId}"
+                );
+
+                return;
+            }
+
+            Camera targetCamera = targetController.PlayerCamera;
+
+            viewTransform = targetCamera.transform;
+            targetFov = targetCamera.fieldOfView;
+        }
 
         myCamera.enabled = true;
         myCamera.tag = "MainCamera";
 
         myCamera.transform.SetPositionAndRotation(
-            targetCamera.transform.position,
-            targetCamera.transform.rotation
+            viewTransform.position,
+            viewTransform.rotation
         );
 
-        myCamera.fieldOfView = targetCamera.fieldOfView;
+        myCamera.fieldOfView = targetFov;
 
-        // 관전 중인 대상의 카메라 월드 상태를 계속 저장
+        if (DroneModeUIController.Instance != null)
+        {
+            DroneModeUIController.Instance.SetSpectatorDroneViewUI(
+                followingDrone
+            );
+        }
+
+        if (followingDrone &&
+            DroneHUDUI.Instance != null &&
+            DroneNetworkManager.Instance != null &&
+            DroneNetworkManager.Instance.TryGetDroneHpByOwner(
+                target.PlayerId,
+                out int droneHp,
+                out int droneMaxHp))
+        {
+            DroneHUDUI.Instance.SetDroneHp(
+                droneHp,
+                droneMaxHp
+            );
+        }
+
         SaveLastSpectatorView();
+
+        Debug.Log(
+            $"[SPECTATOR FOLLOW] " +
+            $"targetPlayerId={target.PlayerId}, " +
+            $"followingDrone={followingDrone}"
+        );
     }
 
-    private void ApplySpectatorTarget(PlayerIdentity newTarget)
+    private void ApplySpectatorTarget(
+    PlayerIdentity newTarget,
+    bool droneView)
     {
         if (newTarget == null)
             return;
 
-        if (currentSpectatorTarget == newTarget)
+        bool sameTarget =
+            currentSpectatorTarget == newTarget;
+
+        bool sameViewMode =
+            currentTargetDroneView == droneView;
+
+        if (sameTarget && sameViewMode)
             return;
 
-        RestoreSpectatorTarget();
+        if (!sameTarget)
+            RestoreSpectatorTarget();
 
-        PlayerDeathController death = newTarget.GetComponent<PlayerDeathController>();
+        PlayerDeathController death =
+            newTarget.GetComponent<PlayerDeathController>();
 
         if (death == null)
             death = newTarget.GetComponentInChildren<PlayerDeathController>(true);
@@ -321,7 +401,8 @@ public class SpectatorManager : MonoBehaviour
             return;
         }
 
-        PlayerCameraController targetController = GetCameraController(newTarget);
+        PlayerCameraController targetController =
+            GetCameraController(newTarget);
 
         if (targetController == null)
         {
@@ -334,19 +415,36 @@ public class SpectatorManager : MonoBehaviour
         }
 
         currentSpectatorTarget = newTarget;
+        currentTargetDroneView = droneView;
 
-        targetController.SetSpectatorView(true);
+        if (droneView)
+        {
+            // 핵심:
+            // 드론 관전일 때는 대상의 3인칭 모델이 보여야 한다.
+            // SetSpectatorView(true)는 보통 대상 모델을 숨기고 1인칭 무기를 켜므로 쓰면 안 됨.
+            targetController.SetSpectatorView(false);
+            targetController.RefreshViewVisuals();
 
-        // 이 함수 내부에서 무기, 탄약, ADS, 장전 상태를 전부 갱신한다.
-        RefreshCurrentTargetState();
+            Debug.Log(
+                $"[SPECTATOR TARGET APPLY - DRONE VIEW] " +
+                $"playerId={newTarget.PlayerId}, " +
+                $"thirdPersonModel=true, firstPersonWeapon=false"
+            );
+        }
+        else
+        {
+            // 일반 관전은 기존처럼 대상의 1인칭 시점처럼 보여준다.
+            targetController.SetSpectatorView(true);
 
-        Debug.Log(
-            $"[SPECTATOR TARGET APPLY] " +
-            $"playerId={newTarget.PlayerId}, " +
-            $"firstPersonWeapon=true, model=false"
-        );
+            RefreshCurrentTargetState();
+
+            Debug.Log(
+                $"[SPECTATOR TARGET APPLY - PLAYER VIEW] " +
+                $"playerId={newTarget.PlayerId}, " +
+                $"firstPersonWeapon=true, model=false"
+            );
+        }
     }
-
     public void NotifyPlayerStateChanged(uint playerId)
     {
         if (!isSpectating || currentSpectatorTarget == null)
@@ -410,7 +508,7 @@ public class SpectatorManager : MonoBehaviour
 
         if (targetController != null)
         {
-            targetController.SetSpectatorView(true);
+            targetController.SetSpectatorView(!currentTargetDroneView);
             targetController.RefreshViewVisuals();
         }
 
@@ -460,15 +558,19 @@ public class SpectatorManager : MonoBehaviour
 
         PlayerIdentity previousTarget = currentSpectatorTarget;
         currentSpectatorTarget = null;
+        currentTargetDroneView = false;
 
-        PlayerCameraController previousController = GetCameraController(previousTarget);
+        PlayerCameraController previousController =
+            GetCameraController(previousTarget);
 
         if (previousController != null)
             previousController.SetSpectatorView(false);
 
-        Debug.Log($"[SPECTATOR TARGET RESTORE] playerId={previousTarget.PlayerId}");
+        Debug.Log(
+            $"[SPECTATOR TARGET RESTORE] " +
+            $"playerId={previousTarget.PlayerId}"
+        );
     }
-
     private PlayerCameraController GetCameraController(PlayerIdentity identity)
     {
         if (identity == null)
@@ -653,5 +755,24 @@ public class SpectatorManager : MonoBehaviour
             snapshot.magAmmo,
             snapshot.reserveAmmo
         );
+    }
+
+    public void NotifyDroneStateChanged(uint ownerPlayerId)
+    {
+        if (!isSpectating)
+            return;
+
+        if (currentSpectatorTarget == null)
+            return;
+
+        if (currentSpectatorTarget.PlayerId != ownerPlayerId)
+            return;
+
+        Debug.Log(
+            $"[SPECTATOR DRONE STATE CHANGED] " +
+            $"ownerPlayerId={ownerPlayerId}"
+        );
+
+        FollowTarget();
     }
 }

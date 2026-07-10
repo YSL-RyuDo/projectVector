@@ -155,7 +155,8 @@ public class Weapon : Item
         if (NetworkManager.Instance == null) return;
         if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
 
-        if (InitiatorSkill_Q.IsLocalDroneMode)
+        if (InitiatorSkill_Q.IsLocalDroneMode ||
+    InitiatorSkill_C.ShouldBlockWeaponInput())
         {
             if (isADS)
             {
@@ -167,8 +168,6 @@ public class Weapon : Item
 
                 if (weaponData != null && cameraController != null)
                     cameraController.SetFOV(weaponData.normalFOV);
-
-                crosshair?.SetActive(false);
             }
 
             return;
@@ -574,6 +573,9 @@ public class Weapon : Item
                 $"point={hit.point}"
             );
 
+            if (TryHandleScannerHit(hit))
+                return;
+
             // 핵심: 플레이어보다 드론을 먼저 검사해야 함
             if (TryHandleDroneHit(hit))
             {
@@ -781,9 +783,16 @@ public class Weapon : Item
         {
             targetPoint = hit.point;
 
-            // 핵심:
-            // Projectile 총도 조준선에 드론이 있으면 서버에 드론 피격 전송
-            TryHandleDroneHit(hit);
+            Debug.Log(
+                $"[PROJECTILE AIM HIT] object={hit.collider.name}, " +
+                $"root={hit.collider.transform.root.name}, " +
+                $"point={hit.point}"
+            );
+            if (TryHandleScannerHit(hit))
+                return;
+
+            if (TryHandleDroneHit(hit))
+                return;
         }
         else
         {
@@ -1059,5 +1068,52 @@ public class Weapon : Item
     {
         if (weaponData == null) return 0;
         return weaponData.reloadTime;
+    }
+
+    private bool TryHandleScannerHit(RaycastHit hit)
+    {
+        if (hit.collider == null)
+            return false;
+
+        ScannerHitbox scannerHitbox =
+            hit.collider.GetComponent<ScannerHitbox>();
+
+        if (scannerHitbox == null)
+            scannerHitbox =
+                hit.collider.GetComponentInParent<ScannerHitbox>();
+
+        if (scannerHitbox == null)
+            return false;
+
+        if (scannerHitbox.ScannerId == 0)
+        {
+            Debug.LogWarning("[SCANNER HIT] ScannerId is 0");
+            return true;
+        }
+
+        if (NetworkManager.Instance == null)
+            return true;
+
+        ScannerProjectile scanner = scannerHitbox.Scanner;
+
+        if (scanner != null &&
+            scanner.OwnerPlayerId == NetworkManager.Instance.MyPlayerId)
+        {
+            Debug.Log(
+                $"[SCANNER HIT] ignored own scanner. scannerId={scannerHitbox.ScannerId}"
+            );
+
+            return true;
+        }
+
+        NetworkManager.Instance.SendScannerHit(
+            scannerHitbox.ScannerId
+        );
+
+        Debug.Log(
+            $"[SCANNER HIT SEND] scannerId={scannerHitbox.ScannerId}"
+        );
+
+        return true;
     }
 }
