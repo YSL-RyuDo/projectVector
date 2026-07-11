@@ -8,7 +8,7 @@ public class CharacterData
     public int characterId;
     public string characterName;
     public GameObject characterPrefab;
-    public Sprite characterSprite;
+    public Sprite characterSprite;       // 2D 일러스트용 스프라이트 파일
     public bool isOwned;
     public GameObject lockImage;
 
@@ -34,13 +34,14 @@ public class CharacterSelectManager : MonoBehaviour
     public CharacterData[] characters; // 캐릭터 데이터 배열
 
     [Header("--- UI References ---")]
-    public GameObject characterPanel;         // 캐릭터 패널 오브젝트 자체를 참조
-    public RawImage previewRawImage;          // 추가: 중앙 2D 이미지를 띄워줄 RawImage UI 컴포넌트 참조
+    public GameObject characterPanel;
+    public RawImage previewRawImage; // 3D 모델을 보여주는 RawImage (렌더텍스처용)
+    public Image preview2DImage; // 2D 일러스트를 보여줄 전용 UI Image 컴포넌트 참조
     public TextMeshProUGUI characterNameText; // 캐릭터 이름 텍스트
-    public TextMeshProUGUI skillNameText;     // 스킬 이름 표시 UI
-    public TextMeshProUGUI skillDescText;     // 스킬 설명 표시 UI
+    public TextMeshProUGUI skillNameText; // 스킬 이름 표시 UI
+    public TextMeshProUGUI skillDescText; // 스킬 설명 표시 UI
     public ScrollRect descriptionScrollRect; // 스킬 설명창의 ScrollRect 컴포넌트
-    public Button equipButton;                // 장착 버튼 컴포넌트 참조 추가
+    public Button equipButton; // 장착 버튼 컴포넌트 참조 추가
 
     [Header("--- Spawn Settings ---")]
     public Transform spawnPoint; // 3D 캐릭터가 생성될 위치
@@ -49,7 +50,7 @@ public class CharacterSelectManager : MonoBehaviour
     private int currentPreviewCharacterId = -1;  // 현재 중앙 프리뷰에 보이는 캐릭터 ID
 
     private GameObject currentSpawnedModel; // 현재 생성되어 있는 캐릭터 모델 오브젝트
-    private bool isView3D = true;            // 추가: 현재 상태가 3D 모드인지 체크하는 플래그
+    private bool isView3D = true; // 현재 상태가 3D 모드인지 체크하는 플래그 (기본값 3D)
 
     void Start()
     {
@@ -76,25 +77,23 @@ public class CharacterSelectManager : MonoBehaviour
             Destroy(currentSpawnedModel);
         }
 
-        // 3D 모델 생성 (단, 현재 3D 모드일 때만 보이도록 세팅)
+        // 3D 모델 생성 및 세팅
         if (data.characterPrefab != null && spawnPoint != null)
         {
             Quaternion absolute180Rotation = Quaternion.Euler(0f, 180f, 0f);
             currentSpawnedModel = Instantiate(data.characterPrefab, spawnPoint.position, absolute180Rotation);
             currentSpawnedModel.transform.SetParent(spawnPoint);
             SetLayerRecursively(currentSpawnedModel, "CharacterSelectModel");
-
-            // 현재 모드에 따라 3D 모델 활성화/비활성화
-            currentSpawnedModel.SetActive(isView3D);
         }
 
-        // 2D 이미지 UI 업데이트 및 활성화 제어
-        if (previewRawImage != null)
+        // 2D 전용 이미지 컴포넌트에 스프라이트 교체 교체 ★
+        if (preview2DImage != null)
         {
-            previewRawImage.texture = data.characterSprite != null ? data.characterSprite.texture : null;
-            // 현재 모드가 2D(isView3D가 false)면 켜고, 3D면 끈다
-            previewRawImage.gameObject.SetActive(!isView3D);
+            preview2DImage.sprite = data.characterSprite;
         }
+
+        // 새로 고른 캐릭터도 현재 보고 있던 모드(2D 혹은 3D) 상태에 맞춰서 켜고 꺼줌 ★
+        UpdateVisibilityByMode();
 
         // 캐릭터 이름 UI 업데이트
         if (characterNameText != null)
@@ -106,25 +105,27 @@ public class CharacterSelectManager : MonoBehaviour
         SelectSkill("Q");
     }
 
-    // 추가: 외부 토글 버튼(2D/3D 전환용 버튼)에 연결할 함수 ★
+    // 프리뷰 변경 전환 버튼에 연결할 함수
     public void ToggleDimensionView()
     {
-        // 상태 전환 (3D -> 2D -> 3D)
         isView3D = !isView3D;
+        UpdateVisibilityByMode();
+    }
 
-        // 1. 3D 모델 켜고 끄기
-        if (currentSpawnedModel != null)
-        {
-            currentSpawnedModel.SetActive(isView3D);
-        }
-
-        // 2. 2D RawImage UI 켜고 끄기
+    // 3D 오브젝트들과 2D 이미지의 시각적 활성화 상태를 일괄 제어하는 함수
+    private void UpdateVisibilityByMode()
+    {
+        // 3D 화면 제어
         if (previewRawImage != null)
         {
-            previewRawImage.gameObject.SetActive(!isView3D);
+            previewRawImage.gameObject.SetActive(isView3D);
         }
 
-        Debug.Log($"현재 화면 모드 변경 -> {(isView3D ? "3D 모델 모드" : "2D 이미지 모드")}");
+        // 2D 일러스트 화면 제어
+        if (preview2DImage != null)
+        {
+            preview2DImage.gameObject.SetActive(!isView3D);
+        }
     }
 
     // 장착 버튼을 누르면 현재 선택 캐릭터 ID만 로컬에 저장
@@ -134,7 +135,7 @@ public class CharacterSelectManager : MonoBehaviour
         Debug.Log($"캐릭터 장착 완료: 장착된 캐릭터 ID: {currentEquippedCharacterId}");
     }
 
-    // 스킬 버튼 입력 함수 (Q, C, E, X 버튼에 연결)
+    // 스킬 버튼 입력 함수 (Q, C, E, X 스킬 선택 버튼에 연결)
     public void SelectSkill(string skillType)
     {
         CharacterData data = GetCharacterDataById(currentPreviewCharacterId);
