@@ -28,7 +28,7 @@ public class CharacterData
     [TextArea] public string rSkillDesc;
 }
 
-public class CharacterSelectManager : MonoBehaviour
+public class CharacterPanelController : MonoBehaviour
 {
     [Header("--- Data Settings ---")]
     public CharacterData[] characters; // 캐릭터 데이터 배열
@@ -55,8 +55,30 @@ public class CharacterSelectManager : MonoBehaviour
     void Start()
     {
         DisableAllOutlines();
-        SelectCharacter(0);
         SetSelectButtonsInteractable();
+    }
+
+    public void OpenCharacterPanel()
+    {
+        if (characterPanel != null)
+        {
+            characterPanel.SetActive(true);
+            SelectCharacter(0);
+        }
+    }
+
+    public void CloseCharacterPanel()
+    {
+        if (currentSpawnedModel != null)
+        {
+            Destroy(currentSpawnedModel);
+            currentSpawnedModel = null;
+        }
+
+        if (characterPanel != null)
+        {
+            characterPanel.SetActive(false);
+        }
     }
 
     // 캐릭터 변경
@@ -171,20 +193,6 @@ public class CharacterSelectManager : MonoBehaviour
             if (charData.characterId == id) return charData;
         }
         return null;
-    }
-
-    public void CloseCharacterPanel()
-    {
-        if (currentSpawnedModel != null)
-        {
-            Destroy(currentSpawnedModel);
-            currentSpawnedModel = null;
-        }
-
-        if (characterPanel != null)
-        {
-            characterPanel.SetActive(false);
-        }
     }
 
     private void ResetScrollPosition()
