@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.EventSystems;
 
 [System.Serializable]
 public class CharacterData
@@ -8,7 +9,7 @@ public class CharacterData
     public int characterId;
     public string characterName;
     public GameObject characterPrefab;
-    public Sprite characterSprite;       // 2D 일러스트용 스프라이트 파일
+    public Sprite characterSprite;
     public bool isOwned;
     public GameObject lockImage;
 
@@ -45,6 +46,10 @@ public class CharacterPanelController : MonoBehaviour
 
     [Header("--- Spawn Settings ---")]
     public Transform spawnPoint; // 3D 캐릭터가 생성될 위치
+
+    [Header("--- Rotation Settings ---")]
+    public float rotationSpeed = 2f; // 회전 속도 조절
+    private float lastMouseX;
 
     private int currentEquippedCharacterId = -1; // 현재 최종 장착된 캐릭터 ID
     private int currentPreviewCharacterId = -1;  // 현재 중앙 프리뷰에 보이는 캐릭터 ID
@@ -108,13 +113,13 @@ public class CharacterPanelController : MonoBehaviour
             SetLayerRecursively(currentSpawnedModel, "CharacterSelectModel");
         }
 
-        // 2D 전용 이미지 컴포넌트에 스프라이트 교체 교체 ★
+        // 2D 전용 이미지 컴포넌트에 스프라이트 교체 교체
         if (preview2DImage != null)
         {
             preview2DImage.sprite = data.characterSprite;
         }
 
-        // 새로 고른 캐릭터도 현재 보고 있던 모드(2D 혹은 3D) 상태에 맞춰서 켜고 꺼줌 ★
+        // 새로 고른 캐릭터도 현재 보고 있던 모드(2D 혹은 3D) 상태에 맞춰서 켜고 꺼줌
         UpdateVisibilityByMode();
 
         // 캐릭터 이름 UI 업데이트
@@ -249,5 +254,23 @@ public class CharacterPanelController : MonoBehaviour
                 data.lockImage.SetActive(!data.isOwned);
             }
         }
+    }
+
+    public void BeginDrag(PointerEventData eventData)
+    {
+        lastMouseX = eventData.position.x;
+    }
+
+    public void Drag(PointerEventData eventData)
+    {
+        if (currentSpawnedModel == null) return;
+
+        float deltaX = eventData.position.x - lastMouseX;
+        currentSpawnedModel.transform.Rotate(
+            Vector3.up,
+            -deltaX * rotationSpeed,
+            Space.World);
+
+        lastMouseX = eventData.position.x;
     }
 }
