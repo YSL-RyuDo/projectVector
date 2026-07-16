@@ -600,6 +600,18 @@ public class NetworkManager : MonoBehaviour
                 HandleScannerDestroy(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_EMP_CAST:
+                HandleEmpCast(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ELECTRIC_STATUS:
+                HandleElectricStatus(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ULTIMATE_CAST:
+                HandleUltimateCast(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -5195,5 +5207,286 @@ public class NetworkManager : MonoBehaviour
         client.Send(buffer);
 
         Debug.Log($"[SEND SCANNER HIT] scannerId={scannerId}");
+    }
+
+    public void SendEmpCast()
+    {
+        ushort size = 4;
+        ushort type = (ushort)PacketType.PKT_CS_EMP_CAST;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        client.Send(buffer);
+
+        Debug.Log("[SEND EMP CAST]");
+    }
+
+    private void HandleEmpCast(byte[] body)
+    {
+        int offset = 0;
+
+        uint casterPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        byte targetCount = body[offset];
+        offset += 1;
+
+        uint[] targetPlayerIds = new uint[targetCount];
+
+        for (int i = 0; i < targetCount; i++)
+        {
+            targetPlayerIds[i] =
+                BitConverter.ToUInt32(body, offset);
+            offset += 4;
+        }
+
+        PlayerIdentity caster =
+            FindPlayerIdentityById(casterPlayerId);
+
+        if (caster == null)
+            return;
+
+        InitiatorSkill_E skill =
+            caster.GetComponent<InitiatorSkill_E>();
+
+        if (skill == null)
+            return;
+
+        skill.PlayEmpEffect(targetPlayerIds);
+
+        Debug.Log(
+            $"[EMP CAST APPLY] caster={casterPlayerId}, targetCount={targetCount}"
+        );
+    }
+
+    private void HandleElectricStatus(byte[] body)
+    {
+        int offset = 0;
+
+        uint playerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        byte shockStack = body[offset];
+        offset += 1;
+
+        byte stunned = body[offset];
+        offset += 1;
+
+        float stunSeconds =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        PlayerIdentity target =
+            FindPlayerIdentityById(playerId);
+
+        if (target == null)
+        {
+            Debug.LogWarning($"[ELECTRIC STATUS] target not found playerId={playerId}");
+            return;
+        }
+
+        ElectricShock shock =
+            target.GetComponent<ElectricShock>();
+
+        if (shock == null)
+            shock = target.GetComponentInChildren<ElectricShock>(true);
+
+        if (shock != null)
+        {
+            shock.ApplyServerStatus(
+                shockStack,
+                stunned != 0,
+                stunSeconds
+            );
+        }
+        else
+        {
+            Debug.LogWarning($"[ELECTRIC STATUS] ElectricShock missing playerId={playerId}");
+        }
+
+        PlayerMovement movement =
+            target.GetComponent<PlayerMovement>();
+
+        if (movement == null)
+            movement = target.GetComponentInChildren<PlayerMovement>(true);
+
+        if (movement != null)
+        {
+            if (stunned != 0)
+            {
+                movement.ApplyStunFromServer(stunSeconds);
+            }
+            else if (shockStack == 0)
+            {
+                movement.ClearStunFromServer();
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[ELECTRIC STATUS] PlayerMovement missing playerId={playerId}");
+        }
+
+        Debug.Log(
+            $"[ELECTRIC STATUS APPLY] playerId={playerId}, " +
+            $"stack={shockStack}, stunned={stunned}, stun={stunSeconds}"
+        );
+    }
+
+    public void SendUltimateCast(Vector3 direction)
+    {
+        ushort size = 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_ULTIMATE_CAST;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Vector3 dir =
+            direction.sqrMagnitude > 0.0001f
+                ? direction.normalized
+                : Vector3.forward;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(dir.x),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(dir.y),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(dir.z),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND ULTIMATE CAST] dir={dir}"
+        );
+    }
+
+    private void HandleUltimateCast(byte[] body)
+    {
+        const int maxTargetCount = 6;
+
+        int offset = 0;
+
+        uint casterPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float dirX =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float dirY =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float dirZ =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        byte targetCount =
+            body[offset];
+        offset += 1;
+
+        uint[] targetPlayerIds =
+            new uint[targetCount];
+
+        for (int i = 0; i < maxTargetCount; i++)
+        {
+            uint targetPlayerId =
+                BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            if (i < targetCount)
+            {
+                targetPlayerIds[i] =
+                    targetPlayerId;
+            }
+        }
+
+        int damage =
+            BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        byte stack =
+            body[offset];
+        offset += 1;
+
+        PlayerIdentity caster =
+            FindPlayerIdentityById(casterPlayerId);
+
+        if (caster == null)
+        {
+            Debug.LogWarning(
+                $"[ULTIMATE CAST] caster not found. caster={casterPlayerId}"
+            );
+
+            return;
+        }
+
+        InitiatorSkill_X skill =
+            caster.GetComponent<InitiatorSkill_X>();
+
+        if (skill == null)
+            skill = caster.GetComponentInChildren<InitiatorSkill_X>(true);
+
+        if (skill != null)
+        {
+            skill.PlayUltimateEffect(
+                targetPlayerIds,
+                new Vector3(dirX, dirY, dirZ)
+            );
+        }
+
+        Debug.Log(
+            $"[ULTIMATE CAST APPLY] caster={casterPlayerId}, " +
+            $"targetCount={targetCount}, damage={damage}, stack={stack}"
+        );
     }
 }

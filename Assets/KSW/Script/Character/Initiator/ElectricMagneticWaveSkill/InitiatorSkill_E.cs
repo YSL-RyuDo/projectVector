@@ -1,75 +1,149 @@
-using UnityEngine.InputSystem;
-using UnityEngine;
 using System.Collections;
+using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class InitiatorSkill_E : CharacterSkill
 {
-    [SerializeField] private float _radius = 7.0f;
-    [SerializeField] private LayerMask _enemyLayer;
+    [Header("Visual")]
+    [SerializeField] private float _effectDuration = 0.15f;
+    [SerializeField] private int _lineSegmentCount = 2;
 
     private LineRenderer _lineRenderer;
-    private bool _isCasting = false;
+    private bool _isCasting;
+    private PlayerIdentity _playerIdentity;
 
-    void Awake()
+    private void Awake()
     {
+        _playerIdentity = GetComponent<PlayerIdentity>();
         _lineRenderer = GetComponent<LineRenderer>();
-        _lineRenderer.enabled = false;
+
+        if (_lineRenderer != null)
+        {
+            _lineRenderer.enabled = false;
+            _lineRenderer.useWorldSpace = true;
+        }
     }
 
-    void Update()
+    private void Update()
     {
-        if (Keyboard.current.eKey.wasPressedThisFrame && !_isCasting)
+        if (!IsMine())
+            return;
+
+        if (_isCasting)
+            return;
+
+        if (Keyboard.current == null)
+            return;
+
+        if (InGameChatUI.IsChatOpen)
+            return;
+
+        if (GameController.Instance != null &&
+            GameController.Instance.IsPaused)
+            return;
+
+        if (SettingsMenu.Instance != null &&
+            SettingsMenu.Instance.IsOpen)
+            return;
+
+        ElectricShock myShock =
+            GetComponent<ElectricShock>();
+
+        if (myShock != null && myShock.IsStunned)
+            return;
+
+        if (Keyboard.current.eKey.wasPressedThisFrame)
         {
             UseSkill();
         }
     }
 
-    protected override void UseSkill()
+    private bool IsMine()
     {
-        StartCoroutine(EMPRoutine());
+        return _playerIdentity != null &&
+               NetworkManager.Instance != null &&
+               _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
     }
 
-    private IEnumerator EMPRoutine()
+    protected override void UseSkill()
     {
+        if (NetworkManager.Instance == null)
+            return;
+
         _isCasting = true;
 
-        yield return new WaitForSeconds(0.2f);
+        NetworkManager.Instance.SendEmpCast();
 
-        // 적 탐색 및 기절 적용
-        Collider[] targets = Physics.OverlapSphere(transform.position, _radius, _enemyLayer);
+        StartCoroutine(CastDelayRoutine());
 
-        if (targets.Length > 0)
+        Debug.Log("[EMP CAST REQUEST]");
+    }
+
+    private IEnumerator CastDelayRoutine()
+    {
+        yield return new WaitForSeconds(0.3f);
+        _isCasting = false;
+    }
+
+    public void PlayEmpEffect(uint[] targetPlayerIds)
+    {
+        if (_lineRenderer == null)
+            return;
+
+        StopCoroutine(nameof(EmpEffectRoutine));
+        StartCoroutine(EmpEffectRoutine(targetPlayerIds));
+    }
+
+    private IEnumerator EmpEffectRoutine(uint[] targetPlayerIds)
+    {
+        if (targetPlayerIds == null || targetPlayerIds.Length == 0)
         {
-            // 모든 적과 연결하기 위해 포지션 개수 설정 (중심점 1개 + 적들 수)
-            _lineRenderer.enabled = true;
-            _lineRenderer.positionCount = targets.Length * 2;
+            _lineRenderer.enabled = false;
+            yield break;
+        }
 
-            for (int i = 0; i < targets.Length; i++)
+        int lineCount = targetPlayerIds.Length;
+        _lineRenderer.positionCount = lineCount * 2;
+        _lineRenderer.enabled = true;
+
+        Vector3 startPos = transform.position + Vector3.up * 1.2f;
+
+        for (int i = 0; i < targetPlayerIds.Length; i++)
+        {
+            PlayerIdentity target =
+                FindPlayerIdentityById(targetPlayerIds[i]);
+
+            Vector3 endPos = startPos;
+
+            if (target != null)
+                endPos = target.transform.position + Vector3.up * 1.2f;
+
+            _lineRenderer.SetPosition(i * 2, startPos);
+            _lineRenderer.SetPosition(i * 2 + 1, endPos);
+        }
+
+        yield return new WaitForSeconds(_effectDuration);
+
+        _lineRenderer.enabled = false;
+    }
+
+    private PlayerIdentity FindPlayerIdentityById(uint playerId)
+    {
+        PlayerIdentity[] identities =
+            FindObjectsByType<PlayerIdentity>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        for (int i = 0; i < identities.Length; i++)
+        {
+            if (identities[i] != null &&
+                identities[i].PlayerId == playerId)
             {
-                if (targets[i].TryGetComponent<ElectricShock>(out var shock))
-                {
-                    // 스택이 0이면 기절시키지 않고 다음 적으로 넘어감
-                    if (shock.ShockCount <= 0) continue;
-
-                    // 스택에 따른 기절 시간 계산
-                    float stunTime = 0f;
-                    if (shock.ShockCount == 1) stunTime = 0.8f;
-                    else if (shock.ShockCount == 2) stunTime = 1.3f;
-                    else if (shock.ShockCount >= 3) stunTime = 1.8f;
-
-                    shock.ApplyStun(stunTime);
-
-                    // 라인 그리기 (내 위치 -> 적 위치)
-                    _lineRenderer.SetPosition(i * 2, transform.position);
-                    _lineRenderer.SetPosition(i * 2 + 1, targets[i].transform.position);
-                }
+                return identities[i];
             }
         }
 
-        yield return new WaitForSeconds(0.15f);
-        _lineRenderer.enabled = false;
-
-        yield return new WaitForSeconds(0.1f);
-        _isCasting = false;
+        return null;
     }
 }

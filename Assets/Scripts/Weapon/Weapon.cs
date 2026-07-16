@@ -155,21 +155,21 @@ public class Weapon : Item
         if (NetworkManager.Instance == null) return;
         if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
 
-        if (InitiatorSkill_Q.IsLocalDroneMode ||
-    InitiatorSkill_C.ShouldBlockWeaponInput())
+        // 스턴 중이면 사격 / ADS / 무기 입력 전부 차단
+        ElectricShock myShock =
+            GetComponentInParent<ElectricShock>();
+
+        if (myShock != null && myShock.IsStunned)
         {
-            if (isADS)
-            {
-                isADS = false;
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return;
+        }
 
-                cameraLook?.SetADS(false);
-                weaponADS?.SetADS(false);
-                playerMovement?.SetADS(false);
-
-                if (weaponData != null && cameraController != null)
-                    cameraController.SetFOV(weaponData.normalFOV);
-            }
-
+        if (InitiatorSkill_Q.IsLocalDroneMode ||
+            InitiatorSkill_C.ShouldBlockWeaponInput())
+        {
+            ForceCancelADS();
             return;
         }
 
@@ -216,6 +216,23 @@ public class Weapon : Item
         isADS = false;
         crosshair?.SetActive(true);
         StopAllCoroutines();
+    }
+
+    private void ForceCancelADS()
+    {
+        if (!isADS)
+            return;
+
+        isADS = false;
+
+        cameraLook?.SetADS(false);
+        weaponADS?.SetADS(false);
+        playerMovement?.SetADS(false);
+
+        crosshair?.SetActive(true);
+
+        if (weaponData != null && cameraController != null)
+            cameraController.SetFOV(weaponData.normalFOV);
     }
 
     private void HandleADS()
@@ -309,6 +326,15 @@ public class Weapon : Item
     public override void OnUse()
     {
         base.OnUse();
+
+        ElectricShock myShock =
+        GetComponentInParent<ElectricShock>();
+
+        if (myShock != null && myShock.IsStunned)
+        {
+            ForceCancelADS();
+            return;
+        }
 
         if (weaponData == null)
             return;
@@ -574,7 +600,14 @@ public class Weapon : Item
             );
 
             if (TryHandleScannerHit(hit))
+            {
+                SpawnBulletVisual(
+                    shootDir,
+                    visualTargetPoint
+                );
+
                 return;
+            }
 
             // 핵심: 플레이어보다 드론을 먼저 검사해야 함
             if (TryHandleDroneHit(hit))
@@ -788,11 +821,32 @@ public class Weapon : Item
                 $"root={hit.collider.transform.root.name}, " +
                 $"point={hit.point}"
             );
-            if (TryHandleScannerHit(hit))
-                return;
 
-            if (TryHandleDroneHit(hit))
-                return;
+            if (hasHit)
+            {
+                targetPoint = hit.point;
+
+                Debug.Log(
+                    $"[PROJECTILE AIM HIT] object={hit.collider.name}, " +
+                    $"root={hit.collider.transform.root.name}, " +
+                    $"point={hit.point}"
+                );
+
+                // 서버 피격 전송만 하고, 총알 비주얼은 아래에서 그대로 생성한다.
+                if (TryHandleScannerHit(hit))
+                {
+                    // return 하지 마라
+                }
+                else if (TryHandleDroneHit(hit))
+                {
+                    // return 하지 마라
+                }
+            }
+            else
+            {
+                targetPoint =
+                    ray.origin + ray.direction * weaponData.range;
+            }
         }
         else
         {

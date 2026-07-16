@@ -153,6 +153,12 @@ public enum PacketType : ushort
     PKT_SC_SCANNER_ZAP = 194,
     PKT_SC_SCANNER_DESTROY = 195,
     PKT_CS_SCANNER_HIT = 196,
+
+    PKT_CS_EMP_CAST = 200,
+    PKT_SC_EMP_CAST = 201,
+    PKT_SC_ELECTRIC_STATUS = 202,
+    PKT_CS_ULTIMATE_CAST = 210,
+    PKT_SC_ULTIMATE_CAST = 211,
 }
 
 public enum RegisterResult : byte
