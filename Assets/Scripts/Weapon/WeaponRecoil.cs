@@ -5,6 +5,7 @@ public class WeaponRecoil : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float snappiness = 10f;
     [SerializeField] private float returnSpeed = 5f;
+    [SerializeField] private float defaultRecoveryDelay = 0.15f; // fireRate가 안 넘어올 때 대비 fallback
 
     [Header("Hip Fire Recoil")]
     [SerializeField] private float hipWeaponRecoilMultiplier = 1f;
@@ -24,11 +25,16 @@ public class WeaponRecoil : MonoBehaviour
 
     private Vector2 previousAppliedCameraRecoil;
 
+    private float lastFireTime = -999f;
+    private float currentRecoveryDelay;
+
     private FPSCameraLook cameraLook;
     private GeneralCameraShake cameraShake;
 
     void Awake()
     {
+        currentRecoveryDelay = defaultRecoveryDelay;
+
         PlayerCameraController cameraController =
             GetComponentInParent<PlayerCameraController>();
 
@@ -52,11 +58,20 @@ public class WeaponRecoil : MonoBehaviour
 
     void Update()
     {
-        targetRotation = Vector3.Lerp(
-            targetRotation,
-            Vector3.zero,
-            returnSpeed * Time.deltaTime
-        );
+        bool isRecovering = Time.time - lastFireTime > currentRecoveryDelay;
+
+        if (isRecovering)
+        {
+            targetRotation = Vector3.Lerp(
+                targetRotation,
+                Vector3.zero,
+                returnSpeed * Time.deltaTime);
+
+            targetCameraRecoil = Vector2.Lerp(
+                targetCameraRecoil,
+                Vector2.zero,
+                returnSpeed * Time.deltaTime);
+        }
 
         currentRotation = Vector3.Slerp(
             currentRotation,
@@ -66,17 +81,12 @@ public class WeaponRecoil : MonoBehaviour
 
         transform.localRotation = Quaternion.Euler(currentRotation);
 
-        targetCameraRecoil = Vector2.Lerp(
-            targetCameraRecoil,
-            Vector2.zero,
-            returnSpeed * Time.deltaTime);
-
         currentCameraRecoil = Vector2.Lerp(
             currentCameraRecoil,
             targetCameraRecoil,
             snappiness * Time.deltaTime);
 
-        Vector2 delta =currentCameraRecoil - previousAppliedCameraRecoil;
+        Vector2 delta = currentCameraRecoil - previousAppliedCameraRecoil;
 
         previousAppliedCameraRecoil = currentCameraRecoil;
 
@@ -87,8 +97,11 @@ public class WeaponRecoil : MonoBehaviour
         }
     }
 
-    public void FireRecoil(Vector2 recoilPattern, float multiplier, bool isADS)
+    public void FireRecoil(Vector2 recoilPattern, float multiplier, bool isADS, float recoveryDelay = -1f)
     {
+        lastFireTime = Time.time;
+        currentRecoveryDelay = recoveryDelay > 0f ? recoveryDelay : defaultRecoveryDelay;
+
         float weaponMultiplier = isADS
             ? adsWeaponRecoilMultiplier
             : hipWeaponRecoilMultiplier;
@@ -121,8 +134,8 @@ public class WeaponRecoil : MonoBehaviour
         */
 
         targetCameraRecoil += new Vector2(
-        recoilPattern.x,
-        recoilPattern.y
+            recoilPattern.x,
+            recoilPattern.y
         ) * multiplier * cameraMultiplier;
 
         if (cameraShake != null)

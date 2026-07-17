@@ -491,10 +491,17 @@ public class Weapon : Item
                 ? weaponData.adsRecoilMultiplier
                 : weaponData.recoilMultiplier;
 
+        float recoveryDelay =
+            Mathf.Max(
+                weaponData.fireRate * 1.2f,
+                0.1f
+        );
+
         recoilSystem.FireRecoil(
             weaponData.recoilPattern[index],
             recoilMultiplier,
-            isADS
+            isADS,
+            recoveryDelay
         );
 
         currentShotIndex++;
@@ -763,12 +770,10 @@ public class Weapon : Item
         if (bulletPrefab == null || firePoint == null)
             return;
 
-        Ray ray =
-            cam.ViewportPointToRay(
-                new Vector3(0.5f, 0.5f, 0f)
-            );
+        // 카메라 정면 방향 기준으로 스프레드만 적용 (firePoint 보정 없음)
+        Vector3 shootDir = GetSpreadDirection(cam.transform.forward);
 
-        Vector3 targetPoint;
+        Ray ray = new Ray(cam.transform.position, shootDir);
 
         bool hasHit =
             TryGetFirstValidHit(
@@ -779,28 +784,15 @@ public class Weapon : Item
 
         if (hasHit)
         {
-            targetPoint = hit.point;
-
-            // 핵심:
-            // Projectile 총도 조준선에 드론이 있으면 서버에 드론 피격 전송
+            // 조준선에 드론이 있으면 서버에 드론 피격 전송
             TryHandleDroneHit(hit);
         }
-        else
-        {
-            targetPoint =
-                ray.origin + ray.direction * weaponData.range;
-        }
 
-        Vector3 baseDir =
-            (targetPoint - firePoint.position).normalized;
-
-        Vector3 shootDir =
-            GetSpreadDirection(baseDir);
-
+        // 카메라 위치에서 바로 총알 생성 (firePoint 위치/보정 미사용)
         GameObject bullet =
             Instantiate(
                 bulletPrefab,
-                firePoint.position,
+                cam.transform.position,
                 Quaternion.LookRotation(shootDir)
             );
 
