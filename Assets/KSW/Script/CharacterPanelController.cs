@@ -31,10 +31,10 @@ public class CharacterData
 
 public class CharacterPanelController : MonoBehaviour
 {
-    [Header("--- Data Settings ---")]
+    [Header("Data Settings")]
     public CharacterData[] characters; // 캐릭터 데이터 배열
 
-    [Header("--- UI References ---")]
+    [Header("UI References")]
     public GameObject characterPanel;
     public RawImage previewRawImage; // 3D 모델을 보여주는 RawImage (렌더텍스처용)
     public Image preview2DImage; // 2D 일러스트를 보여줄 전용 UI Image 컴포넌트 참조
@@ -44,10 +44,10 @@ public class CharacterPanelController : MonoBehaviour
     public ScrollRect descriptionScrollRect; // 스킬 설명창의 ScrollRect 컴포넌트
     public Button equipButton; // 장착 버튼 컴포넌트 참조 추가
 
-    [Header("--- Spawn Settings ---")]
+    [Header("Spawn Settings")]
     public Transform spawnPoint; // 3D 캐릭터가 생성될 위치
 
-    [Header("--- Rotation Settings ---")]
+    [Header("Rotation Settings")]
     public float rotationSpeed = 2f; // 회전 속도 조절
     private float lastMouseX;
 
