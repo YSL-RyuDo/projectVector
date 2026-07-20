@@ -44,6 +44,9 @@ public class CharacterPanelController : MonoBehaviour
     public ScrollRect descriptionScrollRect; // 스킬 설명창의 ScrollRect 컴포넌트
     public Button equipButton; // 장착 버튼 컴포넌트 참조 추가
 
+    [Header("Preset")]
+    [SerializeField] private GameObject _presetPanel;
+
     [Header("Spawn Settings")]
     public Transform spawnPoint; // 3D 캐릭터가 생성될 위치
 
@@ -156,10 +159,12 @@ public class CharacterPanelController : MonoBehaviour
     }
 
     // 장착 버튼을 누르면 현재 선택 캐릭터 ID만 로컬에 저장
-    public void ClickEquipButton()
+    public void ClickPresetButton()
     {
-        currentEquippedCharacterId = currentPreviewCharacterId;
-        Debug.Log($"캐릭터 장착 완료: 장착된 캐릭터 ID: {currentEquippedCharacterId}");
+        _presetPanel.SetActive(true);
+
+        //currentEquippedCharacterId = currentPreviewCharacterId;
+        //Debug.Log($"캐릭터 장착 완료: 장착된 캐릭터 ID: {currentEquippedCharacterId}");
     }
 
     // 스킬 버튼 입력 함수 (Q, C, E, X 스킬 선택 버튼에 연결)
