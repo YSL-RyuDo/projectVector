@@ -55,7 +55,7 @@ public class LobbyPanelController : MonoBehaviour
             characterSelectPopup.SetActive(false);
     }
 
-    private void ApplyCharacter(int characterId)
+    public void ApplyCharacter(int characterId)
     {
         if (currentCharacter != null)
             Destroy(currentCharacter);
@@ -69,7 +69,7 @@ public class LobbyPanelController : MonoBehaviour
         currentCharacter = Instantiate(CharacterPrefebs[characterId]);
     }
 
-    private void ApplyBackgroundPreset(int backgroundId)
+    public void ApplyBackgroundPreset(int backgroundId)
     {
         if (backgroundPresets == null || backgroundPresets.Length == 0)
             return;

@@ -20,6 +20,13 @@ public class ProfilePanelController : MonoBehaviour
     private int currentExp;
     private int requiredExp;
 
+    private LobbyPanelController lobbyPanelController;
+
+    private void Start()
+    {
+        lobbyPanelController = GetComponent<LobbyPanelController>();
+    }
+
     public void OnRecvLobbyEnter(
         string nickname,
         int level,
@@ -53,8 +60,8 @@ public class ProfilePanelController : MonoBehaviour
         }
 
         ApplyExpUI(currentExp, requiredExp);
-        ApplyCharacter(currentlobbyCharacterId);
-        ApplyBackgroundPreset(currentlobbyBackgroundId);
+        lobbyPanelController.ApplyCharacter(currentlobbyCharacterId);
+        lobbyPanelController.ApplyBackgroundPreset(currentlobbyBackgroundId);
     }
 
     private void ApplyExpUI(int current, int required)
@@ -75,6 +82,4 @@ public class ProfilePanelController : MonoBehaviour
             expSlider.value = current;
         }
     }
-
-    
 }

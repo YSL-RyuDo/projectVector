@@ -186,7 +186,15 @@ public class NetworkManager : MonoBehaviour
     Queue<(ushort, byte[])> packetQueue = new();
 
     LoginUI loginUI;
+    
+    NavigationPanelController navigationPanelController;
+    LobbyPanelController lobbyPanelController;
+    CharacterPanelController characterPanelController;
+    GamePanelController gamePanelController;
+    ProfilePanelController profilePanelController;
+    ChatPanelController chatPanelController;
     LobbyManager lobbyManager;
+
     private PickManager pickManager;
     private MatchManager matchManager;
     private ScoreboardData latestScoreboardData;
@@ -651,7 +659,7 @@ public class NetworkManager : MonoBehaviour
 
         Debug.Log($"[CLIENT LOBBY ENTER] nickname={nickname}, level={level}, exp={currentExp}/{requiredExp}, icon={playerIconId}, char={lobbyCharacterModelId}, bg={lobbyBackgroundId}");
 
-        lobbyManager?.OnRecvLobbyEnter(
+        profilePanelController?.OnRecvLobbyEnter(
             nickname,
             level,
             currentExp,
@@ -671,7 +679,7 @@ public class NetworkManager : MonoBehaviour
 
         Debug.Log($"[CLIENT CHAT PARSED] playerId={playerId} nickname={nickname} message={message}");
 
-        lobbyManager?.OnRecvLobbyChat(playerId, nickname, message);
+        chatPanelController?.OnRecvLobbyChat(playerId, nickname, message);
     }
 
     void HandleLobbyCharacterSelectResult(byte[] body)
@@ -681,7 +689,7 @@ public class NetworkManager : MonoBehaviour
         int modelId = BitConverter.ToInt32(body, 1);
 
 
-        lobbyManager?.OnRecvLobbyCharacterSelectResult(result, modelId);
+        lobbyPanelController?.OnRecvLobbyCharacterSelectResult(result, modelId);
     }
 
     void HandleLobbyBackgroundSelectResult(byte[] body)
@@ -689,7 +697,7 @@ public class NetworkManager : MonoBehaviour
         byte result = body[0];
         int backgroundId = BitConverter.ToInt32(body, 1);
 
-        lobbyManager?.OnRecvLobbyBackgroundSelectResult(result, backgroundId);
+        lobbyPanelController?.OnRecvLobbyBackgroundSelectResult(result, backgroundId);
     }
 
     void HandleLobbyCharacterList(byte[] body)
@@ -712,7 +720,7 @@ public class NetworkManager : MonoBehaviour
             list.Add(data);
         }
 
-        lobbyManager?.OnRecvLobbyCharacterList(list, currentCharacterModelId);
+        lobbyPanelController?.OnRecvLobbyCharacterList(list, currentCharacterModelId);
     }
 
     public void SendTempGameRoomEnter()
@@ -770,13 +778,13 @@ public class NetworkManager : MonoBehaviour
             players.Add(data);
         }
 
-        lobbyManager?.OnRecvTempGameRoomEnter(playerCount, players);
+        gamePanelController?.OnRecvTempGameRoomEnter(playerCount, players);
     }
 
     void HandleTempGameStartResult(byte[] body)
     {
         byte result = body[0];
-        lobbyManager?.OnRecvTempGameStartResult(result);
+        gamePanelController?.OnRecvTempGameStartResult(result);
     }
 
     public void SendRoomList()
@@ -840,7 +848,7 @@ public class NetworkManager : MonoBehaviour
             rooms.Add(room);
         }
 
-        LobbyManager.Instance.OnRecvRoomList(rooms);
+        LobbyManager.Instance.Game.OnRecvRoomList(rooms);
     }
 
     public void SendRoomCreate()
@@ -931,7 +939,7 @@ public class NetworkManager : MonoBehaviour
             roomState.members.Add(member);
         }
 
-        lobbyManager?.OnRecvRoomCreateResult(roomState);
+        gamePanelController?.OnRecvRoomCreateResult(roomState);
     }
 
     public void SendRoomLeave()
@@ -961,7 +969,7 @@ public class NetworkManager : MonoBehaviour
 
         Debug.Log($"[ROOM LEAVE RESULT] result={result}, roomId={roomId}, roomDeleted={roomDeleted}");
 
-        lobbyManager?.OnRecvRoomLeaveResult(result, roomId, roomDeleted != 0);
+        gamePanelController?.OnRecvRoomLeaveResult(result, roomId, roomDeleted != 0);
     }
 
     void HandleRoomEnterResult(byte[] body)
@@ -976,7 +984,7 @@ public class NetworkManager : MonoBehaviour
 
         Debug.Log($"[ROOM ENTER RESULT] result={result}, roomId={roomId}");
 
-        lobbyManager?.OnRecvRoomEnterResult(result, roomId);
+        gamePanelController?.OnRecvRoomEnterResult(result, roomId);
     }
 
     void HandleRoomState(byte[] body)
@@ -1049,7 +1057,7 @@ public class NetworkManager : MonoBehaviour
             );
         }
 
-        lobbyManager?.OnRecvRoomState(roomState);
+        gamePanelController?.OnRecvRoomState(roomState);
     }
 
     public void SendRoomSlotChange(RoomSlotTeam targetTeam, byte targetSlotIndex)
@@ -1103,7 +1111,7 @@ public class NetworkManager : MonoBehaviour
             $"result={result}, targetTeam={targetTeam}, targetSlot={targetSlotIndex}, targetNickname={targetNickname}"
         );
 
-        lobbyManager?.OnRecvRoomSlotChangeResult(
+        gamePanelController?.OnRecvRoomSlotChangeResult(
             result,
             targetTeam,
             targetSlotIndex,
@@ -1142,7 +1150,7 @@ public class NetworkManager : MonoBehaviour
             $"target={data.targetTeam}{data.targetSlotIndex}"
         );
 
-        lobbyManager?.OnRecvRoomSlotSwapRequest(data);
+        gamePanelController?.OnRecvRoomSlotSwapRequest(data);
     }
 
     public void SendRoomTransferLeader(uint targetPlayerId)
@@ -1189,7 +1197,7 @@ public class NetworkManager : MonoBehaviour
             $"result={result}, targetPlayerId={targetPlayerId}, targetNickname={targetNickname}"
         );
 
-        lobbyManager?.OnRecvRoomTransferLeaderResult(
+        gamePanelController?.OnRecvRoomTransferLeaderResult(
             result,
             targetPlayerId,
             targetNickname
@@ -1214,7 +1222,7 @@ public class NetworkManager : MonoBehaviour
             $"result={result}, targetPlayerId={targetPlayerId}, targetNickname={targetNickname}"
         );
 
-        lobbyManager?.OnRecvRoomKickResult(
+        gamePanelController?.OnRecvRoomKickResult(
             result,
             targetPlayerId,
             targetNickname
@@ -1233,7 +1241,7 @@ public class NetworkManager : MonoBehaviour
 
         Debug.Log($"[ROOM KICKED] roomId={roomId}, kicker={kickerNickname}");
 
-        lobbyManager?.OnRecvRoomKicked(roomId, kickerNickname);
+        gamePanelController?.OnRecvRoomKicked(roomId, kickerNickname);
     }
 
     public void SendRoomGameStart()
@@ -1257,7 +1265,7 @@ public class NetworkManager : MonoBehaviour
 
         Debug.Log($"[ROOM GAME START RESULT] result={result}");
 
-        lobbyManager?.OnRecvRoomGameStartResult(result);
+        gamePanelController?.OnRecvRoomGameStartResult(result);
     }
 
     public void SetPickManager(PickManager manager)

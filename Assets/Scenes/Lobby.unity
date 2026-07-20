@@ -12176,7 +12176,7 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 471285306}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0.568}
+  m_AnchorMin: {x: 0, y: 0.56799996}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 20}
@@ -16178,24 +16178,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26a0450cfada0d7429b378cf13692515, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NavigationPanelController
-  lobbyHomePanel: {fileID: 0}
-  characterCustomizationPanel: {fileID: 0}
-  gamePanel: {fileID: 0}
+  lobbyHomePanel: {fileID: 312343644}
+  characterCustomizationPanel: {fileID: 256850420}
+  gamePanel: {fileID: 956777114}
   careerPanel: {fileID: 0}
   storePanel: {fileID: 0}
-  lobbyMainButton: {fileID: 0}
-  characterMainButton: {fileID: 0}
-  gameMainButton: {fileID: 0}
-  careerMainButton: {fileID: 0}
-  storeMainButton: {fileID: 0}
-  lobbyNormalSprite: {fileID: 0}
-  lobbySelectedSprite: {fileID: 0}
-  characterNormalSprite: {fileID: 0}
-  characterSelectedSprite: {fileID: 0}
-  careerNormalSprite: {fileID: 0}
-  careerSelectedSprite: {fileID: 0}
-  storeNormalSprite: {fileID: 0}
-  storeSelectedSprite: {fileID: 0}
+  lobbyMainButton: {fileID: 1340632394}
+  characterMainButton: {fileID: 2097470856}
+  gameMainButton: {fileID: 1044896483}
+  careerMainButton: {fileID: 1420980413}
+  storeMainButton: {fileID: 572228058}
+  lobbyNormalSprite: {fileID: 21300000, guid: 9ec0227856b312c43b8d6320526afd43, type: 3}
+  lobbySelectedSprite: {fileID: 21300000, guid: 3ca7cde1d58c7a0458b056a258a9ac28, type: 3}
+  characterNormalSprite: {fileID: 21300000, guid: 8fe415e055848b2478aaae1c35b8436a, type: 3}
+  characterSelectedSprite: {fileID: 21300000, guid: 26c11691de682f649b5602aed103f125, type: 3}
+  careerNormalSprite: {fileID: 21300000, guid: bea9cf2627b463848bd37c6b61ededfa, type: 3}
+  careerSelectedSprite: {fileID: 21300000, guid: 80ca1c6307c6e874a9be00b287480e4d, type: 3}
+  storeNormalSprite: {fileID: 21300000, guid: 3b31f3f4313f9bb48be696f6eefb7d47, type: 3}
+  storeSelectedSprite: {fileID: 21300000, guid: b296300bfc90a8147a72d3b3a8e1a421, type: 3}
   currentLobbyMainMenu: 0
 --- !u!114 &1383164222
 MonoBehaviour:
@@ -16272,6 +16272,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b151e96f09d1253468f191a6fe8a32e2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LobbyPanelController
+  characterSelectPopup: {fileID: 795888238}
+  characterSlotContent: {fileID: 1322065443}
+  characterSlotPrefab: {fileID: 614742110673287752, guid: 91a7b8237083ea34aa77d37df36655fa, type: 3}
+  characterSprites: []
+  CharacterPrefebs:
+  - {fileID: 7654540031228714352, guid: 9e0bb408906eb7349b28e9c6d11586f1, type: 3}
+  - {fileID: 4041467186585408180, guid: d0a6c656bc4b0d3459b08c6e2095a268, type: 3}
+  - {fileID: 7401587327423938050, guid: 7a7c9ed0a2f00d5439c2defdc9fd122f, type: 3}
+  - {fileID: 7900068312483294672, guid: 4e96473b7d2b0374885a54802348ce54, type: 3}
+  lobbyCamera: {fileID: 1106061185}
+  backgroundPresets:
+  - characterPosition: {x: 0, y: 0, z: 0}
+    characterRotation: {x: 0, y: 0, z: 0}
+    cameraPosition: {x: 0, y: 0, z: 0}
+    cameraRotation: {x: 0, y: 0, z: 0}
+  backgroundSelectPopup: {fileID: 0}
 --- !u!114 &1383164226
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16465,86 +16481,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 48c563a796d183b4f8d6b840b5219d2e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LobbyManager
-  nicknameText: {fileID: 1131163371}
-  levelText: {fileID: 1200633706}
-  playerIcon: {fileID: 436792222}
-  Icon:
-  - {fileID: 21300000, guid: 84b0c6fbeb9a82747bdd473fc03074c6, type: 3}
-  - {fileID: 21300000, guid: eb27ef375e1c0404ca9006f2b0cf737b, type: 3}
-  - {fileID: 21300000, guid: 33512a6d27fd5454a9aa43994573ac22, type: 3}
-  expSlider: {fileID: 1354262613}
-  CharacterPrefebs:
-  - {fileID: 7654540031228714352, guid: 9e0bb408906eb7349b28e9c6d11586f1, type: 3}
-  - {fileID: 4041467186585408180, guid: d0a6c656bc4b0d3459b08c6e2095a268, type: 3}
-  - {fileID: 7401587327423938050, guid: 7a7c9ed0a2f00d5439c2defdc9fd122f, type: 3}
-  - {fileID: 7900068312483294672, guid: 4e96473b7d2b0374885a54802348ce54, type: 3}
-  lobbyCamera: {fileID: 1106061185}
-  backgroundPresets:
-  - characterPosition: {x: 0.75, y: 0.1, z: -0.4}
-    characterRotation: {x: 0, y: 215, z: 0}
-    cameraPosition: {x: -0.29, y: 2.21, z: -2.57}
-    cameraRotation: {x: 0, y: 0, z: 0}
-  - characterPosition: {x: -10, y: 0.1, z: 0.15}
-    characterRotation: {x: 0, y: 180, z: 0}
-    cameraPosition: {x: -9.96, y: 2.21, z: -2.57}
-    cameraRotation: {x: 0, y: -30, z: 0}
-  - characterPosition: {x: -11.89, y: 0.1, z: -9.54}
-    characterRotation: {x: 0, y: 100, z: 0}
-    cameraPosition: {x: -9.37, y: 2.21, z: -9.5}
-    cameraRotation: {x: 0, y: -120, z: 0}
-  - characterPosition: {x: -0.76, y: 0.1, z: -11.82}
-    characterRotation: {x: 0, y: -30, z: 0}
-    cameraPosition: {x: -2.2, y: 2.21, z: -9.5}
-    cameraRotation: {x: 0, y: -240, z: 0}
-  characterSelectPopup: {fileID: 795888238}
-  characterSlotContent: {fileID: 1322065443}
-  characterSlotPrefab: {fileID: 614742110673287752, guid: 91a7b8237083ea34aa77d37df36655fa, type: 3}
-  characterSprites:
-  - {fileID: 21300000, guid: e5783f8d6cbb674419efa7ac9ba46478, type: 3}
-  - {fileID: 21300000, guid: 339d1da6f54573741936bc521cb2c812, type: 3}
-  - {fileID: 21300000, guid: 4694d5e8a5872dd42a61e74f581ddf19, type: 3}
-  - {fileID: 21300000, guid: 7d51bfb3645a6f145bbd95b57be9b2d5, type: 3}
-  backgroundSelectPopup: {fileID: 970799340}
-  ChatPrefeb: {fileID: 6781076058694847785, guid: 2728e390fd3343c47b2c19c96b571492, type: 3}
-  ChatSlotContent: {fileID: 0}
-  ChatInputField: {fileID: 0}
-  gamePanel: {fileID: 0}
-  tempGameRoomPanel: {fileID: 0}
-  tempGamePlayerSlots:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  tempRoomIconSprites:
-  - {fileID: 21300000, guid: f21a2be14e3c69c4cad3503dd59860b1, type: 3}
-  tempRoomBorderSprites:
-  - {fileID: 21300000, guid: bef48594e6b2a0544bc951f07bb44cd5, type: 3}
-  tempRoomRankSprites:
-  - {fileID: 21300000, guid: 472123855e21c814f9ed8b937fa6bf2e, type: 3}
-  roomListPanel: {fileID: 0}
-  roomListContent: {fileID: 0}
-  roomSlotPrefab: {fileID: 3114284913712028265, guid: 47f8ed0ae340c3143a5da5ca4d236af1, type: 3}
-  roomRefreshButton: {fileID: 0}
-  roomPanelUI: {fileID: 0}
-  normalGameButton: {fileID: 0}
-  rankGameButton: {fileID: 0}
-  customRoomButton: {fileID: 0}
-  unselectedModeButtonColor: {r: 0.8, g: 0.8, b: 0.8, a: 1}
-  selectedModeButtonColor: {r: 0.75, g: 1, b: 0.35, a: 1}
-  slotChangeConfirmPanel: {fileID: 0}
-  slotChangeConfirmText: {fileID: 0}
-  slotChangeConfirmButton: {fileID: 0}
-  slotChangeCancelButton: {fileID: 0}
-  slotSwapRequestPanel: {fileID: 0}
-  slotSwapRequestText: {fileID: 0}
-  slotSwapAcceptButton: {fileID: 0}
-  slotSwapRejectButton: {fileID: 0}
-  roomMessagePanel: {fileID: 0}
-  roomMessageText: {fileID: 0}
-  roomMessageDuration: 2
-  slotAdminMenuPanel: {fileID: 0}
-  slotAdminTargetText: {fileID: 0}
-  transferLeaderButton: {fileID: 0}
-  kickButton: {fileID: 0}
 --- !u!114 &1383164228
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16557,6 +16493,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4238d68093b59314088f5b0b3b83f92a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  tempGameRoomPanel: {fileID: 1451953574}
+  tempGamePlayerSlots: []
+  tempRoomIconSprites: []
+  tempRoomBorderSprites: []
+  tempRoomRankSprites: []
+  roomListPanel: {fileID: 0}
+  roomListContent: {fileID: 0}
+  roomSlotPrefab: {fileID: 0}
+  roomRefreshButton: {fileID: 0}
+  roomPanelUI: {fileID: 0}
+  normalGameButton: {fileID: 0}
+  rankGameButton: {fileID: 0}
+  customRoomButton: {fileID: 0}
+  slotAdminMenuPanel: {fileID: 0}
+  slotAdminTargetText: {fileID: 0}
+  transferLeaderButton: {fileID: 0}
+  kickButton: {fileID: 0}
+  slotSwapRequestPanel: {fileID: 0}
+  slotSwapRequestText: {fileID: 0}
+  slotSwapAcceptButton: {fileID: 0}
+  slotSwapRejectButton: {fileID: 0}
+  roomMessagePanel: {fileID: 0}
+  roomMessageText: {fileID: 0}
+  roomMessageDuration: 2
+  slotChangeConfirmPanel: {fileID: 0}
+  slotChangeConfirmText: {fileID: 0}
+  slotChangeConfirmButton: {fileID: 0}
+  slotChangeCancelButton: {fileID: 0}
+  gamePanel: {fileID: 0}
+  unselectedModeButtonColor: {r: 0.8, g: 0.8, b: 0.8, a: 1}
+  selectedModeButtonColor: {r: 0.75, g: 1, b: 0.35, a: 1}
 --- !u!114 &1383164229
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16569,6 +16536,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a24e33f72fa6f141820234d8803736b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  ChatPrefeb: {fileID: 0}
+  ChatSlotContent: {fileID: 0}
+  ChatInputField: {fileID: 0}
 --- !u!114 &1383164230
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16581,6 +16551,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b54605281de6c7843838ed875b270ac0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  nicknameText: {fileID: 0}
+  levelText: {fileID: 0}
+  playerIcon: {fileID: 0}
+  Icon: []
+  expSlider: {fileID: 0}
+  currentNickname: 
+  currentLevel: 0
+  currentplayerIconId: 0
+  currentlobbyCharacterId: 0
+  currentlobbyBackgroundId: 0
 --- !u!1 &1410603621
 GameObject:
   m_ObjectHideFlags: 0
@@ -23916,7 +23896,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1074261423}
   m_HandleRect: {fileID: 1074261422}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0.9999998
   m_Size: 0.432
   m_NumberOfSteps: 0
   m_OnValueChanged:
