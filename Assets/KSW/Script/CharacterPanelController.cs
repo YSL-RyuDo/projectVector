@@ -278,4 +278,19 @@ public class CharacterPanelController : MonoBehaviour
 
         lastMouseX = eventData.position.x;
     }
+
+    public void OnPresetBackButton()
+    {
+        _presetPanel.SetActive(false);
+    }
+
+    public void OnPresetButton()
+    {
+
+    }
+
+    public void OnScreenshotButton()
+    {
+
+    }
 }
