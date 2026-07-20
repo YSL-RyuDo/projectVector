@@ -155,22 +155,21 @@ public class Weapon : Item
         if (NetworkManager.Instance == null) return;
         if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
 
-        if (InitiatorSkill_Q.IsLocalDroneMode)
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¸ï¿½ ï¿½ï¿½ï¿½ / ADS / ï¿½ï¿½ï¿½ï¿½ ï¿½Ô·ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+        ElectricShock myShock =
+            GetComponentInParent<ElectricShock>();
+
+        if (myShock != null && myShock.IsStunned)
         {
-            if (isADS)
-            {
-                isADS = false;
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return;
+        }
 
-                cameraLook?.SetADS(false);
-                weaponADS?.SetADS(false);
-                playerMovement?.SetADS(false);
-
-                if (weaponData != null && cameraController != null)
-                    cameraController.SetFOV(weaponData.normalFOV);
-
-                crosshair?.SetActive(false);
-            }
-
+        if (InitiatorSkill_Q.IsLocalDroneMode ||
+            InitiatorSkill_C.ShouldBlockWeaponInput())
+        {
+            ForceCancelADS();
             return;
         }
 
@@ -219,6 +218,23 @@ public class Weapon : Item
         StopAllCoroutines();
     }
 
+    private void ForceCancelADS()
+    {
+        if (!isADS)
+            return;
+
+        isADS = false;
+
+        cameraLook?.SetADS(false);
+        weaponADS?.SetADS(false);
+        playerMovement?.SetADS(false);
+
+        crosshair?.SetActive(true);
+
+        if (weaponData != null && cameraController != null)
+            cameraController.SetFOV(weaponData.normalFOV);
+    }
+
     private void HandleADS()
     {
         if (weaponData == null)
@@ -230,7 +246,7 @@ public class Weapon : Item
         if (cameraController.PlayerCamera == null)
             return;
 
-        // ±ÇÃÑ°ú ¼¦°Ç, Ä®Àº ADS ±İÁö
+        // ï¿½ï¿½ï¿½Ñ°ï¿½ ï¿½ï¿½ï¿½ï¿½, Ä®ï¿½ï¿½ ADS ï¿½ï¿½ï¿½ï¿½
         bool cannotADS =
             weaponData.weaponType == WeaponData.WeaponType.Pistol ||
             weaponData.weaponType == WeaponData.WeaponType.Shotgun ||
@@ -249,7 +265,7 @@ public class Weapon : Item
                 playerMovement?.SetADS(false);
             }
 
-            // ADS°¡ ºÒ°¡´ÉÇÏ°Å³ª ÀåÀü ÁßÀÌ¸é ÀÏ¹İ Å©·Î½ºÇì¾î¸¦ Ç¥½ÃÇÑ´Ù.
+            // ADSï¿½ï¿½ ï¿½Ò°ï¿½ï¿½ï¿½ï¿½Ï°Å³ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¸ï¿½ ï¿½Ï¹ï¿½ Å©ï¿½Î½ï¿½ï¿½ï¿½î¸¦ Ç¥ï¿½ï¿½ï¿½Ñ´ï¿½.
             crosshair?.SetActive(true);
 
             cameraController.SetFOV(weaponData.normalFOV);
@@ -259,7 +275,7 @@ public class Weapon : Item
         /*
         if (cannotADS)
         {
-            // ÀÌÀü ¹«±â¿¡¼­ ADS ÁßÀÌ¾ú´Ù¸é °­Á¦·Î ÇØÁ¦
+            // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½â¿¡ï¿½ï¿½ ADS ï¿½ï¿½ï¿½Ì¾ï¿½ï¿½Ù¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
             if (isADS)
             {
                 isADS = false;
@@ -268,7 +284,7 @@ public class Weapon : Item
                 weaponADS?.SetADS(false);
             }
 
-            // FOVµµ ÀÏ¹İ »óÅÂ·Î °íÁ¤
+            // FOVï¿½ï¿½ ï¿½Ï¹ï¿½ ï¿½ï¿½ï¿½Â·ï¿½ ï¿½ï¿½ï¿½ï¿½
             cameraController.SetFOV(weaponData.normalFOV);
 
             return;
@@ -290,7 +306,7 @@ public class Weapon : Item
 
             playerMovement?.SetADS(isADS);
 
-            // Á¶ÁØ Áß¿¡´Â ¼û±â°í, Á¶ÁØÀÌ Ç®¸®¸é ´Ù½Ã Ç¥½ÃÇÑ´Ù.
+            // ï¿½ï¿½ï¿½ï¿½ ï¿½ß¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Ç®ï¿½ï¿½ï¿½ï¿½ ï¿½Ù½ï¿½ Ç¥ï¿½ï¿½ï¿½Ñ´ï¿½.
             crosshair?.SetActive(!isADS);
         }
 
@@ -310,6 +326,15 @@ public class Weapon : Item
     public override void OnUse()
     {
         base.OnUse();
+
+        ElectricShock myShock =
+        GetComponentInParent<ElectricShock>();
+
+        if (myShock != null && myShock.IsStunned)
+        {
+            ForceCancelADS();
+            return;
+        }
 
         if (weaponData == null)
             return;
@@ -381,13 +406,13 @@ public class Weapon : Item
 
         if (audioSource != null && audioSource.isActiveAndEnabled)
         {
-            // ·ÎÄÃ ÃÑ¼Ò¸®µµ °°Àº AudioSource¸¦ »ç¿ëÇÏ°í ¹İµå½Ã 3D·Î ¼³Á¤ÇÑ´Ù.
+            // ï¿½ï¿½ï¿½ï¿½ ï¿½Ñ¼Ò¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ AudioSourceï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï°ï¿½ ï¿½İµï¿½ï¿½ 3Dï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
             ConfigureWeaponAudioSource(audioSource);
             audioSource.PlayOneShot(weaponData.gunSound);
             return;
         }
 
-        // AudioSource°¡ ¾ø´Â ¿¹¿Ü »óÈ²¿¡¼­µµ 3D ÀÓ½Ã ¼Ò½º·Î Àç»ıÇÑ´Ù.
+        // AudioSourceï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 3D ï¿½Ó½ï¿½ ï¿½Ò½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
         PlayTemporarySpatialSound(
             weaponData.gunSound,
             transform.position,
@@ -515,12 +540,12 @@ public class Weapon : Item
 
         switch (weaponData.weaponType)
         {
-            // Áï½Ã ÆÇÁ¤ ¹«±â
+            // ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
             case WeaponData.WeaponType.SR:
                 FireHitscan();
                 break;
 
-            // ½ÇÁ¦ ÃÑ¾Ë ¿ÀºêÁ§Æ®·Î ÆÇÁ¤ÇÒ ¹«±â
+            // ï¿½ï¿½ï¿½ï¿½ ï¿½Ñ¾ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
             case WeaponData.WeaponType.AR:
             case WeaponData.WeaponType.SMG:
             case WeaponData.WeaponType.LMG:
@@ -581,7 +606,17 @@ public class Weapon : Item
                 $"point={hit.point}"
             );
 
-            // ÇÙ½É: ÇÃ·¹ÀÌ¾îº¸´Ù µå·ĞÀ» ¸ÕÀú °Ë»çÇØ¾ß ÇÔ
+            if (TryHandleScannerHit(hit))
+            {
+                SpawnBulletVisual(
+                    shootDir,
+                    visualTargetPoint
+                );
+
+                return;
+            }
+
+            // ï¿½Ù½ï¿½: ï¿½Ã·ï¿½ï¿½Ì¾îº¸ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ë»ï¿½ï¿½Ø¾ï¿½ ï¿½ï¿½
             if (TryHandleDroneHit(hit))
             {
                 SpawnBulletVisual(
@@ -629,7 +664,7 @@ public class Weapon : Item
             if (hit.collider == null)
                 continue;
 
-            // ³» Ä³¸¯ÅÍ, ³» ¹«±â, ³» ÀÚ½Ä Äİ¶óÀÌ´õ´Â ¹«½Ã
+            // ï¿½ï¿½ Ä³ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ ï¿½Ú½ï¿½ ï¿½İ¶ï¿½ï¿½Ì´ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
             if (hit.collider.transform.root == myRoot)
                 continue;
 
@@ -745,7 +780,7 @@ public class Weapon : Item
 
         if (bulletScript != null)
         {
-            // Raycast ¹«±â¿ë ½Ã°¢ È¿°ú ÃÑ¾ËÀº Hit Àü¼Û ±İÁö
+            // Raycast ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ã°ï¿½ È¿ï¿½ï¿½ ï¿½Ñ¾ï¿½ï¿½ï¿½ Hit ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
             bulletScript.Init(
                 _playerIdentity,
                 weaponData.range,
@@ -770,7 +805,7 @@ public class Weapon : Item
         if (bulletPrefab == null || firePoint == null)
             return;
 
-        // Ä«¸Ş¶ó Á¤¸é ¹æÇâ ±âÁØÀ¸·Î ½ºÇÁ·¹µå¸¸ Àû¿ë (firePoint º¸Á¤ ¾øÀ½)
+        // Ä«ï¿½Ş¶ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½å¸¸ ï¿½ï¿½ï¿½ï¿½ (firePoint ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
         Vector3 shootDir = GetSpreadDirection(cam.transform.forward);
 
         Ray ray = new Ray(cam.transform.position, shootDir);
@@ -784,11 +819,21 @@ public class Weapon : Item
 
         if (hasHit)
         {
-            // Á¶ÁØ¼±¿¡ µå·ĞÀÌ ÀÖÀ¸¸é ¼­¹ö¿¡ µå·Ğ ÇÇ°İ Àü¼Û
-            TryHandleDroneHit(hit);
+            Debug.Log(
+                $"[PROJECTILE AIM HIT] object={hit.collider.name}, " +
+                $"root={hit.collider.transform.root.name}, " +
+                $"point={hit.point}"
+            );
+
+            // YSLì˜ ìŠ¤ìºë„ˆ í”¼ê²© ì²˜ë¦¬ì™€ mainì˜ ë“œë¡  í”¼ê²© ì²˜ë¦¬ë¥¼ ëª¨ë‘ ìœ ì§€í•œë‹¤.
+            // ìŠ¤ìºë„ˆê°€ ì•„ë‹ˆë¼ë©´ ë“œë¡ ì¸ì§€ ì´ì–´ì„œ ê²€ì‚¬í•œë‹¤.
+            if (!TryHandleScannerHit(hit))
+            {
+                TryHandleDroneHit(hit);
+            }
         }
 
-        // Ä«¸Ş¶ó À§Ä¡¿¡¼­ ¹Ù·Î ÃÑ¾Ë »ı¼º (firePoint À§Ä¡/º¸Á¤ ¹Ì»ç¿ë)
+        // Ä«ï¿½Ş¶ï¿½ ï¿½ï¿½Ä¡ï¿½ï¿½ï¿½ï¿½ ï¿½Ù·ï¿½ ï¿½Ñ¾ï¿½ ï¿½ï¿½ï¿½ï¿½ (firePoint ï¿½ï¿½Ä¡/ï¿½ï¿½ï¿½ï¿½ ï¿½Ì»ï¿½ï¿½)
         GameObject bullet =
             Instantiate(
                 bulletPrefab,
@@ -850,7 +895,7 @@ public class Weapon : Item
         if (weaponData == null)
             return 0;
 
-        // ¼­¹ö ServerWeaponDataÀÇ weaponIdº° ÅºÃ¢ Å©±â¿Í µ¿ÀÏÇÏ°Ô À¯ÁöÇÑ´Ù.
+        // ï¿½ï¿½ï¿½ï¿½ ServerWeaponDataï¿½ï¿½ weaponIdï¿½ï¿½ ÅºÃ¢ Å©ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½.
         switch (weaponData.weaponId)
         {
             case 0: return 12;  // P92
@@ -885,11 +930,11 @@ public class Weapon : Item
         if (maxAmmo <= 0)
             return false;
 
-        // ÅºÃ¢ÀÌ ÀÌ¹Ì °¡µæ Â÷ ÀÖÀ½
+        // ÅºÃ¢ï¿½ï¿½ ï¿½Ì¹ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
         if (currentAmmo >= maxAmmo)
             return false;
 
-        // ¿Å°Ü ´ãÀ» ¿¹ºñ Åº¾àÀÌ ¾øÀ½
+        // ï¿½Å°ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Åºï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
         if (reserveAmmo <= 0)
             return false;
 
@@ -1046,10 +1091,57 @@ public class Weapon : Item
         return weaponData.weight;
     }
 
-    // KSW: ¹«±â ÀçÀåÀü ½Ã°£ ¸®ÅÏ ÇÔ¼ö Ãß°¡
+    // KSW: ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ã°ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ô¼ï¿½ ï¿½ß°ï¿½
     public float GetWeaponReLoadTime()
     {
         if (weaponData == null) return 0;
         return weaponData.reloadTime;
+    }
+
+    private bool TryHandleScannerHit(RaycastHit hit)
+    {
+        if (hit.collider == null)
+            return false;
+
+        ScannerHitbox scannerHitbox =
+            hit.collider.GetComponent<ScannerHitbox>();
+
+        if (scannerHitbox == null)
+            scannerHitbox =
+                hit.collider.GetComponentInParent<ScannerHitbox>();
+
+        if (scannerHitbox == null)
+            return false;
+
+        if (scannerHitbox.ScannerId == 0)
+        {
+            Debug.LogWarning("[SCANNER HIT] ScannerId is 0");
+            return true;
+        }
+
+        if (NetworkManager.Instance == null)
+            return true;
+
+        ScannerProjectile scanner = scannerHitbox.Scanner;
+
+        if (scanner != null &&
+            scanner.OwnerPlayerId == NetworkManager.Instance.MyPlayerId)
+        {
+            Debug.Log(
+                $"[SCANNER HIT] ignored own scanner. scannerId={scannerHitbox.ScannerId}"
+            );
+
+            return true;
+        }
+
+        NetworkManager.Instance.SendScannerHit(
+            scannerHitbox.ScannerId
+        );
+
+        Debug.Log(
+            $"[SCANNER HIT SEND] scannerId={scannerHitbox.ScannerId}"
+        );
+
+        return true;
     }
 }

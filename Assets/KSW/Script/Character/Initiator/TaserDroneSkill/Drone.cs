@@ -9,8 +9,34 @@ public class Drone : MonoBehaviour
     public DroneMovement Movement { get; private set; }
     public TaserGun TaserGun { get; private set; }
 
+    public Transform ViewTransform
+    {
+        get
+        {
+            if (_droneCamera != null)
+                return _droneCamera.transform;
+
+            return transform;
+        }
+    }
+
     private Camera _droneCamera;
     private AudioListener _audioListener;
+
+
+    public int CurrentHp { get; private set; } = 100;
+    public int MaxHp { get; private set; } = 100;
+
+    public void ApplyHp(int hp, int maxHp)
+    {
+        CurrentHp = Mathf.Clamp(hp, 0, maxHp);
+        MaxHp = Mathf.Max(1, maxHp);
+
+        Debug.Log(
+            $"[DRONE HP APPLY] droneId={DroneId}, " +
+            $"hp={CurrentHp}/{MaxHp}"
+        );
+    }
 
     private void Awake()
     {
@@ -85,4 +111,6 @@ public class Drone : MonoBehaviour
 
         Movement.ApplyRemoteState(position, yaw, pitch);
     }
+
+
 }

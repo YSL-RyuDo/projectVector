@@ -3,146 +3,281 @@ using UnityEngine.InputSystem;
 
 public class InitiatorSkill_C : CharacterSkill
 {
-    [SerializeField] private float _baseForce = 12f;
-    [SerializeField] private int _lineResolution = 30;
-    [SerializeField] private float _lineSpacing = 0.12f;
+    public static bool IsLocalScannerAiming { get; private set; }
 
-    [SerializeField] private GameObject _scannerPrefab;
-    
-    private LineRenderer _lineRenderer;
+    private static int _blockWeaponInputUntilFrame = -1;
 
-    private bool _isAiming = false;
-    private Camera _mainCam;
-
-    void Start()
+    public static bool ShouldBlockWeaponInput()
     {
+        return IsLocalScannerAiming || Time.frameCount <= _blockWeaponInputUntilFrame;
+    }
+
+    private static void BlockWeaponInputThisFrame()
+    {
+        _blockWeaponInputUntilFrame = Time.frameCount + 1;
+    }
+
+    [Header("Throw")]
+    [SerializeField] private float _baseForce = 12f;
+    [SerializeField] private int _lineResolution = 18;
+    [SerializeField] private float _lineSpacing = 0.09f;
+
+    [Header("Trajectory Visual")]
+    [SerializeField] private float _trajectoryWidth = 0.025f;
+    [SerializeField] private float _maxTrajectoryTime = 1.5f;
+
+    [Header("Spawn")]
+    [SerializeField] private Transform _throwSpawnPoint;
+
+    private LineRenderer _lineRenderer;
+    private bool _isAiming;
+    private Camera _mainCam;
+    private PlayerIdentity _playerIdentity;
+
+    private void Awake()
+    {
+        _playerIdentity = GetComponent<PlayerIdentity>();
         _lineRenderer = GetComponent<LineRenderer>();
 
-        _mainCam = Camera.main;
         if (_lineRenderer != null)
         {
             _lineRenderer.enabled = false;
             _lineRenderer.useWorldSpace = true;
+            _lineRenderer.startWidth = _trajectoryWidth;
+            _lineRenderer.endWidth = _trajectoryWidth;
+            _lineRenderer.positionCount = 0;
         }
     }
 
-    void Update()
+    private void Start()
     {
+        _mainCam = GetComponentInChildren<Camera>(true);
+
+        if (_mainCam == null)
+            _mainCam = Camera.main;
+    }
+
+    private void OnDisable()
+    {
+        CancelAiming();
+    }
+
+    private void Update()
+    {
+        if (!IsMine())
+            return;
+
+
+
+        if (Keyboard.current == null || Mouse.current == null)
+            return;
+
+        if (InGameChatUI.IsChatOpen)
+            return;
+
+        if (GameController.Instance != null &&
+            GameController.Instance.IsPaused)
+            return;
+
+        if (SettingsMenu.Instance != null &&
+            SettingsMenu.Instance.IsOpen)
+            return;
+
         if (Keyboard.current.cKey.wasPressedThisFrame)
         {
-            _isAiming = !_isAiming;
-            if (_lineRenderer != null) _lineRenderer.enabled = _isAiming;
+            if (_isAiming)
+                CancelAiming();
+            else
+                StartAiming();
         }
 
-        if (_isAiming)
+        if (!_isAiming)
+            return;
+
+        // 조준 중에는 무조건 총기 입력 차단
+        IsLocalScannerAiming = true;
+
+        if (Mouse.current.leftButton.wasPressedThisFrame)
         {
-            if (Mouse.current.leftButton.wasPressedThisFrame)
-            {
-                UseSkill();
-                cancelAiming();
-            }
-            if (Mouse.current.rightButton.wasPressedThisFrame)
-            {
-                cancelAiming();
-            }
+            BlockWeaponInputThisFrame();
+
+            UseSkill();
+
+            CancelAiming();
+            return;
+        }
+
+        if (Mouse.current.rightButton.wasPressedThisFrame)
+        {
+            BlockWeaponInputThisFrame();
+
+            CancelAiming();
+            return;
         }
     }
 
-    void LateUpdate()
+    private void LateUpdate()
     {
+        if (!IsMine())
+            return;
+
         if (_isAiming)
+            DrawTrajectory();
+    }
+
+    private bool IsMine()
+    {
+        return _playerIdentity != null &&
+               NetworkManager.Instance != null &&
+               _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+    }
+
+    private void StartAiming()
+    {
+        _isAiming = true;
+        IsLocalScannerAiming = true;
+
+        if (_lineRenderer != null)
         {
-            drawTrajectory();
+            _lineRenderer.enabled = true;
+            _lineRenderer.startWidth = _trajectoryWidth;
+            _lineRenderer.endWidth = _trajectoryWidth;
         }
     }
 
-    /* * [포물선 운동 공식을 이용한 실시간 궤적 계산]
- * 공식: P(t) = P0 + V0*t + 0.5 * g * t^2
- * P(t): 시간 t에서의 위치, P0: 시작 위치, V0: 초기 속도, g: 중력 가속도
- */
-    private void drawTrajectory()
+    private void CancelAiming()
     {
-        if (_lineRenderer == null) return;
+        _isAiming = false;
+        IsLocalScannerAiming = false;
 
-        Vector3 startPos = GetSpawnPosition(); // 생성 시작점
-        Vector3 velocity = GetThrowVelocity(); // 계산된 발사 속도
-        Vector3 gravity = Physics.gravity; // 유니티 월드 중력값
-
-        _lineRenderer.positionCount = _lineResolution;
-
-        for (int i = 0; i < _lineResolution; i++)
+        if (_lineRenderer != null)
         {
-            // 시간을 간격(Spacing)에 따라 순차적으로 계산
-            float t = i * _lineSpacing;
-
-            // 포물선 공식 적용 (위치 = 시작점 + 속도*시간 + 0.5*중력*시간제곱)
-            Vector3 point = startPos + (velocity * t) + (0.5f * gravity * t * t);
-
-            _lineRenderer.SetPosition(i, point);
+            _lineRenderer.enabled = false;
+            _lineRenderer.positionCount = 0;
         }
     }
 
     protected override void UseSkill()
     {
-        if (_scannerPrefab == null) return;
+        if (!IsMine())
+            return;
 
-        GameObject scanner = Instantiate(_scannerPrefab, GetSpawnPosition(), transform.rotation, null);
-        Rigidbody rb = scanner.GetComponent<Rigidbody>();
+        if (NetworkManager.Instance == null)
+            return;
 
-        if (rb != null)
+        Vector3 spawnPos = GetSpawnPosition();
+        Vector3 velocity = GetThrowVelocity();
+
+        NetworkManager.Instance.SendScannerThrow(
+            spawnPos.x,
+            spawnPos.y,
+            spawnPos.z,
+            velocity.x,
+            velocity.y,
+            velocity.z
+        );
+
+        Debug.Log(
+            $"[SCANNER THROW REQUEST] " +
+            $"spawn={spawnPos}, velocity={velocity}"
+        );
+    }
+
+    private void DrawTrajectory()
+    {
+        if (_lineRenderer == null)
+            return;
+
+        Vector3 startPos = GetSpawnPosition();
+        Vector3 velocity = GetThrowVelocity();
+        Vector3 gravity = Physics.gravity;
+
+        int count = Mathf.Max(2, _lineResolution);
+        _lineRenderer.positionCount = count;
+
+        float spacing = _maxTrajectoryTime / (count - 1);
+
+        for (int i = 0; i < count; i++)
         {
-            Physics.IgnoreCollision(scanner.GetComponent<Collider>(), GetComponent<Collider>());
-            rb.linearVelocity = GetThrowVelocity();
+            float t = i * spacing;
+
+            Vector3 point =
+                startPos +
+                velocity * t +
+                0.5f * gravity * t * t;
+
+            _lineRenderer.SetPosition(i, point);
         }
     }
 
-    /*
- * [카메라 각도 기반 발사 벡터 연산]
- * 1. Pitch(상하 각도)에 따른 상향각(upwardWeight) 보정
- * 2. 조준 방향에 따른 발사 강도(finalForce) 가중치 적용
- */
-    Vector3 GetThrowVelocity()
+    private Vector3 GetThrowVelocity()
     {
-        // 캐릭터의 수평 정면 방향 계산
-        Vector3 forward = transform.forward;
-        forward.y = 0;
-        forward.Normalize();
+        Camera cam = GetActiveCamera();
 
-        // 카메라의 상하 각도(-1 ~ 1) 추출
-        float pitch = _mainCam.transform.forward.y;
+        Vector3 aimDir;
 
-        // 상향각 클램프
-        float upwardWeight = Mathf.Clamp(pitch * 0.5f + 0.1f, -0.1f, 0.35f);
+        if (cam != null)
+        {
+            aimDir = cam.transform.forward;
+        }
+        else
+        {
+            aimDir = transform.forward;
+        }
 
-        // 위를 볼 땐 더 멀리, 아래를 볼 땐 감속
-        float forceReduction = (pitch < 0) ? (1.0f + pitch * 0.5f) : 1.0f;
-        float finalForce = (_baseForce + (Mathf.Max(0, pitch) * _baseForce * 0.5f)) * forceReduction;
+        aimDir.Normalize();
 
-        // 수평, 수직 정면 벡터를 upwardWeight값에 따라 보간하여 최종 방향 결정
-        Vector3 launchDir = Vector3.Lerp(forward, Vector3.up, upwardWeight);
+        // 너무 아래로 던지면 바로 바닥에 박히니까 최소 상향 보정
+        if (aimDir.y < -0.25f)
+            aimDir.y = -0.25f;
 
-        return launchDir.normalized * finalForce;
+        aimDir.Normalize();
+
+        float pitchBonus = Mathf.Clamp01(aimDir.y);
+        float finalForce = _baseForce + pitchBonus * _baseForce * 0.35f;
+
+        return aimDir * finalForce;
     }
 
-    /*
- * [투척물 스폰 위치 설정]
- * 캐릭터의 최상위 부모(Scale 1,1,1) 기준 월드 좌표 오프셋 설정
- */
-    Vector3 GetSpawnPosition()
+    private Vector3 GetSpawnPosition()
     {
+        if (_throwSpawnPoint != null)
+            return _throwSpawnPoint.position;
+
+        Camera cam = GetActiveCamera();
+
+        if (cam != null)
+        {
+            return cam.transform.position +
+                   cam.transform.forward * 0.6f +
+                   Vector3.down * 0.15f;
+        }
+
         Vector3 forward = transform.forward;
-        forward.y = 0;
+        forward.y = 0f;
         forward.Normalize();
 
-        float targetHeight = 2.0f;
-        float targetForward = 1.8f;
-
-        return transform.position + (Vector3.up * targetHeight) + (forward * targetForward);
+        return transform.position +
+               Vector3.up * 1.6f +
+               forward * 0.8f;
     }
 
-    private void cancelAiming()
+    private Camera GetActiveCamera()
     {
-        _isAiming = false;
-        if (_lineRenderer != null) _lineRenderer.enabled = false;
+        if (_mainCam != null && _mainCam.enabled)
+            return _mainCam;
+
+        Camera[] cameras = GetComponentsInChildren<Camera>(true);
+
+        for (int i = 0; i < cameras.Length; i++)
+        {
+            if (cameras[i] != null && cameras[i].enabled)
+                return cameras[i];
+        }
+
+        if (Camera.main != null)
+            return Camera.main;
+
+        return _mainCam;
     }
 }

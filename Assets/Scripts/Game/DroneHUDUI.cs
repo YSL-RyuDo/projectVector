@@ -51,7 +51,7 @@ public class DroneHUDUI : MonoBehaviour
         if (visible)
         {
             SetTaserReady(true);
-            SetDroneHp(100);
+            SetDroneHp(100, 100);
             SetControlGuide();
         }
     }
@@ -66,12 +66,17 @@ public class DroneHUDUI : MonoBehaviour
             : "TASER USED";
     }
 
-    public void SetDroneHp(int hp)
+    public void SetDroneHp(int hp, int maxHp)
     {
         if (_droneHpText == null)
             return;
 
-        _droneHpText.text = $"DRONE {hp}%";
+        maxHp = Mathf.Max(1, maxHp);
+
+        int percent = Mathf.RoundToInt((float)hp / maxHp * 100f);
+        percent = Mathf.Clamp(percent, 0, 100);
+
+        _droneHpText.text = $"DRONE {percent}%";
     }
 
     private void SetControlGuide()
@@ -134,5 +139,25 @@ public class DroneHUDUI : MonoBehaviour
 
         c.a = 0f;
         _fireFlashImage.color = c;
+    }
+
+    public void SetSpectatorDroneMode(bool active, uint ownerPlayerId = 0)
+    {
+        SetVisible(active);
+
+        if (!active)
+            return;
+
+        if (_taserStatusText != null)
+            _taserStatusText.text = "SPECTATING DRONE";
+
+        if (_droneHpText != null)
+            _droneHpText.text = "DRONE VIEW";
+
+        if (_controlGuideText != null)
+            _controlGuideText.text = "SPECTATOR MODE";
+
+        if (_hitMarker != null)
+            _hitMarker.SetActive(false);
     }
 }

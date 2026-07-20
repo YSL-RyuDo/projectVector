@@ -10,6 +10,11 @@ public class DroneMovement : MonoBehaviour
     [SerializeField] private float _acceleration = 20f;
     [SerializeField] private float _deceleration = 10f;
 
+    [Header("Look Settings")]
+    [SerializeField] private float _mouseSensitivity = 0.12f;
+    [SerializeField] private float _minPitch = -80f;
+    [SerializeField] private float _maxPitch = 80f;
+
     [Header("Remote Interpolation")]
     [SerializeField] private float _remoteLerpSpeed = 15f;
 
@@ -21,8 +26,12 @@ public class DroneMovement : MonoBehaviour
     private Vector3 _currentVelocity;
     private Vector3 _targetVelocity;
 
+    private float _yaw;
+    private float _pitch;
+
     private Vector3 _remoteTargetPosition;
     private Quaternion _remoteTargetRotation;
+    private Quaternion _remoteTargetCameraRotation;
 
     private float _sendTimer;
     private const float SEND_INTERVAL = 0.05f; // 20Hz
@@ -30,6 +39,13 @@ public class DroneMovement : MonoBehaviour
     private void Awake()
     {
         _rb = GetComponent<Rigidbody>();
+
+        if (_cameraTransform == null)
+        {
+            Camera cam = GetComponentInChildren<Camera>(true);
+            if (cam != null)
+                _cameraTransform = cam.transform;
+        }
     }
 
     public void Init(Drone drone, bool isMine)
@@ -37,18 +53,42 @@ public class DroneMovement : MonoBehaviour
         _drone = drone;
         _isMine = isMine;
 
+        if (_cameraTransform == null)
+        {
+            Camera cam = GetComponentInChildren<Camera>(true);
+            if (cam != null)
+                _cameraTransform = cam.transform;
+        }
+
+        DisableConflictingCameraLookScripts();
+
+        _yaw = transform.eulerAngles.y;
+        _pitch = 0f;
+
+        if (_cameraTransform != null)
+        {
+            float currentPitch = _cameraTransform.localEulerAngles.x;
+            if (currentPitch > 180f)
+                currentPitch -= 360f;
+
+            _pitch = currentPitch;
+        }
+
         _remoteTargetPosition = transform.position;
         _remoteTargetRotation = transform.rotation;
+        _remoteTargetCameraRotation = _cameraTransform != null
+            ? _cameraTransform.localRotation
+            : Quaternion.identity;
 
         if (_rb != null)
         {
             _rb.isKinematic = !isMine;
         }
 
-        Camera cam = GetComponentInChildren<Camera>(true);
-        if (cam != null)
+        Camera cam2 = GetComponentInChildren<Camera>(true);
+        if (cam2 != null)
         {
-            cam.enabled = isMine;
+            cam2.enabled = isMine;
         }
 
         AudioListener listener = GetComponentInChildren<AudioListener>(true);
@@ -57,11 +97,11 @@ public class DroneMovement : MonoBehaviour
             listener.enabled = isMine;
         }
     }
-
     private void Update()
     {
         if (_isMine)
         {
+            HandleLook();
             HandleInput();
             SendStateTick();
         }
@@ -77,6 +117,24 @@ public class DroneMovement : MonoBehaviour
             return;
 
         Move();
+    }
+
+    private void HandleLook()
+    {
+        if (Mouse.current == null)
+            return;
+
+        if (_cameraTransform == null)
+            return;
+
+        Vector2 mouseDelta = Mouse.current.delta.ReadValue();
+
+        _yaw += mouseDelta.x * _mouseSensitivity;
+        _pitch -= mouseDelta.y * _mouseSensitivity;
+        _pitch = Mathf.Clamp(_pitch, _minPitch, _maxPitch);
+
+        transform.rotation = Quaternion.Euler(0f, _yaw, 0f);
+        _cameraTransform.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
     }
 
     private void HandleInput()
@@ -132,22 +190,15 @@ public class DroneMovement : MonoBehaviour
         if (_drone == null)
             return;
 
+        if (NetworkManager.Instance == null)
+            return;
+
         _sendTimer += Time.deltaTime;
 
         if (_sendTimer < SEND_INTERVAL)
             return;
 
         _sendTimer = 0f;
-
-        float yaw = transform.eulerAngles.y;
-
-        float pitch = 0f;
-        if (_cameraTransform != null)
-        {
-            pitch = _cameraTransform.localEulerAngles.x;
-            if (pitch > 180f)
-                pitch -= 360f;
-        }
 
         Vector3 pos = transform.position;
 
@@ -156,8 +207,8 @@ public class DroneMovement : MonoBehaviour
             pos.x,
             pos.y,
             pos.z,
-            yaw,
-            pitch
+            _yaw,
+            _pitch
         );
     }
 
@@ -171,6 +222,7 @@ public class DroneMovement : MonoBehaviour
 
         _remoteTargetPosition = position;
         _remoteTargetRotation = Quaternion.Euler(0f, yaw, 0f);
+        _remoteTargetCameraRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 
     private void InterpolateRemote()
@@ -186,5 +238,38 @@ public class DroneMovement : MonoBehaviour
             _remoteTargetRotation,
             _remoteLerpSpeed * Time.deltaTime
         );
+
+        if (_cameraTransform != null)
+        {
+            _cameraTransform.localRotation = Quaternion.Slerp(
+                _cameraTransform.localRotation,
+                _remoteTargetCameraRotation,
+                _remoteLerpSpeed * Time.deltaTime
+            );
+        }
+    }
+
+    private void DisableConflictingCameraLookScripts()
+    {
+        if (_cameraTransform == null)
+            return;
+
+        DroneCamera droneCameraLook =
+            _cameraTransform.GetComponent<DroneCamera>();
+
+        if (droneCameraLook != null)
+        {
+            droneCameraLook.enabled = false;
+            Debug.Log("[DRONE MOVEMENT] DroneCamera look script disabled");
+        }
+
+        FPSCameraLook fpsCameraLook =
+            _cameraTransform.GetComponent<FPSCameraLook>();
+
+        if (fpsCameraLook != null)
+        {
+            fpsCameraLook.enabled = false;
+            Debug.Log("[DRONE MOVEMENT] FPSCameraLook disabled on drone camera");
+        }
     }
 }

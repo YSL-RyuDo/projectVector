@@ -118,4 +118,17 @@ public class DroneModeUIController : MonoBehaviour
 
         return false;
     }
+
+    public void SetSpectatorDroneViewUI(bool active)
+    {
+        SetDroneModeUI(active);
+
+        if (DroneHUDUI.Instance != null)
+        {
+            if (active)
+                DroneHUDUI.Instance.SetSpectatorDroneMode(true);
+            else
+                DroneHUDUI.Instance.SetVisible(false);
+        }
+    }
 }
