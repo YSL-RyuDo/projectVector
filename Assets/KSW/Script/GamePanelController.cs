@@ -102,7 +102,8 @@ public class GamePanelController : MonoBehaviour
 
     private void Start()
     {
-
+        NetworkManager.Instance.SetGamePanelController(this);
+        _profilePanelController = GetComponent<ProfilePanelController>();
 
         if (tempGameRoomPanel != null)
             tempGameRoomPanel.SetActive(false);

@@ -44,9 +44,17 @@ public class NavigationPanelController : MonoBehaviour
 
     public LobbyMainMenu currentLobbyMainMenu = LobbyMainMenu.Lobby;
 
-    private void Start()
+    private CharacterPanelController characterPanelController;
+
+    void Start()
     {
+        characterPanelController = GetComponent<CharacterPanelController>();
+
         InitializeLobbyMainNavigation();
+
+        // 로비 상태에서 시작
+        SelectLobbyMainMenu(LobbyMainMenu.Lobby);
+        lobbyHomePanel.SetActive(true);
 
         if (lobbyHomePanel != null)
             lobbyHomePanel.SetActive(false);
@@ -65,20 +73,40 @@ public class NavigationPanelController : MonoBehaviour
     {
         currentLobbyMainMenu = selectedMenu;
 
+        bool isCharacterMenu = selectedMenu == LobbyMainMenu.Character;
+
         /*
          * 기존 Hierarchy와 기존 게임 내부 상태는 그대로 유지한다.
          * 메인 콘텐츠 루트의 활성 상태만 변경한다.
          */
+
+        if (isCharacterMenu)
+        {
+            characterCustomizationPanel.SetActive(true);
+
+            if (characterPanelController != null)
+                characterPanelController.OpenCharacterPanel();
+        }
+        else
+        {
+            if (characterPanelController != null)
+                characterPanelController.CloseCharacterPanel();
+
+            characterCustomizationPanel.SetActive(false);
+        }
+
         if (lobbyHomePanel != null)
             lobbyHomePanel.SetActive(selectedMenu == LobbyMainMenu.Lobby);
-        if (characterCustomizationPanel != null)
-            characterCustomizationPanel.SetActive(selectedMenu == LobbyMainMenu.Character);
+
         if (gamePanel != null)
             gamePanel.SetActive(selectedMenu == LobbyMainMenu.Game);
+
         if (careerPanel != null)
             careerPanel.SetActive(selectedMenu == LobbyMainMenu.Career);
+
         if (storePanel != null)
             storePanel.SetActive(selectedMenu == LobbyMainMenu.Store);
+
         ApplyLobbyMainButtonSprites();
     }
 

@@ -8,6 +8,11 @@ public class ChatPanelController : MonoBehaviour
     [SerializeField] private Transform ChatSlotContent;
     [SerializeField] private TMP_InputField ChatInputField;
 
+    private void Start()
+    {
+        NetworkManager.Instance.SetChatPanelController(this);
+    }
+
     public void OnRecvLobbyChat(uint playerId, string nickname, string message)
     {
         if (ChatPrefeb == null || ChatSlotContent == null)

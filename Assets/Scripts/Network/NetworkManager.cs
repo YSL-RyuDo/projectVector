@@ -186,10 +186,8 @@ public class NetworkManager : MonoBehaviour
     Queue<(ushort, byte[])> packetQueue = new();
 
     LoginUI loginUI;
-    
-    NavigationPanelController navigationPanelController;
+
     LobbyPanelController lobbyPanelController;
-    CharacterPanelController characterPanelController;
     GamePanelController gamePanelController;
     ProfilePanelController profilePanelController;
     ChatPanelController chatPanelController;
@@ -269,6 +267,21 @@ public class NetworkManager : MonoBehaviour
     public void SetLobbyManager(LobbyManager manager)
     {
         lobbyManager = manager;
+    }
+
+    public void SetGamePanelController(GamePanelController controller)
+    {
+        gamePanelController = controller;
+    }
+
+    public void SetProfilePanelController(ProfilePanelController controller)
+    {
+        profilePanelController = controller;
+    }
+
+    public void SetChatPanelController(ChatPanelController controller)
+    {
+        chatPanelController = controller;
     }
 
     public void SetMatchManager(MatchManager manager)

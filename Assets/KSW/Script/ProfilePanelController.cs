@@ -24,6 +24,8 @@ public class ProfilePanelController : MonoBehaviour
 
     private void Start()
     {
+        NetworkManager.Instance.SetProfilePanelController(this);
+
         lobbyPanelController = GetComponent<LobbyPanelController>();
     }
 
