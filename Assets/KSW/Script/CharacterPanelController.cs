@@ -44,6 +44,9 @@ public class CharacterPanelController : MonoBehaviour
     public ScrollRect descriptionScrollRect; // 스킬 설명창의 ScrollRect 컴포넌트
     public Button equipButton; // 장착 버튼 컴포넌트 참조 추가
 
+    [SerializeField] private GameObject _profilePanel;
+    [SerializeField] private GameObject _navigationPanel;
+
     [Header("Preset")]
     [SerializeField] private GameObject _presetPanel;
 
@@ -162,6 +165,8 @@ public class CharacterPanelController : MonoBehaviour
     public void ClickPresetButton()
     {
         _presetPanel.SetActive(true);
+        _profilePanel.SetActive(false);
+        _navigationPanel.SetActive(false);
 
         //currentEquippedCharacterId = currentPreviewCharacterId;
         //Debug.Log($"캐릭터 장착 완료: 장착된 캐릭터 ID: {currentEquippedCharacterId}");
@@ -282,6 +287,8 @@ public class CharacterPanelController : MonoBehaviour
     public void OnPresetBackButton()
     {
         _presetPanel.SetActive(false);
+        _profilePanel.SetActive(true);
+        _navigationPanel.SetActive(true);
     }
 
     public void OnPresetButton()
