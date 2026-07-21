@@ -232,6 +232,7 @@ GameObject:
   - component: {fileID: 5451113489913816011}
   - component: {fileID: 5703506062973416802}
   - component: {fileID: 5686896472883070561}
+  - component: {fileID: 3889615275605975709}
   - component: {fileID: 7645956341492531068}
   - component: {fileID: 3931949740077291313}
   - component: {fileID: 4570866465746137452}
@@ -240,6 +241,7 @@ GameObject:
   - component: {fileID: 7896314653323184102}
   - component: {fileID: 1941543799437047904}
   - component: {fileID: 218992529332834176}
+  - component: {fileID: 203060262673396735}
   m_Layer: 0
   m_Name: Entry
   m_TagString: Untagged
@@ -382,18 +384,13 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7286507536929022138}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fbe26983fae28d34b93d0ee79522dd19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  _dashWaitTime: 3
-  _dashForce: 15
-  _dashDuration: 0.4
-  _crouchY: 0.75
-  _standY: 1.2
-  _smoothSpeed: 10
-  _camera: {fileID: 0}
+  _cameraTransform: {fileID: 3193245476691523729}
+  _castLockTime: 0.25
 --- !u!114 &5703506062973416802
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -401,12 +398,11 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7286507536929022138}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6e9d1db3906d40a4282c11776d48e45d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EntrySkill_Q
-  _smokeGrenadePrefab: {fileID: 7249112274535753710, guid: fb287fb772e12234b8b31cb9b6a291f9, type: 3}
   _throwPoint: {fileID: 8092479215126171755}
   _playerCamera: {fileID: 0}
   _throwForce: 15
@@ -417,18 +413,49 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7286507536929022138}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 02ca7804cf4f12e4cb68a66902788635, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  _duration: 5
-  _speedMultiplier: 1.5
-  _detectionRange: 3
   _characterModel: {fileID: 4920659241852686244}
-  _enemyLayer:
+  _localFirstPersonRoot: {fileID: 0}
+  _selfFirstPersonAlpha: 0.35
+  _allyAlpha: 0.2
+  _enemyAlpha: 0
+  _revealedEnemyAlpha: 1
+  _debugStealthTeam: 1
+--- !u!114 &3889615275605975709
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7286507536929022138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f06181a64ada9341861e4e50a71520e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EntrySkill_X
+  _cameraTransform: {fileID: 3193245476691523729}
+  _firePoint: {fileID: 1597799983661708101}
+  _range: 35
+  _hitMask:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 4294967295
+  _toenailPrefab: {fileID: 8735485295800066618, guid: 401215a5c056dd9439e17e3063ea337b, type: 3}
+  _toenailLifeTime: 0.12
+  _bladeLineMaterial: {fileID: 0}
+  _lineDuration: 0.08
+  _lineStartWidth: 0.08
+  _lineEndWidth: 0.015
+  _bladeSpreadVisual: 0.05
+  _fireInterval: 0.18
+  _toenailFanAnchor: {fileID: 1597799983661708101}
+  _fanLocalCenter: {x: 0, y: -0.15, z: 0.65}
+  _fanSpacing: 0.18
+  _fanArcAngle: 55
+  _fanScale: 1
 --- !u!114 &7645956341492531068
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -626,6 +653,22 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &203060262673396735
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7286507536929022138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f59c78e8cfeb8da489b18a0d5a6a1a8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EntryDashMotor
+  _cameraTransform: {fileID: 3193245476691523729}
+  _dashCameraY: 0.75
+  _standCameraY: 1.2
+  _cameraSmoothSpeed: 15
 --- !u!1 &7740857516947110529
 GameObject:
   m_ObjectHideFlags: 0
@@ -673,6 +716,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponRecoil
   snappiness: 10
   returnSpeed: 5
+  defaultRecoveryDelay: 0.15
   hipWeaponRecoilMultiplier: 1
   hipCameraRecoilMultiplier: 1
   hipShakeMultiplier: 1
@@ -757,6 +801,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponRecoil
   snappiness: 10
   returnSpeed: 5
+  defaultRecoveryDelay: 0.15
   hipWeaponRecoilMultiplier: 1
   hipCameraRecoilMultiplier: 1
   hipShakeMultiplier: 1
@@ -1227,6 +1272,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
       propertyPath: m_Layer
       value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 927329813791352537, guid: 10038fdbf93c4dd43af9ce774d03a956, type: 3}
       propertyPath: m_Layer

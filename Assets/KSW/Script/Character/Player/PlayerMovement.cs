@@ -67,7 +67,9 @@ public class PlayerMovement : MonoBehaviour
     private bool _isServerStunned;
     private Coroutine _serverStunCoroutine;
     public bool IsServerStunned => _isServerStunned;
+    private float _externalSpeedMultiplier = 1f;
 
+    private float _externalJumpMultiplier = 1.0f;
     public float Speed
     {
         get => _speed;
@@ -240,6 +242,15 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!CanMove)
             return;
+
+        EntryDashMotor dashMotor =
+    GetComponent<EntryDashMotor>();
+
+        if (dashMotor != null &&
+            dashMotor.IsDashing)
+        {
+            return;
+        }
 
         if (IsStunned())
         {
@@ -956,7 +967,8 @@ public class PlayerMovement : MonoBehaviour
     private void CalculateMoveSpeed()
     {
         currentMoveSpeed =
-            _speed - (1f - (1f / weaponWeight));
+            (_speed * _externalSpeedMultiplier) -
+            (1f - (1f / weaponWeight));
 
         if (isADS)
         {
@@ -966,10 +978,11 @@ public class PlayerMovement : MonoBehaviour
 
     private float CalculateJumpSpeed()
     {
-        float currenntJumpPower =
-            _jumpPower - (1f - (1f / weaponWeight));
+        float currentJumpPower =
+            _jumpPower * _externalJumpMultiplier -
+            (1f - (1f / weaponWeight));
 
-        return currenntJumpPower;
+        return currentJumpPower;
     }
 
     public void ResetAfterRespawn(float spawnYaw)
@@ -1086,5 +1099,30 @@ public class PlayerMovement : MonoBehaviour
             StopCoroutine(_serverStunCoroutine);
             _serverStunCoroutine = null;
         }
+    }
+
+    public void SetExternalSpeedMultiplier(float multiplier)
+    {
+        _externalSpeedMultiplier =
+            Mathf.Max(0.01f, multiplier);
+
+        CalculateMoveSpeed();
+
+        Debug.Log(
+            $"[PLAYER SPEED MULTIPLIER] object={gameObject.name}, " +
+            $"multiplier={_externalSpeedMultiplier}, " +
+            $"currentMoveSpeed={currentMoveSpeed}"
+        );
+    }
+
+    public void SetExternalJumpMultiplier(float multiplier)
+    {
+        _externalJumpMultiplier =
+            Mathf.Max(0.1f, multiplier);
+
+        Debug.Log(
+            $"[PLAYER JUMP MULTIPLIER] object={gameObject.name}, " +
+            $"multiplier={_externalJumpMultiplier}"
+        );
     }
 }

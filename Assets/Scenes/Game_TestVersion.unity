@@ -15417,6 +15417,7 @@ GameObject:
   - component: {fileID: 971832605}
   - component: {fileID: 971832606}
   - component: {fileID: 971832607}
+  - component: {fileID: 971832608}
   m_Layer: 0
   m_Name: MatchManager
   m_TagString: Untagged
@@ -15521,6 +15522,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScannerNetworkManager
   _scannerPrefab: {fileID: 731341586591630439, guid: 3b356e8e7cbf6f8428ac5d6bdd6e2ffc, type: 3}
+--- !u!114 &971832608
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971832602}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 715e64e0c95f995428e1949045be7c1e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EntrySmokeNetworkManager
+  _smokeGrenadePrefab: {fileID: 7249112274535753710, guid: 99418d12bce61d544bab1d65713e7308, type: 3}
+  _smokeEffectPrefab: {fileID: 7021023906734013752, guid: ffb63aae75a395c4da91ff8871a03f76, type: 3}
 --- !u!1 &973288635
 GameObject:
   m_ObjectHideFlags: 0
