@@ -3,6 +3,15 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.EventSystems;
 
+public enum PreviewObjectType
+{
+    Character,
+    PrimaryWeapon,
+    SecondaryWeapon,
+    MeleeWeapon,
+    TacticalItem
+}
+
 [System.Serializable]
 public class CharacterData
 {
@@ -31,40 +40,94 @@ public class CharacterData
 
 public class CharacterPanelController : MonoBehaviour
 {
-    [Header("Data Settings")]
-    public CharacterData[] characters; // 캐릭터 데이터 배열
+    [Header("Data Settings - Characters")]
+    [SerializeField] private CharacterData[] characters;
+
+    [Header("Data Settings - Equipments")]
+    [SerializeField] private PreviewObjectData[] primaryWeapons;
+    [SerializeField] private PreviewObjectData[] secondaryWeapons;
+    [SerializeField] private PreviewObjectData[] meleeWeapons;
+    [SerializeField] private PreviewObjectData[] tacticalItems;
+
+    [Header("Currently Selected Equipment Indexes")]
+    [SerializeField] private int selectedPrimaryIndex = 0;
+    [SerializeField] private int selectedSecondaryIndex = 0;
+    [SerializeField] private int selectedMeleeIndex = 0;
+    [SerializeField] private int selectedTacticalIndex = 0;
 
     [Header("UI References")]
-    public GameObject characterPanel;
-    public RawImage previewRawImage; // 3D 모델을 보여주는 RawImage (렌더텍스처용)
-    public Image preview2DImage; // 2D 일러스트를 보여줄 전용 UI Image 컴포넌트 참조
-    public TextMeshProUGUI characterNameText; // 캐릭터 이름 텍스트
-    public TextMeshProUGUI skillNameText; // 스킬 이름 표시 UI
-    public TextMeshProUGUI skillDescText; // 스킬 설명 표시 UI
-    public ScrollRect descriptionScrollRect; // 스킬 설명창의 ScrollRect 컴포넌트
-    public Button equipButton; // 장착 버튼 컴포넌트 참조 추가
+    [SerializeField] private GameObject characterPanel;
+    [SerializeField] private RawImage previewRawImage;
+    [SerializeField] private Image preview2DImage;
+    [SerializeField] private TextMeshProUGUI characterNameText;
+    [SerializeField] private TextMeshProUGUI skillNameText;
+    [SerializeField] private TextMeshProUGUI skillDescText;
+    [SerializeField] private ScrollRect descriptionScrollRect;
+    [SerializeField] private Button equipButton;
 
     [SerializeField] private GameObject _profilePanel;
     [SerializeField] private GameObject _navigationPanel;
 
-    [Header("Preset")]
+    [Header("Preset Root")]
     [SerializeField] private GameObject _presetPanel;
 
+    [Header("Preset Panel")]
+    [SerializeField] private GameObject _skinPanel;
+    [SerializeField] private GameObject _customizePanel;
+    [SerializeField] private GameObject _backgroundStoryPanel;
+
+    [Header("Preset Navigation Button")]
+    [SerializeField] private Button n_SkinButton;
+    [SerializeField] private Button n_CustomizationButton;
+    [SerializeField] private Button n_BackgroundStoryButton;
+
+    [Header("Preset Button")]
+    [SerializeField] private Button _skinButton;
+    [SerializeField] private Button _primaryWeponButton;
+    [SerializeField] private Button _secondaryWeponButton;
+    [SerializeField] private Button _meleeWeponButton;
+    [SerializeField] private Button _tacticalButton;
+
     [Header("Spawn Settings")]
-    public Transform spawnPoint; // 3D 캐릭터가 생성될 위치
+    [SerializeField] private Transform _objectSpawnPoint;
 
     [Header("Rotation Settings")]
-    public float rotationSpeed = 2f; // 회전 속도 조절
+    [SerializeField] private float rotationSpeed = 2f;
     private float lastMouseX;
 
-    private int currentEquippedCharacterId = -1; // 현재 최종 장착된 캐릭터 ID
-    private int currentPreviewCharacterId = -1;  // 현재 중앙 프리뷰에 보이는 캐릭터 ID
+    private int currentEquippedCharacterId = -1;
+    private int currentPreviewCharacterId = -1;
 
-    private GameObject currentSpawnedModel; // 현재 생성되어 있는 캐릭터 모델 오브젝트
-    private bool isView3D = true; // 현재 상태가 3D 모드인지 체크하는 플래그 (기본값 3D)
+    private GameObject currentSpawnedModel;
+    private bool isView3D = true;
+
+    private enum PresetState
+    {
+        skin,
+        customize,
+        backgroundStory
+    }
+
+    private enum PreviewState
+    {
+        character,
+        primaryWepon,
+        secondaryWepon,
+        meleeWepon,
+        tacticalItem
+    }
+
+    private PresetState _presetState = PresetState.skin;
+    private PreviewState _previewState = PreviewState.character;
 
     void Start()
     {
+        _presetState = PresetState.skin;
+        _previewState = PreviewState.character;
+
+        OnNSkinButton();
+        OnSkinButton();
+
         DisableAllOutlines();
         SetSelectButtonsInteractable();
     }
@@ -80,11 +143,7 @@ public class CharacterPanelController : MonoBehaviour
 
     public void CloseCharacterPanel()
     {
-        if (currentSpawnedModel != null)
-        {
-            Destroy(currentSpawnedModel);
-            currentSpawnedModel = null;
-        }
+        DestroyCurrentModel();
 
         if (characterPanel != null)
         {
@@ -92,7 +151,7 @@ public class CharacterPanelController : MonoBehaviour
         }
     }
 
-    // 캐릭터 변경
+    // 캐릭터 선택
     public void SelectCharacter(int index)
     {
         if (index < 0 || index >= characters.Length) return;
@@ -100,79 +159,80 @@ public class CharacterPanelController : MonoBehaviour
         CharacterData data = characters[index];
 
         UpdateOutline(index);
-
-        // 현재 프리뷰 ID 갱신
         currentPreviewCharacterId = data.characterId;
 
-        // 기존 3D 모델 정리
-        if (currentSpawnedModel != null)
-        {
-            Destroy(currentSpawnedModel);
-        }
-
-        // 3D 모델 생성 및 세팅
-        if (data.characterPrefab != null && spawnPoint != null)
-        {
-            Quaternion absolute180Rotation = Quaternion.Euler(0f, 180f, 0f);
-            currentSpawnedModel = Instantiate(data.characterPrefab, spawnPoint.position, absolute180Rotation);
-            currentSpawnedModel.transform.SetParent(spawnPoint);
-            SetLayerRecursively(currentSpawnedModel, "CharacterSelectModel");
-        }
-
-        // 2D 전용 이미지 컴포넌트에 스프라이트 교체 교체
         if (preview2DImage != null)
         {
             preview2DImage.sprite = data.characterSprite;
         }
 
-        // 새로 고른 캐릭터도 현재 보고 있던 모드(2D 혹은 3D) 상태에 맞춰서 켜고 꺼줌
         UpdateVisibilityByMode();
 
-        // 캐릭터 이름 UI 업데이트
         if (characterNameText != null)
         {
             characterNameText.text = data.characterName;
         }
 
-        // 캐릭터가 바뀌면 기본으로 Q스킬 정보를 먼저 보여줌
+        ChangePreviewState();
         SelectSkill("Q");
     }
 
-    // 프리뷰 변경 전환 버튼에 연결할 함수
+    // 장비 선택 함수들 (나중에 UI에서 무기 바꿀 때 이 함수들을 호출해주면 됨)
+    public void SelectPrimaryWeapon(int index)
+    {
+        if (index >= 0 && index < primaryWeapons.Length)
+        {
+            selectedPrimaryIndex = index;
+            if (_previewState == PreviewState.primaryWepon) ChangePreviewState();
+        }
+    }
+
+    public void SelectSecondaryWeapon(int index)
+    {
+        if (index >= 0 && index < secondaryWeapons.Length)
+        {
+            selectedSecondaryIndex = index;
+            if (_previewState == PreviewState.secondaryWepon) ChangePreviewState();
+        }
+    }
+
+    public void SelectMeleeWeapon(int index)
+    {
+        if (index >= 0 && index < meleeWeapons.Length)
+        {
+            selectedMeleeIndex = index;
+            if (_previewState == PreviewState.meleeWepon) ChangePreviewState();
+        }
+    }
+
+    public void SelectTacticalItem(int index)
+    {
+        if (index >= 0 && index < tacticalItems.Length)
+        {
+            selectedTacticalIndex = index;
+            if (_previewState == PreviewState.tacticalItem) ChangePreviewState();
+        }
+    }
+
     public void ToggleDimensionView()
     {
         isView3D = !isView3D;
         UpdateVisibilityByMode();
     }
 
-    // 3D 오브젝트들과 2D 이미지의 시각적 활성화 상태를 일괄 제어하는 함수
     private void UpdateVisibilityByMode()
     {
-        // 3D 화면 제어
-        if (previewRawImage != null)
-        {
-            previewRawImage.gameObject.SetActive(isView3D);
-        }
-
-        // 2D 일러스트 화면 제어
-        if (preview2DImage != null)
-        {
-            preview2DImage.gameObject.SetActive(!isView3D);
-        }
+        if (previewRawImage != null) previewRawImage.gameObject.SetActive(isView3D);
+        if (preview2DImage != null) preview2DImage.gameObject.SetActive(!isView3D);
     }
 
-    // 장착 버튼을 누르면 현재 선택 캐릭터 ID만 로컬에 저장
     public void ClickPresetButton()
     {
         _presetPanel.SetActive(true);
         _profilePanel.SetActive(false);
         _navigationPanel.SetActive(false);
-
-        //currentEquippedCharacterId = currentPreviewCharacterId;
-        //Debug.Log($"캐릭터 장착 완료: 장착된 캐릭터 ID: {currentEquippedCharacterId}");
     }
 
-    // 스킬 버튼 입력 함수 (Q, C, E, X 스킬 선택 버튼에 연결)
     public void SelectSkill(string skillType)
     {
         CharacterData data = GetCharacterDataById(currentPreviewCharacterId);
@@ -284,20 +344,205 @@ public class CharacterPanelController : MonoBehaviour
         lastMouseX = eventData.position.x;
     }
 
+    #region Character Panel Button
     public void OnPresetBackButton()
     {
         _presetPanel.SetActive(false);
         _profilePanel.SetActive(true);
         _navigationPanel.SetActive(true);
+
+        OnSkinButton();
     }
 
-    public void OnPresetButton()
+    public void OnPresetButton() { }
+    public void OnScreenshotButton() { }
+    #endregion
+
+    #region PresetPanelButton
+
+    private void ChangePreviewState()
     {
+        // 실제 3D 모델 스폰 처리
+        switch (_previewState)
+        {
+            case PreviewState.character:
+                CharacterData charData = GetCharacterDataById(currentPreviewCharacterId);
+                if (charData != null) SpawnPreviewObject(charData.characterPrefab);
+                break;
 
+            case PreviewState.primaryWepon:
+                if (primaryWeapons != null && primaryWeapons.Length > selectedPrimaryIndex && primaryWeapons[selectedPrimaryIndex] != null)
+                {
+                    SpawnPreviewObject(primaryWeapons[selectedPrimaryIndex].objectPrefab);
+                }
+                break;
+
+            case PreviewState.secondaryWepon:
+                if (secondaryWeapons != null && secondaryWeapons.Length > selectedSecondaryIndex && secondaryWeapons[selectedSecondaryIndex] != null)
+                {
+                    SpawnPreviewObject(secondaryWeapons[selectedSecondaryIndex].objectPrefab);
+                }
+                break;
+
+            case PreviewState.meleeWepon:
+                if (meleeWeapons != null && meleeWeapons.Length > selectedMeleeIndex && meleeWeapons[selectedMeleeIndex] != null)
+                {
+                    SpawnPreviewObject(meleeWeapons[selectedMeleeIndex].objectPrefab);
+                }
+                break;
+
+            case PreviewState.tacticalItem:
+                if (tacticalItems != null && tacticalItems.Length > selectedTacticalIndex && tacticalItems[selectedTacticalIndex] != null)
+                {
+                    SpawnPreviewObject(tacticalItems[selectedTacticalIndex].objectPrefab);
+                }
+                break;
+        }
     }
 
-    public void OnScreenshotButton()
+    private void SpawnPreviewObject(GameObject targetPrefab)
     {
+        DestroyCurrentModel();
 
+        if (targetPrefab == null || _objectSpawnPoint == null) return;
+
+        Quaternion absolute180Rotation = Quaternion.Euler(0f, 180f, 0f);
+        currentSpawnedModel = Instantiate(targetPrefab, _objectSpawnPoint.position, absolute180Rotation);
+        currentSpawnedModel.transform.SetParent(_objectSpawnPoint);
+        SetLayerRecursively(currentSpawnedModel, "SelectModel");
     }
+
+    private void DestroyCurrentModel()
+    {
+        if (currentSpawnedModel != null)
+        {
+            Destroy(currentSpawnedModel);
+            currentSpawnedModel = null;
+        }
+    }
+
+    private void UpdatePresetButtonOutlines(Button selectedButton)
+    {
+        Button[] presetButtons = new Button[]
+        {
+            _skinButton,
+            _primaryWeponButton,
+            _secondaryWeponButton,
+            _meleeWeponButton,
+            _tacticalButton
+        };
+
+        foreach (Button btn in presetButtons)
+        {
+            if (btn == null) continue;
+
+            UnityEngine.UI.Outline outline = btn.GetComponent<UnityEngine.UI.Outline>();
+            if (outline != null)
+            {
+                outline.enabled = (btn == selectedButton);
+            }
+        }
+    }
+
+    public void OnSkinButton()
+    {
+        _previewState = PreviewState.character;
+        UpdatePresetButtonOutlines(_skinButton);
+        ChangePreviewState();
+    }
+
+    public void OnPrimaryWeaponButton()
+    {
+        _previewState = PreviewState.primaryWepon;
+        UpdatePresetButtonOutlines(_primaryWeponButton);
+        ChangePreviewState();
+    }
+
+    public void OnSecondaryWeaponButton()
+    {
+        _previewState = PreviewState.secondaryWepon;
+        UpdatePresetButtonOutlines(_secondaryWeponButton);
+        ChangePreviewState();
+    }
+
+    public void OnMeleeWeaponButton()
+    {
+        _previewState = PreviewState.meleeWepon;
+        UpdatePresetButtonOutlines(_meleeWeponButton);
+        ChangePreviewState();
+    }
+
+    public void OnTacticalItemButton()
+    {
+        _previewState = PreviewState.tacticalItem;
+        UpdatePresetButtonOutlines(_tacticalButton);
+        ChangePreviewState();
+    }
+    #endregion
+
+    #region Preset Navigation Buttons
+    private void ChangePresetState()
+    {
+        switch (_presetState)
+        {
+            case PresetState.skin:
+                _skinPanel.SetActive(true);
+                _customizePanel.SetActive(false);
+                _backgroundStoryPanel.SetActive(false);
+                break;
+            case PresetState.customize:
+                _skinPanel.SetActive(false);
+                _customizePanel.SetActive(true);
+                _backgroundStoryPanel.SetActive(false);
+                break;
+            case PresetState.backgroundStory:
+                _skinPanel.SetActive(false);
+                _customizePanel.SetActive(false);
+                _backgroundStoryPanel.SetActive(true);
+                break;
+        }
+    }
+
+    private void UpdateNavButtonOutlines(Button selectedButton)
+    {
+        Button[] navButtons = new Button[]
+        {
+            n_SkinButton,
+            n_CustomizationButton,
+            n_BackgroundStoryButton
+        };
+
+        foreach (Button btn in navButtons)
+        {
+            if (btn == null) continue;
+
+            UnityEngine.UI.Outline outline = btn.GetComponent<UnityEngine.UI.Outline>();
+            if (outline != null)
+            {
+                outline.enabled = (btn == selectedButton);
+            }
+        }
+    }
+
+    public void OnNSkinButton()
+    {
+        _presetState = PresetState.skin;
+        UpdateNavButtonOutlines(n_SkinButton);
+        ChangePresetState();
+    }
+
+    public void OnNCustomizationButton()
+    {
+        _presetState = PresetState.customize;
+        UpdateNavButtonOutlines(n_CustomizationButton);
+        ChangePresetState();
+    }
+
+    public void OnNBackgroundStoryButton()
+    {
+        _presetState = PresetState.backgroundStory;
+        UpdateNavButtonOutlines(n_BackgroundStoryButton);
+        ChangePresetState();
+    }
+    #endregion
 }
