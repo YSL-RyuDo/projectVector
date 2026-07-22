@@ -220,7 +220,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 635509965751519011}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 29e7782674cc6d84db0cd690b204eeca, type: 3}
   m_Name: 
@@ -236,15 +236,15 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 635509965751519011}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6ad227bca6be8b64ebaf1fc747c4c11a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SwampTrapSkill
-  _trapPrefab: {fileID: 2617453428572898263, guid: 9b9fe0b320a058c4e91c4c4109f53e20, type: 3}
   _throwPoint: {fileID: 6807480680044733491}
   _throwForce: 15
   _upwardForce: 2
+  _spawnForwardOffset: 0.6
 --- !u!114 &5602496806845326062
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -257,8 +257,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 506aac0ef6f00b049b58bd5c059c4d34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DecoyTrapSkill
-  _decoyProjectilePrefab: {fileID: 2617453428572898263, guid: 5b39dfe1b341130498bd92f31a9a6a4a, type: 3}
-  _decoyAreaPrefab: {fileID: 952130952703785157, guid: 91e916bb4333b2249b4a67c5091032f6, type: 3}
+  _decoyProjectilePrefab: {fileID: 2617453428572898263, guid: 3d9eff96c3f8b7f40a61d07ab9ee5102, type: 3}
+  _decoyAreaPrefab: {fileID: 952130952703785157, guid: 4263daf9137071e4b8147875b02cc8a1, type: 3}
 --- !u!114 &4302921389843108573
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -578,6 +578,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponRecoil
   snappiness: 10
   returnSpeed: 5
+  defaultRecoveryDelay: 0.15
   hipWeaponRecoilMultiplier: 1
   hipCameraRecoilMultiplier: 1
   hipShakeMultiplier: 1
@@ -662,6 +663,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponRecoil
   snappiness: 10
   returnSpeed: 5
+  defaultRecoveryDelay: 0.15
   hipWeaponRecoilMultiplier: 1
   hipCameraRecoilMultiplier: 1
   hipShakeMultiplier: 1

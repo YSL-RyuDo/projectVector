@@ -251,6 +251,13 @@ public class Weapon : Item
 
     private bool ShouldBlockWeaponInput()
     {
+        if (ControllerSkill_E.IsSelectingSmoke || ControllerSkill_E.IsSmokeMapOpen || ControllerSkill_E.IsBlockingWeaponInput)
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
         if (EntrySkill_X.IsLocalBladeMode)
         {
             ForceCancelADS();
@@ -258,30 +265,25 @@ public class Weapon : Item
             return true;
         }
 
-        EntryDashMotor dashMotor =
-            GetComponentInParent<EntryDashMotor>();
+        EntryDashMotor dashMotor = GetComponentInParent<EntryDashMotor>();
 
-        if (dashMotor != null &&
-            dashMotor.IsDashing)
+        if (dashMotor != null && dashMotor.IsDashing)
         {
             ForceCancelADS();
             currentShotIndex = 0;
             return true;
         }
 
-        ElectricShock myShock =
-            GetComponentInParent<ElectricShock>();
+        ElectricShock myShock = GetComponentInParent<ElectricShock>();
 
-        if (myShock != null &&
-            myShock.IsStunned)
+        if (myShock != null && myShock.IsStunned)
         {
             ForceCancelADS();
             currentShotIndex = 0;
             return true;
         }
 
-        if (InitiatorSkill_Q.IsLocalDroneMode ||
-            InitiatorSkill_C.ShouldBlockWeaponInput())
+        if (InitiatorSkill_Q.IsLocalDroneMode || InitiatorSkill_C.ShouldBlockWeaponInput())
         {
             ForceCancelADS();
             currentShotIndex = 0;

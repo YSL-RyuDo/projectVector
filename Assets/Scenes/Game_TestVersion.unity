@@ -15418,6 +15418,8 @@ GameObject:
   - component: {fileID: 971832606}
   - component: {fileID: 971832607}
   - component: {fileID: 971832608}
+  - component: {fileID: 971832609}
+  - component: {fileID: 971832610}
   m_Layer: 0
   m_Name: MatchManager
   m_TagString: Untagged
@@ -15536,6 +15538,46 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EntrySmokeNetworkManager
   _smokeGrenadePrefab: {fileID: 7249112274535753710, guid: 99418d12bce61d544bab1d65713e7308, type: 3}
   _smokeEffectPrefab: {fileID: 7021023906734013752, guid: ffb63aae75a395c4da91ff8871a03f76, type: 3}
+--- !u!114 &971832609
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971832602}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cde7d4fcba98ed4e8f21d87104e8305, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ControllerSwampNetworkManager
+  _trapPrefab: {fileID: 2617453428572898263, guid: f1da717654e592843a07860384647025, type: 3}
+  _areaPrefab: {fileID: 952130952703785157, guid: c6e2e5e3ea7801943851b69ad0d2e158, type: 3}
+  _slowMultiplier: 0.2
+  _floorDecalDepth: 0.25
+  _floorOffset: 0.04
+  _createWallDecals: 1
+  _wallRayCount: 16
+  _wallRayHeight: 0.6
+  _wallDecalWidth: 2.5
+  _wallDecalHeight: 1.7
+  _wallDecalDepth: 0.25
+  _wallOffset: 0.05
+  _wallMask:
+    serializedVersion: 2
+    m_Bits: 8
+--- !u!114 &971832610
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971832602}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1b35344f11b67d43ac2e00759823ece, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ControllerSmokeNetworkManager
+  _smokePrefab: {fileID: 7021023906734013752, guid: ffb63aae75a395c4da91ff8871a03f76, type: 3}
 --- !u!1 &973288635
 GameObject:
   m_ObjectHideFlags: 0

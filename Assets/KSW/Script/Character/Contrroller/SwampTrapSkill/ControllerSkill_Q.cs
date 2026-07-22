@@ -3,44 +3,132 @@ using UnityEngine.InputSystem;
 
 public class ControllerSkill_Q : CharacterSkill
 {
-    [SerializeField] private GameObject _trapPrefab;
+    [Header("References")]
     [SerializeField] private Transform _throwPoint;
+
+    [Header("Throw")]
     [SerializeField] private float _throwForce = 15f;
     [SerializeField] private float _upwardForce = 2f;
+    [SerializeField] private float _spawnForwardOffset = 0.6f;
 
-    void Update()
+    private PlayerIdentity _playerIdentity;
+    private ElectricShock _electricShock;
+
+    private void Awake()
     {
+        _playerIdentity =
+            GetComponent<PlayerIdentity>();
+
+        _electricShock =
+            GetComponent<ElectricShock>();
+
+        if (_electricShock == null)
+            _electricShock =
+                GetComponentInChildren<ElectricShock>(true);
+    }
+
+    private void Start()
+    {
+        if (_throwPoint == null)
+        {
+            Transform found =
+                transform.Find("TrapPoint");
+
+            if (found != null)
+                _throwPoint = found;
+        }
+
+        if (_throwPoint == null)
+        {
+            Transform found =
+                transform.Find("CameraRoot/WeaponHolder/DropPoint");
+
+            if (found != null)
+                _throwPoint = found;
+        }
+    }
+
+    private void Update()
+    {
+        if (!IsMine())
+            return;
+
+        if (Keyboard.current == null)
+            return;
+
+        if (InGameChatUI.IsChatOpen)
+            return;
+
+        if (GameController.Instance != null &&
+            GameController.Instance.IsPaused)
+            return;
+
+        if (SettingsMenu.Instance != null &&
+            SettingsMenu.Instance.IsOpen)
+            return;
+
+        if (InitiatorSkill_Q.IsLocalDroneMode)
+            return;
+
+        if (InitiatorSkill_C.ShouldBlockWeaponInput())
+            return;
+
+        if (EntrySkill_X.IsLocalBladeMode)
+            return;
+
+        EntryDashMotor dashMotor =
+            GetComponent<EntryDashMotor>();
+
+        if (dashMotor != null &&
+            dashMotor.IsDashing)
+            return;
+
+        if (_electricShock != null &&
+            _electricShock.IsStunned)
+            return;
+
         if (Keyboard.current.qKey.wasPressedThisFrame)
         {
             UseSkill();
         }
     }
 
+    private bool IsMine()
+    {
+        return _playerIdentity != null &&
+               NetworkManager.Instance != null &&
+               _playerIdentity.PlayerId ==
+               NetworkManager.Instance.MyPlayerId;
+    }
+
     protected override void UseSkill()
     {
-        Vector3 playerPos = transform.position;
+        if (NetworkManager.Instance == null)
+            return;
 
-        Vector3 forwardDir = transform.forward;
-        Vector3 spawnPos = new Vector3(playerPos.x, playerPos.y + 1.5f, playerPos.z) + (forwardDir * 2.0f);
+        Transform origin =
+            _throwPoint != null
+                ? _throwPoint
+                : transform;
 
-        GameObject trap = Instantiate(_trapPrefab, spawnPos, transform.rotation, null);
+        Vector3 forward =
+            origin.forward.normalized;
 
-        Rigidbody rb = trap.GetComponent<Rigidbody>();
+        Vector3 spawnPos =
+            origin.position +
+            forward * _spawnForwardOffset;
 
-        if (rb != null)
-        {
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+        Vector3 velocity =
+            forward * _throwForce +
+            Vector3.up * _upwardForce;
 
-            Vector3 force = forwardDir * _throwForce + Vector3.up * _upwardForce;
-            rb.AddForce(force, ForceMode.Impulse);
-        }
+        NetworkManager.Instance.SendControllerSwampThrow(
+            spawnPos,
+            velocity
+        );
 
-        Collider charCol = GetComponent<Collider>();
-        Collider trapCol = trap.GetComponent<Collider>();
-        if (charCol != null && trapCol != null)
-        {
-            Physics.IgnoreCollision(charCol, trapCol);
-        }
+        Debug.Log(
+            $"[CONTROLLER Q REQUEST] pos={spawnPos}, velocity={velocity}"
+        );
     }
 }
