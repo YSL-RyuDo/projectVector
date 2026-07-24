@@ -231,6 +231,9 @@ public class CharacterPanelController : MonoBehaviour
         _presetPanel.SetActive(true);
         _profilePanel.SetActive(false);
         _navigationPanel.SetActive(false);
+
+        _presetState = PresetState.skin;
+        ChangePresetState();
     }
 
     public void SelectSkill(string skillType)
@@ -489,16 +492,20 @@ public class CharacterPanelController : MonoBehaviour
                 _skinPanel.SetActive(true);
                 _customizePanel.SetActive(false);
                 _backgroundStoryPanel.SetActive(false);
+                UpdateNavButtonOutlines(n_SkinButton);
                 break;
             case PresetState.customize:
                 _skinPanel.SetActive(false);
                 _customizePanel.SetActive(true);
                 _backgroundStoryPanel.SetActive(false);
+                UpdateNavButtonOutlines(n_CustomizationButton);
                 break;
             case PresetState.backgroundStory:
                 _skinPanel.SetActive(false);
                 _customizePanel.SetActive(false);
                 _backgroundStoryPanel.SetActive(true);
+                UpdateNavButtonOutlines(n_BackgroundStoryButton);
+                PrintCharacterBackgroundStory(currentPreviewCharacterId);
                 break;
         }
     }
@@ -543,6 +550,70 @@ public class CharacterPanelController : MonoBehaviour
         _presetState = PresetState.backgroundStory;
         UpdateNavButtonOutlines(n_BackgroundStoryButton);
         ChangePresetState();
+    }
+    #endregion
+
+    #region Character Background Story UI
+    [Header("Character Sprite")]
+    [SerializeField] private Image _characterStoryImage;
+
+    [Header("Character Background Story UI")]
+    [SerializeField] private TextMeshProUGUI _characterNameText;
+    [SerializeField] private TextMeshProUGUI _characterGenderText;
+    [SerializeField] private TextMeshProUGUI _characterBirhdayText;
+    [SerializeField] private TextMeshProUGUI _characterStatureText;
+    [SerializeField] private TextMeshProUGUI _characterCampText;
+    [SerializeField] private TextMeshProUGUI _characterHobbyText;
+    [SerializeField] private TextMeshProUGUI _characterEatingHabitsText;
+    [SerializeField] private TextMeshProUGUI _characterIndividualityText;
+    [SerializeField] private TextMeshProUGUI _characterIntroText;
+    [SerializeField] private TextMeshProUGUI _characterObservationNotesText;
+
+    [Header("Character Background Story Data")]
+    [SerializeField] private BackgroundStoryData[] _characterData;
+
+    /// <summary>
+    /// 현재 선택된 캐릭터의 배경 스토리 및 정보 업데이트
+    /// </summary>
+    public void PrintCharacterBackgroundStory(int previewCharacterId)
+    {
+        CharacterData charData = GetCharacterDataById(previewCharacterId);
+        if (charData == null) return;
+
+        if (_characterNameText != null)
+            _characterNameText.text = charData.characterName;
+
+        BackgroundStoryData storyData = GetBackgroundStoryDataById(previewCharacterId);
+        if (storyData == null) return;
+
+        // 3. UI 텍스트 정보 매핑
+        if (_characterGenderText != null) _characterGenderText.text = storyData.gender;
+        if (_characterBirhdayText != null) _characterBirhdayText.text = storyData.birthday;
+        if (_characterStatureText != null) _characterStatureText.text = storyData.stature;
+        if (_characterCampText != null) _characterCampText.text = storyData.camp;
+        if (_characterHobbyText != null) _characterHobbyText.text = storyData.hobby;
+        if (_characterEatingHabitsText != null) _characterEatingHabitsText.text = storyData.eatingHabits;
+        if (_characterIndividualityText != null) _characterIndividualityText.text = storyData.individuality;
+        if (_characterIntroText != null) _characterIntroText.text = storyData.intro;
+        if (_characterObservationNotesText != null) _characterObservationNotesText.text = storyData.observationNotes;
+
+        if (_characterStoryImage != null && storyData.characterSprite != null)
+        {
+            _characterStoryImage.sprite = storyData.characterSprite;
+            _characterStoryImage.gameObject.SetActive(true);
+        }
+    }
+
+    private BackgroundStoryData GetBackgroundStoryDataById(int id)
+    {
+        if (_characterData == null) return null;
+
+        foreach (var data in _characterData)
+        {
+            if (data != null && data.characterId == id)
+                return data;
+        }
+        return null;
     }
     #endregion
 }

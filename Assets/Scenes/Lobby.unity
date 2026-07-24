@@ -4851,7 +4851,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &250449736
 RectTransform:
   m_ObjectHideFlags: 0
@@ -15347,7 +15347,7 @@ GameObject:
   - component: {fileID: 822903220}
   - component: {fileID: 822903219}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: Character Name Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -27244,6 +27244,7 @@ GameObject:
   - component: {fileID: 1358981652}
   - component: {fileID: 1358981649}
   - component: {fileID: 1358981653}
+  - component: {fileID: 1358981654}
   m_Layer: 5
   m_Name: ChatButton
   m_TagString: Untagged
@@ -27316,7 +27317,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1085350887}
         m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
         m_MethodName: SetActive
         m_Mode: 6
@@ -27392,6 +27393,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
   m_EffectColor: {r: 0, g: 0, b: 0, a: 1}
   m_EffectDistance: {x: 2, y: 2}
+  m_UseGraphicAlpha: 1
+--- !u!114 &1358981654
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1358981647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfabb0440166ab443bba8876756fdfa9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Shadow
+  m_EffectColor: {r: 0, g: 0, b: 0, a: 0.29803923}
+  m_EffectDistance: {x: 3, y: -3}
   m_UseGraphicAlpha: 1
 --- !u!1 &1363018461
 GameObject:
@@ -28061,7 +28077,7 @@ MonoBehaviour:
       \uBC14\uC774\uD37C \uAD81). \uC0C1\uB300\uAC00 \uC601\uC5ED \uC9C4\uC785 \uC2DC
       \uC0C1\uB300\uB07C\uB9AC\uC758 \uC2DD\uBCC4 \uB80C\uB354\uB9C1 \uCC28\uB2E8.
       \uC0AC\uC6B4\uB4DC \uC6B8\uB9BC \uD6A8\uACFC."
-  - characterId: 3
+  - characterId: 2
     characterName: "\uC13C\uD2F0\uB110"
     characterPrefab: {fileID: 7401587327423938050, guid: 7a7c9ed0a2f00d5439c2defdc9fd122f, type: 3}
     characterSprite: {fileID: 21300000, guid: 02a6a8035c9c2524c971fe20df6f2dca, type: 3}
@@ -28121,11 +28137,11 @@ MonoBehaviour:
       \uC0DD\uC131\uD574 \uC801\uC5D0\uAC8C \uB454\uD654 + \uD53C\uD574\uB97C \uC900\uB2E4
       \uBC1C\uB85C\uB780\uD2B8 \uAE30\uC900 \uCD08\uB2F9 50\uC758 \uD53C\uD574 (\uBE0C\uB9BC\uC2A4\uD1A4
       \uAD81\uADF9\uAE30\uC640 \uC720\uC0AC)"
-  - characterId: 4
+  - characterId: 3
     characterName: "\uC5D4\uD2B8\uB9AC"
     characterPrefab: {fileID: 7900068312483294672, guid: 4e96473b7d2b0374885a54802348ce54, type: 3}
     characterSprite: {fileID: 21300000, guid: a5255b51ea07b2949b9b2b1242d3e2fc, type: 3}
-    isOwned: 0
+    isOwned: 1
     lockImage: {fileID: 34229450}
     selectButton: {fileID: 849671804}
     outline: {fileID: 849671801}
@@ -28184,6 +28200,22 @@ MonoBehaviour:
   _tacticalButton: {fileID: 330933418}
   _objectSpawnPoint: {fileID: 745229201}
   rotationSpeed: 2
+  _characterStoryImage: {fileID: 1189986147}
+  _characterNameText: {fileID: 822903219}
+  _characterGenderText: {fileID: 2085892760}
+  _characterBirhdayText: {fileID: 2011408221}
+  _characterStatureText: {fileID: 712906768}
+  _characterCampText: {fileID: 1351913466}
+  _characterHobbyText: {fileID: 1435838765}
+  _characterEatingHabitsText: {fileID: 1808316135}
+  _characterIndividualityText: {fileID: 83126820}
+  _characterIntroText: {fileID: 234734357}
+  _characterObservationNotesText: {fileID: 277023616}
+  _characterData:
+  - {fileID: 11400000, guid: b3800424fdf5d9b439d1b469d33acd09, type: 2}
+  - {fileID: 11400000, guid: 6129e0f3b7ad02e49973b39fb3744e00, type: 2}
+  - {fileID: 11400000, guid: b12ad5aedee2f494c98f06700567fe8a, type: 2}
+  - {fileID: 11400000, guid: 7f9981adaa175674794aea1f631755a1, type: 2}
 --- !u!114 &1383164227
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -39716,7 +39748,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1074261423}
   m_HandleRect: {fileID: 1074261422}
   m_Direction: 2
-  m_Value: 0
+  m_Value: -0.00000008954689
   m_Size: 0.432
   m_NumberOfSteps: 0
   m_OnValueChanged:
