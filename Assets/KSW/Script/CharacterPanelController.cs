@@ -71,10 +71,17 @@ public class CharacterPanelController : MonoBehaviour
     [Header("Preset Root")]
     [SerializeField] private GameObject _presetPanel;
 
-    [Header("Preset Panel")]
+    [Header("Preset Parent Panel")]
     [SerializeField] private GameObject _skinPanel;
     [SerializeField] private GameObject _customizePanel;
     [SerializeField] private GameObject _backgroundStoryPanel;
+
+    [Header("Preset Child Panel")]
+    [SerializeField] private GameObject c_skinPanel;
+    [SerializeField] private GameObject c_primaryWeaponPanel;
+    [SerializeField] private GameObject c_secondaryWeaponPanel;
+    [SerializeField] private GameObject c_meleeWeaponPanel;
+    [SerializeField] private GameObject c_tacticalItemPanel;
 
     [Header("Preset Navigation Button")]
     [SerializeField] private Button n_SkinButton;
@@ -91,6 +98,10 @@ public class CharacterPanelController : MonoBehaviour
     [Header("Spawn Settings")]
     [SerializeField] private Transform _objectSpawnPoint;
 
+    [Header("Weapon Mount & Animation Settings")]
+    [Tooltip("캐릭터 뼈대 하위에 만든 무기 장착용 소켓 오브젝트 이름")]
+    [SerializeField] private string weaponSocketName = "RightHandSocket";
+
     [Header("Rotation Settings")]
     [SerializeField] private float rotationSpeed = 2f;
     private float lastMouseX;
@@ -98,8 +109,11 @@ public class CharacterPanelController : MonoBehaviour
     private int currentEquippedCharacterId = -1;
     private int currentPreviewCharacterId = -1;
 
-    private GameObject currentSpawnedModel;
+    private GameObject currentSpawnedModel;  // 스폰된 캐릭터 3D 모델
+    private GameObject currentSpawnedWeapon; // 손에 장착된 무기 3D 모델
     private bool isView3D = true;
+
+    private int currentWeaponAnimIndex = -1; // 현재 애니메이션 파라미터 상태 기록
 
     private enum PresetState
     {
@@ -110,7 +124,7 @@ public class CharacterPanelController : MonoBehaviour
 
     private enum PreviewState
     {
-        character,
+        skin,
         primaryWepon,
         secondaryWepon,
         meleeWepon,
@@ -118,12 +132,12 @@ public class CharacterPanelController : MonoBehaviour
     }
 
     private PresetState _presetState = PresetState.skin;
-    private PreviewState _previewState = PreviewState.character;
+    private PreviewState _previewState = PreviewState.skin;
 
     void Start()
     {
         _presetState = PresetState.skin;
-        _previewState = PreviewState.character;
+        _previewState = PreviewState.skin;
 
         OnNSkinButton();
         OnSkinButton();
@@ -151,7 +165,6 @@ public class CharacterPanelController : MonoBehaviour
         }
     }
 
-    // 캐릭터 선택
     public void SelectCharacter(int index)
     {
         if (index < 0 || index >= characters.Length) return;
@@ -173,11 +186,10 @@ public class CharacterPanelController : MonoBehaviour
             characterNameText.text = data.characterName;
         }
 
-        ChangePreviewState();
+        SpawnCharacterModel(data.characterPrefab);
         SelectSkill("Q");
     }
 
-    // 장비 선택 함수들 (나중에 UI에서 무기 바꿀 때 이 함수들을 호출해주면 됨)
     public void SelectPrimaryWeapon(int index)
     {
         if (index >= 0 && index < primaryWeapons.Length)
@@ -365,62 +377,181 @@ public class CharacterPanelController : MonoBehaviour
 
     private void ChangePreviewState()
     {
-        // 실제 3D 모델 스폰 처리
+        UpdatePreviewPanels();
+
+        if (currentSpawnedModel == null) return;
+
+        GameObject targetWeaponPrefab = null;
+        int weaponAnimIndex = 0;
+
         switch (_previewState)
         {
-            case PreviewState.character:
-                CharacterData charData = GetCharacterDataById(currentPreviewCharacterId);
-                if (charData != null) SpawnPreviewObject(charData.characterPrefab);
+            case PreviewState.skin:
+                weaponAnimIndex = 0;
                 break;
 
             case PreviewState.primaryWepon:
                 if (primaryWeapons != null && primaryWeapons.Length > selectedPrimaryIndex && primaryWeapons[selectedPrimaryIndex] != null)
                 {
-                    SpawnPreviewObject(primaryWeapons[selectedPrimaryIndex].objectPrefab);
+                    targetWeaponPrefab = primaryWeapons[selectedPrimaryIndex].objectPrefab;
                 }
+                weaponAnimIndex = 1;
                 break;
 
             case PreviewState.secondaryWepon:
                 if (secondaryWeapons != null && secondaryWeapons.Length > selectedSecondaryIndex && secondaryWeapons[selectedSecondaryIndex] != null)
                 {
-                    SpawnPreviewObject(secondaryWeapons[selectedSecondaryIndex].objectPrefab);
+                    targetWeaponPrefab = secondaryWeapons[selectedSecondaryIndex].objectPrefab;
                 }
+                weaponAnimIndex = 2;
                 break;
 
             case PreviewState.meleeWepon:
                 if (meleeWeapons != null && meleeWeapons.Length > selectedMeleeIndex && meleeWeapons[selectedMeleeIndex] != null)
                 {
-                    SpawnPreviewObject(meleeWeapons[selectedMeleeIndex].objectPrefab);
+                    targetWeaponPrefab = meleeWeapons[selectedMeleeIndex].objectPrefab;
                 }
+                weaponAnimIndex = 3;
                 break;
 
             case PreviewState.tacticalItem:
                 if (tacticalItems != null && tacticalItems.Length > selectedTacticalIndex && tacticalItems[selectedTacticalIndex] != null)
                 {
-                    SpawnPreviewObject(tacticalItems[selectedTacticalIndex].objectPrefab);
+                    targetWeaponPrefab = tacticalItems[selectedTacticalIndex].objectPrefab;
                 }
+                weaponAnimIndex = 4;
                 break;
         }
+
+        EquipWeaponToCharacter(targetWeaponPrefab);
+        UpdateCharacterAnimation(weaponAnimIndex);
     }
 
-    private void SpawnPreviewObject(GameObject targetPrefab)
+    private void UpdatePreviewPanels()
+    {
+        if (c_skinPanel != null)
+            c_skinPanel.SetActive(_previewState == PreviewState.skin);
+
+        if (c_primaryWeaponPanel != null)
+            c_primaryWeaponPanel.SetActive(_previewState == PreviewState.primaryWepon);
+
+        if (c_secondaryWeaponPanel != null)
+            c_secondaryWeaponPanel.SetActive(_previewState == PreviewState.secondaryWepon);
+
+        if (c_meleeWeaponPanel != null)
+            c_meleeWeaponPanel.SetActive(_previewState == PreviewState.meleeWepon);
+
+        if (c_tacticalItemPanel != null)
+            c_tacticalItemPanel.SetActive(_previewState == PreviewState.tacticalItem);
+    }
+
+    private void SpawnCharacterModel(GameObject charPrefab)
     {
         DestroyCurrentModel();
 
-        if (targetPrefab == null || _objectSpawnPoint == null) return;
+        if (charPrefab == null || _objectSpawnPoint == null) return;
 
         Quaternion absolute180Rotation = Quaternion.Euler(0f, 180f, 0f);
-        currentSpawnedModel = Instantiate(targetPrefab, _objectSpawnPoint.position, absolute180Rotation);
+        currentSpawnedModel = Instantiate(charPrefab, _objectSpawnPoint.position, absolute180Rotation);
         currentSpawnedModel.transform.SetParent(_objectSpawnPoint);
         SetLayerRecursively(currentSpawnedModel, "SelectModel");
+
+        currentWeaponAnimIndex = -1; // 초기화
+        ChangePreviewState();
+    }
+
+    private void EquipWeaponToCharacter(GameObject weaponPrefab)
+    {
+        DestroyCurrentWeapon();
+
+        if (weaponPrefab == null || currentSpawnedModel == null) return;
+
+        Transform socket = FindChildRecursive(currentSpawnedModel.transform, weaponSocketName);
+
+        if (socket == null)
+        {
+            socket = currentSpawnedModel.transform;
+            Debug.LogWarning($"[{weaponSocketName}] 소켓을 찾지 못해 캐릭터 루트 위치에 무기를 생성합니다.");
+        }
+
+        currentSpawnedWeapon = Instantiate(weaponPrefab, socket.position, socket.rotation, socket);
+        currentSpawnedWeapon.transform.localPosition = Vector3.zero;
+        currentSpawnedWeapon.transform.localRotation = Quaternion.identity;
+
+        SetLayerRecursively(currentSpawnedWeapon, "SelectModel");
+    }
+
+    private void UpdateCharacterAnimation(int weaponAnimIndex)
+    {
+        if (currentSpawnedModel == null) return;
+
+        if (currentWeaponAnimIndex == weaponAnimIndex) return;
+        currentWeaponAnimIndex = weaponAnimIndex;
+
+        Animator animator = currentSpawnedModel.GetComponent<Animator>();
+        if (animator == null)
+        {
+            animator = currentSpawnedModel.GetComponentInChildren<Animator>();
+        }
+
+        if (animator != null)
+        {
+            string prefix = "";
+            switch (currentPreviewCharacterId)
+            {
+                case 0: prefix = "Initiator"; break;
+                case 1: prefix = "Controller"; break;
+                case 2: prefix = "Sentinel"; break;
+                case 3: prefix = "Entry"; break;
+                default: prefix = "Initiator"; break;
+            }
+
+            // 무기 종류에 따른 Suffix 접미사 결정
+            string suffix = "";
+            switch (weaponAnimIndex)
+            {
+                case 0: suffix = "Idle"; break;
+                case 1: suffix = "Preset_AK47"; break;
+                case 2: suffix = "Preset_Pistol"; break;
+                case 3: suffix = "Preset_Melee"; break;
+                case 4: suffix = "Preset_Item"; break;
+            }
+
+            // Prefix + "_" + Suffix 조합 (예: "Controller_Preset_AK47")
+            string stateName = $"{prefix}_{suffix}";
+
+            animator.CrossFadeInFixedTime(stateName, 0.15f);
+        }
+    }
+
+    private Transform FindChildRecursive(Transform parent, string name)
+    {
+        foreach (Transform child in parent)
+        {
+            if (child.name == name) return child;
+            Transform result = FindChildRecursive(child, name);
+            if (result != null) return result;
+        }
+        return null;
     }
 
     private void DestroyCurrentModel()
     {
+        DestroyCurrentWeapon();
+
         if (currentSpawnedModel != null)
         {
             Destroy(currentSpawnedModel);
             currentSpawnedModel = null;
+        }
+    }
+
+    private void DestroyCurrentWeapon()
+    {
+        if (currentSpawnedWeapon != null)
+        {
+            Destroy(currentSpawnedWeapon);
+            currentSpawnedWeapon = null;
         }
     }
 
@@ -449,7 +580,7 @@ public class CharacterPanelController : MonoBehaviour
 
     public void OnSkinButton()
     {
-        _previewState = PreviewState.character;
+        _previewState = PreviewState.skin;
         UpdatePresetButtonOutlines(_skinButton);
         ChangePreviewState();
     }
@@ -572,9 +703,6 @@ public class CharacterPanelController : MonoBehaviour
     [Header("Character Background Story Data")]
     [SerializeField] private BackgroundStoryData[] _characterData;
 
-    /// <summary>
-    /// 현재 선택된 캐릭터의 배경 스토리 및 정보 업데이트
-    /// </summary>
     public void PrintCharacterBackgroundStory(int previewCharacterId)
     {
         CharacterData charData = GetCharacterDataById(previewCharacterId);
@@ -586,7 +714,6 @@ public class CharacterPanelController : MonoBehaviour
         BackgroundStoryData storyData = GetBackgroundStoryDataById(previewCharacterId);
         if (storyData == null) return;
 
-        // 3. UI 텍스트 정보 매핑
         if (_characterGenderText != null) _characterGenderText.text = storyData.gender;
         if (_characterBirhdayText != null) _characterBirhdayText.text = storyData.birthday;
         if (_characterStatureText != null) _characterStatureText.text = storyData.stature;
