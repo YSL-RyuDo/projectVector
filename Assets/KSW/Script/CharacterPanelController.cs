@@ -106,6 +106,9 @@ public class CharacterPanelController : MonoBehaviour
     [SerializeField] private float rotationSpeed = 2f;
     private float lastMouseX;
 
+    private float resetRotationSpeed = 720f; // 정면 복귀 속도
+    private bool isResettingRotation = false;
+
     private int currentEquippedCharacterId = -1;
     private int currentPreviewCharacterId = -1;
 
@@ -144,6 +147,40 @@ public class CharacterPanelController : MonoBehaviour
 
         DisableAllOutlines();
         SetSelectButtonsInteractable();
+    }
+
+    private void Update()
+    {
+        // 정면 리셋 애니메이션 처리
+        if (isResettingRotation && currentSpawnedModel != null)
+        {
+            Quaternion targetRotation = Quaternion.Euler(0f, 180f, 0f);
+
+            // 목표 회전값으로 부드럽게 회전
+            currentSpawnedModel.transform.rotation = Quaternion.RotateTowards(
+    currentSpawnedModel.transform.rotation,
+    targetRotation,
+    resetRotationSpeed * Time.deltaTime
+);
+
+            // 거의 목표 각도에 도달했으면 리셋 종료 (오차 0.1도 이하)
+            if (Quaternion.Angle(currentSpawnedModel.transform.rotation, targetRotation) < 0.1f)
+            {
+                currentSpawnedModel.transform.rotation = targetRotation;
+                isResettingRotation = false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 현재 스폰된 캐릭터 모델을 정면(-180도)으로 부드럽게 회전시킵니다.
+    /// </summary>
+    public void ResetCharacterRotationSmooth()
+    {
+        if (currentSpawnedModel == null) return;
+
+        // 정면 리셋 플래그 활성화
+        isResettingRotation = true;
     }
 
     public void OpenCharacterPanel()
@@ -743,4 +780,18 @@ public class CharacterPanelController : MonoBehaviour
         return null;
     }
     #endregion
+
+    public bool IsCharacterFacingFront
+    {
+        get
+        {
+            if (currentSpawnedModel == null)
+                return true;
+
+            return Quaternion.Angle(
+                currentSpawnedModel.transform.rotation,
+                Quaternion.Euler(0f, 180f, 0f)
+            ) < 0.1f;
+        }
+    }
 }
