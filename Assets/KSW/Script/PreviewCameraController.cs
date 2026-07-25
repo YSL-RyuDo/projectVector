@@ -41,7 +41,6 @@ public class PreviewCameraController : MonoBehaviour
     {
         if (!isMoving) return;
 
-        // 위치 이동 (SmoothDamp)
         transform.position = Vector3.SmoothDamp(
             transform.position,
             targetPosition,
@@ -49,7 +48,6 @@ public class PreviewCameraController : MonoBehaviour
             smoothTime
         );
 
-        // 회전 이동 (Slerp)
         transform.rotation = Quaternion.Slerp(
             transform.rotation,
             targetRotation,
@@ -65,9 +63,6 @@ public class PreviewCameraController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// UI 버튼에 연결할 메인 토글 함수
-    /// </summary>
     public void ToggleCameraViewWithRotation()
     {
         isWeaponView = !isWeaponView;
@@ -92,32 +87,33 @@ public class PreviewCameraController : MonoBehaviour
         ToggleCameraViewWithRotation();
     }
 
-    /// <summary>
-    /// 코루틴: 캐릭터 Y축 회전값을 체크하여 조건부 대기 후 카메라 이동
-    /// </summary>
     private IEnumerator RoutineFocusOnSocket(string socketName)
     {
-        GameObject handSocket = GameObject.Find(socketName);
+        CharacterPanelController characterController = FindFirstObjectByType<CharacterPanelController>();
+        Transform handTransform = null;
 
-        if (handSocket == null)
+        if (characterController != null && characterController.ObjectSpawnPoint != null)
+        {
+            handTransform = FindChildRecursive(characterController.ObjectSpawnPoint, socketName);
+        }
+
+        if (handTransform == null)
+        {
+            GameObject handSocket = GameObject.Find(socketName);
+            if (handSocket != null) handTransform = handSocket.transform;
+        }
+
+        if (handTransform == null)
         {
             SetFullBodyView();
             yield break;
         }
 
-        Transform handTransform = handSocket.transform;
-
-        CharacterPanelController characterController =
-            FindFirstObjectByType<CharacterPanelController>();
-
         if (characterController != null)
         {
-            // 이미 정면이면 바로 넘어감
             if (!characterController.IsCharacterFacingFront)
             {
                 characterController.ResetCharacterRotationSmooth();
-
-                // 회전 완료까지 대기
                 yield return new WaitUntil(() => characterController.IsCharacterFacingFront);
             }
         }
@@ -140,6 +136,17 @@ public class PreviewCameraController : MonoBehaviour
         isMoving = true;
 
         currentFocusCoroutine = null;
+    }
+
+    private Transform FindChildRecursive(Transform parent, string name)
+    {
+        foreach (Transform child in parent)
+        {
+            if (child.name == name) return child;
+            Transform result = FindChildRecursive(child, name);
+            if (result != null) return result;
+        }
+        return null;
     }
 
     public void FocusOnSocket(string socketName)

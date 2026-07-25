@@ -118,6 +118,8 @@ public class CharacterPanelController : MonoBehaviour
 
     private int currentWeaponAnimIndex = -1; // 현재 애니메이션 파라미터 상태 기록
 
+    public Transform ObjectSpawnPoint => _objectSpawnPoint;
+
     private enum PresetState
     {
         skin,
@@ -793,5 +795,18 @@ public class CharacterPanelController : MonoBehaviour
                 Quaternion.Euler(0f, 180f, 0f)
             ) < 0.1f;
         }
+    }
+
+    [SerializeField] private GameObject _weaponPresetPanel;
+    [SerializeField] private GameObject _weaponSkinPreviewPanel;
+
+    public void OnWeaponPresetButton()
+    {
+        _weaponPresetPanel.SetActive(!_weaponPresetPanel.activeSelf);
+    }
+
+    public void OnWeaponSkinPreviewButton()
+    {
+        _weaponSkinPreviewPanel.SetActive(!_weaponSkinPreviewPanel.activeSelf);
     }
 }
