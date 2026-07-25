@@ -19370,7 +19370,7 @@ MonoBehaviour:
         m_CallState: 2
       - m_Target: {fileID: 2146853978}
         m_TargetAssemblyTypeName: PreviewCameraController, Assembly-CSharp
-        m_MethodName: ToggleCameraViewWithRotation
+        m_MethodName: SetFullBodyView
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -21328,7 +21328,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &547972034
 RectTransform:
   m_ObjectHideFlags: 0
@@ -34559,31 +34559,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 947033613}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1383164226}
-        m_TargetAssemblyTypeName: CharacterPanelController, Assembly-CSharp
-        m_MethodName: OnPresetButton
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 2146853978}
-        m_TargetAssemblyTypeName: PreviewCameraController, Assembly-CSharp
-        m_MethodName: ToggleCameraView
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &947033612
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -40222,7 +40198,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 170.40024}
+  m_AnchoredPosition: {x: 0, y: 170.40022}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &1071291933
@@ -43056,7 +43032,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 185483769}
   m_HandleRect: {fileID: 185483768}
   m_Direction: 2
-  m_Value: 0
+  m_Value: 1
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -53675,7 +53651,7 @@ MonoBehaviour:
         m_CallState: 2
       - m_Target: {fileID: 2146853978}
         m_TargetAssemblyTypeName: PreviewCameraController, Assembly-CSharp
-        m_MethodName: ToggleCameraViewWithRotation
+        m_MethodName: SetFullBodyView
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -57432,7 +57408,7 @@ MonoBehaviour:
         m_CallState: 2
       - m_Target: {fileID: 2146853978}
         m_TargetAssemblyTypeName: PreviewCameraController, Assembly-CSharp
-        m_MethodName: ToggleCameraViewWithRotation
+        m_MethodName: SetFullBodyView
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -76206,7 +76182,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1074261423}
   m_HandleRect: {fileID: 1074261422}
   m_Direction: 2
-  m_Value: -0.0000013432033
+  m_Value: -0.0000014327502
   m_Size: 0.432
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -82156,7 +82132,7 @@ MonoBehaviour:
         m_CallState: 2
       - m_Target: {fileID: 2146853978}
         m_TargetAssemblyTypeName: PreviewCameraController, Assembly-CSharp
-        m_MethodName: ToggleCameraViewWithRotation
+        m_MethodName: SetFullBodyView
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
