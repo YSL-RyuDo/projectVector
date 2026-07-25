@@ -421,7 +421,7 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -441,15 +441,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Sentinel_Trap
   trapModel: {fileID: 9169102855874923851}
   scanSphereVisual: {fileID: 8608402831535193229}
-  _hpUI: {fileID: 4231652168366500082}
+  hpUI: {fileID: 4231652168366500082}
   maxHp: 40
   currentHp: 40
   detectRadius: 10
   scanDelay: 1
+  scanCooldown: 1.5
   scanSpeed: 20
-  _enemyLayer:
+  edgeThickness: 2
+  revealDuration: 2.5
+  enemyLayer:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 833
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  visionBlockLayer:
+    serializedVersion: 2
+    m_Bits: 4105
+  placeOffset: 0.03
+  ignoreCollisionTime: 0.2
 --- !u!1 &5498125669119821329
 GameObject:
   m_ObjectHideFlags: 0
@@ -466,7 +477,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1086868268892009114
 RectTransform:
   m_ObjectHideFlags: 0

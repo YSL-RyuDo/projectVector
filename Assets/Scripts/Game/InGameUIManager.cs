@@ -203,14 +203,14 @@ public class InGameUIManager : MonoBehaviour
 
     public void PlayDamageFeedback()
     {
-        HitEffect hitEffect = FindFirstObjectByType<HitEffect>();
-
-        if (hitEffect == null)
+        if (DreamForestPostProcessFeedback.Instance != null)
+        {
+            DreamForestPostProcessFeedback.Instance.PlayHit();
             return;
+        }
 
-        hitEffect.OnHit();
+        Debug.LogWarning("[INGAME UI] DreamForestPostProcessFeedback.Instance is null");
     }
-
     private void InitializeWeaponUI()
     {
         SetMainWeapon(null);

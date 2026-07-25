@@ -2,50 +2,112 @@ using UnityEngine;
 
 public class SentinelSkill_C : CharacterSkill
 {
-    public GameObject trapPrefab;
-    public Transform throwPoint;
-    private bool isReady = false;
+    public static bool IsSelectingSentinelC { get; private set; }
+    private static int consumedThrowInputFrame = -1;
 
-    void Update()
+    public static bool ShouldBlockWeaponInput()
     {
-        if (Input.GetKeyDown(KeyCode.C))
-        {
-            UseSkill();
-        }
+        return
+            IsSelectingSentinelC ||
+            consumedThrowInputFrame == Time.frameCount;
+    }
 
-        if (isReady)
-        {
-            if (Input.GetMouseButtonDown(0))
-            {
-                CharacterSkillUI.Instance.SentinelSkillText(false, "");
-                throwTrap(22f);
-                isReady = false;
-            }
-            else if (Input.GetMouseButtonDown(1))
-            {
-                CharacterSkillUI.Instance.SentinelSkillText(false, "");
-                throwTrap(12f);
-                isReady = false;
-            }
-        }
+    [Header("C Trap")]
+    [SerializeField] private Transform throwPoint;
+
+    [Header("Throw")]
+    [SerializeField] private float longThrowForce = 22f;
+    [SerializeField] private float shortThrowForce = 12f;
+    [SerializeField] private float upwardPower = 0.2f;
+
+    private bool isReady;
+    private PlayerIdentity playerIdentity;
+
+    private void Awake()
+    {
+        playerIdentity = GetComponent<PlayerIdentity>();
+    }
+
+    private void Update()
+    {
+        if (!IsMine())
+            return;
+
+        if (Input.GetKeyDown(KeyCode.C))
+            UseSkill();
+
+        if (!isReady)
+            return;
+
+        if (Input.GetMouseButtonDown(0))
+            RequestThrow(longThrowForce);
+        else if (Input.GetMouseButtonDown(1))
+            RequestThrow(shortThrowForce);
+        else if (Input.GetKeyDown(KeyCode.Escape))
+            CancelReady();
     }
 
     protected override void UseSkill()
     {
         isReady = !isReady;
-        CharacterSkillUI.Instance.SentinelSkillText(true, "투척 모드: 좌클릭(길게 투척), 우클릭(짧게 투척)");
+        IsSelectingSentinelC = isReady;
+
+        if (CharacterSkillUI.Instance != null)
+        {
+            CharacterSkillUI.Instance.SentinelSkillText(
+                isReady,
+                isReady ? "C 투척 모드: 좌클릭(길게), 우클릭(짧게)" : ""
+            );
+        }
     }
 
-    private void throwTrap(float force)
+    private void RequestThrow(float force)
     {
-        Vector3 spawnPos = throwPoint != null ? throwPoint.position : transform.position + transform.forward;
-        GameObject obj = Instantiate(trapPrefab, spawnPos, transform.rotation);
+        // 투척 후 선택 상태가 해제되어도 같은 프레임의 클릭을 무기가 다시 읽지 못하게 한다.
+        consumedThrowInputFrame = Time.frameCount;
 
-        Sentinel_Trap trapScript = obj.GetComponent<Sentinel_Trap>();
-        if (trapScript != null)
-        {
-            Vector3 throwDir = (Camera.main.transform.forward + Vector3.up * 0.2f).normalized;
-            trapScript.Launch(throwDir, force);
-        }
+        Vector3 spawnPos =
+            throwPoint != null
+                ? throwPoint.position
+                : transform.position + transform.forward + Vector3.up * 1.2f;
+
+        Vector3 forward =
+            Camera.main != null
+                ? Camera.main.transform.forward
+                : transform.forward;
+
+        Vector3 throwDir = (forward + Vector3.up * upwardPower).normalized;
+        Vector3 velocity = throwDir * force;
+
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SendSentinelCThrow(spawnPos, velocity);
+
+        CancelReady();
+    }
+
+    private void CancelReady()
+    {
+        isReady = false;
+        IsSelectingSentinelC = false;
+
+        if (CharacterSkillUI.Instance != null)
+            CharacterSkillUI.Instance.SentinelSkillText(false, "");
+    }
+
+
+    private bool IsMine()
+    {
+        if (playerIdentity == null)
+            playerIdentity = GetComponent<PlayerIdentity>();
+
+        return playerIdentity != null &&
+               NetworkManager.Instance != null &&
+               playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+    }
+
+    private void OnDisable()
+    {
+        if (isReady)
+            CancelReady();
     }
 }

@@ -3,10 +3,21 @@ using UnityEngine.InputSystem;
 
 public class ControllerSkill_X : CharacterSkill
 {
-    [SerializeField] private GameObject _dreamForestPrefab;
+    private PlayerIdentity playerIdentity;
 
-    void Update()
+    private void Awake()
     {
+        playerIdentity = GetComponent<PlayerIdentity>();
+    }
+
+    private void Update()
+    {
+        if (Keyboard.current == null)
+            return;
+
+        if (!IsMine())
+            return;
+
         if (Keyboard.current.xKey.wasPressedThisFrame)
         {
             UseSkill();
@@ -16,6 +27,21 @@ public class ControllerSkill_X : CharacterSkill
     protected override void UseSkill()
     {
         Vector3 spawnPos = transform.position;
-        Instantiate(_dreamForestPrefab, spawnPos, Quaternion.identity);
+
+        if (NetworkManager.Instance != null)
+        {
+            NetworkManager.Instance.SendControllerUltimateCast(spawnPos);
+            Debug.Log($"[SEND CONTROLLER ULTIMATE REQUEST] pos={spawnPos}");
+        }
+    }
+
+    private bool IsMine()
+    {
+        if (playerIdentity == null)
+            playerIdentity = GetComponent<PlayerIdentity>();
+
+        return playerIdentity != null &&
+               NetworkManager.Instance != null &&
+               playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
     }
 }

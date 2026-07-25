@@ -15420,6 +15420,9 @@ GameObject:
   - component: {fileID: 971832608}
   - component: {fileID: 971832609}
   - component: {fileID: 971832610}
+  - component: {fileID: 971832611}
+  - component: {fileID: 971832612}
+  - component: {fileID: 971832613}
   m_Layer: 0
   m_Name: MatchManager
   m_TagString: Untagged
@@ -15578,6 +15581,47 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ControllerSmokeNetworkManager
   _smokePrefab: {fileID: 7021023906734013752, guid: ffb63aae75a395c4da91ff8871a03f76, type: 3}
+--- !u!114 &971832611
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971832602}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c1989f51a8e7c944a0a7923c560dc61, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ControllerDecoyNetworkManager
+  _decoyProjectilePrefab: {fileID: 2617453428572898263, guid: 3d9eff96c3f8b7f40a61d07ab9ee5102, type: 3}
+  _decoyAreaPrefab: {fileID: 952130952703785157, guid: 4263daf9137071e4b8147875b02cc8a1, type: 3}
+--- !u!114 &971832612
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971832602}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: edfc8057de1fe9a418ccf34cab8ac5a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ControllerUltimateNetworkManager
+  dreamForestPrefab: {fileID: 7558807253562860058, guid: c691a91a13c85f94681111e960af6b77, type: 3}
+--- !u!114 &971832613
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971832602}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 50c802f2653b84549b4769528122c45c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SentinelCNetworkManager
+  trapPrefab: {fileID: 4414393571496378085, guid: 19f7aabcf0ca9274fa5fa0569378fdf1, type: 3}
+  qTrapPrefab: {fileID: 6472310157036607655, guid: a934e7d50f14a4940a267ef682b66ecf, type: 3}
 --- !u!1 &973288635
 GameObject:
   m_ObjectHideFlags: 0
@@ -17735,7 +17779,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1147831577}
   - component: {fileID: 1147831576}
-  - component: {fileID: 1147831575}
+  - component: {fileID: 1147831578}
   m_Layer: 0
   m_Name: Global Volume
   m_TagString: Untagged
@@ -17743,22 +17787,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1147831575
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1147831574}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 325ff17e4d12cb14eae3c487f71de8e0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HitEffect
-  postProcessVolume: {fileID: 1147831576}
-  hitIntensity: 0.6
-  normalIntensity: 0.2
-  fadeSpeed: 3
 --- !u!114 &1147831576
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17791,6 +17819,28 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1147831578
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1147831574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21450100e13d8f347a81c370e0a04d22, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DreamForestPostProcessFeedback
+  volume: {fileID: 1147831576}
+  dreamIntensity: 0.42
+  dreamColor: {r: 0.25, g: 0.1, b: 0.85, a: 1}
+  hitIntensity: 0.6
+  hitDuration: 0.18
+  hitColor: {r: 1, g: 0, b: 0, a: 1}
+  normalIntensity: 0
+  fadeSpeed: 4
+  colorFadeSpeed: 12
+  smoothness: 0.45
 --- !u!1 &1153403900
 GameObject:
   m_ObjectHideFlags: 0

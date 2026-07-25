@@ -120,6 +120,8 @@ public class RoundManager : MonoBehaviour
         currentState = RoundState.GameOver;
         IsBuyPhase = false;
 
+        CleanUpSentinelCTraps();
+
         if (StorePanelUI.Instance != null)
             StorePanelUI.Instance.Close();
 
@@ -133,6 +135,7 @@ public class RoundManager : MonoBehaviour
         Debug.Log("[ROUND] Reset round.");
 
         CleanUpDroppedItems();
+        CleanUpSentinelCTraps();
 
         ResetTeam("Player");
         ResetTeam("Enemy");
@@ -232,6 +235,8 @@ public class RoundManager : MonoBehaviour
         if (currentMapInfo != null)
             currentMapInfo.SetBarriersActive(true);
 
+        CleanUpSentinelCTraps();
+
         Debug.Log(
             $"[ROUND RESULT] winnerTeam={winnerTeam}, " +
             $"score={scoreA}:{scoreB}, " +
@@ -254,8 +259,15 @@ public class RoundManager : MonoBehaviour
         );
 
         CleanUpDroppedItems();
+        CleanUpSentinelCTraps();
 
         if (SpikeSpawner.Instance != null && currentMapInfo != null)
             SpikeSpawner.Instance.ResetSpike(currentMapInfo.spikeSpawnPoint);
+    }
+
+    private void CleanUpSentinelCTraps()
+    {
+        if (SentinelCNetworkManager.Instance != null)
+            SentinelCNetworkManager.Instance.ClearAllTraps();
     }
 }

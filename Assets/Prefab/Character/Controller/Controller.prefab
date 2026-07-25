@@ -225,10 +225,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29e7782674cc6d84db0cd690b204eeca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  _smokePrefab: {fileID: 7021023906734013752, guid: ffb63aae75a395c4da91ff8871a03f76, type: 3}
   _pingPrefab: {fileID: 8989380966646054412, guid: 6b7b0582adb07534cb1a2b877cac06e0, type: 3}
+  _miniMapOverlay: {fileID: 0}
   _mapRect: {fileID: 0}
   _pingContainer: {fileID: 0}
+  _miniMapCamera: {fileID: 0}
+  _groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!114 &1804956782191041523
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -252,13 +256,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 635509965751519011}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 506aac0ef6f00b049b58bd5c059c4d34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DecoyTrapSkill
-  _decoyProjectilePrefab: {fileID: 2617453428572898263, guid: 3d9eff96c3f8b7f40a61d07ab9ee5102, type: 3}
-  _decoyAreaPrefab: {fileID: 952130952703785157, guid: 4263daf9137071e4b8147875b02cc8a1, type: 3}
+  _throwPoint: {fileID: 2421068648665457238}
+  _throwForce: 15
+  _upwardForce: 2
 --- !u!114 &4302921389843108573
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -266,12 +271,11 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 635509965751519011}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8985809e9897334eb3aa6703ba4bd27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DreamForestSkill
-  _dreamForestPrefab: {fileID: 7558807253562860058, guid: 77c403d80e3c37d4cbdcf95e3798e7fc, type: 3}
 --- !u!114 &1106734809125183641
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1734,6 +1738,9 @@ MonoBehaviour:
   enemyColor: {r: 0.82, g: 0.25, b: 0.24, a: 1}
   enemyOutlineWidth: 2.5
   outlineMode: 1
+  hideEnemyOutlineBehindDreamForest: 1
+  hideAllyOutlineBehindDreamForest: 0
+  dreamForestCheckInterval: 0.05
 --- !u!4 &6381126151182885441 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -7350302855771833404, guid: f2c836f3e5c029140a0cc913d7df766a, type: 3}

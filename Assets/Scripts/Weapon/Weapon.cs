@@ -290,6 +290,13 @@ public class Weapon : Item
             return true;
         }
 
+        if (SentinelSkill_C.ShouldBlockWeaponInput())
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
         return false;
     }
 
@@ -696,6 +703,26 @@ public class Weapon : Item
                 return;
             }
 
+            if (TryHandleSentinelTrapHit(hit))
+            {
+                SpawnBulletVisual(
+                    shootDir,
+                    visualTargetPoint
+                );
+
+                return;
+            }
+
+            if (TryHandleSentinelQTrapHit(hit))
+            {
+                SpawnBulletVisual(
+                    shootDir,
+                    visualTargetPoint
+                );
+
+                return;
+            }
+
             TryHandlePlayerHit(hit);
         }
         else
@@ -916,9 +943,11 @@ public class Weapon : Item
                 $"[PROJECTILE AIM HIT] object={hit.collider.name}, root={hit.collider.transform.root.name}, point={hit.point}"
             );
 
-            if (!TryHandleScannerHit(hit))
+            if (!TryHandleScannerHit(hit) &&
+                !TryHandleDroneHit(hit))
             {
-                TryHandleDroneHit(hit);
+                if (!TryHandleSentinelTrapHit(hit))
+                    TryHandleSentinelQTrapHit(hit);
             }
         }
 
@@ -1285,6 +1314,123 @@ public class Weapon : Item
 
         Debug.Log(
             $"[SCANNER HIT SEND] scannerId={scannerHitbox.ScannerId}"
+        );
+
+        return true;
+    }
+
+    private bool TryHandleSentinelTrapHit(RaycastHit hit)
+    {
+        if (hit.collider == null)
+            return false;
+
+        Sentinel_Trap trap =
+            hit.collider.GetComponent<Sentinel_Trap>();
+
+        if (trap == null)
+        {
+            trap =
+                hit.collider.GetComponentInParent<Sentinel_Trap>();
+        }
+
+        if (trap == null)
+            return false;
+
+        if (trap.TrapId == 0)
+        {
+            Debug.LogWarning("[SENTINEL C HIT] TrapId is 0");
+            return true;
+        }
+
+        if (NetworkManager.Instance == null)
+            return true;
+
+        if (trap.OwnerPlayerId == NetworkManager.Instance.MyPlayerId)
+        {
+            Debug.Log(
+                $"[SENTINEL C HIT] ignored own trap. trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        if (_playerIdentity != null &&
+            _playerIdentity.Team == trap.OwnerTeam)
+        {
+            Debug.Log(
+                $"[SENTINEL C HIT] ignored friendly trap. trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        if (weaponData == null)
+            return true;
+
+        HitManager.TriggerEnemyHit();
+
+        NetworkManager.Instance.SendSentinelCHit(
+            trap.TrapId,
+            weaponData.damage
+        );
+
+        Debug.Log(
+            $"[SENTINEL C HIT SEND] trapId={trap.TrapId}, damage={weaponData.damage}"
+        );
+
+        return true;
+    }
+
+    private bool TryHandleSentinelQTrapHit(RaycastHit hit)
+    {
+        if (hit.collider == null)
+            return false;
+
+        Sentinel_SlowTrap trap =
+            hit.collider.GetComponent<Sentinel_SlowTrap>();
+
+        if (trap == null)
+        {
+            trap =
+                hit.collider.GetComponentInParent<Sentinel_SlowTrap>();
+        }
+
+        if (trap == null)
+            return false;
+
+        if (trap.TrapId == 0)
+        {
+            Debug.LogWarning("[SENTINEL Q HIT] TrapId is 0");
+            return true;
+        }
+
+        if (NetworkManager.Instance == null)
+            return true;
+
+        if (trap.OwnerPlayerId == NetworkManager.Instance.MyPlayerId)
+        {
+            Debug.Log(
+                $"[SENTINEL Q HIT] ignored own trap. trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        if (_playerIdentity != null &&
+            _playerIdentity.Team == trap.OwnerTeam)
+        {
+            Debug.Log(
+                $"[SENTINEL Q HIT] ignored friendly trap. trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        HitManager.TriggerEnemyHit();
+        NetworkManager.Instance.SendSentinelQHit(trap.TrapId);
+
+        Debug.Log(
+            $"[SENTINEL Q HIT SEND] trapId={trap.TrapId}"
         );
 
         return true;

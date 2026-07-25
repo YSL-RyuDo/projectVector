@@ -380,13 +380,16 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6886427744864830309}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6154000488452ed42a154e91ea6cf176, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::C_Skill
-  trapPrefab: {fileID: 4414393571496378085, guid: 0496b251c3c02934d865356d90e3ff41, type: 3}
+  trapPrefab: {fileID: 4414393571496378085, guid: 19f7aabcf0ca9274fa5fa0569378fdf1, type: 3}
   throwPoint: {fileID: 1914066032825215450}
+  longThrowForce: 22
+  shortThrowForce: 12
+  upwardPower: 0.2
 --- !u!114 &6847561979809482290
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -394,7 +397,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6886427744864830309}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cb71c23855369fa4d9eb6465eb66b1cd, type: 3}
   m_Name: 
