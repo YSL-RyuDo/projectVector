@@ -737,6 +737,26 @@ public class NetworkManager : MonoBehaviour
                 HandleSentinelQDestroy(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_SENTINEL_E_SPAWN:
+                HandleSentinelESpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_E_ACTIVATE:
+                HandleSentinelEActivate(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_E_DESTROY:
+                HandleSentinelEDestroy(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_X_SPAWN:
+                HandleSentinelXSpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_X_DESTROY:
+                HandleSentinelXDestroy(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -7599,5 +7619,370 @@ public class NetworkManager : MonoBehaviour
 
         if (SentinelCNetworkManager.Instance != null)
             SentinelCNetworkManager.Instance.OnQDestroy(trapId);
+    }
+
+    public void SendSentinelEPlace(
+        Vector3 position,
+        Vector3 normal)
+    {
+        ushort size = 4 + 24;
+        ushort type =
+            (ushort)PacketType.PKT_CS_SENTINEL_E_PLACE;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        float[] values =
+        {
+            position.x,
+            position.y,
+            position.z,
+            normal.x,
+            normal.y,
+            normal.z
+        };
+
+        foreach (float value in values)
+        {
+            Buffer.BlockCopy(
+                BitConverter.GetBytes(value),
+                0,
+                buffer,
+                offset,
+                4
+            );
+            offset += 4;
+        }
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND SENTINEL E PLACE] " +
+            $"position={position}, normal={normal}"
+        );
+    }
+
+    public void SendSentinelEActivate(uint trapId)
+    {
+        SendSentinelETrapIdPacket(
+            PacketType.PKT_CS_SENTINEL_E_ACTIVATE,
+            trapId,
+            "ACTIVATE"
+        );
+    }
+
+    public void SendSentinelEHit(uint trapId)
+    {
+        SendSentinelETrapIdPacket(
+            PacketType.PKT_CS_SENTINEL_E_HIT,
+            trapId,
+            "HIT"
+        );
+    }
+
+    public void SendSentinelERecall(uint trapId)
+    {
+        SendSentinelETrapIdPacket(
+            PacketType.PKT_CS_SENTINEL_E_RECALL,
+            trapId,
+            "RECALL"
+        );
+    }
+
+    private void SendSentinelETrapIdPacket(
+        PacketType packetType,
+        uint trapId,
+        string action)
+    {
+        ushort size = 4 + 4;
+        ushort type = (ushort)packetType;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(trapId),
+            0,
+            buffer,
+            offset,
+            4
+        );
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND SENTINEL E {action}] trapId={trapId}"
+        );
+    }
+
+    private void HandleSentinelESpawn(byte[] body)
+    {
+        const int requiredSize = 41;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        int offset = 0;
+
+        uint trapId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        int ownerTeam = body[offset];
+        offset += 1;
+
+        Vector3 position = new Vector3(
+            BitConverter.ToSingle(body, offset),
+            BitConverter.ToSingle(body, offset + 4),
+            BitConverter.ToSingle(body, offset + 8)
+        );
+        offset += 12;
+
+        Vector3 normal = new Vector3(
+            BitConverter.ToSingle(body, offset),
+            BitConverter.ToSingle(body, offset + 4),
+            BitConverter.ToSingle(body, offset + 8)
+        );
+        offset += 12;
+
+        float hp = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float radius = BitConverter.ToSingle(body, offset);
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnESpawn(
+                trapId,
+                ownerPlayerId,
+                ownerTeam,
+                position,
+                normal,
+                hp,
+                radius
+            );
+        }
+    }
+
+    private void HandleSentinelEActivate(byte[] body)
+    {
+        const int requiredSize = 20;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        int offset = 0;
+
+        uint trapId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float radius = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float slowDuration =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float slowMultiplier =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float stunDuration =
+            BitConverter.ToSingle(body, offset);
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnEActivate(
+                trapId,
+                radius,
+                slowDuration,
+                slowMultiplier,
+                stunDuration
+            );
+        }
+    }
+
+    private void HandleSentinelEDestroy(byte[] body)
+    {
+        const int requiredSize = 9;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        uint trapId = BitConverter.ToUInt32(body, 0);
+        int reason = body[4];
+        float cooldownSeconds =
+            BitConverter.ToSingle(body, 5);
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnEDestroy(
+                trapId,
+                reason,
+                cooldownSeconds
+            );
+        }
+    }
+
+    public void SendSentinelXCast(Vector3 position)
+    {
+        ushort size = 4 + 12;
+        ushort type =
+            (ushort)PacketType.PKT_CS_SENTINEL_X_CAST;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        float[] values =
+        {
+            position.x,
+            position.y,
+            position.z
+        };
+
+        foreach (float value in values)
+        {
+            Buffer.BlockCopy(
+                BitConverter.GetBytes(value),
+                0,
+                buffer,
+                offset,
+                4
+            );
+            offset += 4;
+        }
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND SENTINEL X CAST] position={position}"
+        );
+    }
+
+    private void HandleSentinelXSpawn(byte[] body)
+    {
+        const int requiredSize = 37;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        int offset = 0;
+
+        uint ultimateId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        int ownerTeam = body[offset];
+        offset += 1;
+
+        Vector3 position = new Vector3(
+            BitConverter.ToSingle(body, offset),
+            BitConverter.ToSingle(body, offset + 4),
+            BitConverter.ToSingle(body, offset + 8)
+        );
+        offset += 12;
+
+        float radius = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float duration = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float slowMultiplier =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float protectionDuration =
+            BitConverter.ToSingle(body, offset);
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnXSpawn(
+                ultimateId,
+                ownerPlayerId,
+                ownerTeam,
+                position,
+                radius,
+                duration,
+                slowMultiplier,
+                protectionDuration
+            );
+        }
+    }
+
+    private void HandleSentinelXDestroy(byte[] body)
+    {
+        if (body == null || body.Length < 4)
+            return;
+
+        uint ultimateId = BitConverter.ToUInt32(body, 0);
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnXDestroy(
+                ultimateId
+            );
+        }
     }
 }

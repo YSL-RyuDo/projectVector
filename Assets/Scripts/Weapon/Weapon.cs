@@ -297,6 +297,20 @@ public class Weapon : Item
             return true;
         }
 
+        if (SentinelSkill_E.ShouldBlockWeaponInput())
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
+        if (SentinelSkill_X.ShouldBlockWeaponInput())
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
         return false;
     }
 
@@ -723,6 +737,16 @@ public class Weapon : Item
                 return;
             }
 
+            if (TryHandleSentinelETrapHit(hit))
+            {
+                SpawnBulletVisual(
+                    shootDir,
+                    visualTargetPoint
+                );
+
+                return;
+            }
+
             TryHandlePlayerHit(hit);
         }
         else
@@ -947,7 +971,10 @@ public class Weapon : Item
                 !TryHandleDroneHit(hit))
             {
                 if (!TryHandleSentinelTrapHit(hit))
-                    TryHandleSentinelQTrapHit(hit);
+                {
+                    if (!TryHandleSentinelQTrapHit(hit))
+                        TryHandleSentinelETrapHit(hit);
+                }
             }
         }
 
@@ -1057,6 +1084,17 @@ public class Weapon : Item
 
         if (maxAmmo <= 0)
             return false;
+
+        bool isBuyPhase =
+            RoundManager.Instance != null &&
+            RoundManager.Instance.currentState ==
+            RoundManager.RoundState.Preparation;
+
+        if (isBuyPhase)
+        {
+            return currentAmmo < maxAmmo ||
+                   reserveAmmo < weaponData.maxReserveAmmo;
+        }
 
         if (currentAmmo >= maxAmmo)
             return false;
@@ -1364,6 +1402,18 @@ public class Weapon : Item
             return true;
         }
 
+        if (SentinelCNetworkManager.Instance != null &&
+            SentinelCNetworkManager.Instance.IsSkillProtected(
+                trap.OwnerPlayerId
+            ))
+        {
+            Debug.Log(
+                $"[SENTINEL C HIT] protected by X. trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
         if (weaponData == null)
             return true;
 
@@ -1426,11 +1476,94 @@ public class Weapon : Item
             return true;
         }
 
+        if (SentinelCNetworkManager.Instance != null &&
+            SentinelCNetworkManager.Instance.IsSkillProtected(
+                trap.OwnerPlayerId
+            ))
+        {
+            Debug.Log(
+                $"[SENTINEL Q HIT] protected by X. trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
         HitManager.TriggerEnemyHit();
         NetworkManager.Instance.SendSentinelQHit(trap.TrapId);
 
         Debug.Log(
             $"[SENTINEL Q HIT SEND] trapId={trap.TrapId}"
+        );
+
+        return true;
+    }
+
+    private bool TryHandleSentinelETrapHit(RaycastHit hit)
+    {
+        if (hit.collider == null)
+            return false;
+
+        TrapDevice trap =
+            hit.collider.GetComponent<TrapDevice>();
+
+        if (trap == null)
+        {
+            trap =
+                hit.collider.GetComponentInParent<TrapDevice>();
+        }
+
+        if (trap == null)
+            return false;
+
+        if (trap.TrapId == 0)
+        {
+            Debug.LogWarning("[SENTINEL E HIT] TrapId is 0");
+            return true;
+        }
+
+        if (NetworkManager.Instance == null)
+            return true;
+
+        if (trap.OwnerPlayerId ==
+            NetworkManager.Instance.MyPlayerId)
+        {
+            Debug.Log(
+                $"[SENTINEL E HIT] ignored own trap. " +
+                $"trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        if (_playerIdentity != null &&
+            _playerIdentity.Team == trap.OwnerTeam)
+        {
+            Debug.Log(
+                $"[SENTINEL E HIT] ignored friendly trap. " +
+                $"trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        if (SentinelCNetworkManager.Instance != null &&
+            SentinelCNetworkManager.Instance.IsSkillProtected(
+                trap.OwnerPlayerId
+            ))
+        {
+            Debug.Log(
+                $"[SENTINEL E HIT] protected by X. " +
+                $"trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        HitManager.TriggerEnemyHit();
+        NetworkManager.Instance.SendSentinelEHit(trap.TrapId);
+
+        Debug.Log(
+            $"[SENTINEL E HIT SEND] trapId={trap.TrapId}"
         );
 
         return true;

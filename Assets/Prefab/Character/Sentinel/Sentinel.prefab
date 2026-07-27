@@ -385,7 +385,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6154000488452ed42a154e91ea6cf176, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::C_Skill
-  trapPrefab: {fileID: 4414393571496378085, guid: 19f7aabcf0ca9274fa5fa0569378fdf1, type: 3}
   throwPoint: {fileID: 1914066032825215450}
   longThrowForce: 22
   shortThrowForce: 12
@@ -402,8 +401,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb71c23855369fa4d9eb6465eb66b1cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Q_Skill
-  _trapPrefab: {fileID: 6472310157036607655, guid: a934e7d50f14a4940a267ef682b66ecf, type: 3}
+  _trapPrefab: {fileID: 6472310157036607655, guid: 4e7fcc341ec8bf344a09f1375bf84d6a, type: 3}
   _throwRange: 10
+  _groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!114 &3256994066224296914
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -411,16 +413,17 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6886427744864830309}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7dc55f7f9459944408f43bf75da113c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::E_Skill
-  trapPrefab: {fileID: 12654924886907039, guid: b44de988e9e287e4d9178a6f1842a514, type: 3}
+  trapPrefab: {fileID: 12654924886907039, guid: 03b45a1b1164aa1498bf63f8066ce3ca, type: 3}
   maxDistance: 10
+  maxWallThickness: 2
   wallLayer:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 4294967295
 --- !u!114 &4099350766847986925
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -428,12 +431,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6886427744864830309}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8206fe1bb6bbaae4ab0d8dcea402a87b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::X_Skill
-  xAreaPrefab: {fileID: 7230139109381480530, guid: 911aa5cf663b5ec4db5ac6c75fbbb363, type: 3}
+  xAreaPrefab: {fileID: 7230139109381480530, guid: 579ff7cb0c9db1042b5fa4de879a146a, type: 3}
   chargingTime: 1.5
   skillDistance: 20
 --- !u!114 &8893806549369827747

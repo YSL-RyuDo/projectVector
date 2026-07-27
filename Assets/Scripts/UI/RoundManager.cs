@@ -18,6 +18,7 @@ public class RoundManager : MonoBehaviour
     public RoundState currentState = RoundState.Waiting;
 
     public bool CanAttack =>
+        currentState == RoundState.Preparation ||
         currentState == RoundState.MainRound ||
         currentState == RoundState.SpikePlanted;
 

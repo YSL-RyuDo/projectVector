@@ -73,6 +73,9 @@ public class PlayerMovement : MonoBehaviour
     private float _swampSlowMultiplier = 1f;
 
     public bool IsMine => _isMine;
+    public bool IsSlowed =>
+        _swampSlowCount > 0 ||
+        _externalSpeedMultiplier < 0.999f;
 
     private float _externalJumpMultiplier = 1.0f;
     public float Speed
@@ -1151,6 +1154,32 @@ public class PlayerMovement : MonoBehaviour
             $"count={_swampSlowCount}, multiplier={_swampSlowMultiplier}, " +
             $"currentMoveSpeed={currentMoveSpeed}"
         );
+    }
+
+    public void ApplyTimedSlowFromServer(
+        float multiplier,
+        float duration)
+    {
+        if (duration <= 0f)
+            return;
+
+        StartCoroutine(
+            TimedSlowFromServerRoutine(
+                Mathf.Clamp(multiplier, 0.05f, 1f),
+                duration
+            )
+        );
+    }
+
+    private IEnumerator TimedSlowFromServerRoutine(
+        float multiplier,
+        float duration)
+    {
+        ApplySwampSlow(multiplier);
+
+        yield return new WaitForSeconds(duration);
+
+        RemoveSwampSlow();
     }
 
     public void RemoveSwampSlow()
