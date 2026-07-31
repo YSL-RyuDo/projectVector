@@ -13,10 +13,18 @@ public class FPSCameraLook : MonoBehaviour
     [Header("Recoil")]
     public float recoilReturnSpeed = 10f;
 
+<<<<<<< Updated upstream
     private float xRotation = 0f;   // Camera Pitch
     private float yaw = 0f;         // Player Yaw
     private float recoilOffset = 0f;
     private bool _isADS = false;
+=======
+    [Header("Test Settings")]
+    [SerializeField] private bool _isTestMode = false;
+    //∆©≈‰∏ÆæÛ ¿”¿« √ﬂ∞°∫Œ∫–^^^^^^^^^^^^^
+
+    private PlayerIdentity _playerIdentity;
+>>>>>>> Stashed changes
 
     Transform player;
 
@@ -24,7 +32,45 @@ public class FPSCameraLook : MonoBehaviour
 
     void Start()
     {
+<<<<<<< Updated upstream
         player = transform.parent;
+=======
+
+        _playerIdentity =
+            GetComponentInParent<PlayerIdentity>();
+
+        if (_isTestMode)
+        {
+            Transform root = transform.parent != null ? transform.parent : transform;
+            SetLocalPlayer(true, root);
+            return;
+        }
+
+        enabled = false;
+
+        /*_playerIdentity =
+            GetComponentInParent<PlayerIdentity>();
+
+        enabled = false;
+        */
+    }
+
+    public void SetLocalPlayer(
+        bool isLocal,
+        Transform root)
+    {
+        isLocalPlayer = isLocal;
+        playerRoot = root;
+
+        CanMove = isLocal;
+        enabled = isLocal;
+
+        if (!isLocal)
+            return;
+
+        Cursor.lockState =
+            CursorLockMode.Locked;
+>>>>>>> Stashed changes
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -40,7 +86,28 @@ public class FPSCameraLook : MonoBehaviour
 
     void Update()
     {
+<<<<<<< Updated upstream
         if (!CanMove) return;
+=======
+
+        if (_isTestMode && !TESTInitiatorSkill_Q.IsLocalDroneMode)
+        {
+            var cam = GetComponentInChildren<Camera>(true);
+            if (cam != null && !cam.enabled)
+                cam.enabled = true;
+
+            var listener = GetComponentInChildren<AudioListener>(true);
+            if (listener != null && !listener.enabled)
+                listener.enabled = true;
+        }
+
+        if (!isLocalPlayer)
+            return;
+        //∆©≈‰∏ÆæÛøÎ
+
+        if (!isLocalPlayer)
+            return;
+>>>>>>> Stashed changes
 
         // ADS(Ï°∞Ï§Ä) ÏÉÅÌÉúÎ©¥ Í∞êÎèÑ ÎÇÆÏ∂§
         float sensitivity = _baseSensitivity * (_isADS ? _adsSensitivityMultiplier : 1f);
@@ -65,6 +132,19 @@ public class FPSCameraLook : MonoBehaviour
         transform.localRotation =
             Quaternion.Euler(xRotation + recoilOffset, 0f, 0f);
     }
+    private void LateUpdate()
+    {
+        //(0,0,0)¿∏∑Œ πŸ≤€ ƒ´∏ﬁ∂Û ¿ßƒ°∏¶ ∏”∏Æ æ’¿∏∑Œ ªÏ¬¶ ∫∏¡§
+        if (_isTestMode)
+        {
+            var camTransform = GetComponentInChildren<Camera>()?.transform;
+            if (camTransform != null)
+            {
+                camTransform.localPosition = new Vector3(0f, 0f, 0.25f);
+            }
+        }
+    }
+
 
     public float GetYaw()
     {
