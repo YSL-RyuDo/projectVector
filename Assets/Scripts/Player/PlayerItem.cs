@@ -18,6 +18,10 @@ public class PlayerItem : MonoBehaviour
     [SerializeField] private float pickupRange = 2.5f;
     [SerializeField] private LayerMask itemLayer;
 
+    [Header("Skin")]
+    [SerializeField] private WeaponSkinDatabase skinDatabase;
+    private PlayerSkinLoadout skinLoadout;
+
     private Item[] items = new Item[5]; // 0~4 (5번 = Spike)
     private PlayerSpike playerSpike;
     [SerializeField] private int currentIndex = -1;
@@ -37,6 +41,14 @@ public class PlayerItem : MonoBehaviour
 
     private bool remoteIsReloading;
     private int remoteReloadWeaponId = -1;
+
+    void Awake()
+    {
+        skinLoadout = GetComponent<PlayerSkinLoadout>();
+
+        if (skinLoadout == null)
+            Debug.LogWarning("[PLAYER ITEM] PlayerSkinLoadout not found. skins will not apply.");
+    }
 
     private void Start()
     {
@@ -176,16 +188,13 @@ public class PlayerItem : MonoBehaviour
 
     private void CreateStartingItem(WeaponData data, int slot)
     {
+        /*
         // 프리팹 생성 및 부모 설정
         GameObject obj = Instantiate(data.weaponPrefab, itemHolder);
 
         // 위치 및 회전 초기화
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
-
-        // Item 컴포넌트 할당
-        Item item = obj.GetComponent<Item>();
-        items[slot] = item;
 
         // Weapon 컴포넌트 초기화 (기본 탄약 정보 등)
         Weapon weapon = obj.GetComponent<Weapon>();
@@ -194,6 +203,13 @@ public class PlayerItem : MonoBehaviour
             // 초기 생성 시에는 최대 탄약으로 설정
             weapon.Initialize(data, dropPoint, data.magSize, data.maxReserveAmmo);
         }
+        */
+
+        GameObject obj = SpawnWeaponObject(data, data.magSize, data.maxReserveAmmo);
+
+        // Item 컴포넌트 할당
+        Item item = obj.GetComponent<Item>();
+        items[slot] = item;
 
         // 일단 모두 비활성화 (나중에 Switch에서 활성화됨)
         obj.SetActive(false);
@@ -597,17 +613,21 @@ public class PlayerItem : MonoBehaviour
             items[0] = null;
         }
 
+        /*
         GameObject obj = Instantiate(weaponData.weaponPrefab, itemHolder);
 
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
 
-        Item item = obj.GetComponent<Item>();
-        items[0] = item;
-
         Weapon weapon = obj.GetComponent<Weapon>();
         if (weapon != null)
             weapon.Initialize(weaponData, dropPoint, weaponData.magSize, weaponData.maxReserveAmmo);
+        */
+
+        GameObject obj = SpawnWeaponObject(weaponData, weaponData.magSize, weaponData.maxReserveAmmo);
+
+        Item item = obj.GetComponent<Item>();
+        items[0] = item;
 
         obj.SetActive(false);
 
@@ -978,10 +998,21 @@ public class PlayerItem : MonoBehaviour
             items[slot] = null;
         }
 
+        /*
         GameObject obj = Instantiate(data.weaponPrefab, itemHolder);
 
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
+
+        Weapon weapon = obj.GetComponent<Weapon>();
+        if (weapon != null)
+        {
+            weapon.Initialize(data, dropPoint, magAmmo, reserveAmmo);
+        }
+        */
+
+        GameObject obj = SpawnWeaponObject(data, magAmmo, reserveAmmo);
+
         DisableHeldWeaponPhysics(obj);
 
         Item item = obj.GetComponent<Item>();
@@ -994,18 +1025,6 @@ public class PlayerItem : MonoBehaviour
         }
 
         items[slot] = item;
-
-        Weapon weapon = obj.GetComponent<Weapon>();
-
-        if (weapon != null)
-        {
-            weapon.Initialize(
-                data,
-                dropPoint,
-                magAmmo,
-                reserveAmmo
-            );
-        }
 
         obj.SetActive(false);
 
@@ -1227,10 +1246,20 @@ public class PlayerItem : MonoBehaviour
             items[slot] = null;
         }
 
+        /*
         GameObject obj = Instantiate(data.weaponPrefab, itemHolder);
 
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
+
+        Weapon weapon = obj.GetComponent<Weapon>();
+        if (weapon != null)
+        {
+            weapon.Initialize(data, dropPoint, magAmmo, reserveAmmo);
+        }
+        */
+
+        GameObject obj = SpawnWeaponObject(data, magAmmo, reserveAmmo);
 
         DisableHeldWeaponPhysics(obj);
 
@@ -1244,18 +1273,6 @@ public class PlayerItem : MonoBehaviour
         }
 
         items[slot] = item;
-
-        Weapon weapon = obj.GetComponent<Weapon>();
-
-        if (weapon != null)
-        {
-            weapon.Initialize(
-                data,
-                dropPoint,
-                magAmmo,
-                reserveAmmo
-            );
-        }
 
         obj.SetActive(false);
 
@@ -1368,10 +1385,20 @@ public class PlayerItem : MonoBehaviour
             items[slot] = null;
         }
 
+        /*
         GameObject obj = Instantiate(weaponData.weaponPrefab, itemHolder);
 
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
+
+        Weapon weapon = obj.GetComponent<Weapon>();
+        if (weapon != null)
+        {
+            weapon.Initialize(weaponData, dropPoint, magAmmo, reserveAmmo);
+        }
+        */
+
+        GameObject obj = SpawnWeaponObject(weaponData, magAmmo, reserveAmmo);
 
         DisableHeldWeaponPhysics(obj);
 
@@ -1384,17 +1411,6 @@ public class PlayerItem : MonoBehaviour
         }
 
         items[slot] = item;
-
-        Weapon weapon = obj.GetComponent<Weapon>();
-        if (weapon != null)
-        {
-            weapon.Initialize(
-                weaponData,
-                dropPoint,
-                magAmmo,
-                reserveAmmo
-            );
-        }
 
         obj.SetActive(false);
 
@@ -1958,6 +1974,25 @@ public class PlayerItem : MonoBehaviour
         }
 
         return Camera.main;
+    }
+
+    private GameObject SpawnWeaponObject(WeaponData data, int magAmmo, int reserveAmmo)
+    {
+        GameObject obj = Instantiate(data.weaponPrefab, itemHolder);
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
+
+        Weapon weapon = obj.GetComponent<Weapon>();
+        if (weapon != null)
+        {
+            weapon.Initialize(data, dropPoint, magAmmo, reserveAmmo);
+
+            int skinId = skinLoadout != null ? skinLoadout.GetSkinId(data.weaponId) : 0;
+            WeaponSkinData skin = (skinId > 0 && skinDatabase != null) ? skinDatabase.GetById(skinId) : null;
+            weapon.ApplySkin(skin, data); // data를 넘겨서 baseWeapon 검증 가능하게 함 (아래 3번 항목 참고)
+        }
+
+        return obj;
     }
 
     // KSW : 에디터 무기 변경 테스트용 추가

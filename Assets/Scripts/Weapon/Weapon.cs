@@ -56,6 +56,8 @@ public class Weapon : Item
 
     private PlayerItem playerItem;
 
+    private WeaponSkinSlot skinSlot;
+
     void Awake()
     {
         audioSource = GetComponent<AudioSource>();
@@ -119,6 +121,10 @@ public class Weapon : Item
             crosshair = crosshairObj;
 
         playerItem = GetComponentInParent<PlayerItem>();
+
+        skinSlot = GetComponent<WeaponSkinSlot>();
+        if (skinSlot == null)
+            skinSlot = GetComponentInChildren<WeaponSkinSlot>(true);
     }
 
     public void Initialize(WeaponData data, Transform dp, int mag, int reserve)
@@ -1143,5 +1149,25 @@ public class Weapon : Item
         );
 
         return true;
+    }
+
+    public void ApplySkin(WeaponSkinData skin, WeaponData expectedWeapon)
+    {
+        if (skin != null && skin.baseWeapon != null && skin.baseWeapon != expectedWeapon)
+        {
+            Debug.LogWarning(
+                $"[WEAPON SKIN] mismatch. skin={skin.name} expects {skin.baseWeapon.name}, " +
+                $"but current weapon is {expectedWeapon.name}. Skin not applied."
+            );
+            return;
+        }
+
+        if (skinSlot == null)
+        {
+            Debug.LogWarning($"[WEAPON SKIN] WeaponSkinSlot missing on {name}. Skin cannot be applied.");
+            return;
+        }
+
+        skinSlot.ApplySkin(skin);
     }
 }
