@@ -251,6 +251,13 @@ public class Weapon : Item
 
     private bool ShouldBlockWeaponInput()
     {
+        if (StorePanelUI.IsBlockingGameplayInput)
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
         if (ControllerSkill_E.IsSelectingSmoke || ControllerSkill_E.IsSmokeMapOpen || ControllerSkill_E.IsBlockingWeaponInput)
         {
             ForceCancelADS();

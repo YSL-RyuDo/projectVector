@@ -58,6 +58,9 @@ public class SentinelSkill_E : CharacterSkill
             return;
         }
 
+        if (!CanUsePurchasedSkill(SkillSlot.E))
+            return;
+
         float cooldownRemaining = GetCooldownRemaining();
 
         if (cooldownRemaining > 0f)

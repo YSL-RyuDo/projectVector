@@ -569,6 +569,10 @@ public class NetworkManager : MonoBehaviour
                 HandleStoreBuyResult(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_SKILL_STATE:
+                HandleSkillState(body);
+                break;
+
             case (ushort)PacketType.PKT_SC_KNIFE_ATTACK_NOTIFY:
                 HandleKnifeAttackNotify(body);
                 break;
@@ -1690,6 +1694,7 @@ public class NetworkManager : MonoBehaviour
     {
         Debug.Log("[RECV] GAME ALL READY");
 
+        SkillInventoryState.Reset();
         playerCombatSnapshots.Clear();
 
         int offset = 0;
@@ -2450,6 +2455,20 @@ public class NetworkManager : MonoBehaviour
             int knifeReserveAmmo = BitConverter.ToInt32(body, offset);
             offset += 4;
 
+            byte purchasedSkillMask = body[offset];
+            offset += 1;
+
+            byte usedSkillMask = body[offset];
+            offset += 1;
+
+            if (playerId == MyPlayerId)
+            {
+                SkillInventoryState.ApplyServerState(
+                    purchasedSkillMask,
+                    usedSkillMask
+                );
+            }
+
             if (playerId == MyPlayerId && MiniMapCamera.Instance != null)
             {
                 MiniMapCamera.Instance.SetLocalRoundRole(spawnTeam);
@@ -2844,6 +2863,9 @@ public class NetworkManager : MonoBehaviour
 
     public void SendFire()
     {
+        if (StorePanelUI.IsBlockingGameplayInput)
+            return;
+
         ushort size = 4;
         ushort type = (ushort)PacketType.PKT_CS_FIRE;
 
@@ -2864,6 +2886,9 @@ public class NetworkManager : MonoBehaviour
 
     public void SendKnifeAttack()
     {
+        if (StorePanelUI.IsBlockingGameplayInput)
+            return;
+
         ushort size = 4;
         ushort type =
             (ushort)PacketType.PKT_CS_KNIFE_ATTACK;
@@ -4331,6 +4356,17 @@ public class NetworkManager : MonoBehaviour
         int maxBarrier = BitConverter.ToInt32(body, offset);
         offset += 4;
 
+        byte purchasedSkillMask = body[offset];
+        offset += 1;
+
+        byte usedSkillMask = body[offset];
+        offset += 1;
+
+        SkillInventoryState.ApplyServerState(
+            purchasedSkillMask,
+            usedSkillMask
+        );
+
         Debug.Log(
             $"[STORE BUY RESULT] result={result}, itemType={itemType}, itemId={itemId}, " +
             $"price={price}, credits={remainCredits}, weaponId={weaponId}, " +
@@ -4363,6 +4399,24 @@ public class NetworkManager : MonoBehaviour
         }
 
         Debug.Log("[STORE BUY SUCCESS]");
+    }
+
+    private void HandleSkillState(byte[] body)
+    {
+        if (body == null || body.Length < 2)
+            return;
+
+        byte purchasedSkillMask = body[0];
+        byte usedSkillMask = body[1];
+
+        SkillInventoryState.ApplyServerState(
+            purchasedSkillMask,
+            usedSkillMask
+        );
+
+        Debug.Log(
+            $"[SKILL STATE] purchased=0x{purchasedSkillMask:X2}, used=0x{usedSkillMask:X2}"
+        );
     }
 
     private byte GetMyTeamForKillLog()

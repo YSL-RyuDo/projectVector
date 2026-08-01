@@ -49,6 +49,9 @@ public class SentinelSkill_C : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!isReady && !CanUsePurchasedSkill(SkillSlot.C))
+            return;
+
         isReady = !isReady;
         IsSelectingSentinelC = isReady;
 

@@ -164,6 +164,9 @@ public class EntrySkill_X : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!CanUsePurchasedSkill(SkillSlot.X))
+            return;
+
         ActivateBladeUltimate();
     }
 

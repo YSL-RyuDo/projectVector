@@ -59,8 +59,7 @@ public class ControllerSkill_E : CharacterSkill
 
         if (Keyboard.current.eKey.wasPressedThisFrame)
         {
-            if (_isSelecting) CloseMiniMap();
-            else OpenMiniMap();
+            UseSkill();
         }
 
         if (!_isSelecting) return;
@@ -79,8 +78,16 @@ public class ControllerSkill_E : CharacterSkill
 
     protected override void UseSkill()
     {
-        if (_isSelecting) CloseMiniMap();
-        else OpenMiniMap();
+        if (_isSelecting)
+        {
+            CloseMiniMap();
+            return;
+        }
+
+        if (!CanUsePurchasedSkill(SkillSlot.E))
+            return;
+
+        OpenMiniMap();
     }
 
     private bool IsMine()

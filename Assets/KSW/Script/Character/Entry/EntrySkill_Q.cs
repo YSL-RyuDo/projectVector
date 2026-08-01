@@ -67,6 +67,9 @@ public class EntrySkill_Q : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!CanUsePurchasedSkill(SkillSlot.Q))
+            return;
+
         if (_throwPoint == null ||
             _playerCamera == null ||
             NetworkManager.Instance == null)

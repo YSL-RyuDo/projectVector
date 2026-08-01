@@ -24,6 +24,9 @@ public class SentinelSkill_Q : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!CanUsePurchasedSkill(SkillSlot.Q))
+            return;
+
         if (RoundManager.Instance != null &&
             !RoundManager.Instance.CanAttack)
         {

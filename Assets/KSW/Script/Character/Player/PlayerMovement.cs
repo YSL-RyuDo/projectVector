@@ -295,6 +295,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         if (!chatOpen &&
+            !StorePanelUI.IsBlockingGameplayInput &&
             Mouse.current != null &&
             Mouse.current.leftButton
                 .wasPressedThisFrame)

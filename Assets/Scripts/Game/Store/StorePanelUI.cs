@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -6,6 +7,12 @@ using UnityEngine.UI;
 public class StorePanelUI : MonoBehaviour
 {
     public static StorePanelUI Instance;
+
+    private static int blockGameplayInputThroughFrame = -1;
+
+    public static bool IsBlockingGameplayInput =>
+        (Instance != null && Instance.IsOpen()) ||
+        Time.frameCount <= blockGameplayInputThroughFrame;
 
     [Header("Root")]
     [SerializeField] private GameObject storePanelRoot;
@@ -23,12 +30,14 @@ public class StorePanelUI : MonoBehaviour
 
     [Header("Store Items")]
     [SerializeField] private StoreItemButton[] itemButtons;
+    [SerializeField] private StoreSkillButton[] skillButtons;
 
     private int currentCredits = 0;
 
     private void Awake()
     {
         Instance = this;
+        blockGameplayInputThroughFrame = -1;
 
         if (storePanelRoot != null)
             storePanelRoot.SetActive(false);
@@ -36,6 +45,7 @@ public class StorePanelUI : MonoBehaviour
         if (closeButton != null)
             closeButton.onClick.AddListener(Close);
 
+        ResolveSkillButtons();
         ResetOwnedItemsForNewRound();
     }
 
@@ -103,6 +113,9 @@ public class StorePanelUI : MonoBehaviour
         if (storePanelRoot == null)
             return;
 
+        blockGameplayInputThroughFrame =
+            Mathf.Max(blockGameplayInputThroughFrame, Time.frameCount);
+
         RefreshPlayerInfo();
         RefreshItemButtons();
 
@@ -117,6 +130,10 @@ public class StorePanelUI : MonoBehaviour
     {
         if (storePanelRoot == null)
             return;
+
+        // UI click/release input must not leak into weapon input after closing.
+        blockGameplayInputThroughFrame =
+            Mathf.Max(blockGameplayInputThroughFrame, Time.frameCount + 1);
 
         GameController.Instance.isLoading = false;
 
@@ -167,17 +184,24 @@ public class StorePanelUI : MonoBehaviour
 
     private void RefreshItemButtons()
     {
-        if (itemButtons == null)
-            return; 
-
         bool buyPhase = CanOpenStore();
 
-        foreach (StoreItemButton itemButton in itemButtons)
+        if (itemButtons != null)
         {
-            if (itemButton == null)
-                continue;
+            foreach (StoreItemButton itemButton in itemButtons)
+            {
+                if (itemButton != null)
+                    itemButton.Refresh(currentCredits, buyPhase);
+            }
+        }
 
-            itemButton.Refresh(currentCredits, buyPhase);
+        if (skillButtons != null)
+        {
+            foreach (StoreSkillButton skillButton in skillButtons)
+            {
+                if (skillButton != null)
+                    skillButton.Refresh(currentCredits, buyPhase);
+            }
         }
     }
 
@@ -354,5 +378,113 @@ public class StorePanelUI : MonoBehaviour
             return null;
 
         return characterSprites[characterId];
+    }
+
+    private void ResolveSkillButtons()
+    {
+        if (storePanelRoot == null)
+            return;
+
+        StoreSkillButton[] resolved = new StoreSkillButton[4];
+        Button[] buttons =
+            storePanelRoot.GetComponentsInChildren<Button>(true);
+
+        foreach (Button candidate in buttons)
+        {
+            if (candidate == null || candidate == closeButton)
+                continue;
+
+            if (!TryGetSkillSlot(candidate.gameObject.name, out SkillSlot slot))
+                continue;
+
+            StoreSkillButton skillButton =
+                candidate.GetComponent<StoreSkillButton>();
+
+            if (skillButton == null)
+                skillButton = candidate.gameObject.AddComponent<StoreSkillButton>();
+
+            skillButton.Configure(slot);
+            resolved[(int)slot] = skillButton;
+        }
+
+        // Freshly created Button (1)~(3) objects also work before they are renamed.
+        if (CountResolved(resolved) < 4)
+        {
+            List<Button> unnamedButtons = new List<Button>();
+
+            foreach (Button candidate in buttons)
+            {
+                if (candidate == null || candidate == closeButton)
+                    continue;
+
+                if (candidate.transform.parent != storePanelRoot.transform)
+                    continue;
+
+                if (!candidate.gameObject.name.StartsWith("Button"))
+                    continue;
+
+                if (candidate.GetComponent<StoreItemButton>() != null ||
+                    candidate.GetComponent<StoreSkillButton>() != null)
+                {
+                    continue;
+                }
+
+                unnamedButtons.Add(candidate);
+            }
+
+            unnamedButtons.Sort((left, right) =>
+                GetAnchoredX(left).CompareTo(GetAnchoredX(right))
+            );
+
+            int candidateIndex = 0;
+            for (int slotIndex = 0;
+                 slotIndex < resolved.Length && candidateIndex < unnamedButtons.Count;
+                 slotIndex++)
+            {
+                if (resolved[slotIndex] != null)
+                    continue;
+
+                Button candidate = unnamedButtons[candidateIndex++];
+                StoreSkillButton skillButton =
+                    candidate.gameObject.AddComponent<StoreSkillButton>();
+                skillButton.Configure((SkillSlot)slotIndex);
+                resolved[slotIndex] = skillButton;
+            }
+        }
+
+        skillButtons = resolved;
+    }
+
+    private bool TryGetSkillSlot(string objectName, out SkillSlot slot)
+    {
+        switch (objectName)
+        {
+            case "CSkillButton": slot = SkillSlot.C; return true;
+            case "QSkillButton": slot = SkillSlot.Q; return true;
+            case "ESkillButton": slot = SkillSlot.E; return true;
+            case "XSkillButton": slot = SkillSlot.X; return true;
+            default:
+                slot = SkillSlot.C;
+                return false;
+        }
+    }
+
+    private int CountResolved(StoreSkillButton[] buttons)
+    {
+        int count = 0;
+
+        foreach (StoreSkillButton button in buttons)
+        {
+            if (button != null)
+                count++;
+        }
+
+        return count;
+    }
+
+    private float GetAnchoredX(Button button)
+    {
+        RectTransform rect = button.transform as RectTransform;
+        return rect != null ? rect.anchoredPosition.x : 0f;
     }
 }

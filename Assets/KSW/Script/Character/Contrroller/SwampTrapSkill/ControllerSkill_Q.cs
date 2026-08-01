@@ -103,6 +103,9 @@ public class ControllerSkill_Q : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!CanUsePurchasedSkill(SkillSlot.Q))
+            return;
+
         if (NetworkManager.Instance == null)
             return;
 

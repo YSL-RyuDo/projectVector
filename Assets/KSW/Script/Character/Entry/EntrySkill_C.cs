@@ -87,6 +87,9 @@ public class EntrySkill_C : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!CanUsePurchasedSkill(SkillSlot.C))
+            return;
+
         if (NetworkManager.Instance == null)
             return;
 

@@ -71,6 +71,9 @@ public class InitiatorSkill_Q : CharacterSkill
         }
         else
         {
+            if (!CanUsePurchasedSkill(SkillSlot.Q))
+                return;
+
             RequestDroneDeploy();
         }
     }

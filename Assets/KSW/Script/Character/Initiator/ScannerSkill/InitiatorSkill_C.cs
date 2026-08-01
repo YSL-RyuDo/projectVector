@@ -134,6 +134,9 @@ public class InitiatorSkill_C : CharacterSkill
 
     private void StartAiming()
     {
+        if (!CanUsePurchasedSkill(SkillSlot.C))
+            return;
+
         _isAiming = true;
         IsLocalScannerAiming = true;
 
@@ -159,6 +162,9 @@ public class InitiatorSkill_C : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!CanUsePurchasedSkill(SkillSlot.C))
+            return;
+
         if (!IsMine())
             return;
 

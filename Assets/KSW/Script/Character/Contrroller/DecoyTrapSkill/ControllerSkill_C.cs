@@ -50,6 +50,9 @@ public class ControllerSkill_C : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!CanUsePurchasedSkill(SkillSlot.C))
+            return;
+
         if (NetworkManager.Instance == null) return;
 
         Vector3 spawnPos = _throwPoint.position + _throwPoint.forward * 0.8f;

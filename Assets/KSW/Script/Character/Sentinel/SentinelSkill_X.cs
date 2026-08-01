@@ -104,6 +104,9 @@ public class SentinelSkill_X : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!isReady && !CanUsePurchasedSkill(SkillSlot.X))
+            return;
+
         if (RoundManager.Instance != null &&
             !RoundManager.Instance.CanAttack)
         {

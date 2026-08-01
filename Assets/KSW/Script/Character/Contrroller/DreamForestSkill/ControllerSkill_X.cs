@@ -26,6 +26,9 @@ public class ControllerSkill_X : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!CanUsePurchasedSkill(SkillSlot.X))
+            return;
+
         Vector3 spawnPos = transform.position;
 
         if (NetworkManager.Instance != null)
