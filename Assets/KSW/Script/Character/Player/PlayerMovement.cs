@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
@@ -60,8 +61,23 @@ public class PlayerMovement : MonoBehaviour
     private bool isADS = false;
 
     private PlayerItem _playerItem;
+    private ElectricShock _electricShock;
     private bool lastSentCrouching;
 
+    private bool _isServerStunned;
+    private Coroutine _serverStunCoroutine;
+    public bool IsServerStunned => _isServerStunned;
+    private float _externalSpeedMultiplier = 1f;
+
+    private int _swampSlowCount = 0;
+    private float _swampSlowMultiplier = 1f;
+
+    public bool IsMine => _isMine;
+    public bool IsSlowed =>
+        _swampSlowCount > 0 ||
+        _externalSpeedMultiplier < 0.999f;
+
+    private float _externalJumpMultiplier = 1.0f;
     public float Speed
     {
         get => _speed;
@@ -78,6 +94,13 @@ public class PlayerMovement : MonoBehaviour
         _playerIdentity = GetComponent<PlayerIdentity>();
         _playerItem = GetComponent<PlayerItem>();
         _footstepManager = GetComponent<FootstepManager>();
+        _electricShock = GetComponent<ElectricShock>();
+
+        if (_electricShock == null)
+            _electricShock = GetComponentInChildren<ElectricShock>(true);
+
+        if (_electricShock == null)
+            _electricShock = GetComponentInParent<ElectricShock>();
 
         lastSentPos = transform.position;
         lastSentYaw = transform.eulerAngles.y;
@@ -145,11 +168,103 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    private void CacheElectricShockIfNeeded()
+    {
+        if (_electricShock != null)
+            return;
+
+        _electricShock = GetComponent<ElectricShock>();
+
+        if (_electricShock == null)
+            _electricShock = GetComponentInChildren<ElectricShock>(true);
+
+        if (_electricShock == null)
+            _electricShock = GetComponentInParent<ElectricShock>();
+    }
+
+    private bool IsStunned()
+    {
+        if (_isServerStunned)
+            return true;
+
+        CacheElectricShockIfNeeded();
+
+        return _electricShock != null &&
+               _electricShock.IsStunned;
+    }
+
+    private void HandleStunnedMovement()
+    {
+        _isCrouching = false;
+
+        if (_cc != null && _cc.enabled)
+        {
+            if (_cc.isGrounded)
+            {
+                if (_verticalVelocity < -2f)
+                    _verticalVelocity = -2f;
+            }
+            else
+            {
+                _verticalVelocity +=
+                    _gravity * Time.deltaTime;
+            }
+
+            // 수평 이동은 막고, 공중이면 중력만 적용
+            _cc.Move(
+                Vector3.up *
+                _verticalVelocity *
+                Time.deltaTime
+            );
+        }
+
+        if (_cam != null)
+        {
+            _cam.transform.localPosition =
+                Vector3.Lerp(
+                    _cam.transform.localPosition,
+                    _standingPos,
+                    Time.deltaTime *
+                    _crouchSpeed
+                );
+        }
+
+        if (_animator != null)
+        {
+            byte idleAnimIndex =
+                (byte)GetWeaponAnimOffset();
+
+            ApplyAnimationIndexFromServer(
+                idleAnimIndex
+            );
+        }
+
+        UpdateAnimationStateLog(
+            false,
+            false
+        );
+    }
+
     // 로컬 플레이어(나)의 직접적인 조종 로직
     private void movement()
     {
         if (!CanMove)
             return;
+
+        EntryDashMotor dashMotor =
+    GetComponent<EntryDashMotor>();
+
+        if (dashMotor != null &&
+            dashMotor.IsDashing)
+        {
+            return;
+        }
+
+        if (IsStunned())
+        {
+            HandleStunnedMovement();
+            return;
+        }
 
         bool chatOpen =
             InGameChatUI.IsChatOpen;
@@ -180,6 +295,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         if (!chatOpen &&
+            !StorePanelUI.IsBlockingGameplayInput &&
             Mouse.current != null &&
             Mouse.current.leftButton
                 .wasPressedThisFrame)
@@ -614,52 +730,44 @@ public class PlayerMovement : MonoBehaviour
     {
         if (_isMine)
         {
-            Vector2 input = getInput();
-            bool isMoving = input.sqrMagnitude > 0f;
-            bool isJumping = !_cc.isGrounded;
+            int weaponOffset =
+                GetWeaponAnimOffset();
 
-            int weaponOffset = 0;
+            // 스턴 중에는 현재 무기 기준 Idle 애니메이션 고정
+            if (IsStunned())
+                return weaponOffset + 0;
 
-            Weapon currentWeapon = null;
-            if (_playerItem != null)
+            Vector2 input =
+                getInput();
+
+            bool isMoving =
+                input.sqrMagnitude > 0f;
+
+            bool isJumping =
+                !_cc.isGrounded;
+
+            if (!InGameChatUI.IsChatOpen &&
+                weaponOffset == 6 &&
+                Mouse.current != null &&
+                Mouse.current.rightButton.isPressed)
             {
-                currentWeapon = _playerItem.GetCurrentWeapon();
-            }
-
-            if (currentWeapon != null)
-            {
-                WeaponData.WeaponType wType = currentWeapon.GetWeaponType();
-
-                if (wType == WeaponData.WeaponType.AR ||
-                    wType == WeaponData.WeaponType.SMG ||
-                    wType == WeaponData.WeaponType.Shotgun ||
-                    wType == WeaponData.WeaponType.LMG ||
-                    wType == WeaponData.WeaponType.DMR ||
-                    wType == WeaponData.WeaponType.SR)
-                {
-                    weaponOffset = 6; // 긴총 구역 (인덱스 6~11)
-                }
-                else if (wType == WeaponData.WeaponType.Knife)
-                {
-                    weaponOffset = 12; // 칼 구역 (인덱스 12~17)
-                }
-            }
-
-            // --- [추가/수정] 긴총을 들고 있고 마우스 우클릭 유지 중일 때 처리 ---
-            if (!InGameChatUI.IsChatOpen && weaponOffset == 6 && Mouse.current != null && Mouse.current.rightButton.isPressed)
-            {
-                // 점프 중이 아닐 때만 사격 자세(10번) 고정 (원한다면 점프 중에도 적용 가능)
                 if (!isJumping)
                 {
-                    return 10; // 긴총 사격 자세 고정 인덱스
+                    return 10;
                 }
             }
-            // -----------------------------------------------------------------
 
-            if (isJumping) return weaponOffset + 5;
-            if (_isCrouching && isMoving) return weaponOffset + 3;
-            if (_isCrouching) return weaponOffset + 2;
-            if (isMoving) return weaponOffset + 1;
+            if (isJumping)
+                return weaponOffset + 5;
+
+            if (_isCrouching && isMoving)
+                return weaponOffset + 3;
+
+            if (_isCrouching)
+                return weaponOffset + 2;
+
+            if (isMoving)
+                return weaponOffset + 1;
 
             return weaponOffset + 0;
         }
@@ -670,6 +778,41 @@ public class PlayerMovement : MonoBehaviour
         return 0;
     }
 
+    private int GetWeaponAnimOffset()
+    {
+        int weaponOffset = 0;
+
+        Weapon currentWeapon = null;
+
+        if (_playerItem != null)
+        {
+            currentWeapon =
+                _playerItem.GetCurrentWeapon();
+        }
+
+        if (currentWeapon != null)
+        {
+            WeaponData.WeaponType wType =
+                currentWeapon.GetWeaponType();
+
+            if (wType == WeaponData.WeaponType.AR ||
+                wType == WeaponData.WeaponType.SMG ||
+                wType == WeaponData.WeaponType.Shotgun ||
+                wType == WeaponData.WeaponType.LMG ||
+                wType == WeaponData.WeaponType.DMR ||
+                wType == WeaponData.WeaponType.SR)
+            {
+                weaponOffset = 6;
+            }
+            else if (wType == WeaponData.WeaponType.Knife)
+            {
+                weaponOffset = 12;
+            }
+        }
+
+        return weaponOffset;
+    }
+
     public void SetVerticalVelocity(float force)
     {
         _verticalVelocity = force;
@@ -678,6 +821,9 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 getInput()
     {
         if (InGameChatUI.IsChatOpen)
+            return Vector2.zero;
+
+        if (IsStunned())
             return Vector2.zero;
 
         Keyboard keyboard =
@@ -829,8 +975,15 @@ public class PlayerMovement : MonoBehaviour
 
     private void CalculateMoveSpeed()
     {
+        float weaponPenalty =
+            1f - (1f / weaponWeight);
+
         currentMoveSpeed =
-            _speed - (1f - (1f / weaponWeight));
+            (_speed * _externalSpeedMultiplier * _swampSlowMultiplier) -
+            weaponPenalty;
+
+        currentMoveSpeed =
+            Mathf.Max(0.5f, currentMoveSpeed);
 
         if (isADS)
         {
@@ -840,10 +993,11 @@ public class PlayerMovement : MonoBehaviour
 
     private float CalculateJumpSpeed()
     {
-        float currenntJumpPower =
-            _jumpPower - (1f - (1f / weaponWeight));
+        float currentJumpPower =
+            _jumpPower * _externalJumpMultiplier -
+            (1f - (1f / weaponWeight));
 
-        return currenntJumpPower;
+        return currentJumpPower;
     }
 
     public void ResetAfterRespawn(float spawnYaw)
@@ -924,5 +1078,140 @@ public class PlayerMovement : MonoBehaviour
     public bool GetIsGrounded()
     {
         return _cc.isGrounded;
+    }
+
+    public void ApplyStunFromServer(float duration)
+    {
+        if (duration <= 0f)
+            return;
+
+        if (_serverStunCoroutine != null)
+            StopCoroutine(_serverStunCoroutine);
+
+        _serverStunCoroutine =
+            StartCoroutine(ServerStunRoutine(duration));
+    }
+
+    private IEnumerator ServerStunRoutine(float duration)
+    {
+        _isServerStunned = true;
+
+        _verticalVelocity = -2f;
+        _isCrouching = false;
+
+        yield return new WaitForSeconds(duration);
+
+        _isServerStunned = false;
+        _serverStunCoroutine = null;
+    }
+
+    public void ClearStunFromServer()
+    {
+        _isServerStunned = false;
+
+        if (_serverStunCoroutine != null)
+        {
+            StopCoroutine(_serverStunCoroutine);
+            _serverStunCoroutine = null;
+        }
+    }
+
+    public void SetExternalSpeedMultiplier(float multiplier)
+    {
+        _externalSpeedMultiplier =
+            Mathf.Max(0.01f, multiplier);
+
+        CalculateMoveSpeed();
+
+        Debug.Log(
+            $"[PLAYER SPEED MULTIPLIER] object={gameObject.name}, " +
+            $"multiplier={_externalSpeedMultiplier}, " +
+            $"currentMoveSpeed={currentMoveSpeed}"
+        );
+    }
+
+    public void SetExternalJumpMultiplier(float multiplier)
+    {
+        _externalJumpMultiplier =
+            Mathf.Max(0.1f, multiplier);
+
+        Debug.Log(
+            $"[PLAYER JUMP MULTIPLIER] object={gameObject.name}, " +
+            $"multiplier={_externalJumpMultiplier}"
+        );
+    }
+
+    public void ApplySwampSlow(float multiplier)
+    {
+        _swampSlowCount++;
+
+        _swampSlowMultiplier =
+            Mathf.Clamp(multiplier, 0.05f, 1f);
+
+        CalculateMoveSpeed();
+
+        Debug.Log(
+            $"[SWAMP SLOW APPLY] object={gameObject.name}, " +
+            $"count={_swampSlowCount}, multiplier={_swampSlowMultiplier}, " +
+            $"currentMoveSpeed={currentMoveSpeed}"
+        );
+    }
+
+    public void ApplyTimedSlowFromServer(
+        float multiplier,
+        float duration)
+    {
+        if (duration <= 0f)
+            return;
+
+        StartCoroutine(
+            TimedSlowFromServerRoutine(
+                Mathf.Clamp(multiplier, 0.05f, 1f),
+                duration
+            )
+        );
+    }
+
+    private IEnumerator TimedSlowFromServerRoutine(
+        float multiplier,
+        float duration)
+    {
+        ApplySwampSlow(multiplier);
+
+        yield return new WaitForSeconds(duration);
+
+        RemoveSwampSlow();
+    }
+
+    public void RemoveSwampSlow()
+    {
+        _swampSlowCount--;
+
+        if (_swampSlowCount <= 0)
+        {
+            _swampSlowCount = 0;
+            _swampSlowMultiplier = 1f;
+        }
+
+        CalculateMoveSpeed();
+
+        Debug.Log(
+            $"[SWAMP SLOW REMOVE] object={gameObject.name}, " +
+            $"count={_swampSlowCount}, multiplier={_swampSlowMultiplier}, " +
+            $"currentMoveSpeed={currentMoveSpeed}"
+        );
+    }
+
+    public void ClearSwampSlow()
+    {
+        _swampSlowCount = 0;
+        _swampSlowMultiplier = 1f;
+
+        CalculateMoveSpeed();
+
+        Debug.Log(
+            $"[SWAMP SLOW CLEAR] object={gameObject.name}, " +
+            $"currentMoveSpeed={currentMoveSpeed}"
+        );
     }
 }

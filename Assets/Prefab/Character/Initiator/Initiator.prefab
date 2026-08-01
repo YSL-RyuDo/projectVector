@@ -47,6 +47,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponRecoil
   snappiness: 10
   returnSpeed: 5
+  defaultRecoveryDelay: 0.15
   hipWeaponRecoilMultiplier: 1
   hipCameraRecoilMultiplier: 1
   hipShakeMultiplier: 1
@@ -496,9 +497,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Scanner
   _baseForce: 12
-  _lineResolution: 30
-  _lineSpacing: 0.12
-  _scannerPrefab: {fileID: 3937076750133015356, guid: 9ba2acf52657cac49afc8b71244e8419, type: 3}
+  _lineResolution: 18
+  _lineSpacing: 0.09
+  _trajectoryWidth: 0.025
+  _maxTrajectoryTime: 1.5
+  _throwSpawnPoint: {fileID: 7999039813103860235}
 --- !u!114 &6644194911831367189
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -524,10 +527,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49b96c1d24fbb65479ae1ad971e2e4a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EMPWaveSkill
-  _radius: 7
-  _enemyLayer:
-    serializedVersion: 2
-    m_Bits: 256
+  _effectDuration: 0.15
+  _lineSegmentCount: 2
 --- !u!114 &7571627229527556630
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -542,10 +543,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DischargeSkill
   _range: 13
   _width: 8
-  _enemyLayer:
-    serializedVersion: 2
-    m_Bits: 256
   _decalPrefab: {fileID: 1741669900585839313, guid: 42d72d2208b69994381e3f0fa609592e, type: 3}
+  _warningTime: 0.6
+  _boltCount: 7
+  _boltInterval: 0.05
+  _boltRadius: 2
+  _lineStartHeight: 10
+  _lineDuration: 0.15
+  _lineStartWidth: 0.15
+  _lineEndWidth: 0.05
+  _lineSegments: 5
+  _lineJitter: 0.5
+  _lineMaterial: {fileID: 0}
+  _castCooldown: 1
 --- !u!120 &6008646111598099427
 LineRenderer:
   serializedVersion: 3
@@ -710,7 +720,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponViewController
   firstPersonWeaponHolder: {fileID: 1806073796303525808}
-  thirdPersonWeaponHolder: {fileID: 4673739449566509290}
+  thirdPersonWeaponHolder: {fileID: 0}
 --- !u!114 &2596992134137014300
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -949,10 +959,5 @@ GameObject:
 --- !u!4 &2394164600379354572 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1975292866561080809, guid: 40d023f3444e19a43b7d6533689dd76b, type: 3}
-  m_PrefabInstance: {fileID: 4201979817069989925}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &4673739449566509290 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 8830462816133933263, guid: 40d023f3444e19a43b7d6533689dd76b, type: 3}
   m_PrefabInstance: {fileID: 4201979817069989925}
   m_PrefabAsset: {fileID: 0}

@@ -569,6 +569,10 @@ public class NetworkManager : MonoBehaviour
                 HandleStoreBuyResult(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_SKILL_STATE:
+                HandleSkillState(body);
+                break;
+
             case (ushort)PacketType.PKT_SC_KNIFE_ATTACK_NOTIFY:
                 HandleKnifeAttackNotify(body);
                 break;
@@ -601,9 +605,167 @@ public class NetworkManager : MonoBehaviour
                 HandleDroneTaserFire(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_DRONE_HP_UPDATE:
+                HandleDroneHpUpdate(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SCANNER_SPAWN:
+                HandleScannerSpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SCANNER_ANCHORED:
+                HandleScannerAnchored(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SCANNER_ZAP:
+                HandleScannerZap(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SCANNER_DESTROY:
+                HandleScannerDestroy(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_EMP_CAST:
+                HandleEmpCast(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ELECTRIC_STATUS:
+                HandleElectricStatus(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ULTIMATE_CAST:
+                HandleUltimateCast(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_BEAST_STEALTH_STATE:
+                HandleBeastStealthState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ENTRY_SMOKE_SPAWN:
+                HandleEntrySmokeSpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ENTRY_SMOKE_ACTIVATE:
+                HandleEntrySmokeActivate(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ENTRY_SMOKE_DESTROY:
+                HandleEntrySmokeDestroy(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ENTRY_SMOKE_STATE:
+                HandleEntrySmokeState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ENTRY_DASH_CAST:
+                HandleEntryDashCast(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ENTRY_DASH_END:
+                HandleEntryDashEnd(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ENTRY_BLADE_STATE:
+                HandleEntryBladeState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ENTRY_BLADE_FIRE:
+                HandleEntryBladeFire(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CONTROLLER_SWAMP_SPAWN:
+                HandleControllerSwampSpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CONTROLLER_SWAMP_ACTIVATE:
+                HandleControllerSwampActivate(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CONTROLLER_SWAMP_DESTROY:
+                HandleControllerSwampDestroy(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CONTROLLER_SMOKE_SPAWN:
+                HandleControllerSmokeSpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CONTROLLER_SMOKE_DESTROY:
+                HandleControllerSmokeDestroy(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CONTROLLER_DECOY_SPAWN:
+                HandleControllerDecoySpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CONTROLLER_DECOY_ACTIVATE:
+                HandleControllerDecoyActivate(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CONTROLLER_DECOY_DESTROY:
+                HandleControllerDecoyDestroy(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CONTROLLER_ULTIMATE_SPAWN:
+                HandleControllerUltimateSpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CONTROLLER_ULTIMATE_DESTROY:
+                HandleControllerUltimateDestroy(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_C_SPAWN:
+                HandleSentinelCSpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_C_ANCHOR:
+                HandleSentinelCAnchor(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_C_TRIGGER:
+                HandleSentinelCTrigger(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_C_DESTROY:
+                HandleSentinelCDestroy(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_Q_SPAWN:
+                HandleSentinelQSpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_Q_ACTIVATE:
+                HandleSentinelQActivate(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_Q_DESTROY:
+                HandleSentinelQDestroy(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_E_SPAWN:
+                HandleSentinelESpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_E_ACTIVATE:
+                HandleSentinelEActivate(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_E_DESTROY:
+                HandleSentinelEDestroy(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_X_SPAWN:
+                HandleSentinelXSpawn(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SENTINEL_X_DESTROY:
+                HandleSentinelXDestroy(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
+
+
         }
     }
 
@@ -1532,6 +1694,7 @@ public class NetworkManager : MonoBehaviour
     {
         Debug.Log("[RECV] GAME ALL READY");
 
+        SkillInventoryState.Reset();
         playerCombatSnapshots.Clear();
 
         int offset = 0;
@@ -2292,6 +2455,20 @@ public class NetworkManager : MonoBehaviour
             int knifeReserveAmmo = BitConverter.ToInt32(body, offset);
             offset += 4;
 
+            byte purchasedSkillMask = body[offset];
+            offset += 1;
+
+            byte usedSkillMask = body[offset];
+            offset += 1;
+
+            if (playerId == MyPlayerId)
+            {
+                SkillInventoryState.ApplyServerState(
+                    purchasedSkillMask,
+                    usedSkillMask
+                );
+            }
+
             if (playerId == MyPlayerId && MiniMapCamera.Instance != null)
             {
                 MiniMapCamera.Instance.SetLocalRoundRole(spawnTeam);
@@ -2584,15 +2761,6 @@ public class NetworkManager : MonoBehaviour
 
         SceneManager.LoadScene("Result");
     }
-    private void OnDestroy()
-    {
-        if (Instance == this)
-        {
-            Debug.Log("[NETWORK] NetworkManager destroyed. Close client.");
-            client?.Close();
-            Instance = null;
-        }
-    }
 
     public void SendReload()
     {
@@ -2695,6 +2863,9 @@ public class NetworkManager : MonoBehaviour
 
     public void SendFire()
     {
+        if (StorePanelUI.IsBlockingGameplayInput)
+            return;
+
         ushort size = 4;
         ushort type = (ushort)PacketType.PKT_CS_FIRE;
 
@@ -2715,6 +2886,9 @@ public class NetworkManager : MonoBehaviour
 
     public void SendKnifeAttack()
     {
+        if (StorePanelUI.IsBlockingGameplayInput)
+            return;
+
         ushort size = 4;
         ushort type =
             (ushort)PacketType.PKT_CS_KNIFE_ATTACK;
@@ -3446,9 +3620,16 @@ public class NetworkManager : MonoBehaviour
 
             identity.Team = team;
 
-            Debug.Log($"[TEAM APPLY] playerId={playerId}, team={team}");
+            Debug.Log(
+                $"[TEAM APPLY] playerId={playerId}, team={team}, object={identity.gameObject.name}"
+            );
+
             return;
         }
+
+        Debug.LogWarning(
+            $"[TEAM APPLY FAIL] player not found. playerId={playerId}, team={team}"
+        );
     }
 
     private void RefreshPlayerTagsByTeam()
@@ -4175,6 +4356,17 @@ public class NetworkManager : MonoBehaviour
         int maxBarrier = BitConverter.ToInt32(body, offset);
         offset += 4;
 
+        byte purchasedSkillMask = body[offset];
+        offset += 1;
+
+        byte usedSkillMask = body[offset];
+        offset += 1;
+
+        SkillInventoryState.ApplyServerState(
+            purchasedSkillMask,
+            usedSkillMask
+        );
+
         Debug.Log(
             $"[STORE BUY RESULT] result={result}, itemType={itemType}, itemId={itemId}, " +
             $"price={price}, credits={remainCredits}, weaponId={weaponId}, " +
@@ -4207,6 +4399,24 @@ public class NetworkManager : MonoBehaviour
         }
 
         Debug.Log("[STORE BUY SUCCESS]");
+    }
+
+    private void HandleSkillState(byte[] body)
+    {
+        if (body == null || body.Length < 2)
+            return;
+
+        byte purchasedSkillMask = body[0];
+        byte usedSkillMask = body[1];
+
+        SkillInventoryState.ApplyServerState(
+            purchasedSkillMask,
+            usedSkillMask
+        );
+
+        Debug.Log(
+            $"[SKILL STATE] purchased=0x{purchasedSkillMask:X2}, used=0x{usedSkillMask:X2}"
+        );
     }
 
     private byte GetMyTeamForKillLog()
@@ -4684,6 +4894,8 @@ public class NetworkManager : MonoBehaviour
             pitch
         );
 
+
+
         Debug.Log($"[DRONE SPAWN] droneId={droneId}, owner={ownerPlayerId}");
     }
 
@@ -4919,5 +5131,2912 @@ public class NetworkManager : MonoBehaviour
 
         // 나중에 ElectricShock에 스택 함수 만들면 이걸로 교체
         // shock.ApplyStack(stack, duration);
+    }
+
+    private void HandleDroneHpUpdate(byte[] body)
+    {
+        const int requiredSize = 4 + 4 + 4 + 4;
+
+        if (body == null || body.Length < requiredSize)
+        {
+            Debug.LogWarning(
+                $"[DRONE HP UPDATE] invalid body size. " +
+                $"size={(body == null ? 0 : body.Length)}"
+            );
+            return;
+        }
+
+        int offset = 0;
+
+        uint droneId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        int hp = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int maxHp = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        if (DroneNetworkManager.Instance != null)
+        {
+            DroneNetworkManager.Instance.OnDroneHpUpdate(
+                droneId,
+                ownerPlayerId,
+                hp,
+                maxHp
+            );
+        }
+    }
+
+    public void SendScannerThrow(
+    float x,
+    float y,
+    float z,
+    float vx,
+    float vy,
+    float vz)
+    {
+        ushort size = 4 + 4 + 4 + 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SCANNER_THROW;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(vx), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(vy), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(vz), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND SCANNER THROW] " +
+            $"pos=({x},{y},{z}), velocity=({vx},{vy},{vz})"
+        );
+    }
+
+    public void SendScannerAnchor(
+        uint scannerId,
+        float x,
+        float y,
+        float z)
+    {
+        ushort size = 4 + 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SCANNER_ANCHOR;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(scannerId), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(z), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND SCANNER ANCHOR] " +
+            $"scannerId={scannerId}, pos=({x},{y},{z})"
+        );
+    }
+
+    private void HandleScannerSpawn(byte[] body)
+    {
+        const int requiredSize = 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4;
+
+        if (body == null || body.Length < requiredSize)
+        {
+            Debug.LogWarning($"[SCANNER SPAWN] invalid body length={body?.Length ?? 0}");
+            return;
+        }
+
+        int offset = 0;
+
+        uint scannerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float x = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float y = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float z = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float vx = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float vy = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float vz = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (ScannerNetworkManager.Instance != null)
+        {
+            ScannerNetworkManager.Instance.OnScannerSpawn(
+                scannerId,
+                ownerPlayerId,
+                x,
+                y,
+                z,
+                vx,
+                vy,
+                vz
+            );
+        }
+    }
+
+    private void HandleScannerAnchored(byte[] body)
+    {
+        const int requiredSize = 4 + 4 + 4 + 4;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        int offset = 0;
+
+        uint scannerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float x = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float y = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float z = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (ScannerNetworkManager.Instance != null)
+        {
+            ScannerNetworkManager.Instance.OnScannerAnchored(
+                scannerId,
+                x,
+                y,
+                z
+            );
+        }
+    }
+
+    private void HandleScannerZap(byte[] body)
+    {
+        const int requiredSize = 4 + 4 + 1 + 4;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        int offset = 0;
+
+        uint scannerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint targetPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        byte stack = body[offset];
+        offset += 1;
+
+        float duration = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (ScannerNetworkManager.Instance != null)
+        {
+            ScannerNetworkManager.Instance.OnScannerZap(
+                scannerId,
+                targetPlayerId,
+                stack,
+                duration
+            );
+        }
+    }
+
+    private void HandleScannerDestroy(byte[] body)
+    {
+        if (body == null || body.Length < 4)
+            return;
+
+        uint scannerId = BitConverter.ToUInt32(body, 0);
+
+        if (ScannerNetworkManager.Instance != null)
+        {
+            ScannerNetworkManager.Instance.OnScannerDestroy(scannerId);
+        }
+    }
+
+    public void SendScannerHit(uint scannerId)
+    {
+        ushort size = 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SCANNER_HIT;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(scannerId), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND SCANNER HIT] scannerId={scannerId}");
+    }
+
+    public void SendEmpCast()
+    {
+        ushort size = 4;
+        ushort type = (ushort)PacketType.PKT_CS_EMP_CAST;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        client.Send(buffer);
+
+        Debug.Log("[SEND EMP CAST]");
+    }
+
+    private void HandleEmpCast(byte[] body)
+    {
+        int offset = 0;
+
+        uint casterPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        byte targetCount = body[offset];
+        offset += 1;
+
+        uint[] targetPlayerIds = new uint[targetCount];
+
+        for (int i = 0; i < targetCount; i++)
+        {
+            targetPlayerIds[i] =
+                BitConverter.ToUInt32(body, offset);
+            offset += 4;
+        }
+
+        PlayerIdentity caster =
+            FindPlayerIdentityById(casterPlayerId);
+
+        if (caster == null)
+            return;
+
+        InitiatorSkill_E skill =
+            caster.GetComponent<InitiatorSkill_E>();
+
+        if (skill == null)
+            return;
+
+        skill.PlayEmpEffect(targetPlayerIds);
+
+        Debug.Log(
+            $"[EMP CAST APPLY] caster={casterPlayerId}, targetCount={targetCount}"
+        );
+    }
+
+    private void HandleElectricStatus(byte[] body)
+    {
+        int offset = 0;
+
+        uint playerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        byte shockStack = body[offset];
+        offset += 1;
+
+        byte stunned = body[offset];
+        offset += 1;
+
+        float stunSeconds =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        PlayerIdentity target =
+            FindPlayerIdentityById(playerId);
+
+        if (target == null)
+        {
+            Debug.LogWarning($"[ELECTRIC STATUS] target not found playerId={playerId}");
+            return;
+        }
+
+        ElectricShock shock =
+            target.GetComponent<ElectricShock>();
+
+        if (shock == null)
+            shock = target.GetComponentInChildren<ElectricShock>(true);
+
+        if (shock != null)
+        {
+            shock.ApplyServerStatus(
+                shockStack,
+                stunned != 0,
+                stunSeconds
+            );
+        }
+        else
+        {
+            Debug.LogWarning($"[ELECTRIC STATUS] ElectricShock missing playerId={playerId}");
+        }
+
+        PlayerMovement movement =
+            target.GetComponent<PlayerMovement>();
+
+        if (movement == null)
+            movement = target.GetComponentInChildren<PlayerMovement>(true);
+
+        if (movement != null)
+        {
+            if (stunned != 0)
+            {
+                movement.ApplyStunFromServer(stunSeconds);
+            }
+            else if (shockStack == 0)
+            {
+                movement.ClearStunFromServer();
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[ELECTRIC STATUS] PlayerMovement missing playerId={playerId}");
+        }
+
+        Debug.Log(
+            $"[ELECTRIC STATUS APPLY] playerId={playerId}, " +
+            $"stack={shockStack}, stunned={stunned}, stun={stunSeconds}"
+        );
+    }
+
+    public void SendUltimateCast(Vector3 direction)
+    {
+        ushort size = 4 + 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_ULTIMATE_CAST;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Vector3 dir =
+            direction.sqrMagnitude > 0.0001f
+                ? direction.normalized
+                : Vector3.forward;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(dir.x),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(dir.y),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(dir.z),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND ULTIMATE CAST] dir={dir}"
+        );
+    }
+
+    private void HandleUltimateCast(byte[] body)
+    {
+        const int maxTargetCount = 6;
+
+        int offset = 0;
+
+        uint casterPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float dirX =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float dirY =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float dirZ =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        byte targetCount =
+            body[offset];
+        offset += 1;
+
+        uint[] targetPlayerIds =
+            new uint[targetCount];
+
+        for (int i = 0; i < maxTargetCount; i++)
+        {
+            uint targetPlayerId =
+                BitConverter.ToUInt32(body, offset);
+            offset += 4;
+
+            if (i < targetCount)
+            {
+                targetPlayerIds[i] =
+                    targetPlayerId;
+            }
+        }
+
+        int damage =
+            BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        byte stack =
+            body[offset];
+        offset += 1;
+
+        PlayerIdentity caster =
+            FindPlayerIdentityById(casterPlayerId);
+
+        if (caster == null)
+        {
+            Debug.LogWarning(
+                $"[ULTIMATE CAST] caster not found. caster={casterPlayerId}"
+            );
+
+            return;
+        }
+
+        InitiatorSkill_X skill =
+            caster.GetComponent<InitiatorSkill_X>();
+
+        if (skill == null)
+            skill = caster.GetComponentInChildren<InitiatorSkill_X>(true);
+
+        if (skill != null)
+        {
+            skill.PlayUltimateEffect(
+                targetPlayerIds,
+                new Vector3(dirX, dirY, dirZ)
+            );
+        }
+
+        Debug.Log(
+            $"[ULTIMATE CAST APPLY] caster={casterPlayerId}, " +
+            $"targetCount={targetCount}, damage={damage}, stack={stack}"
+        );
+    }
+
+    public void SendBeastStealthCast()
+    {
+        ushort size = 4;
+        ushort type =
+            (ushort)PacketType.PKT_CS_BEAST_STEALTH_CAST;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+
+        client.Send(buffer);
+
+        Debug.Log("[SEND BEAST STEALTH CAST]");
+    }
+
+    public void SendBeastStealthCancel()
+    {
+        ushort size = 4;
+        ushort type =
+            (ushort)PacketType.PKT_CS_BEAST_STEALTH_CANCEL;
+
+        byte[] buffer = new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+
+        client.Send(buffer);
+
+        Debug.Log("[SEND BEAST STEALTH CANCEL]");
+    }
+
+    private void HandleBeastStealthState(byte[] body)
+    {
+        const int requiredSize = 4 + 1 + 4 + 4 + 4;
+
+        if (body == null || body.Length < requiredSize)
+        {
+            Debug.LogWarning(
+                $"[BEAST STEALTH STATE] invalid body length={body?.Length ?? 0}"
+            );
+
+            return;
+        }
+
+        int offset = 0;
+
+        uint playerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        bool active =
+            body[offset] != 0;
+        offset += 1;
+
+        float duration =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float speedMultiplier =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float revealRange =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        PlayerIdentity target =
+            FindPlayerIdentityById(playerId);
+
+        if (target == null)
+        {
+            Debug.LogWarning(
+                $"[BEAST STEALTH STATE] player not found. playerId={playerId}"
+            );
+
+            return;
+        }
+
+        EntrySkill_E skill =
+            target.GetComponent<EntrySkill_E>();
+
+        if (skill == null)
+            skill = target.GetComponentInChildren<EntrySkill_E>(true);
+
+        if (skill == null)
+        {
+            Debug.LogWarning(
+                $"[BEAST STEALTH STATE] EntrySkill_E missing. playerId={playerId}"
+            );
+
+            return;
+        }
+
+        skill.ApplyStealthStateFromServer(
+            active,
+            duration,
+            speedMultiplier,
+            revealRange
+        );
+
+        Debug.Log(
+            $"[BEAST STEALTH STATE APPLY] playerId={playerId}, " +
+            $"active={active}, duration={duration}, " +
+            $"speedMultiplier={speedMultiplier}, revealRange={revealRange}"
+        );
+    }
+
+    public void SendEntrySmokeThrow(
+    Vector3 position,
+    Vector3 velocity)
+    {
+        ushort size = 4 + 4 + 4 + 4 + 4 + 4 + 4;
+        ushort type =
+            (ushort)PacketType.PKT_CS_ENTRY_SMOKE_THROW;
+
+        byte[] buffer =
+            new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(velocity.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(velocity.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(velocity.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND ENTRY SMOKE THROW] pos={position}, velocity={velocity}"
+        );
+    }
+
+    public void SendEntrySmokeAttach(
+        uint smokeId,
+        Vector3 position,
+        Vector3 normal)
+    {
+        ushort size = 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4;
+        ushort type =
+            (ushort)PacketType.PKT_CS_ENTRY_SMOKE_ATTACH;
+
+        byte[] buffer =
+            new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(smokeId), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(normal.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(normal.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(normal.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND ENTRY SMOKE ATTACH] smokeId={smokeId}, pos={position}, normal={normal}"
+        );
+    }
+
+    private void HandleEntrySmokeSpawn(byte[] body)
+    {
+        const int requiredSize =
+            4 + 4 + 4 + 4 + 4 + 4 + 4 + 4;
+
+        if (body == null ||
+            body.Length < requiredSize)
+        {
+            Debug.LogWarning(
+                $"[ENTRY SMOKE SPAWN] invalid body length={body?.Length ?? 0}"
+            );
+            return;
+        }
+
+        int offset = 0;
+
+        uint smokeId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float x =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float y =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float z =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float vx =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float vy =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float vz =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (EntrySmokeNetworkManager.Instance != null)
+        {
+            EntrySmokeNetworkManager.Instance.OnSmokeSpawn(
+                smokeId,
+                ownerPlayerId,
+                new Vector3(x, y, z),
+                new Vector3(vx, vy, vz)
+            );
+        }
+    }
+
+    private void HandleEntrySmokeActivate(byte[] body)
+    {
+        const int requiredSize =
+            4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4;
+
+        if (body == null ||
+            body.Length < requiredSize)
+        {
+            Debug.LogWarning(
+                $"[ENTRY SMOKE ACTIVATE] invalid body length={body?.Length ?? 0}"
+            );
+            return;
+        }
+
+        int offset = 0;
+
+        uint smokeId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float x =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float y =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float z =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float nx =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float ny =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float nz =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float radius =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float duration =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (EntrySmokeNetworkManager.Instance != null)
+        {
+            EntrySmokeNetworkManager.Instance.OnSmokeActivate(
+                smokeId,
+                ownerPlayerId,
+                new Vector3(x, y, z),
+                new Vector3(nx, ny, nz),
+                radius,
+                duration
+            );
+        }
+    }
+
+    private void HandleEntrySmokeDestroy(byte[] body)
+    {
+        if (body == null ||
+            body.Length < 4)
+            return;
+
+        uint smokeId =
+            BitConverter.ToUInt32(body, 0);
+
+        if (EntrySmokeNetworkManager.Instance != null)
+        {
+            EntrySmokeNetworkManager.Instance.OnSmokeDestroy(
+                smokeId
+            );
+        }
+    }
+
+    public void SendEntrySmokeState(
+    uint smokeId,
+    Vector3 position,
+    Quaternion rotation)
+    {
+        // header 4
+        // smokeId 4
+        // position 12
+        // rotation 16
+        // total = 36
+        ushort size = 4 + 4 + 12 + 16;
+        ushort type =
+            (ushort)PacketType.PKT_CS_ENTRY_SMOKE_STATE;
+
+        byte[] buffer =
+            new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(smokeId),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(position.x),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(position.y),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(position.z),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(rotation.x),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(rotation.y),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(rotation.z),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(rotation.w),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND ENTRY SMOKE STATE] smokeId={smokeId}, pos={position}"
+        );
+    }
+    private void HandleEntrySmokeState(byte[] body)
+    {
+        const int requiredSize =
+            4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4;
+
+        if (body == null || body.Length < requiredSize)
+        {
+            Debug.LogWarning(
+                $"[ENTRY SMOKE STATE] invalid body length={body?.Length ?? 0}"
+            );
+
+            return;
+        }
+
+        int offset = 0;
+
+        uint smokeId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float x = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float y = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float z = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float rotX = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float rotY = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float rotZ = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float rotW = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (EntrySmokeNetworkManager.Instance != null)
+        {
+            EntrySmokeNetworkManager.Instance.OnSmokeState(
+                smokeId,
+                ownerPlayerId,
+                new Vector3(x, y, z),
+                new Quaternion(rotX, rotY, rotZ, rotW)
+            );
+        }
+    }
+
+    public void SendEntryDashCast(Vector3 direction)
+    {
+        ushort size =
+            4 + 4 + 4 + 4;
+
+        ushort type =
+            (ushort)PacketType.PKT_CS_ENTRY_DASH_CAST;
+
+        byte[] buffer =
+            new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(direction.x),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(direction.y),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(direction.z),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND ENTRY DASH CAST] dir={direction}"
+        );
+    }
+
+    private void HandleEntryDashCast(byte[] body)
+    {
+        const int requiredSize =
+            4 + 4 + 4 + 4 + 4 + 4;
+
+        if (body == null || body.Length < requiredSize)
+        {
+            Debug.LogWarning(
+                $"[ENTRY DASH CAST] invalid body length={body?.Length ?? 0}"
+            );
+
+            return;
+        }
+
+        int offset = 0;
+
+        uint playerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float dirX =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float dirY =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float dirZ =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float dashForce =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float dashDuration =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        PlayerIdentity identity =
+            FindPlayerIdentityById(playerId);
+
+        if (identity == null)
+        {
+            Debug.LogWarning(
+                $"[ENTRY DASH CAST] player not found playerId={playerId}"
+            );
+
+            return;
+        }
+
+        EntryDashMotor dashMotor =
+            identity.GetComponent<EntryDashMotor>();
+
+        if (dashMotor == null)
+            dashMotor =
+                identity.GetComponentInChildren<EntryDashMotor>(true);
+
+        if (dashMotor == null)
+            dashMotor =
+                identity.gameObject.AddComponent<EntryDashMotor>();
+
+        dashMotor.PlayDash(
+            new Vector3(dirX, dirY, dirZ),
+            dashForce,
+            dashDuration
+        );
+
+        Debug.Log(
+            $"[ENTRY DASH CAST APPLY] playerId={playerId}, " +
+            $"dir=({dirX}, {dirY}, {dirZ}), force={dashForce}, duration={dashDuration}"
+        );
+    }
+
+    private void HandleEntryDashEnd(byte[] body)
+    {
+        const int requiredSize = 4;
+
+        if (body == null || body.Length < requiredSize)
+        {
+            Debug.LogWarning(
+                $"[ENTRY DASH END] invalid body length={body?.Length ?? 0}"
+            );
+
+            return;
+        }
+
+        uint playerId =
+            BitConverter.ToUInt32(body, 0);
+
+        PlayerIdentity identity =
+            FindPlayerIdentityById(playerId);
+
+        if (identity == null)
+            return;
+
+        EntryDashMotor dashMotor =
+            identity.GetComponent<EntryDashMotor>();
+
+        if (dashMotor == null)
+            dashMotor =
+                identity.GetComponentInChildren<EntryDashMotor>(true);
+
+        if (dashMotor != null)
+        {
+            dashMotor.ForceEndDash();
+        }
+
+        Debug.Log(
+            $"[ENTRY DASH END APPLY] playerId={playerId}"
+        );
+    }
+
+    public void SendEntryBladeActivate()
+    {
+        ushort size = 4;
+        ushort type =
+            (ushort)PacketType.PKT_CS_ENTRY_BLADE_ACTIVATE;
+
+        byte[] buffer =
+            new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        client.Send(buffer);
+
+        Debug.Log("[SEND ENTRY BLADE ACTIVATE]");
+    }
+
+    public void SendEntryBladeFire(
+        Vector3 direction,
+        uint targetPlayerId,
+        Vector3 hitPoint)
+    {
+        ushort size =
+            4 + 12 + 4 + 12; // header + dir + targetId + hitPoint = 32
+
+        ushort type =
+            (ushort)PacketType.PKT_CS_ENTRY_BLADE_FIRE;
+
+        byte[] buffer =
+            new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(direction.x),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(direction.y),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(direction.z),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(targetPlayerId),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(hitPoint.x),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(hitPoint.y),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(hitPoint.z),
+            0,
+            buffer,
+            offset,
+            4
+        );
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND ENTRY BLADE FIRE] target={targetPlayerId}, hitPoint={hitPoint}"
+        );
+    }
+
+    private void HandleEntryBladeState(byte[] body)
+    {
+        const int requiredSize =
+            4 + 1 + 1 + 4;
+
+        if (body == null ||
+            body.Length < requiredSize)
+        {
+            Debug.LogWarning(
+                $"[ENTRY BLADE STATE] invalid body length={body?.Length ?? 0}"
+            );
+
+            return;
+        }
+
+        int offset = 0;
+
+        uint playerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        bool active =
+            body[offset] != 0;
+        offset += 1;
+
+        byte bladeCount =
+            body[offset];
+        offset += 1;
+
+        float duration =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        PlayerIdentity identity =
+            FindPlayerIdentityById(playerId);
+
+        if (identity == null)
+        {
+            Debug.LogWarning(
+                $"[ENTRY BLADE STATE] player not found. playerId={playerId}"
+            );
+
+            return;
+        }
+
+        EntrySkill_X skill =
+            identity.GetComponent<EntrySkill_X>();
+
+        if (skill == null)
+        {
+            skill =
+                identity.GetComponentInChildren<EntrySkill_X>(true);
+        }
+
+        if (skill == null)
+        {
+            Debug.LogWarning(
+                $"[ENTRY BLADE STATE] EntrySkill_X missing. playerId={playerId}"
+            );
+
+            return;
+        }
+
+        skill.ApplyBladeStateFromServer(
+            active,
+            bladeCount,
+            duration
+        );
+
+        Debug.Log(
+            $"[ENTRY BLADE STATE APPLY] playerId={playerId}, active={active}, blades={bladeCount}, duration={duration}"
+        );
+    }
+
+    private void HandleEntryBladeFire(byte[] body)
+    {
+        const int requiredSize =
+            4 + 4 + 1 + 1 + 4 + 4 + 4 + 4 + 4 + 4;
+
+        if (body == null ||
+            body.Length < requiredSize)
+        {
+            Debug.LogWarning(
+                $"[ENTRY BLADE FIRE] invalid body length={body?.Length ?? 0}"
+            );
+
+            return;
+        }
+
+        int offset = 0;
+
+        uint shooterPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint targetPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        bool hit =
+            body[offset] != 0;
+        offset += 1;
+
+        byte remainingBlades =
+            body[offset];
+        offset += 1;
+
+        float startX =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float startY =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float startZ =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float endX =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float endY =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float endZ =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        PlayerIdentity shooter =
+            FindPlayerIdentityById(shooterPlayerId);
+
+        if (shooter == null)
+        {
+            Debug.LogWarning(
+                $"[ENTRY BLADE FIRE] shooter not found. shooter={shooterPlayerId}"
+            );
+
+            return;
+        }
+
+        EntrySkill_X skill =
+            shooter.GetComponent<EntrySkill_X>();
+
+        if (skill == null)
+        {
+            skill =
+                shooter.GetComponentInChildren<EntrySkill_X>(true);
+        }
+
+        if (skill == null)
+        {
+            Debug.LogWarning(
+                $"[ENTRY BLADE FIRE] EntrySkill_X missing. shooter={shooterPlayerId}"
+            );
+
+            return;
+        }
+
+        skill.PlayBladeFireEffect(
+            new Vector3(startX, startY, startZ),
+            new Vector3(endX, endY, endZ),
+            hit,
+            remainingBlades
+        );
+
+        Debug.Log(
+            $"[ENTRY BLADE FIRE APPLY] shooter={shooterPlayerId}, target={targetPlayerId}, hit={hit}, remaining={remainingBlades}"
+        );
+    }
+
+    public void SendControllerSwampThrow(
+    Vector3 position,
+    Vector3 velocity)
+    {
+        ushort size =
+            4 + 12 + 12;
+
+        ushort type =
+            (ushort)PacketType.PKT_CS_CONTROLLER_SWAMP_THROW;
+
+        byte[] buffer =
+            new byte[size];
+
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(velocity.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(velocity.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(velocity.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND CONTROLLER SWAMP THROW] pos={position}, velocity={velocity}"
+        );
+    }
+
+    public void SendControllerSwampActivate(uint trapId, Vector3 position, Vector3 normal)
+    {
+        ushort size = 4 + 4 + 12 + 12;
+        ushort type = (ushort)PacketType.PKT_CS_CONTROLLER_SWAMP_ACTIVATE;
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2); offset += 2;
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2); offset += 2;
+        Buffer.BlockCopy(BitConverter.GetBytes(trapId), 0, buffer, offset, 4); offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4); offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(normal.x), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(normal.y), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(normal.z), 0, buffer, offset, 4); offset += 4;
+
+        client.Send(buffer);
+        Debug.Log($"[SEND CONTROLLER SWAMP ACTIVATE] trapId={trapId}, pos={position}, normal={normal}");
+    }
+
+    private void HandleControllerSwampSpawn(byte[] body)
+    {
+        const int requiredSize =
+            4 + 4 + 12 + 12;
+
+        if (body == null ||
+            body.Length < requiredSize)
+        {
+            Debug.LogWarning(
+                $"[CONTROLLER SWAMP SPAWN] invalid body length={body?.Length ?? 0}"
+            );
+
+            return;
+        }
+
+        int offset = 0;
+
+        uint trapId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float x =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float y =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float z =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float vx =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float vy =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float vz =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (ControllerSwampNetworkManager.Instance != null)
+        {
+            ControllerSwampNetworkManager.Instance.OnSwampSpawn(
+                trapId,
+                ownerPlayerId,
+                new Vector3(x, y, z),
+                new Vector3(vx, vy, vz)
+            );
+        }
+        else
+        {
+            Debug.LogError(
+                "[CONTROLLER SWAMP SPAWN] ControllerSwampNetworkManager.Instance is null"
+            );
+        }
+    }
+
+    private void HandleControllerSwampActivate(byte[] body)
+    {
+        const int requiredSize = 40;
+
+        if (body == null || body.Length < requiredSize)
+        {
+            Debug.LogWarning($"[SWAMP ACTIVATE] invalid body length={body?.Length ?? 0}");
+            return;
+        }
+
+        int offset = 0;
+
+        uint trapId = BitConverter.ToUInt32(body, offset); offset += 4;
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset); offset += 4;
+
+        float x = BitConverter.ToSingle(body, offset); offset += 4;
+        float y = BitConverter.ToSingle(body, offset); offset += 4;
+        float z = BitConverter.ToSingle(body, offset); offset += 4;
+
+        float normalX = BitConverter.ToSingle(body, offset); offset += 4;
+        float normalY = BitConverter.ToSingle(body, offset); offset += 4;
+        float normalZ = BitConverter.ToSingle(body, offset); offset += 4;
+
+        float radius = BitConverter.ToSingle(body, offset); offset += 4;
+        float duration = BitConverter.ToSingle(body, offset); offset += 4;
+
+        Vector3 position = new Vector3(x, y, z);
+        Vector3 normal = new Vector3(normalX, normalY, normalZ);
+
+        Debug.Log($"[RECV SWAMP ACTIVATE] trapId={trapId}, owner={ownerPlayerId}, pos={position}, normal={normal}, radius={radius}, duration={duration}");
+
+        if (ControllerSwampNetworkManager.Instance != null)
+        {
+            ControllerSwampNetworkManager.Instance.OnSwampActivate(trapId, ownerPlayerId, position, normal, radius, duration);
+        }
+    }
+
+    private void HandleControllerSwampDestroy(byte[] body)
+    {
+        if (body == null ||
+            body.Length < 4)
+        {
+            return;
+        }
+
+        uint trapId =
+            BitConverter.ToUInt32(body, 0);
+
+        if (ControllerSwampNetworkManager.Instance != null)
+        {
+            ControllerSwampNetworkManager.Instance.OnSwampDestroy(
+                trapId
+            );
+        }
+    }
+
+    public void SendControllerSmokeDrop(Vector3 position)
+    {
+        ushort size = 4 + 12;
+        ushort type = (ushort)PacketType.PKT_CS_CONTROLLER_SMOKE_DROP;
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2); offset += 2;
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2); offset += 2;
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4); offset += 4;
+
+        client.Send(buffer);
+        Debug.Log($"[SEND CONTROLLER SMOKE DROP] pos={position}");
+    }
+
+    private void HandleControllerSmokeSpawn(byte[] body)
+    {
+        if (body == null || body.Length < 28)
+        {
+            Debug.LogWarning($"[CONTROLLER SMOKE SPAWN] invalid body length={body?.Length ?? 0}");
+            return;
+        }
+
+        int offset = 0;
+
+        uint smokeId = BitConverter.ToUInt32(body, offset); offset += 4;
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset); offset += 4;
+
+        float x = BitConverter.ToSingle(body, offset); offset += 4;
+        float y = BitConverter.ToSingle(body, offset); offset += 4;
+        float z = BitConverter.ToSingle(body, offset); offset += 4;
+
+        float radius = BitConverter.ToSingle(body, offset); offset += 4;
+        float duration = BitConverter.ToSingle(body, offset); offset += 4;
+
+        if (ControllerSmokeNetworkManager.Instance != null)
+        {
+            ControllerSmokeNetworkManager.Instance.OnSmokeSpawn(smokeId, ownerPlayerId, new Vector3(x, y, z), radius, duration);
+        }
+    }
+
+    private void HandleControllerSmokeDestroy(byte[] body)
+    {
+        if (body == null || body.Length < 4)
+        {
+            Debug.LogWarning($"[CONTROLLER SMOKE DESTROY] invalid body length={body?.Length ?? 0}");
+            return;
+        }
+
+        uint smokeId = BitConverter.ToUInt32(body, 0);
+
+        if (ControllerSmokeNetworkManager.Instance != null)
+        {
+            ControllerSmokeNetworkManager.Instance.OnSmokeDestroy(smokeId);
+        }
+    }
+
+    public void SendControllerDecoyThrow(Vector3 position, Vector3 velocity)
+    {
+        ushort size = 4 + 12 + 12;
+        ushort type = (ushort)PacketType.PKT_CS_CONTROLLER_DECOY_THROW;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2); offset += 2;
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2); offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4); offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(velocity.x), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(velocity.y), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(velocity.z), 0, buffer, offset, 4); offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND CONTROLLER DECOY THROW] pos={position}, velocity={velocity}");
+    }
+
+    public void SendControllerDecoyActivate(uint decoyId, Vector3 position, Vector3 normal)
+    {
+        ushort size = 4 + 4 + 12 + 12;
+        ushort type = (ushort)PacketType.PKT_CS_CONTROLLER_DECOY_ACTIVATE;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2); offset += 2;
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2); offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(decoyId), 0, buffer, offset, 4); offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4); offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(normal.x), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(normal.y), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(normal.z), 0, buffer, offset, 4); offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND CONTROLLER DECOY ACTIVATE] decoyId={decoyId}, pos={position}, normal={normal}");
+    }
+
+    private void HandleControllerDecoySpawn(byte[] body)
+    {
+        if (body == null || body.Length < 32)
+        {
+            Debug.LogWarning($"[RECV CONTROLLER DECOY SPAWN] invalid body length={body?.Length ?? 0}");
+            return;
+        }
+
+        int offset = 0;
+
+        uint decoyId = BitConverter.ToUInt32(body, offset); offset += 4;
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset); offset += 4;
+
+        float px = BitConverter.ToSingle(body, offset); offset += 4;
+        float py = BitConverter.ToSingle(body, offset); offset += 4;
+        float pz = BitConverter.ToSingle(body, offset); offset += 4;
+
+        float vx = BitConverter.ToSingle(body, offset); offset += 4;
+        float vy = BitConverter.ToSingle(body, offset); offset += 4;
+        float vz = BitConverter.ToSingle(body, offset); offset += 4;
+
+        Vector3 position = new Vector3(px, py, pz);
+        Vector3 velocity = new Vector3(vx, vy, vz);
+
+        if (ControllerDecoyNetworkManager.Instance != null)
+        {
+            ControllerDecoyNetworkManager.Instance.OnDecoySpawn(
+                decoyId,
+                ownerPlayerId,
+                position,
+                velocity
+            );
+        }
+        else
+        {
+            Debug.LogWarning("[RECV CONTROLLER DECOY SPAWN] ControllerDecoyNetworkManager.Instance is null");
+        }
+
+        Debug.Log($"[RECV CONTROLLER DECOY SPAWN] decoyId={decoyId}, owner={ownerPlayerId}, pos={position}, velocity={velocity}");
+    }
+
+    private void HandleControllerDecoyActivate(byte[] body)
+    {
+        if (body == null || body.Length < 36)
+        {
+            Debug.LogWarning($"[RECV CONTROLLER DECOY ACTIVATE] invalid body length={body?.Length ?? 0}");
+            return;
+        }
+
+        int offset = 0;
+
+        uint decoyId = BitConverter.ToUInt32(body, offset); offset += 4;
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset); offset += 4;
+
+        float px = BitConverter.ToSingle(body, offset); offset += 4;
+        float py = BitConverter.ToSingle(body, offset); offset += 4;
+        float pz = BitConverter.ToSingle(body, offset); offset += 4;
+
+        float nx = BitConverter.ToSingle(body, offset); offset += 4;
+        float ny = BitConverter.ToSingle(body, offset); offset += 4;
+        float nz = BitConverter.ToSingle(body, offset); offset += 4;
+
+        float duration = BitConverter.ToSingle(body, offset); offset += 4;
+
+        Vector3 position = new Vector3(px, py, pz);
+        Vector3 normal = new Vector3(nx, ny, nz);
+
+        if (ControllerDecoyNetworkManager.Instance != null)
+        {
+            ControllerDecoyNetworkManager.Instance.OnDecoyActivate(
+                decoyId,
+                ownerPlayerId,
+                position,
+                normal,
+                duration
+            );
+        }
+        else
+        {
+            Debug.LogWarning("[RECV CONTROLLER DECOY ACTIVATE] ControllerDecoyNetworkManager.Instance is null");
+        }
+
+        Debug.Log($"[RECV CONTROLLER DECOY ACTIVATE] decoyId={decoyId}, owner={ownerPlayerId}, pos={position}, normal={normal}, duration={duration}");
+    }
+
+    private void HandleControllerDecoyDestroy(byte[] body)
+    {
+        if (body == null || body.Length < 4)
+        {
+            Debug.LogWarning($"[RECV CONTROLLER DECOY DESTROY] invalid body length={body?.Length ?? 0}");
+            return;
+        }
+
+        int offset = 0;
+
+        uint decoyId = BitConverter.ToUInt32(body, offset); offset += 4;
+
+        if (ControllerDecoyNetworkManager.Instance != null)
+        {
+            ControllerDecoyNetworkManager.Instance.OnDecoyDestroy(decoyId);
+        }
+        else
+        {
+            Debug.LogWarning("[RECV CONTROLLER DECOY DESTROY] ControllerDecoyNetworkManager.Instance is null");
+        }
+
+        Debug.Log($"[RECV CONTROLLER DECOY DESTROY] decoyId={decoyId}");
+    }
+
+    public void SendControllerUltimateCast(Vector3 position)
+    {
+        ushort size = 4 + 12;
+        ushort type = (ushort)PacketType.PKT_CS_CONTROLLER_ULTIMATE_CAST;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2); offset += 2;
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2); offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4); offset += 4;
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4); offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND CONTROLLER ULTIMATE CAST] pos={position}");
+    }
+
+    private void HandleControllerUltimateSpawn(byte[] body)
+    {
+        if (body == null || body.Length < 28)
+        {
+            Debug.LogWarning($"[RECV CONTROLLER ULTIMATE SPAWN] invalid body length={body?.Length ?? 0}");
+            return;
+        }
+
+        int offset = 0;
+
+        uint ultimateId = BitConverter.ToUInt32(body, offset); offset += 4;
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset); offset += 4;
+
+        float x = BitConverter.ToSingle(body, offset); offset += 4;
+        float y = BitConverter.ToSingle(body, offset); offset += 4;
+        float z = BitConverter.ToSingle(body, offset); offset += 4;
+
+        float radius = BitConverter.ToSingle(body, offset); offset += 4;
+        float duration = BitConverter.ToSingle(body, offset); offset += 4;
+
+        Vector3 position = new Vector3(x, y, z);
+
+        if (ControllerUltimateNetworkManager.Instance != null)
+        {
+            ControllerUltimateNetworkManager.Instance.OnUltimateSpawn(
+                ultimateId,
+                ownerPlayerId,
+                position,
+                radius,
+                duration
+            );
+        }
+        else
+        {
+            Debug.LogWarning("[RECV CONTROLLER ULTIMATE SPAWN] ControllerUltimateNetworkManager.Instance is null");
+        }
+
+        Debug.Log($"[RECV CONTROLLER ULTIMATE SPAWN] ultimateId={ultimateId}, owner={ownerPlayerId}, pos={position}, radius={radius}, duration={duration}");
+    }
+
+    private void HandleControllerUltimateDestroy(byte[] body)
+    {
+        if (body == null || body.Length < 4)
+        {
+            Debug.LogWarning($"[RECV CONTROLLER ULTIMATE DESTROY] invalid body length={body?.Length ?? 0}");
+            return;
+        }
+
+        int offset = 0;
+
+        uint ultimateId = BitConverter.ToUInt32(body, offset); offset += 4;
+
+        if (ControllerUltimateNetworkManager.Instance != null)
+        {
+            ControllerUltimateNetworkManager.Instance.OnUltimateDestroy(ultimateId);
+        }
+        else
+        {
+            Debug.LogWarning("[RECV CONTROLLER ULTIMATE DESTROY] ControllerUltimateNetworkManager.Instance is null");
+        }
+
+        Debug.Log($"[RECV CONTROLLER ULTIMATE DESTROY] ultimateId={ultimateId}");
+    }
+
+    public void SendSentinelCThrow(Vector3 position, Vector3 velocity)
+    {
+        ushort size = 4 + 12 + 12;
+        ushort type = (ushort)PacketType.PKT_CS_SENTINEL_C_THROW;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(velocity.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(velocity.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(velocity.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND SENTINEL C THROW] pos={position}, velocity={velocity}");
+    }
+
+    public void SendSentinelCAnchor(uint trapId, Vector3 position, Vector3 normal)
+    {
+        ushort size = 4 + 4 + 12 + 12;
+        ushort type = (ushort)PacketType.PKT_CS_SENTINEL_C_ANCHOR;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(trapId), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(normal.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(normal.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(normal.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND SENTINEL C ANCHOR] trapId={trapId}, pos={position}, normal={normal}");
+    }
+
+    public void SendSentinelCTrigger(uint trapId, Vector3 position, float radius, float revealDuration)
+    {
+        ushort size = 4 + 4 + 12 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SENTINEL_C_TRIGGER;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(trapId), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(radius), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(revealDuration), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND SENTINEL C TRIGGER] trapId={trapId}, pos={position}, radius={radius}");
+    }
+
+    public void SendSentinelCHit(uint trapId, float damage)
+    {
+        ushort size = 4 + 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SENTINEL_C_HIT;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(trapId), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(damage), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND SENTINEL C HIT] trapId={trapId}, damage={damage}");
+    }
+
+    private void HandleSentinelCSpawn(byte[] body)
+    {
+        if (body == null || body.Length < 37)
+            return;
+
+        int offset = 0;
+
+        uint trapId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        int ownerTeam = body[offset];
+        offset += 1;
+
+        Vector3 position = new Vector3(
+            BitConverter.ToSingle(body, offset),
+            BitConverter.ToSingle(body, offset + 4),
+            BitConverter.ToSingle(body, offset + 8)
+        );
+        offset += 12;
+
+        Vector3 velocity = new Vector3(
+            BitConverter.ToSingle(body, offset),
+            BitConverter.ToSingle(body, offset + 4),
+            BitConverter.ToSingle(body, offset + 8)
+        );
+        offset += 12;
+
+        float hp = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnSpawn(
+                trapId,
+                ownerPlayerId,
+                ownerTeam,
+                position,
+                velocity,
+                hp
+            );
+        }
+    }
+
+    private void HandleSentinelCAnchor(byte[] body)
+    {
+        if (body == null || body.Length < 28)
+            return;
+
+        int offset = 0;
+
+        uint trapId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        Vector3 position = new Vector3(
+            BitConverter.ToSingle(body, offset),
+            BitConverter.ToSingle(body, offset + 4),
+            BitConverter.ToSingle(body, offset + 8)
+        );
+        offset += 12;
+
+        Vector3 normal = new Vector3(
+            BitConverter.ToSingle(body, offset),
+            BitConverter.ToSingle(body, offset + 4),
+            BitConverter.ToSingle(body, offset + 8)
+        );
+        offset += 12;
+
+        if (SentinelCNetworkManager.Instance != null)
+            SentinelCNetworkManager.Instance.OnAnchor(trapId, position, normal);
+    }
+
+    private void HandleSentinelCTrigger(byte[] body)
+    {
+        if (body == null || body.Length < 29)
+            return;
+
+        int offset = 0;
+
+        uint trapId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        int ownerTeam = body[offset];
+        offset += 1;
+
+        Vector3 position = new Vector3(
+            BitConverter.ToSingle(body, offset),
+            BitConverter.ToSingle(body, offset + 4),
+            BitConverter.ToSingle(body, offset + 8)
+        );
+        offset += 12;
+
+        float radius = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float revealDuration = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnTrigger(
+                trapId,
+                ownerPlayerId,
+                ownerTeam,
+                position,
+                radius,
+                revealDuration
+            );
+        }
+    }
+
+    private void HandleSentinelCDestroy(byte[] body)
+    {
+        if (body == null || body.Length < 4)
+            return;
+
+        uint trapId = BitConverter.ToUInt32(body, 0);
+
+        if (SentinelCNetworkManager.Instance != null)
+            SentinelCNetworkManager.Instance.OnDestroyTrap(trapId);
+    }
+
+    public void SendSentinelQPlace(Vector3 position)
+    {
+        ushort size = 4 + 12;
+        ushort type = (ushort)PacketType.PKT_CS_SENTINEL_Q_PLACE;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.x), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.y), 0, buffer, offset, 4);
+        offset += 4;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(position.z), 0, buffer, offset, 4);
+        offset += 4;
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND SENTINEL Q PLACE] position={position}");
+    }
+
+    public void SendSentinelQActivate(uint trapId)
+    {
+        ushort size = 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SENTINEL_Q_ACTIVATE;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(trapId), 0, buffer, offset, 4);
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND SENTINEL Q ACTIVATE] trapId={trapId}");
+    }
+
+    public void SendSentinelQHit(uint trapId)
+    {
+        ushort size = 4 + 4;
+        ushort type = (ushort)PacketType.PKT_CS_SENTINEL_Q_HIT;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, offset, 2);
+        offset += 2;
+
+        Buffer.BlockCopy(BitConverter.GetBytes(trapId), 0, buffer, offset, 4);
+
+        client.Send(buffer);
+
+        Debug.Log($"[SEND SENTINEL Q HIT] trapId={trapId}");
+    }
+
+    private void HandleSentinelQSpawn(byte[] body)
+    {
+        const int requiredSize = 33;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        int offset = 0;
+
+        uint trapId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        int ownerTeam = body[offset];
+        offset += 1;
+
+        Vector3 position = new Vector3(
+            BitConverter.ToSingle(body, offset),
+            BitConverter.ToSingle(body, offset + 4),
+            BitConverter.ToSingle(body, offset + 8)
+        );
+        offset += 12;
+
+        float hp = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float detectionRadius = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float zoneRadius = BitConverter.ToSingle(body, offset);
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnQSpawn(
+                trapId,
+                ownerPlayerId,
+                ownerTeam,
+                position,
+                hp,
+                detectionRadius,
+                zoneRadius
+            );
+        }
+    }
+
+    private void HandleSentinelQActivate(byte[] body)
+    {
+        const int requiredSize = 12;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        int offset = 0;
+
+        uint trapId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float duration = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float slowMultiplier = BitConverter.ToSingle(body, offset);
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnQActivate(
+                trapId,
+                duration,
+                slowMultiplier
+            );
+        }
+    }
+
+    private void HandleSentinelQDestroy(byte[] body)
+    {
+        if (body == null || body.Length < 4)
+            return;
+
+        uint trapId = BitConverter.ToUInt32(body, 0);
+
+        if (SentinelCNetworkManager.Instance != null)
+            SentinelCNetworkManager.Instance.OnQDestroy(trapId);
+    }
+
+    public void SendSentinelEPlace(
+        Vector3 position,
+        Vector3 normal)
+    {
+        ushort size = 4 + 24;
+        ushort type =
+            (ushort)PacketType.PKT_CS_SENTINEL_E_PLACE;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        float[] values =
+        {
+            position.x,
+            position.y,
+            position.z,
+            normal.x,
+            normal.y,
+            normal.z
+        };
+
+        foreach (float value in values)
+        {
+            Buffer.BlockCopy(
+                BitConverter.GetBytes(value),
+                0,
+                buffer,
+                offset,
+                4
+            );
+            offset += 4;
+        }
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND SENTINEL E PLACE] " +
+            $"position={position}, normal={normal}"
+        );
+    }
+
+    public void SendSentinelEActivate(uint trapId)
+    {
+        SendSentinelETrapIdPacket(
+            PacketType.PKT_CS_SENTINEL_E_ACTIVATE,
+            trapId,
+            "ACTIVATE"
+        );
+    }
+
+    public void SendSentinelEHit(uint trapId)
+    {
+        SendSentinelETrapIdPacket(
+            PacketType.PKT_CS_SENTINEL_E_HIT,
+            trapId,
+            "HIT"
+        );
+    }
+
+    public void SendSentinelERecall(uint trapId)
+    {
+        SendSentinelETrapIdPacket(
+            PacketType.PKT_CS_SENTINEL_E_RECALL,
+            trapId,
+            "RECALL"
+        );
+    }
+
+    private void SendSentinelETrapIdPacket(
+        PacketType packetType,
+        uint trapId,
+        string action)
+    {
+        ushort size = 4 + 4;
+        ushort type = (ushort)packetType;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(trapId),
+            0,
+            buffer,
+            offset,
+            4
+        );
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND SENTINEL E {action}] trapId={trapId}"
+        );
+    }
+
+    private void HandleSentinelESpawn(byte[] body)
+    {
+        const int requiredSize = 41;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        int offset = 0;
+
+        uint trapId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        int ownerTeam = body[offset];
+        offset += 1;
+
+        Vector3 position = new Vector3(
+            BitConverter.ToSingle(body, offset),
+            BitConverter.ToSingle(body, offset + 4),
+            BitConverter.ToSingle(body, offset + 8)
+        );
+        offset += 12;
+
+        Vector3 normal = new Vector3(
+            BitConverter.ToSingle(body, offset),
+            BitConverter.ToSingle(body, offset + 4),
+            BitConverter.ToSingle(body, offset + 8)
+        );
+        offset += 12;
+
+        float hp = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float radius = BitConverter.ToSingle(body, offset);
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnESpawn(
+                trapId,
+                ownerPlayerId,
+                ownerTeam,
+                position,
+                normal,
+                hp,
+                radius
+            );
+        }
+    }
+
+    private void HandleSentinelEActivate(byte[] body)
+    {
+        const int requiredSize = 20;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        int offset = 0;
+
+        uint trapId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        float radius = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float slowDuration =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float slowMultiplier =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float stunDuration =
+            BitConverter.ToSingle(body, offset);
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnEActivate(
+                trapId,
+                radius,
+                slowDuration,
+                slowMultiplier,
+                stunDuration
+            );
+        }
+    }
+
+    private void HandleSentinelEDestroy(byte[] body)
+    {
+        const int requiredSize = 9;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        uint trapId = BitConverter.ToUInt32(body, 0);
+        int reason = body[4];
+        float cooldownSeconds =
+            BitConverter.ToSingle(body, 5);
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnEDestroy(
+                trapId,
+                reason,
+                cooldownSeconds
+            );
+        }
+    }
+
+    public void SendSentinelXCast(Vector3 position)
+    {
+        ushort size = 4 + 12;
+        ushort type =
+            (ushort)PacketType.PKT_CS_SENTINEL_X_CAST;
+
+        byte[] buffer = new byte[size];
+        int offset = 0;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(size),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        Buffer.BlockCopy(
+            BitConverter.GetBytes(type),
+            0,
+            buffer,
+            offset,
+            2
+        );
+        offset += 2;
+
+        float[] values =
+        {
+            position.x,
+            position.y,
+            position.z
+        };
+
+        foreach (float value in values)
+        {
+            Buffer.BlockCopy(
+                BitConverter.GetBytes(value),
+                0,
+                buffer,
+                offset,
+                4
+            );
+            offset += 4;
+        }
+
+        client.Send(buffer);
+
+        Debug.Log(
+            $"[SEND SENTINEL X CAST] position={position}"
+        );
+    }
+
+    private void HandleSentinelXSpawn(byte[] body)
+    {
+        const int requiredSize = 37;
+
+        if (body == null || body.Length < requiredSize)
+            return;
+
+        int offset = 0;
+
+        uint ultimateId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        uint ownerPlayerId =
+            BitConverter.ToUInt32(body, offset);
+        offset += 4;
+
+        int ownerTeam = body[offset];
+        offset += 1;
+
+        Vector3 position = new Vector3(
+            BitConverter.ToSingle(body, offset),
+            BitConverter.ToSingle(body, offset + 4),
+            BitConverter.ToSingle(body, offset + 8)
+        );
+        offset += 12;
+
+        float radius = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float duration = BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float slowMultiplier =
+            BitConverter.ToSingle(body, offset);
+        offset += 4;
+
+        float protectionDuration =
+            BitConverter.ToSingle(body, offset);
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnXSpawn(
+                ultimateId,
+                ownerPlayerId,
+                ownerTeam,
+                position,
+                radius,
+                duration,
+                slowMultiplier,
+                protectionDuration
+            );
+        }
+    }
+
+    private void HandleSentinelXDestroy(byte[] body)
+    {
+        if (body == null || body.Length < 4)
+            return;
+
+        uint ultimateId = BitConverter.ToUInt32(body, 0);
+
+        if (SentinelCNetworkManager.Instance != null)
+        {
+            SentinelCNetworkManager.Instance.OnXDestroy(
+                ultimateId
+            );
+        }
     }
 }

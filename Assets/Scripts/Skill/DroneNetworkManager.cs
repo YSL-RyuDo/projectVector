@@ -8,6 +8,11 @@ public class DroneNetworkManager : MonoBehaviour
     [SerializeField] private Drone _dronePrefab;
 
     private readonly Dictionary<uint, Drone> _drones = new();
+    private readonly Dictionary<uint, uint> _ownerDroneIds = new();
+
+    // droneId -> hp
+    private readonly Dictionary<uint, int> _droneHps = new();
+    private readonly Dictionary<uint, int> _droneMaxHps = new();
 
     private void Awake()
     {
@@ -41,12 +46,33 @@ public class DroneNetworkManager : MonoBehaviour
             return;
         }
 
+        // 같은 droneId가 이미 있으면 정리
         if (_drones.TryGetValue(droneId, out Drone oldDrone))
         {
             if (oldDrone != null)
-                return;
+                Destroy(oldDrone.gameObject);
 
             _drones.Remove(droneId);
+            _droneHps.Remove(droneId);
+            _droneMaxHps.Remove(droneId);
+        }
+
+        // 같은 owner가 이전 드론을 가지고 있으면 정리
+        if (_ownerDroneIds.TryGetValue(ownerPlayerId, out uint oldDroneId))
+        {
+            if (oldDroneId != droneId)
+            {
+                if (_drones.TryGetValue(oldDroneId, out Drone previousOwnerDrone))
+                {
+                    if (previousOwnerDrone != null)
+                        Destroy(previousOwnerDrone.gameObject);
+
+                    _drones.Remove(oldDroneId);
+                }
+
+                _droneHps.Remove(oldDroneId);
+                _droneMaxHps.Remove(oldDroneId);
+            }
         }
 
         Vector3 pos = new Vector3(x, y, z);
@@ -66,10 +92,7 @@ public class DroneNetworkManager : MonoBehaviour
                 FindPlayerIdentityById(ownerPlayerId);
 
             if (ownerIdentity != null)
-            {
-                ownerSkill =
-                    ownerIdentity.GetComponent<InitiatorSkill_Q>();
-            }
+                ownerSkill = ownerIdentity.GetComponent<InitiatorSkill_Q>();
         }
 
         drone.Init(
@@ -79,17 +102,40 @@ public class DroneNetworkManager : MonoBehaviour
             ownerSkill
         );
 
-        _drones.Add(droneId, drone);
+        _drones[droneId] = drone;
+        _ownerDroneIds[ownerPlayerId] = droneId;
+
+        // 서버 HP 패킷이 오기 전까지 기본값 100
+        _droneHps[droneId] = 100;
+        _droneMaxHps[droneId] = 100;
+
+        // 생성 시점 회전값도 바로 반영
+        if (!isMine)
+        {
+            drone.ApplyRemoteState(
+                pos,
+                yaw,
+                pitch
+            );
+        }
 
         if (isMine && ownerSkill != null)
         {
             ownerSkill.OnOwnerDroneSpawned(drone, droneId);
+
+            if (DroneHUDUI.Instance != null)
+                DroneHUDUI.Instance.SetDroneHp(100, 100);
+        }
+
+        if (SpectatorManager.Instance != null)
+        {
+            SpectatorManager.Instance.NotifyDroneStateChanged(ownerPlayerId);
         }
 
         Debug.Log(
             $"[DRONE SPAWN APPLY] " +
             $"droneId={droneId}, owner={ownerPlayerId}, " +
-            $"isMine={isMine}, pos={pos}"
+            $"isMine={isMine}, pos={pos}, yaw={yaw}, pitch={pitch}"
         );
     }
 
@@ -108,6 +154,9 @@ public class DroneNetworkManager : MonoBehaviour
         if (drone == null)
         {
             _drones.Remove(droneId);
+            _ownerDroneIds.Remove(ownerPlayerId);
+            _droneHps.Remove(droneId);
+            _droneMaxHps.Remove(droneId);
             return;
         }
 
@@ -127,7 +176,16 @@ public class DroneNetworkManager : MonoBehaviour
         byte reason)
     {
         if (!_drones.TryGetValue(droneId, out Drone drone))
+        {
+            _ownerDroneIds.Remove(ownerPlayerId);
+            _droneHps.Remove(droneId);
+            _droneMaxHps.Remove(droneId);
+
+            if (SpectatorManager.Instance != null)
+                SpectatorManager.Instance.NotifyDroneStateChanged(ownerPlayerId);
+
             return;
+        }
 
         bool isMine = drone != null && drone.IsMine;
 
@@ -135,6 +193,14 @@ public class DroneNetworkManager : MonoBehaviour
             Destroy(drone.gameObject);
 
         _drones.Remove(droneId);
+        _ownerDroneIds.Remove(ownerPlayerId);
+        _droneHps.Remove(droneId);
+        _droneMaxHps.Remove(droneId);
+
+        if (SpectatorManager.Instance != null)
+        {
+            SpectatorManager.Instance.NotifyDroneStateChanged(ownerPlayerId);
+        }
 
         if (!isMine)
             return;
@@ -150,6 +216,97 @@ public class DroneNetworkManager : MonoBehaviour
 
         if (skill != null)
             skill.OnOwnerDroneDestroyed(droneId);
+    }
+
+    public void OnDroneHpUpdate(
+        uint droneId,
+        uint ownerPlayerId,
+        int hp,
+        int maxHp)
+    {
+        maxHp = Mathf.Max(1, maxHp);
+        hp = Mathf.Clamp(hp, 0, maxHp);
+
+        _droneHps[droneId] = hp;
+        _droneMaxHps[droneId] = maxHp;
+
+        if (_drones.TryGetValue(droneId, out Drone drone))
+        {
+            if (drone != null)
+            {
+                drone.ApplyHp(hp, maxHp);
+            }
+            else
+            {
+                _drones.Remove(droneId);
+                _ownerDroneIds.Remove(ownerPlayerId);
+                _droneHps.Remove(droneId);
+                _droneMaxHps.Remove(droneId);
+                return;
+            }
+        }
+
+        bool isMyDrone =
+            NetworkManager.Instance != null &&
+            ownerPlayerId == NetworkManager.Instance.MyPlayerId;
+
+        bool isSpectatingThisDrone =
+            SpectatorManager.Instance != null &&
+            SpectatorManager.Instance.IsSpectating &&
+            SpectatorManager.Instance.CurrentTargetPlayerId == ownerPlayerId;
+
+        if ((isMyDrone || isSpectatingThisDrone) &&
+            DroneHUDUI.Instance != null)
+        {
+            DroneHUDUI.Instance.SetDroneHp(hp, maxHp);
+        }
+
+        Debug.Log(
+            $"[DRONE HP UPDATE APPLY] " +
+            $"droneId={droneId}, owner={ownerPlayerId}, " +
+            $"hp={hp}/{maxHp}, " +
+            $"isMyDrone={isMyDrone}, spectator={isSpectatingThisDrone}"
+        );
+    }
+
+    public bool TryGetActiveDroneByOwner(
+        uint ownerPlayerId,
+        out Drone drone)
+    {
+        drone = null;
+
+        if (!_ownerDroneIds.TryGetValue(ownerPlayerId, out uint droneId))
+            return false;
+
+        if (!_drones.TryGetValue(droneId, out drone))
+            return false;
+
+        if (drone == null)
+            return false;
+
+        return true;
+    }
+
+    public bool TryGetDroneHpByOwner(
+        uint ownerPlayerId,
+        out int hp,
+        out int maxHp)
+    {
+        hp = 100;
+        maxHp = 100;
+
+        if (!_ownerDroneIds.TryGetValue(ownerPlayerId, out uint droneId))
+            return false;
+
+        if (_droneHps.TryGetValue(droneId, out int storedHp))
+            hp = storedHp;
+
+        if (_droneMaxHps.TryGetValue(droneId, out int storedMaxHp))
+            maxHp = Mathf.Max(1, storedMaxHp);
+
+        hp = Mathf.Clamp(hp, 0, maxHp);
+
+        return true;
     }
 
     private PlayerIdentity FindPlayerIdentityById(uint playerId)
@@ -181,5 +338,8 @@ public class DroneNetworkManager : MonoBehaviour
         }
 
         _drones.Clear();
+        _ownerDroneIds.Clear();
+        _droneHps.Clear();
+        _droneMaxHps.Clear();
     }
 }

@@ -1,91 +1,180 @@
-using UnityEngine;
 using System.Collections;
-using System.Net.NetworkInformation;
-using static UnityEngine.Rendering.DebugUI;
+using UnityEngine;
 
 public class ElectricShock : MonoBehaviour
 {
-    private Coroutine _shockCoroutine;
+    [Header("Materials")]
+    [SerializeField] private Material _normalMaterial;
+    [SerializeField] private Material _shockMaterial;
 
-    [SerializeField] private Material _black;
-    [SerializeField] private Material _yellow;
-
+    [Header("Renderer")]
     [SerializeField] private Renderer _renderer;
 
+    [Header("Visual")]
+    [SerializeField] private float _defaultShockVisualDuration = 0.35f;
+
     private Animator _animator;
+    private Rigidbody _rb;
 
-    private float _damage = 0.01f;
-    private float _hp = 100f;
-    private int _shockCount = 0;
+    private Coroutine _shockVisualCoroutine;
+    private Coroutine _stunCoroutine;
 
-    // 외부 읽기 전용
-    public float Hp => _hp;
+    private int _shockCount;
+
     public int ShockCount => _shockCount;
+    public bool IsStunned { get; private set; }
 
-    private void Start()
+    private void Awake()
     {
         _animator = GetComponent<Animator>();
+        _rb = GetComponent<Rigidbody>();
+
+        if (_renderer == null)
+            _renderer = GetComponentInChildren<Renderer>(true);
+
+        if (_renderer != null && _normalMaterial == null)
+            _normalMaterial = _renderer.material;
     }
 
+    /*
+     * 주의:
+     * 이제 스택 판정은 서버가 한다.
+     * 이 함수는 클라이언트 시각 효과용으로만 쓴다.
+     * 여기서 _shockCount++ 하면 안 된다.
+     */
     public void Shock(float duration)
     {
-        if (_shockCoroutine != null) StopCoroutine(_shockCoroutine);
-
-        _shockCoroutine = StartCoroutine(shockRoutine(duration));
+        PlayShockVisual(duration);
     }
 
-    private IEnumerator shockRoutine(float duration)
+    public void PlayShockVisual(float duration = -1f)
     {
-        Debug.Log($"{gameObject.name} : 감전 시작");
+        if (duration <= 0f)
+            duration = _defaultShockVisualDuration;
 
-        _shockCount++;
+        if (_shockVisualCoroutine != null)
+            StopCoroutine(_shockVisualCoroutine);
 
-        var rb = GetComponent<Rigidbody>();
-        if (rb != null)
-            rb.linearVelocity = Vector3.zero;
+        _shockVisualCoroutine = StartCoroutine(ShockVisualRoutine(duration));
+    }
 
-        float elapsed = 0f;
+    private IEnumerator ShockVisualRoutine(float duration)
+    {
+        Debug.Log($"[SHOCK VISUAL START] {gameObject.name}");
 
-        while (elapsed < duration)
+        if (_rb != null)
+            _rb.linearVelocity = Vector3.zero;
+
+        if (_renderer != null && _shockMaterial != null)
+            _renderer.material = _shockMaterial;
+
+        yield return new WaitForSeconds(duration);
+
+        if (!IsStunned)
         {
-            Debug.Log($"{gameObject.name} Hp : {this._hp -= _damage}");
-            _renderer.material = _yellow;
-            elapsed += Time.deltaTime;
-            yield return null;
+            if (_renderer != null && _normalMaterial != null)
+                _renderer.material = _normalMaterial;
         }
 
-        _renderer.material = _black;
-        Debug.Log($"{gameObject.name} : 감전 종료");
-        Debug.Log($"{gameObject.name} : 스택 {_shockCount}");
+        Debug.Log($"[SHOCK VISUAL END] {gameObject.name}, stack={_shockCount}");
+    }
+
+    public void ApplyServerStatus(
+        int shockStack,
+        bool stunned,
+        float stunSeconds)
+    {
+        _shockCount = Mathf.Clamp(shockStack, 0, 3);
+
+        Debug.Log(
+            $"[ELECTRIC STATUS] {gameObject.name}, " +
+            $"stack={_shockCount}, stunned={stunned}, stunSeconds={stunSeconds}"
+        );
+
+        if (stunned)
+        {
+            ApplyStun(stunSeconds);
+            return;
+        }
+
+        // 서버가 스택만 갱신한 경우
+        if (_shockCount > 0)
+        {
+            PlayShockVisual(_defaultShockVisualDuration);
+        }
     }
 
     public void ApplyStun(float duration)
     {
-        Debug.Log($"<color=red>[STUN]</color> {gameObject.name} : {duration}초 동안 기절");
+        if (duration <= 0f)
+            return;
 
-        if (_shockCoroutine != null) StopCoroutine(_shockCoroutine);
+        Debug.Log($"<color=red>[STUN START]</color> {gameObject.name}, duration={duration}");
 
-        _shockCount = 0;
+        if (_stunCoroutine != null)
+            StopCoroutine(_stunCoroutine);
 
-        _shockCoroutine = StartCoroutine(stunRoutine(duration));
+        _stunCoroutine = StartCoroutine(StunRoutine(duration));
     }
 
-    private IEnumerator stunRoutine(float duration)
+    private IEnumerator StunRoutine(float duration)
     {
-        var rb = GetComponent<Rigidbody>();
-        if (rb != null) rb.linearVelocity = Vector3.zero;
+        IsStunned = true;
 
-        if (_animator != null) _animator.speed = 0f;
+        // E 스킬이 스택을 소모했으므로 클라 표시도 0으로 맞춘다.
+        _shockCount = 0;
 
-        _renderer.material = _yellow;
+        if (_shockVisualCoroutine != null)
+        {
+            StopCoroutine(_shockVisualCoroutine);
+            _shockVisualCoroutine = null;
+        }
+
+        if (_rb != null)
+            _rb.linearVelocity = Vector3.zero;
+
+        if (_animator != null)
+            _animator.speed = 0f;
+
+        if (_renderer != null && _shockMaterial != null)
+            _renderer.material = _shockMaterial;
 
         yield return new WaitForSeconds(duration);
 
-        if (_animator != null) _animator.speed = 1f;
+        IsStunned = false;
 
-        Debug.Log($"<color=cyan>[STUN END]</color> {gameObject.name} : 기절 풀림");
-        Debug.Log($"{gameObject.name} : 스택 {_shockCount}");
+        if (_animator != null)
+            _animator.speed = 1f;
 
-        _renderer.material = _black;
+        if (_renderer != null && _normalMaterial != null)
+            _renderer.material = _normalMaterial;
+
+        Debug.Log($"<color=cyan>[STUN END]</color> {gameObject.name}");
+
+        _stunCoroutine = null;
+    }
+
+    public void ClearElectricState()
+    {
+        _shockCount = 0;
+        IsStunned = false;
+
+        if (_shockVisualCoroutine != null)
+        {
+            StopCoroutine(_shockVisualCoroutine);
+            _shockVisualCoroutine = null;
+        }
+
+        if (_stunCoroutine != null)
+        {
+            StopCoroutine(_stunCoroutine);
+            _stunCoroutine = null;
+        }
+
+        if (_animator != null)
+            _animator.speed = 1f;
+
+        if (_renderer != null && _normalMaterial != null)
+            _renderer.material = _normalMaterial;
     }
 }

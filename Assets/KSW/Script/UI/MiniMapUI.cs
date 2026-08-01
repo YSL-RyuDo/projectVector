@@ -2,44 +2,27 @@ using UnityEngine;
 
 public class MiniMapUI : MonoBehaviour
 {
-    private FPSCameraLook _camera;
-
     [SerializeField] private GameObject _miniMapUIPanel;
     [SerializeField] private GameObject _background;
 
-    private ControllerSkill_E _smokeSkill;
-
-    private void OnEnable() => ControllerSkill_E.OnMiniMap += ToggleMiniMap;
-    private void OnDisable() => ControllerSkill_E.OnMiniMap -= ToggleMiniMap;
-
-    void Start()
+    private void OnEnable()
     {
-        _smokeSkill = GetComponentInParent<ControllerSkill_E>();
+        ControllerSkill_E.OnMiniMap += RefreshMiniMap;
     }
 
-    private void ToggleMiniMap()
+    private void OnDisable()
     {
-        bool isOpening = !_miniMapUIPanel.activeSelf;
+        ControllerSkill_E.OnMiniMap -= RefreshMiniMap;
+    }
 
-        if (_camera != null)
-        {
-            _camera.CanMove = !isOpening;
-        }
+    private void RefreshMiniMap()
+    {
+        bool active = ControllerSkill_E.IsSelectingSmoke;
 
-        if (isOpening)
-        {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-        }
-        else
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
+        if (_miniMapUIPanel != null)
+            _miniMapUIPanel.SetActive(active);
 
-        _smokeSkill.SetSelectingState(isOpening);
-
-        _miniMapUIPanel.SetActive(isOpening);
-        _background.SetActive(isOpening);
+        if (_background != null)
+            _background.SetActive(active);
     }
 }

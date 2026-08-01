@@ -65,6 +65,12 @@ public class SimplePistol : MonoBehaviour
         if (ownerHP != null && ownerHP.IsDead)
             return;
 
+        if (StorePanelUI.IsBlockingGameplayInput)
+        {
+            ForceCancelADS();
+            return;
+        }
+
         HandleADS();
 
         if (isReloading)
@@ -101,8 +107,24 @@ public class SimplePistol : MonoBehaviour
         );
     }
 
+    private void ForceCancelADS()
+    {
+        if (isADS)
+        {
+            isADS = false;
+            cameraLook?.SetADS(false);
+            weaponADS?.SetADS(false);
+        }
+
+        if (cam != null && weaponData != null)
+            cam.fieldOfView = weaponData.normalFOV;
+    }
+
     void TryFire()
     {
+        if (StorePanelUI.IsBlockingGameplayInput)
+            return;
+
         if (Time.time < nextFireTime || currentAmmo <= 0)
             return;
 

@@ -1,50 +1,59 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class DroneCamera : MonoBehaviour
 {
-    [Header("Mouse")]
-    [SerializeField] private float _baseSensitivity = 0.2f;
-    [SerializeField] private float _adsSensitivityMultiplier = 0.5f;
+    [Header("Camera")]
+    [SerializeField] private Camera _camera;
 
-    [Header("Recoil")]
-    [SerializeField] private float _recoilReturnSpeed = 10f;
+    [Header("FOV")]
+    [SerializeField] private float _normalFOV = 60f;
+    [SerializeField] private float _adsFOV = 40f;
 
-    private float _xRotation = 0f;
-    private float _yaw = 0f;
-    private float _recoilOffset = 0f;
-    private bool _isADS = false;
+    private bool _isADS;
 
-    private Transform _target;
-
-    private void Start()
+    private void Awake()
     {
-        _target = transform.parent;
-        _yaw = _target.eulerAngles.y;
-        _xRotation = transform.localEulerAngles.x;
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        if (_camera == null)
+            _camera = GetComponent<Camera>();
     }
 
-    private void Update()
+    public Camera Camera => _camera;
+
+    public float GetYaw()
     {
-        float sensitivity = _baseSensitivity * (_isADS ? _adsSensitivityMultiplier : 1f);
-        Vector2 mouseDelta = Mouse.current.delta.ReadValue();
-        float mouseX = mouseDelta.x * sensitivity;
-        float mouseY = mouseDelta.y * sensitivity;
+        Transform root = transform.parent;
 
-        _yaw += mouseX;
-        _target.rotation = Quaternion.Euler(0f, _yaw, 0f);
+        if (root != null)
+            return root.eulerAngles.y;
 
-        _xRotation -= mouseY;
-        _xRotation = Mathf.Clamp(_xRotation, -80f, 80f);
-
-        _recoilOffset = Mathf.Lerp(_recoilOffset, 0f, _recoilReturnSpeed * Time.deltaTime);
-        transform.localRotation = Quaternion.Euler(_xRotation + _recoilOffset, 0f, 0f);
+        return transform.eulerAngles.y;
     }
 
-    public float GetYaw() => _yaw;
-    public void AddRecoil(float amount) => _recoilOffset -= amount;
-    public void SetADS(bool ads) => _isADS = ads;
+    public float GetPitch()
+    {
+        float pitch = transform.localEulerAngles.x;
+
+        if (pitch > 180f)
+            pitch -= 360f;
+
+        return pitch;
+    }
+
+    public void AddRecoil(float amount)
+    {
+        // 드론 회전은 DroneMovement가 담당한다.
+        // 여기서 카메라 회전을 건드리면 네트워크 회전 동기화가 꼬인다.
+    }
+
+    public void SetADS(bool ads)
+    {
+        _isADS = ads;
+
+        if (_camera == null)
+            return;
+
+        _camera.fieldOfView = _isADS
+            ? _adsFOV
+            : _normalFOV;
+    }
 }

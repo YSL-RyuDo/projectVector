@@ -56,6 +56,8 @@ public class Weapon : Item
 
     private PlayerItem playerItem;
 
+    private WeaponSkinSlot skinSlot;
+
     void Awake()
     {
         audioSource = GetComponent<AudioSource>();
@@ -87,10 +89,6 @@ public class Weapon : Item
             cam = cameraController.PlayerCamera;
             cameraLook = cameraController.CameraLook;
         }
-        else
-        {
-            //Debug.LogWarning($"[WEAPON] PlayerCameraController not found. object={name}", this);
-        }
 
         weaponADS = GetComponent<WeaponADS>();
         _playerIdentity = GetComponentInParent<PlayerIdentity>();
@@ -101,6 +99,7 @@ public class Weapon : Item
         if (cameraController != null && cameraController.PlayerCamera != null)
         {
             Transform target = cameraController.PlayerCamera.transform.Find("ADSTarget");
+
             if (target != null)
             {
                 adsTarget = target;
@@ -109,23 +108,35 @@ public class Weapon : Item
         }
 
         GameObject ammoObj = GameObject.Find("AmmoText");
+
         if (ammoObj != null)
             ammoText = ammoObj.GetComponent<TMP_Text>();
-        //else
-        //Debug.LogWarning($"[WEAPON] AmmoText object not found. object={name}", this);
 
         GameObject crosshairObj = GameObject.Find("CrossHair");
+
         if (crosshairObj != null)
             crosshair = crosshairObj;
 
         playerItem = GetComponentInParent<PlayerItem>();
+
+        skinSlot = GetComponent<WeaponSkinSlot>();
+        if (skinSlot == null)
+            skinSlot = GetComponentInChildren<WeaponSkinSlot>(true);
     }
 
-    public void Initialize(WeaponData data, Transform dp, int mag, int reserve)
+    public void Initialize(
+        WeaponData data,
+        Transform dp,
+        int mag,
+        int reserve)
     {
         if (data == null)
         {
-            Debug.LogError($"[WEAPON INIT FAIL] WeaponData is null. object={name}", this);
+            Debug.LogError(
+                $"[WEAPON INIT FAIL] WeaponData is null. object={name}",
+                this
+            );
+
             enabled = false;
             return;
         }
@@ -144,67 +155,75 @@ public class Weapon : Item
             cameraController.SetFOV(weaponData.normalFOV);
         }
     }
+
     void Update()
     {
-        if (GameController.Instance != null && GameController.Instance.IsPaused) return;
-
-        if (Mouse.current == null) return;
-        if (Keyboard.current == null) return;
-
-        if (_playerIdentity == null) return;
-        if (NetworkManager.Instance == null) return;
-        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
-
-        if (InitiatorSkill_Q.IsLocalDroneMode)
-        {
-            if (isADS)
-            {
-                isADS = false;
-
-                cameraLook?.SetADS(false);
-                weaponADS?.SetADS(false);
-                playerMovement?.SetADS(false);
-
-                if (weaponData != null && cameraController != null)
-                    cameraController.SetFOV(weaponData.normalFOV);
-
-                crosshair?.SetActive(false);
-            }
-
-            return;
-        }
-
-        if (SettingsMenu.Instance != null && SettingsMenu.Instance.IsOpen)
+        if (GameController.Instance != null &&
+            GameController.Instance.IsPaused)
         {
             return;
         }
 
-        if (!isPlayer) return;
-        if (ownerHP != null && ownerHP.IsDead) return;
+        if (Mouse.current == null)
+            return;
 
-        if (weaponData == null) return;
+        if (Keyboard.current == null)
+            return;
+
+        if (_playerIdentity == null)
+            return;
+
+        if (NetworkManager.Instance == null)
+            return;
+
+        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
+            return;
+
+        if (ShouldBlockWeaponInput())
+            return;
+
+        if (SettingsMenu.Instance != null &&
+            SettingsMenu.Instance.IsOpen)
+        {
+            return;
+        }
+
+        if (!isPlayer)
+            return;
+
+        if (ownerHP != null && ownerHP.IsDead)
+            return;
+
+        if (weaponData == null)
+            return;
 
         HandleADS();
 
         if (playerItem != null && playerItem.IsReloading)
             return;
 
-        bool isFiringInput = IsAutomatic()
-            ? Mouse.current.leftButton.isPressed
-            : Mouse.current.leftButton.wasPressedThisFrame;
+        bool isFiringInput =
+            IsAutomatic()
+                ? Mouse.current.leftButton.isPressed
+                : Mouse.current.leftButton.wasPressedThisFrame;
 
         if (isFiringInput)
         {
-            bool cannotAttack = (RoundManager.Instance != null && !RoundManager.Instance.CanAttack);
-            if (cannotAttack) return;
+            bool cannotAttack =
+                RoundManager.Instance != null &&
+                !RoundManager.Instance.CanAttack;
+
+            if (cannotAttack)
+                return;
+
             OnUse();
         }
         else
         {
             currentShotIndex = 0;
-            //recoilSystem?.StopRecoil();
         }
     }
+
     void OnEnable()
     {
         isADS = false;
@@ -219,8 +238,100 @@ public class Weapon : Item
         StopAllCoroutines();
     }
 
+    private void ForceCancelADS()
+    {
+        if (!isADS)
+            return;
+
+        isADS = false;
+
+        cameraLook?.SetADS(false);
+        weaponADS?.SetADS(false);
+        playerMovement?.SetADS(false);
+
+        crosshair?.SetActive(true);
+
+        if (weaponData != null && cameraController != null)
+            cameraController.SetFOV(weaponData.normalFOV);
+    }
+
+    private bool ShouldBlockWeaponInput()
+    {
+        if (StorePanelUI.IsBlockingGameplayInput)
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
+        if (ControllerSkill_E.IsSelectingSmoke || ControllerSkill_E.IsSmokeMapOpen || ControllerSkill_E.IsBlockingWeaponInput)
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
+        if (EntrySkill_X.IsLocalBladeMode)
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
+        EntryDashMotor dashMotor = GetComponentInParent<EntryDashMotor>();
+
+        if (dashMotor != null && dashMotor.IsDashing)
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
+        ElectricShock myShock = GetComponentInParent<ElectricShock>();
+
+        if (myShock != null && myShock.IsStunned)
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
+        if (InitiatorSkill_Q.IsLocalDroneMode || InitiatorSkill_C.ShouldBlockWeaponInput())
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
+        if (SentinelSkill_C.ShouldBlockWeaponInput())
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
+        if (SentinelSkill_E.ShouldBlockWeaponInput())
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
+        if (SentinelSkill_X.ShouldBlockWeaponInput())
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
+
+        return false;
+    }
+
     private void HandleADS()
     {
+        if (ShouldBlockWeaponInput())
+            return;
+
         if (weaponData == null)
             return;
 
@@ -230,50 +341,31 @@ public class Weapon : Item
         if (cameraController.PlayerCamera == null)
             return;
 
-        // 권총과 샷건, 칼은 ADS 금지
         bool cannotADS =
             weaponData.weaponType == WeaponData.WeaponType.Pistol ||
             weaponData.weaponType == WeaponData.WeaponType.Shotgun ||
             weaponData.weaponType == WeaponData.WeaponType.Knife;
 
-        bool reloading = playerItem != null && playerItem.IsReloading;
+        bool reloading =
+            playerItem != null &&
+            playerItem.IsReloading;
 
         if (cannotADS || reloading)
         {
             if (isADS)
             {
                 isADS = false;
+
                 cameraLook?.SetADS(false);
                 weaponADS?.SetADS(false);
-
                 playerMovement?.SetADS(false);
             }
 
-            // ADS가 불가능하거나 장전 중이면 일반 크로스헤어를 표시한다.
             crosshair?.SetActive(true);
-
-            cameraController.SetFOV(weaponData.normalFOV);
-            return;
-        }
-
-        /*
-        if (cannotADS)
-        {
-            // 이전 무기에서 ADS 중이었다면 강제로 해제
-            if (isADS)
-            {
-                isADS = false;
-
-                cameraLook?.SetADS(false);
-                weaponADS?.SetADS(false);
-            }
-
-            // FOV도 일반 상태로 고정
             cameraController.SetFOV(weaponData.normalFOV);
 
             return;
         }
-        */
 
         if (Mouse.current == null)
             return;
@@ -287,22 +379,22 @@ public class Weapon : Item
 
             cameraLook?.SetADS(isADS);
             weaponADS?.SetADS(isADS);
-
             playerMovement?.SetADS(isADS);
 
-            // 조준 중에는 숨기고, 조준이 풀리면 다시 표시한다.
             crosshair?.SetActive(!isADS);
         }
 
-        float targetFOV = isADS
-            ? weaponData.adsFOV
-            : weaponData.normalFOV;
+        float targetFOV =
+            isADS
+                ? weaponData.adsFOV
+                : weaponData.normalFOV;
 
-        float nextFOV = Mathf.Lerp(
-            cameraController.PlayerCamera.fieldOfView,
-            targetFOV,
-            weaponData.adsSpeed * Time.deltaTime
-        );
+        float nextFOV =
+            Mathf.Lerp(
+                cameraController.PlayerCamera.fieldOfView,
+                targetFOV,
+                weaponData.adsSpeed * Time.deltaTime
+            );
 
         cameraController.SetFOV(nextFOV);
     }
@@ -310,6 +402,18 @@ public class Weapon : Item
     public override void OnUse()
     {
         base.OnUse();
+
+        if (ShouldBlockWeaponInput())
+            return;
+
+        EntrySkill_E beastStealth =
+            GetComponentInParent<EntrySkill_E>();
+
+        if (beastStealth != null &&
+            beastStealth.IsStealth)
+        {
+            NetworkManager.Instance?.SendBeastStealthCancel();
+        }
 
         if (weaponData == null)
             return;
@@ -326,11 +430,13 @@ public class Weapon : Item
         if (ownerHP != null && ownerHP.IsDead)
             return;
 
-        nextFireTime = Time.time + weaponData.fireRate;
+        nextFireTime =
+            Time.time + weaponData.fireRate;
 
         if (UsesAmmo())
         {
             currentAmmo--;
+
             UpdateAmmoUI();
 
             if (NetworkManager.Instance != null)
@@ -341,7 +447,9 @@ public class Weapon : Item
         FireCurrentWeapon();
         PlayLocalGunSound();
 
-        Debug.Log($"[WEAPON USE] weapon={weaponData.name}, ammo={currentAmmo}/{reserveAmmo}");
+        Debug.Log(
+            $"[WEAPON USE] weapon={weaponData.name}, ammo={currentAmmo}/{reserveAmmo}"
+        );
     }
 
     public void PlayFireVisualFromServer()
@@ -349,7 +457,9 @@ public class Weapon : Item
         PlayAttackRecoilVisual();
         PlayRemoteGunSound();
 
-        Debug.Log($"[REMOTE FIRE SOUND] playerId={_playerIdentity?.PlayerId}, weaponId={GetWeaponId()}");
+        Debug.Log(
+            $"[REMOTE FIRE SOUND] playerId={_playerIdentity?.PlayerId}, weaponId={GetWeaponId()}"
+        );
     }
 
     private void ConfigureWeaponAudioSource(AudioSource source)
@@ -368,8 +478,11 @@ public class Weapon : Item
 
     private void PlayLocalGunSound()
     {
-        if (weaponData == null || weaponData.gunSound == null)
+        if (weaponData == null ||
+            weaponData.gunSound == null)
+        {
             return;
+        }
 
         if (audioSource == null)
         {
@@ -379,15 +492,14 @@ public class Weapon : Item
                 audioSource = GetComponentInChildren<AudioSource>(true);
         }
 
-        if (audioSource != null && audioSource.isActiveAndEnabled)
+        if (audioSource != null &&
+            audioSource.isActiveAndEnabled)
         {
-            // 로컬 총소리도 같은 AudioSource를 사용하고 반드시 3D로 설정한다.
             ConfigureWeaponAudioSource(audioSource);
             audioSource.PlayOneShot(weaponData.gunSound);
             return;
         }
 
-        // AudioSource가 없는 예외 상황에서도 3D 임시 소스로 재생한다.
         PlayTemporarySpatialSound(
             weaponData.gunSound,
             transform.position,
@@ -397,12 +509,16 @@ public class Weapon : Item
 
     private void PlayRemoteGunSound()
     {
-        if (weaponData == null || weaponData.gunSound == null)
+        if (weaponData == null ||
+            weaponData.gunSound == null)
+        {
             return;
+        }
 
-        Vector3 soundPosition = _playerIdentity != null
-            ? _playerIdentity.transform.position
-            : transform.position;
+        Vector3 soundPosition =
+            _playerIdentity != null
+                ? _playerIdentity.transform.position
+                : transform.position;
 
         PlayTemporarySpatialSound(
             weaponData.gunSound,
@@ -419,23 +535,33 @@ public class Weapon : Item
         if (clip == null)
             return;
 
-        GameObject soundObject = new GameObject(objectName);
-        soundObject.transform.position = position;
+        GameObject soundObject =
+            new GameObject(objectName);
 
-        AudioSource source = soundObject.AddComponent<AudioSource>();
+        soundObject.transform.position =
+            position;
+
+        AudioSource source =
+            soundObject.AddComponent<AudioSource>();
+
         source.clip = clip;
         source.loop = false;
 
         ConfigureWeaponAudioSource(source);
+
         source.Play();
 
-        Destroy(soundObject, clip.length + 0.2f);
+        Destroy(
+            soundObject,
+            clip.length + 0.2f
+        );
     }
 
     public void PlayKnifeAttackVisualFromServer()
     {
         PlayAttackRecoilVisual();
     }
+
     private void PlayAttackRecoilVisual()
     {
         if (weaponData == null)
@@ -450,8 +576,7 @@ public class Weapon : Item
         if (recoilSystem == null)
         {
             Debug.LogWarning(
-                $"[ATTACK VISUAL] WeaponRecoil not found. " +
-                $"weapon={name}"
+                $"[ATTACK VISUAL] WeaponRecoil not found. weapon={name}"
             );
 
             return;
@@ -461,8 +586,7 @@ public class Weapon : Item
             weaponData.recoilPattern.Length == 0)
         {
             Debug.LogWarning(
-                $"[ATTACK VISUAL] recoilPattern is empty. " +
-                $"weapon={weaponData.name}"
+                $"[ATTACK VISUAL] recoilPattern is empty. weapon={weaponData.name}"
             );
 
             return;
@@ -474,8 +598,7 @@ public class Weapon : Item
                 0.15f
             );
 
-        if (Time.time - lastAttackVisualTime >
-            resetDelay)
+        if (Time.time - lastAttackVisualTime > resetDelay)
         {
             currentShotIndex = 0;
         }
@@ -491,10 +614,17 @@ public class Weapon : Item
                 ? weaponData.adsRecoilMultiplier
                 : weaponData.recoilMultiplier;
 
+        float recoveryDelay =
+            Mathf.Max(
+                weaponData.fireRate * 1.2f,
+                0.1f
+            );
+
         recoilSystem.FireRecoil(
             weaponData.recoilPattern[index],
             recoilMultiplier,
-            isADS
+            isADS,
+            recoveryDelay
         );
 
         currentShotIndex++;
@@ -503,17 +633,18 @@ public class Weapon : Item
 
     private void FireCurrentWeapon()
     {
+        if (ShouldBlockWeaponInput())
+            return;
+
         if (weaponData == null)
             return;
 
         switch (weaponData.weaponType)
         {
-            // 즉시 판정 무기
             case WeaponData.WeaponType.SR:
                 FireHitscan();
                 break;
 
-            // 실제 총알 오브젝트로 판정할 무기
             case WeaponData.WeaponType.AR:
             case WeaponData.WeaponType.SMG:
             case WeaponData.WeaponType.LMG:
@@ -539,6 +670,9 @@ public class Weapon : Item
 
     private void FireHitscan()
     {
+        if (ShouldBlockWeaponInput())
+            return;
+
         if (cam == null)
         {
             Debug.LogWarning("[WEAPON] FireHitscan failed. cam is null.");
@@ -551,8 +685,11 @@ public class Weapon : Item
             return;
         }
 
-        Vector3 shootDir = GetSpreadDirection(cam.transform.forward);
-        Ray ray = new Ray(cam.transform.position, shootDir);
+        Vector3 shootDir =
+            GetSpreadDirection(cam.transform.forward);
+
+        Ray ray =
+            new Ray(cam.transform.position, shootDir);
 
         Vector3 visualTargetPoint =
             ray.origin + shootDir * weaponData.range;
@@ -566,16 +703,54 @@ public class Weapon : Item
 
         if (hasHit)
         {
-            visualTargetPoint = hit.point;
+            visualTargetPoint =
+                hit.point;
 
             Debug.Log(
-                $"[HITSCAN HIT] object={hit.collider.name}, " +
-                $"root={hit.collider.transform.root.name}, " +
-                $"point={hit.point}"
+                $"[HITSCAN HIT] object={hit.collider.name}, root={hit.collider.transform.root.name}, point={hit.point}"
             );
 
-            // 핵심: 플레이어보다 드론을 먼저 검사해야 함
+            if (TryHandleScannerHit(hit))
+            {
+                SpawnBulletVisual(
+                    shootDir,
+                    visualTargetPoint
+                );
+
+                return;
+            }
+
             if (TryHandleDroneHit(hit))
+            {
+                SpawnBulletVisual(
+                    shootDir,
+                    visualTargetPoint
+                );
+
+                return;
+            }
+
+            if (TryHandleSentinelTrapHit(hit))
+            {
+                SpawnBulletVisual(
+                    shootDir,
+                    visualTargetPoint
+                );
+
+                return;
+            }
+
+            if (TryHandleSentinelQTrapHit(hit))
+            {
+                SpawnBulletVisual(
+                    shootDir,
+                    visualTargetPoint
+                );
+
+                return;
+            }
+
+            if (TryHandleSentinelETrapHit(hit))
             {
                 SpawnBulletVisual(
                     shootDir,
@@ -597,32 +772,44 @@ public class Weapon : Item
             visualTargetPoint
         );
     }
-    private bool TryGetFirstValidHit(Ray ray, float range, out RaycastHit result)
+
+    private bool TryGetFirstValidHit(
+        Ray ray,
+        float range,
+        out RaycastHit result)
     {
         result = default;
 
-        RaycastHit[] hits = Physics.RaycastAll(
-            ray,
-            range,
-            hitMask,
-            QueryTriggerInteraction.Ignore
+        RaycastHit[] hits =
+            Physics.RaycastAll(
+                ray,
+                range,
+                hitMask,
+                QueryTriggerInteraction.Ignore
+            );
+
+        if (hits == null ||
+            hits.Length == 0)
+        {
+            return false;
+        }
+
+        Array.Sort(
+            hits,
+            (a, b) => a.distance.CompareTo(b.distance)
         );
 
-        if (hits == null || hits.Length == 0)
-            return false;
-
-        Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-
-        Transform myRoot = transform.root;
+        Transform myRoot =
+            transform.root;
 
         for (int i = 0; i < hits.Length; i++)
         {
-            RaycastHit hit = hits[i];
+            RaycastHit hit =
+                hits[i];
 
             if (hit.collider == null)
                 continue;
 
-            // 내 캐릭터, 내 무기, 내 자식 콜라이더는 무시
             if (hit.collider.transform.root == myRoot)
                 continue;
 
@@ -659,7 +846,8 @@ public class Weapon : Item
         if (NetworkManager.Instance == null)
             return true;
 
-        Drone drone = droneHitbox.Drone;
+        Drone drone =
+            droneHitbox.Drone;
 
         if (drone != null &&
             drone.OwnerPlayerId == NetworkManager.Instance.MyPlayerId)
@@ -672,8 +860,7 @@ public class Weapon : Item
         }
 
         Debug.Log(
-            $"[DRONE HIT SEND] droneId={droneHitbox.DroneId}, " +
-            $"hitObject={hit.collider.name}"
+            $"[DRONE HIT SEND] droneId={droneHitbox.DroneId}, hitObject={hit.collider.name}"
         );
 
         HitManager.TriggerEnemyHit();
@@ -710,8 +897,7 @@ public class Weapon : Item
         }
 
         Debug.Log(
-            $"[HITSCAN PLAYER] targetPlayerId={targetIdentity.PlayerId}, " +
-            $"userId={targetIdentity.UserId}"
+            $"[HITSCAN PLAYER] targetPlayerId={targetIdentity.PlayerId}, userId={targetIdentity.UserId}"
         );
 
         HitManager.TriggerEnemyHit();
@@ -723,22 +909,28 @@ public class Weapon : Item
         return true;
     }
 
-    private void SpawnBulletVisual(Vector3 shootDir, Vector3 targetPoint)
+    private void SpawnBulletVisual(
+        Vector3 shootDir,
+        Vector3 targetPoint)
     {
-        if (bulletPrefab == null || firePoint == null)
+        if (bulletPrefab == null ||
+            firePoint == null)
+        {
             return;
+        }
 
-        GameObject bullet = Instantiate(
-            bulletPrefab,
-            firePoint.position,
-            Quaternion.LookRotation(shootDir)
-        );
+        GameObject bullet =
+            Instantiate(
+                bulletPrefab,
+                firePoint.position,
+                Quaternion.LookRotation(shootDir)
+            );
 
-        Bullet bulletScript = bullet.GetComponent<Bullet>();
+        Bullet bulletScript =
+            bullet.GetComponent<Bullet>();
 
         if (bulletScript != null)
         {
-            // Raycast 무기용 시각 효과 총알은 Hit 전송 금지
             bulletScript.Init(
                 _playerIdentity,
                 weaponData.range,
@@ -751,6 +943,9 @@ public class Weapon : Item
 
     public void FireProjectile()
     {
+        if (ShouldBlockWeaponInput())
+            return;
+
         if (cam == null)
         {
             Debug.LogWarning("[WEAPON] FireProjectile failed. cam is null.");
@@ -760,15 +955,17 @@ public class Weapon : Item
         if (weaponData == null)
             return;
 
-        if (bulletPrefab == null || firePoint == null)
+        if (bulletPrefab == null ||
+            firePoint == null)
+        {
             return;
+        }
+
+        Vector3 shootDir =
+            GetSpreadDirection(cam.transform.forward);
 
         Ray ray =
-            cam.ViewportPointToRay(
-                new Vector3(0.5f, 0.5f, 0f)
-            );
-
-        Vector3 targetPoint;
+            new Ray(cam.transform.position, shootDir);
 
         bool hasHit =
             TryGetFirstValidHit(
@@ -779,28 +976,25 @@ public class Weapon : Item
 
         if (hasHit)
         {
-            targetPoint = hit.point;
+            Debug.Log(
+                $"[PROJECTILE AIM HIT] object={hit.collider.name}, root={hit.collider.transform.root.name}, point={hit.point}"
+            );
 
-            // 핵심:
-            // Projectile 총도 조준선에 드론이 있으면 서버에 드론 피격 전송
-            TryHandleDroneHit(hit);
+            if (!TryHandleScannerHit(hit) &&
+                !TryHandleDroneHit(hit))
+            {
+                if (!TryHandleSentinelTrapHit(hit))
+                {
+                    if (!TryHandleSentinelQTrapHit(hit))
+                        TryHandleSentinelETrapHit(hit);
+                }
+            }
         }
-        else
-        {
-            targetPoint =
-                ray.origin + ray.direction * weaponData.range;
-        }
-
-        Vector3 baseDir =
-            (targetPoint - firePoint.position).normalized;
-
-        Vector3 shootDir =
-            GetSpreadDirection(baseDir);
 
         GameObject bullet =
             Instantiate(
                 bulletPrefab,
-                firePoint.position,
+                cam.transform.position,
                 Quaternion.LookRotation(shootDir)
             );
 
@@ -824,7 +1018,9 @@ public class Weapon : Item
             );
         }
 
-        Debug.Log($"[PROJECTILE FIRE] weapon={weaponData.name}");
+        Debug.Log(
+            $"[PROJECTILE FIRE] weapon={weaponData.name}"
+        );
     }
 
     void SetupStrategy()
@@ -840,15 +1036,17 @@ public class Weapon : Item
                 break;
 
             case WeaponData.WeaponType.Shotgun:
-                fireStrategy = new ShotGunFire(this, 12);
+                fireStrategy =
+                    new ShotGunFire(this, 12);
                 break;
 
             case WeaponData.WeaponType.Knife:
-                fireStrategy = new MeleeFire(
-                    this.transform,
-                    this.weaponData.range,
-                    this.weaponData.damage
-                );
+                fireStrategy =
+                    new MeleeFire(
+                        this.transform,
+                        this.weaponData.range,
+                        this.weaponData.damage
+                    );
                 break;
         }
     }
@@ -858,25 +1056,28 @@ public class Weapon : Item
         if (weaponData == null)
             return 0;
 
-        // 서버 ServerWeaponData의 weaponId별 탄창 크기와 동일하게 유지한다.
         switch (weaponData.weaponId)
         {
-            case 0: return 12;  // P92
-            case 1: return 7;   // P1911
-            case 2: return 6;   // R1895
-            case 3: return 20;  // UZI
-            case 4: return 30;  // UMP
-            case 5: return 5;   // S1897
-            case 6: return 5;   // AA12
-            case 7: return 12;  // Dragunov
-            case 8: return 30;  // M416
-            case 9: return 25;  // AK47
-            case 10: return 100; // M249
-            case 11: return 5;   // Kar98
-            case 12: return 5;   // AWM
-            case 13: return 0;   // Knife
+            case 0: return 12;
+            case 1: return 7;
+            case 2: return 6;
+            case 3: return 20;
+            case 4: return 30;
+            case 5: return 5;
+            case 6: return 5;
+            case 7: return 12;
+            case 8: return 30;
+            case 9: return 25;
+            case 10: return 100;
+            case 11: return 5;
+            case 12: return 5;
+            case 13: return 0;
+
             default:
-                return Mathf.Max(0, weaponData.magSize);
+                return Mathf.Max(
+                    0,
+                    weaponData.magSize
+                );
         }
     }
 
@@ -885,19 +1086,32 @@ public class Weapon : Item
         if (weaponData == null)
             return false;
 
-        if (weaponData.weaponType == WeaponData.WeaponType.Knife)
+        if (weaponData.weaponType ==
+            WeaponData.WeaponType.Knife)
+        {
             return false;
+        }
 
-        int maxAmmo = GetMagazineCapacity();
+        int maxAmmo =
+            GetMagazineCapacity();
 
         if (maxAmmo <= 0)
             return false;
 
-        // 탄창이 이미 가득 차 있음
+        bool isBuyPhase =
+            RoundManager.Instance != null &&
+            RoundManager.Instance.currentState ==
+            RoundManager.RoundState.Preparation;
+
+        if (isBuyPhase)
+        {
+            return currentAmmo < maxAmmo ||
+                   reserveAmmo < weaponData.maxReserveAmmo;
+        }
+
         if (currentAmmo >= maxAmmo)
             return false;
 
-        // 옮겨 담을 예비 탄약이 없음
         if (reserveAmmo <= 0)
             return false;
 
@@ -913,7 +1127,10 @@ public class Weapon : Item
             ammoText.text = $"{currentAmmo} / {reserveAmmo}";
 
         if (InGameUIManager.Instance != null)
-            InGameUIManager.Instance.SetBulletText(currentAmmo, reserveAmmo);
+            InGameUIManager.Instance.SetBulletText(
+                currentAmmo,
+                reserveAmmo
+            );
     }
 
     private bool ShouldUpdateAmmoUI()
@@ -921,8 +1138,11 @@ public class Weapon : Item
         if (_playerIdentity == null)
             _playerIdentity = GetComponentInParent<PlayerIdentity>();
 
-        if (_playerIdentity == null || NetworkManager.Instance == null)
+        if (_playerIdentity == null ||
+            NetworkManager.Instance == null)
+        {
             return false;
+        }
 
         if (SpectatorManager.Instance != null &&
             SpectatorManager.Instance.IsSpectating)
@@ -937,15 +1157,22 @@ public class Weapon : Item
 
     public void ReloadFull()
     {
-        currentAmmo = GetMagazineCapacity();
-        reserveAmmo = weaponData.maxReserveAmmo;
+        currentAmmo =
+            GetMagazineCapacity();
+
+        reserveAmmo =
+            weaponData.maxReserveAmmo;
+
         UpdateAmmoUI();
     }
 
-    public void SetAmmo(int mag, int reserve)
+    public void SetAmmo(
+        int mag,
+        int reserve)
     {
         currentAmmo = mag;
         reserveAmmo = reserve;
+
         UpdateAmmoUI();
     }
 
@@ -956,7 +1183,9 @@ public class Weapon : Item
 
     public void DropWeapon()
     {
-        Debug.LogWarning("[WEAPON] DropWeapon local drop disabled. Use PlayerItem server drop flow.");
+        Debug.LogWarning(
+            "[WEAPON] DropWeapon local drop disabled. Use PlayerItem server drop flow."
+        );
     }
 
     bool IsAutomatic()
@@ -968,6 +1197,15 @@ public class Weapon : Item
 
     bool IsMoving()
     {
+        EntryDashMotor dashMotor =
+            GetComponentInParent<EntryDashMotor>();
+
+        if (dashMotor != null &&
+            dashMotor.IsDashing)
+        {
+            return true;
+        }
+
         if (Keyboard.current == null)
             return false;
 
@@ -976,6 +1214,7 @@ public class Weapon : Item
             Keyboard.current.aKey.isPressed ||
             Keyboard.current.sKey.isPressed ||
             Keyboard.current.dKey.isPressed ||
+            playerMovement != null &&
             !playerMovement.GetIsGrounded();
     }
 
@@ -984,14 +1223,18 @@ public class Weapon : Item
         if (cam == null)
             return baseDirection.normalized;
 
-        float spread = isADS ? weaponData.adsSpread : weaponData.hipFireSpread;
+        float spread =
+            isADS
+                ? weaponData.adsSpread
+                : weaponData.hipFireSpread;
 
         if (IsMoving())
         {
             spread *= weaponData.moveSpreadMultiplier;
         }
 
-        Vector2 randomCircle = UnityEngine.Random.insideUnitCircle * spread;
+        Vector2 randomCircle =
+            UnityEngine.Random.insideUnitCircle * spread;
 
         Vector3 spreadDir =
             baseDirection +
@@ -1008,25 +1251,39 @@ public class Weapon : Item
 
     public void ThrowGrenade()
     {
-        if (bulletPrefab == null || firePoint == null)
+        if (ShouldBlockWeaponInput())
             return;
 
-        GameObject grenade = Instantiate(
-            bulletPrefab,
-            firePoint.position,
-            firePoint.rotation
-        );
+        if (bulletPrefab == null ||
+            firePoint == null)
+        {
+            return;
+        }
 
-        Rigidbody rb = grenade.GetComponent<Rigidbody>();
+        GameObject grenade =
+            Instantiate(
+                bulletPrefab,
+                firePoint.position,
+                firePoint.rotation
+            );
+
+        Rigidbody rb =
+            grenade.GetComponent<Rigidbody>();
 
         if (rb != null)
         {
-            rb.AddForce(firePoint.forward * weaponData.muzzleVelocity, ForceMode.Impulse);
+            rb.AddForce(
+                firePoint.forward * weaponData.muzzleVelocity,
+                ForceMode.Impulse
+            );
         }
     }
 
     public void FireRaycast()
     {
+        if (ShouldBlockWeaponInput())
+            return;
+
         FireHitscan();
     }
 
@@ -1035,7 +1292,8 @@ public class Weapon : Item
         if (weaponData == null)
             return false;
 
-        return weaponData.weaponType != WeaponData.WeaponType.Knife;
+        return weaponData.weaponType !=
+               WeaponData.WeaponType.Knife;
     }
 
     public int GetWeaponId()
@@ -1054,10 +1312,293 @@ public class Weapon : Item
         return weaponData.weight;
     }
 
-    // KSW: 무기 재장전 시간 리턴 함수 추가
     public float GetWeaponReLoadTime()
     {
-        if (weaponData == null) return 0;
+        if (weaponData == null)
+            return 0;
+
         return weaponData.reloadTime;
+    }
+
+    private bool TryHandleScannerHit(RaycastHit hit)
+    {
+        if (hit.collider == null)
+            return false;
+
+        ScannerHitbox scannerHitbox =
+            hit.collider.GetComponent<ScannerHitbox>();
+
+        if (scannerHitbox == null)
+        {
+            scannerHitbox =
+                hit.collider.GetComponentInParent<ScannerHitbox>();
+        }
+
+        if (scannerHitbox == null)
+            return false;
+
+        if (scannerHitbox.ScannerId == 0)
+        {
+            Debug.LogWarning("[SCANNER HIT] ScannerId is 0");
+            return true;
+        }
+
+        if (NetworkManager.Instance == null)
+            return true;
+
+        ScannerProjectile scanner =
+            scannerHitbox.Scanner;
+
+        if (scanner != null &&
+            scanner.OwnerPlayerId == NetworkManager.Instance.MyPlayerId)
+        {
+            Debug.Log(
+                $"[SCANNER HIT] ignored own scanner. scannerId={scannerHitbox.ScannerId}"
+            );
+
+            return true;
+        }
+
+        NetworkManager.Instance.SendScannerHit(
+            scannerHitbox.ScannerId
+        );
+
+        Debug.Log(
+            $"[SCANNER HIT SEND] scannerId={scannerHitbox.ScannerId}"
+        );
+
+        return true;
+    }
+
+    private bool TryHandleSentinelTrapHit(RaycastHit hit)
+    {
+        if (hit.collider == null)
+            return false;
+
+        Sentinel_Trap trap =
+            hit.collider.GetComponent<Sentinel_Trap>();
+
+        if (trap == null)
+        {
+            trap =
+                hit.collider.GetComponentInParent<Sentinel_Trap>();
+        }
+
+        if (trap == null)
+            return false;
+
+        if (trap.TrapId == 0)
+        {
+            Debug.LogWarning("[SENTINEL C HIT] TrapId is 0");
+            return true;
+        }
+
+        if (NetworkManager.Instance == null)
+            return true;
+
+        if (trap.OwnerPlayerId == NetworkManager.Instance.MyPlayerId)
+        {
+            Debug.Log(
+                $"[SENTINEL C HIT] ignored own trap. trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        if (_playerIdentity != null &&
+            _playerIdentity.Team == trap.OwnerTeam)
+        {
+            Debug.Log(
+                $"[SENTINEL C HIT] ignored friendly trap. trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        if (SentinelCNetworkManager.Instance != null &&
+            SentinelCNetworkManager.Instance.IsSkillProtected(
+                trap.OwnerPlayerId
+            ))
+        {
+            Debug.Log(
+                $"[SENTINEL C HIT] protected by X. trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        if (weaponData == null)
+            return true;
+
+        HitManager.TriggerEnemyHit();
+
+        NetworkManager.Instance.SendSentinelCHit(
+            trap.TrapId,
+            weaponData.damage
+        );
+
+        Debug.Log(
+            $"[SENTINEL C HIT SEND] trapId={trap.TrapId}, damage={weaponData.damage}"
+        );
+
+        return true;
+    }
+
+    private bool TryHandleSentinelQTrapHit(RaycastHit hit)
+    {
+        if (hit.collider == null)
+            return false;
+
+        Sentinel_SlowTrap trap =
+            hit.collider.GetComponent<Sentinel_SlowTrap>();
+
+        if (trap == null)
+        {
+            trap =
+                hit.collider.GetComponentInParent<Sentinel_SlowTrap>();
+        }
+
+        if (trap == null)
+            return false;
+
+        if (trap.TrapId == 0)
+        {
+            Debug.LogWarning("[SENTINEL Q HIT] TrapId is 0");
+            return true;
+        }
+
+        if (NetworkManager.Instance == null)
+            return true;
+
+        if (trap.OwnerPlayerId == NetworkManager.Instance.MyPlayerId)
+        {
+            Debug.Log(
+                $"[SENTINEL Q HIT] ignored own trap. trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        if (_playerIdentity != null &&
+            _playerIdentity.Team == trap.OwnerTeam)
+        {
+            Debug.Log(
+                $"[SENTINEL Q HIT] ignored friendly trap. trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        if (SentinelCNetworkManager.Instance != null &&
+            SentinelCNetworkManager.Instance.IsSkillProtected(
+                trap.OwnerPlayerId
+            ))
+        {
+            Debug.Log(
+                $"[SENTINEL Q HIT] protected by X. trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        HitManager.TriggerEnemyHit();
+        NetworkManager.Instance.SendSentinelQHit(trap.TrapId);
+
+        Debug.Log(
+            $"[SENTINEL Q HIT SEND] trapId={trap.TrapId}"
+        );
+
+        return true;
+    }
+
+    private bool TryHandleSentinelETrapHit(RaycastHit hit)
+    {
+        if (hit.collider == null)
+            return false;
+
+        TrapDevice trap =
+            hit.collider.GetComponent<TrapDevice>();
+
+        if (trap == null)
+        {
+            trap =
+                hit.collider.GetComponentInParent<TrapDevice>();
+        }
+
+        if (trap == null)
+            return false;
+
+        if (trap.TrapId == 0)
+        {
+            Debug.LogWarning("[SENTINEL E HIT] TrapId is 0");
+            return true;
+        }
+
+        if (NetworkManager.Instance == null)
+            return true;
+
+        if (trap.OwnerPlayerId ==
+            NetworkManager.Instance.MyPlayerId)
+        {
+            Debug.Log(
+                $"[SENTINEL E HIT] ignored own trap. " +
+                $"trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        if (_playerIdentity != null &&
+            _playerIdentity.Team == trap.OwnerTeam)
+        {
+            Debug.Log(
+                $"[SENTINEL E HIT] ignored friendly trap. " +
+                $"trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        if (SentinelCNetworkManager.Instance != null &&
+            SentinelCNetworkManager.Instance.IsSkillProtected(
+                trap.OwnerPlayerId
+            ))
+        {
+            Debug.Log(
+                $"[SENTINEL E HIT] protected by X. " +
+                $"trapId={trap.TrapId}"
+            );
+
+            return true;
+        }
+
+        HitManager.TriggerEnemyHit();
+        NetworkManager.Instance.SendSentinelEHit(trap.TrapId);
+
+        Debug.Log(
+            $"[SENTINEL E HIT SEND] trapId={trap.TrapId}"
+        );
+
+        return true;
+    }
+
+    public void ApplySkin(WeaponSkinData skin, WeaponData expectedWeapon)
+    {
+        if (skin != null && skin.baseWeapon != null && skin.baseWeapon != expectedWeapon)
+        {
+            Debug.LogWarning(
+                $"[WEAPON SKIN] mismatch. skin={skin.name} expects {skin.baseWeapon.name}, " +
+                $"but current weapon is {expectedWeapon.name}. Skin not applied."
+            );
+            return;
+        }
+
+        if (skinSlot == null)
+        {
+            Debug.LogWarning($"[WEAPON SKIN] WeaponSkinSlot missing on {name}. Skin cannot be applied.");
+            return;
+        }
+
+        skinSlot.ApplySkin(skin);
     }
 }
