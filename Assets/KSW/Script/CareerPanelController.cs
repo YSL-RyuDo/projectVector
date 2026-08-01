@@ -133,24 +133,19 @@ public class CareerPanelController : MonoBehaviour
     [SerializeField] private Button _rankIconInfoButton;
     [SerializeField] private Button _seasonRewardButton;
 
-    // --- 실제 내부 수치 데이터 (float/int 관리) ---
-    private string _rankName = "원소 II";
-    private int _currentPoint = 11;
-    private int _maxPoint = 100;
+    [SerializeField] private string _rankName = "원소 II";
+    [SerializeField] private int _currentPoint = 11;
+    [SerializeField] private int _maxPoint = 100;
 
-    private int _rankCount = 5;               // 횟수는 int
-    private float _roundKillCount = 1.24f;     // 소수점 -> float
-    private float _winRate = 0.60f;            // 60% -> float (0.6f)
-    private float _avgDamage = 383.28f;        // 소수점 -> float
-    private int _mvpCount = 3;                 // 횟수는 int
-    private int _remainingSeasonDays = 65;     // 남은 일수는 int
+    [SerializeField] private int _rankCount = 5;                // 횟수는 int
+    [SerializeField] private float _roundKillCount = 1.24f;     // 소수점 -> float
+    [SerializeField] private float _winRate = 0.60f;            // 60% -> float (0.6f)
+    [SerializeField] private float _avgDamage = 383.28f;        // 소수점 -> float
+    [SerializeField] private int _mvpCount = 3;                 // 횟수는 int
+    [SerializeField] private int _remainingSeasonDays = 65;     // 남은 일수는 int
 
-    /// <summary>
-    /// float/int 수치 데이터를 UI 텍스트 형태로 변환하여 갱신합니다.
-    /// </summary>
     public void UpdateRankPanelData()
     {
-        // 1. 메인 정보
         if (_rankNameText != null) _rankNameText.text = _rankName;
 
         if (_rankPointSlider != null)
@@ -161,26 +156,16 @@ public class CareerPanelController : MonoBehaviour
         }
         if (_rankPointText != null) _rankPointText.text = $"{_currentPoint} / {_maxPoint}";
 
-        // 2. 통계 정보 (float 포맷팅 적용)
         if (_rankCountText != null)
             _rankCountText.text = _rankCount.ToString();
-
-        // 소수점 둘째 자리까지 표시 ("F2") -> 1.24
         if (_roundKillCountText != null)
             _roundKillCountText.text = _roundKillCount.ToString("F2");
-
-        // float(0.6f)를 백분율 퍼센트 텍스트("P0" 또는 계산)로 출력 -> 60%
         if (_winRateText != null)
             _winRateText.text = $"{(_winRate * 100f):F0}%";
-
-        // 소수점 둘째 자리까지 표시 ("F2") -> 383.28
         if (_avgDamageText != null)
             _avgDamageText.text = _avgDamage.ToString("F2");
-
         if (_mvpCountText != null)
             _mvpCountText.text = _mvpCount.ToString();
-
-        // 3. 시즌 안내
         if (_seasonNoticeText != null)
             _seasonNoticeText.text = $"현재 시즌은 {_remainingSeasonDays}일 후 종료됩니다";
     }
