@@ -1,41 +1,47 @@
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
 
+[RequireComponent(typeof(Rigidbody))]
 public class SwampTrap : MonoBehaviour
 {
-    [SerializeField] private GameObject _areaPrefab;
-    [SerializeField] private float _duration = 5f;
-    [SerializeField] private float _decalSize = 3f;
+    private uint _trapId;
+    private uint _ownerPlayerId;
+    private bool _isMine;
+    private bool _initialized;
+    private bool _activated;
+
+    public uint TrapId => _trapId;
+    public uint OwnerPlayerId => _ownerPlayerId;
+
+    public void InitFromServer(uint trapId, uint ownerPlayerId, bool isMine)
+    {
+        _trapId = trapId;
+        _ownerPlayerId = ownerPlayerId;
+        _isMine = isMine;
+        _initialized = true;
+        _activated = false;
+    }
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (collision.contacts[0].normal.y > 0.7f)
+        if (!_initialized) return;
+        if (_activated) return;
+        if (!_isMine) return;
+        if (collision.contactCount <= 0) return;
+
+        ContactPoint bestContact = collision.contacts[0];
+
+        for (int i = 1; i < collision.contactCount; i++)
         {
-            ContactPoint contact = collision.contacts[0];
-
-            Quaternion spawnRot = Quaternion.FromToRotation(Vector3.up, contact.normal);
-
-            spawnRot *= Quaternion.Euler(90, 0, 0);
-
-            Vector3 spawnPos = contact.point + contact.normal * 0.1f;
-
-            GameObject area = Instantiate(_areaPrefab, spawnPos, spawnRot);
-
-            var projector = area.GetComponentInChildren<DecalProjector>();
-            if (projector != null)
-            {
-                projector.size = new Vector3(_decalSize, _decalSize, 0.3f);
-            }
-
-            var col = area.GetComponent<BoxCollider>();
-            if (col != null)
-            {
-                col.size = new Vector3(_decalSize, _decalSize, 0.5f);
-                col.center = new Vector3(0, 0, 0);
-            }
-
-            Destroy(area, _duration);
-            Destroy(gameObject);
+            if (collision.contacts[i].normal.y > bestContact.normal.y)
+                bestContact = collision.contacts[i];
         }
+
+        if (bestContact.normal.y < 0.75f)
+            return;
+
+        _activated = true;
+
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SendControllerSwampActivate(_trapId, bestContact.point, Vector3.up);
     }
 }

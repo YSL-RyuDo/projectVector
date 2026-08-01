@@ -1,97 +1,133 @@
 using UnityEngine;
-using System.Collections;
+using UnityEngine.InputSystem;
 
 public class EntrySkill_C : CharacterSkill
 {
-    private CharacterController _cc;
-    private Animator _animator;
+    [Header("References")]
+    [SerializeField] private Transform _cameraTransform;
 
-    [SerializeField] private float _dashWaitTime = 3.0f;
-    [SerializeField] private float _dashForce = 35f;
-    [SerializeField] private float _dashDuration = 0.3f;
+    [Header("Cast")]
+    [SerializeField] private float _castLockTime = 0.25f;
 
-    [SerializeField] private float _crouchY = 0.75f;
-    [SerializeField] private float _standY = 1.2f;
-    [SerializeField] private float _smoothSpeed = 10f;
+    private PlayerIdentity _playerIdentity;
+    private ElectricShock _electricShock;
 
-    [SerializeField] private Transform _camera;
+    private bool _isCasting;
 
-    private bool _isSkillActive = false;
-    private Coroutine _skillCoroutine;
-
-    void Start()
+    private void Awake()
     {
-        _cc = GetComponent<CharacterController>();
-        _animator = GetComponentInChildren<Animator>();
+        _playerIdentity =
+            GetComponent<PlayerIdentity>();
+
+        _electricShock =
+            GetComponent<ElectricShock>();
+
+        if (_electricShock == null)
+            _electricShock =
+                GetComponentInChildren<ElectricShock>(true);
     }
 
-    void Update()
+    private void Start()
     {
-        if (Input.GetKeyDown(KeyCode.C) && !_isSkillActive)
+        if (_cameraTransform == null)
+        {
+            Camera cam =
+                Camera.main;
+
+            if (cam != null)
+                _cameraTransform = cam.transform;
+        }
+    }
+
+    private void Update()
+    {
+        if (!IsMine())
+            return;
+
+        if (_isCasting)
+            return;
+
+        if (Keyboard.current == null)
+            return;
+
+        if (InGameChatUI.IsChatOpen)
+            return;
+
+        if (GameController.Instance != null &&
+            GameController.Instance.IsPaused)
+            return;
+
+        if (SettingsMenu.Instance != null &&
+            SettingsMenu.Instance.IsOpen)
+            return;
+
+        if (InitiatorSkill_Q.IsLocalDroneMode)
+            return;
+
+        if (InitiatorSkill_C.ShouldBlockWeaponInput())
+            return;
+
+        if (_electricShock != null &&
+            _electricShock.IsStunned)
+            return;
+
+        if (Keyboard.current.cKey.wasPressedThisFrame)
         {
             UseSkill();
         }
-        handleCameraHeight();
+    }
 
-        if (_isSkillActive && _animator != null && _cc != null)
-        {
-            bool isMoving = _cc.velocity.magnitude > 0.1f;
-            _animator.SetBool("Crouch_Walk", isMoving);
-        }
+    private bool IsMine()
+    {
+        return _playerIdentity != null &&
+               NetworkManager.Instance != null &&
+               _playerIdentity.PlayerId ==
+               NetworkManager.Instance.MyPlayerId;
     }
 
     protected override void UseSkill()
     {
-        _skillCoroutine = StartCoroutine(SkillSequence());
-    }
+        if (!CanUsePurchasedSkill(SkillSlot.C))
+            return;
 
-    private IEnumerator SkillSequence()
-    {
-        _isSkillActive = true;
-        _animator.SetBool("Crouch", true);
+        if (NetworkManager.Instance == null)
+            return;
 
-        yield return new WaitForSeconds(_dashWaitTime);
+        Vector3 dir;
 
-        _animator.speed = 2f;
+        if (_cameraTransform != null)
+            dir = _cameraTransform.forward;
+        else
+            dir = transform.forward;
 
-        float timer = 0f;
-        Vector3 dashDir = transform.forward;
-        dashDir.y = 0;
-        dashDir.Normalize();
+        dir.y = 0f;
 
-        while (timer < _dashDuration)
+        if (dir.sqrMagnitude <= 0.0001f)
+            dir = transform.forward;
+
+        dir.Normalize();
+
+        EntrySkill_E stealth =
+            GetComponent<EntrySkill_E>();
+
+        if (stealth != null &&
+            stealth.IsStealth)
         {
-            _cc.Move(dashDir * _dashForce * Time.deltaTime);
-            timer += Time.deltaTime;
-            yield return null;
+            NetworkManager.Instance.SendBeastStealthCancel();
         }
 
-        _animator.speed = 1f;
+        NetworkManager.Instance.SendEntryDashCast(dir);
 
-        resetStates();
+        _isCasting = true;
+        Invoke(nameof(ResetCast), _castLockTime);
+
+        Debug.Log(
+            $"[ENTRY DASH REQUEST] dir={dir}"
+        );
     }
 
-    private void resetStates()
+    private void ResetCast()
     {
-        _isSkillActive = false;
-        _animator.SetBool("Crouch", false);
-        _animator.SetBool("Crouch_Walk", false);
-        
-        if (_skillCoroutine != null)
-        {
-            StopCoroutine(_skillCoroutine);
-            _skillCoroutine = null;
-        }
-    }
-
-    private void handleCameraHeight()
-    {
-        if (_camera == null) return;
-
-        float targetY = _isSkillActive ? _crouchY : _standY;
-        Vector3 currentPos = _camera.localPosition;
-        float nextY = Mathf.Lerp(currentPos.y, targetY, Time.deltaTime * _smoothSpeed);
-
-        _camera.localPosition = new Vector3(currentPos.x, nextY, currentPos.z);
+        _isCasting = false;
     }
 }

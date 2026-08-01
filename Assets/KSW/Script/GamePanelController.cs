@@ -224,20 +224,20 @@ public class GamePanelController : MonoBehaviour
 
     private void Update()
     {
-        if (roomPanelUI != null && roomPanelUI.IsRoomOpen())
-        {
-            if (roomPanelUI.IsLeaveConfirmOpen())
-            {
-                roomPanelUI.HideLeaveConfirmPanel();
-            }
-            else
-            {
-                afterRoomLeaveAction = AfterRoomLeaveAction.OpenRoomList;
-                roomPanelUI.ShowLeaveConfirmPanel();
-            }
+        //if (roomPanelUI != null && roomPanelUI.IsRoomOpen())
+        //{
+        //    if (roomPanelUI.IsLeaveConfirmOpen())
+        //    {
+        //        roomPanelUI.HideLeaveConfirmPanel();
+        //    }
+        //    else
+        //    {
+        //        afterRoomLeaveAction = AfterRoomLeaveAction.OpenRoomList;
+        //        roomPanelUI.ShowLeaveConfirmPanel();
+        //    }
 
-            return;
-        }
+        //    return;
+        //}
     }
 
     private void HideAllTempGameSlots()

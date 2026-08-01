@@ -67,6 +67,9 @@ public class InitiatorSkill_E : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!CanUsePurchasedSkill(SkillSlot.E))
+            return;
+
         if (NetworkManager.Instance == null)
             return;
 

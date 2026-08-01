@@ -18,6 +18,18 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private Image eSkillImage;
     [SerializeField] private Image xSkillImage;
 
+    [Header("Skill State Colors")]
+    [SerializeField] private Color lockedSkillColor = new Color(0.35f, 0.35f, 0.35f, 1f);
+    [SerializeField] private Color availableSkillColor = Color.white;
+    [SerializeField] private Color usedSkillColor = new Color(0.14f, 0.14f, 0.14f, 1f);
+
+    [Header("Skill Gauge Images")]
+    [SerializeField] private Image cSkillGauge;
+    [SerializeField] private Image qSkillGauge;
+    [SerializeField] private Image eSkillGauge;
+    [SerializeField] private Image xSkillGauge;
+    [SerializeField] private Color availableGaugeColor = new Color(0.25f, 0.9f, 0.8f, 1f);
+
     [Header("Weapon Info")]
     [SerializeField] private Image mainWeaponImage;
     [SerializeField] private Image subWeaponImage;
@@ -49,7 +61,9 @@ public class InGameUIManager : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        SkillInventoryState.Changed += RefreshSkillAvailability;
 
+        ResolveSkillGaugeReferences();
         ResolveCrosshairReference();
 
         if (spikeImage != null)
@@ -62,6 +76,14 @@ public class InGameUIManager : MonoBehaviour
         }
     }
 
+
+    private void OnDestroy()
+    {
+        SkillInventoryState.Changed -= RefreshSkillAvailability;
+
+        if (Instance == this)
+            Instance = null;
+    }
     private void ResolveCrosshairReference()
     {
         if (crosshairObject != null)
@@ -156,6 +178,7 @@ public class InGameUIManager : MonoBehaviour
         SetSkillIcon(qSkillImage, data.qSkill);
         SetSkillIcon(eSkillImage, data.eSkill);
         SetSkillIcon(xSkillImage, data.xSkill);
+        RefreshSkillAvailability();
     }
 
     private void SetSkillIcon(Image targetImage, PickSkillData skillData)
@@ -173,7 +196,66 @@ public class InGameUIManager : MonoBehaviour
         targetImage.enabled = true;
         targetImage.sprite = skillData.skillIcon;
     }
+    public void RefreshSkillAvailability()
+    {
+        SetSkillStateVisual(cSkillImage, cSkillGauge, SkillSlot.C);
+        SetSkillStateVisual(qSkillImage, qSkillGauge, SkillSlot.Q);
+        SetSkillStateVisual(eSkillImage, eSkillGauge, SkillSlot.E);
+        SetSkillStateVisual(xSkillImage, xSkillGauge, SkillSlot.X);
+    }
 
+    private void SetSkillStateVisual(
+        Image targetImage,
+        Image gaugeImage,
+        SkillSlot slot)
+    {
+        bool canUse = SkillInventoryState.CanUse(slot);
+        bool used = SkillInventoryState.IsUsed(slot);
+
+        if (targetImage != null && targetImage.sprite != null)
+        {
+            targetImage.color = canUse
+                ? availableSkillColor
+                : used
+                    ? usedSkillColor
+                    : lockedSkillColor;
+        }
+
+        if (gaugeImage == null)
+            return;
+
+        gaugeImage.type = Image.Type.Filled;
+        gaugeImage.fillMethod = Image.FillMethod.Horizontal;
+        gaugeImage.fillOrigin = 0;
+        gaugeImage.fillClockwise = true;
+        gaugeImage.fillAmount = canUse || used ? 1f : 0f;
+        gaugeImage.color = canUse
+            ? availableGaugeColor
+            : usedSkillColor;
+    }
+
+    private void ResolveSkillGaugeReferences()
+    {
+        cSkillGauge = ResolveSkillGauge(cSkillImage, cSkillGauge, "CSkillGauge");
+        qSkillGauge = ResolveSkillGauge(qSkillImage, qSkillGauge, "QSkillGauge");
+        eSkillGauge = ResolveSkillGauge(eSkillImage, eSkillGauge, "ESkillGauge");
+        xSkillGauge = ResolveSkillGauge(xSkillImage, xSkillGauge, "XSkillGauge");
+    }
+
+    private Image ResolveSkillGauge(
+        Image skillImage,
+        Image currentGauge,
+        string childName)
+    {
+        if (currentGauge != null)
+            return currentGauge;
+
+        if (skillImage == null)
+            return null;
+
+        Transform child = skillImage.transform.Find(childName);
+        return child != null ? child.GetComponent<Image>() : null;
+    }
     public void SetHpBarrier(int hp, int barrier, int maxHpValue, int maxBarrierValue)
     {
         currentHp = Mathf.Clamp(hp, 0, Mathf.Max(1, maxHpValue));
@@ -203,14 +285,14 @@ public class InGameUIManager : MonoBehaviour
 
     public void PlayDamageFeedback()
     {
-        HitEffect hitEffect = FindFirstObjectByType<HitEffect>();
-
-        if (hitEffect == null)
+        if (DreamForestPostProcessFeedback.Instance != null)
+        {
+            DreamForestPostProcessFeedback.Instance.PlayHit();
             return;
+        }
 
-        hitEffect.OnHit();
+        Debug.LogWarning("[INGAME UI] DreamForestPostProcessFeedback.Instance is null");
     }
-
     private void InitializeWeaponUI()
     {
         SetMainWeapon(null);
