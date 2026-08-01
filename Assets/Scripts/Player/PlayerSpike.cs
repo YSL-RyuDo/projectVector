@@ -60,6 +60,9 @@ public class PlayerSpike : MonoBehaviour
         if (RoundManager.Instance != null &&
             RoundManager.Instance.currentState == RoundManager.RoundState.Preparation)
         {
+            if (Keyboard.current.fKey.wasPressedThisFrame)
+                playerItem?.TryPickupLookedItem();
+
             return;
         }
 
@@ -110,7 +113,11 @@ public class PlayerSpike : MonoBehaviour
         if (RoundManager.Instance != null &&
             RoundManager.Instance.currentState == RoundManager.RoundState.Preparation)
         {
-            InteractionPromptUI.Instance.Hide();
+            if (playerItem != null && playerItem.IsLookingAtPickupItem())
+                InteractionPromptUI.Instance.Show("무기 변경");
+            else
+                InteractionPromptUI.Instance.Hide();
+
             return;
         }
 

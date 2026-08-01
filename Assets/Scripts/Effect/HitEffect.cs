@@ -1,52 +1,71 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 public class HitEffect : MonoBehaviour
 {
     [Header("컴포넌트 연결")]
-    public Volume postProcessVolume;
+    [SerializeField] private Volume postProcessVolume;
 
     [Header("Vignette 설정")]
-    public float hitIntensity = 0.6f;
-    public float normalIntensity = 0.2f;
-    public float fadeSpeed = 3f;
+    [SerializeField] private float hitIntensity = 0.6f;
+    [SerializeField] private float normalIntensity = 0.2f;
+    [SerializeField] private float fadeSpeed = 3f;
 
-    private Vignette _vignette;
-    private Coroutine _fadeCoroutine;
+    private Vignette vignette;
+    private bool isHit;
 
-    void Start()
+    private void Awake()
     {
-        if (postProcessVolume.profile.TryGet(out _vignette))
+        if (postProcessVolume == null)
+            postProcessVolume = GetComponent<Volume>();
+
+        if (postProcessVolume == null || postProcessVolume.profile == null)
         {
-            _vignette.intensity.value = normalIntensity;
-            _vignette.color.value = Color.red;
+            Debug.LogError("[HIT EFFECT] Volume 또는 Profile 없음");
+            return;
         }
+
+        if (!postProcessVolume.profile.TryGet(out vignette))
+        {
+            Debug.LogError("[HIT EFFECT] Vignette 없음");
+            return;
+        }
+
+        vignette.intensity.Override(normalIntensity);
+    }
+
+    private void Update()
+    {
+        if (vignette == null)
+            return;
+
+        float target = isHit ? hitIntensity : normalIntensity;
+
+        vignette.intensity.value = Mathf.MoveTowards(
+            vignette.intensity.value,
+            target,
+            fadeSpeed * Time.deltaTime
+        );
+
+        if (isHit && Mathf.Abs(vignette.intensity.value - hitIntensity) < 0.01f)
+            isHit = false;
     }
 
     public void OnHit()
     {
-        if (_fadeCoroutine != null)
-            StopCoroutine(_fadeCoroutine);
+        if (vignette == null)
+            return;
 
-        _fadeCoroutine = StartCoroutine(FlashVignette());
+        vignette.color.Override(Color.red);
+        isHit = true;
     }
 
-    IEnumerator FlashVignette()
+    public void ForceNormal()
     {
-        _vignette.intensity.value = hitIntensity;
+        isHit = false;
 
-        while (_vignette.intensity.value > normalIntensity + 0.01f)
-        {
-            _vignette.intensity.value = Mathf.Lerp(
-                _vignette.intensity.value,
-                normalIntensity,
-                Time.deltaTime * fadeSpeed
-            );
-            yield return null;
-        }
-
-        _vignette.intensity.value = normalIntensity;
+        if (vignette != null)
+            vignette.intensity.Override(normalIntensity);
     }
 }

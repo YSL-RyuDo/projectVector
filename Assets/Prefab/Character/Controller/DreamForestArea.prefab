@@ -11,14 +11,13 @@ GameObject:
   - component: {fileID: 7754947386595312816}
   - component: {fileID: 2030449514585457272}
   - component: {fileID: 8100619976669190730}
-  - component: {fileID: 6469747846523050208}
   m_Layer: 0
   m_Name: Sphere
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &7754947386595312816
 Transform:
   m_ObjectHideFlags: 0
@@ -91,27 +90,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!135 &6469747846523050208
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6406406720929991565}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &7558807253562860058
 GameObject:
   m_ObjectHideFlags: 0
@@ -123,6 +101,7 @@ GameObject:
   - component: {fileID: 1654312516449044708}
   - component: {fileID: 2790665700605405566}
   - component: {fileID: 7288132467352262592}
+  - component: {fileID: 1423775842254531068}
   m_Layer: 0
   m_Name: DreamForestArea
   m_TagString: Untagged
@@ -140,7 +119,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7754947386595312816}
@@ -185,8 +164,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41600f892633bb746aa8be4340278fc0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DreamForestArea
-  _maxRadius: 2
+  _defaultMaxRadius: 15
   _expandSpeed: 5
+  _drawDebugGizmos: 1
+--- !u!135 &1423775842254531068
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7558807253562860058}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.5
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &1201781378505132134
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -1,45 +1,125 @@
-using UnityEngine;
 using System.Collections;
+using UnityEngine;
 using UnityEngine.UI;
 
 public class SentinelSkill_X : CharacterSkill
 {
-    [SerializeField] private GameObject xAreaPrefab;
-    [SerializeField] private float chargingTime = 1.5f;
-    [SerializeField] private float skillDistance = 25f;
+    public static bool IsSelectingSentinelX { get; private set; }
+    public static bool IsChargingSentinelX { get; private set; }
 
-    private Slider chargingSlider;
-    private bool isCharging = false;
+    private static int consumedCastInputFrame = -1;
 
-    void Start()
+    public static bool ShouldBlockWeaponInput()
     {
-        GameObject sliderObj = GameObject.Find("ChargingSlider");
-
-        if (sliderObj != null)
-        {
-            chargingSlider = sliderObj.GetComponent<Slider>();
-            chargingSlider.gameObject.SetActive(false);
-            chargingSlider.minValue = 0f;
-            chargingSlider.maxValue = 1f;
-        }
+        return
+            IsSelectingSentinelX ||
+            IsChargingSentinelX ||
+            consumedCastInputFrame == Time.frameCount;
     }
 
-    void Update()
+    [SerializeField] private float chargingTime = 1.5f;
+    [SerializeField] private float skillDistance = 20f;
+
+    private Slider chargingSlider;
+    private bool isReady;
+    private bool isCharging;
+    private PlayerIdentity playerIdentity;
+    private Coroutine chargingRoutine;
+
+    private void Awake()
     {
-        if (Input.GetKey(KeyCode.X) && Input.GetMouseButtonDown(0) && !isCharging)
+        playerIdentity = GetComponent<PlayerIdentity>();
+    }
+
+    private void Start()
+    {
+        if (IsMine())
+            TryResolveChargingSlider();
+    }
+
+    private void TryResolveChargingSlider()
+    {
+        if (chargingSlider != null)
+            return;
+
+        Slider[] sliders = FindObjectsByType<Slider>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+
+        foreach (Slider slider in sliders)
         {
+            if (slider != null &&
+                slider.gameObject.name ==
+                "SentinelXChargingSlider")
+            {
+                chargingSlider = slider;
+                break;
+            }
+        }
+
+        if (chargingSlider == null)
+            return;
+
+        chargingSlider.minValue = 0f;
+        chargingSlider.maxValue = 1f;
+        chargingSlider.value = 0f;
+        chargingSlider.interactable = false;
+        chargingSlider.gameObject.SetActive(false);
+    }
+
+    private void Update()
+    {
+        if (!IsMine())
+            return;
+
+        if (chargingSlider == null)
+            TryResolveChargingSlider();
+
+        if (Input.GetKeyDown(KeyCode.X))
+        {
+            if (isCharging)
+            {
+                CancelCharging();
+                SetReady(false);
+                return;
+            }
+
             UseSkill();
+        }
+
+        if (!isReady || isCharging)
+            return;
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            consumedCastInputFrame = Time.frameCount;
+            chargingRoutine = StartCoroutine(XSkillRoutine());
+        }
+        else if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            SetReady(false);
         }
     }
 
     protected override void UseSkill()
     {
-        StartCoroutine(XSkillRoutine());
+        if (!isReady && !CanUsePurchasedSkill(SkillSlot.X))
+            return;
+
+        if (RoundManager.Instance != null &&
+            !RoundManager.Instance.CanAttack)
+        {
+            return;
+        }
+
+        SetReady(!isReady);
     }
 
-    IEnumerator XSkillRoutine()
+    private IEnumerator XSkillRoutine()
     {
         isCharging = true;
+        IsChargingSentinelX = true;
         float timer = 0f;
 
         if (chargingSlider != null)
@@ -50,66 +130,112 @@ public class SentinelSkill_X : CharacterSkill
 
         while (timer < chargingTime)
         {
-            if (!Input.GetKey(KeyCode.X) || !Input.GetMouseButton(0))
+            if (!Input.GetMouseButton(0))
             {
-                HideUI();
-                isCharging = false;
+                CancelCharging();
                 yield break;
             }
 
             timer += Time.deltaTime;
+
             if (chargingSlider != null)
-            {
                 chargingSlider.value = timer / chargingTime;
-            }
+
             yield return null;
         }
 
-        ExecuteX();
-        HideUI();
-        isCharging = false;
+        consumedCastInputFrame = Time.frameCount;
+        SendCastRequest();
+        CancelCharging();
+        SetReady(false);
     }
 
-    void HideUI()
+    private void SendCastRequest()
     {
-        if (chargingSlider != null)
+        if (Camera.main == null ||
+            NetworkManager.Instance == null)
         {
-            chargingSlider.gameObject.SetActive(false);
+            return;
         }
-    }
 
-    void ExecuteX()
-    {
-        Ray ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2));
-        Vector3 spawnPos;
+        Ray ray = Camera.main.ScreenPointToRay(
+            new Vector3(
+                Screen.width * 0.5f,
+                Screen.height * 0.5f
+            )
+        );
 
-        if (Physics.Raycast(ray, out RaycastHit hit, skillDistance))
+        Vector3 spawnPosition;
+
+        if (Physics.Raycast(
+                ray,
+                out RaycastHit hit,
+                skillDistance,
+                Physics.DefaultRaycastLayers,
+                QueryTriggerInteraction.Ignore))
         {
-            spawnPos = hit.point;
+            spawnPosition = hit.point;
         }
         else
         {
-            spawnPos = ray.origin + (ray.direction * skillDistance);
+            spawnPosition =
+                ray.origin + ray.direction * skillDistance;
         }
 
-        Instantiate(xAreaPrefab, spawnPos, Quaternion.identity);
-        StartCoroutine(ProtectSkillsExternal(10f));
+        NetworkManager.Instance.SendSentinelXCast(spawnPosition);
     }
 
-    IEnumerator ProtectSkillsExternal(float duration)
+    private void CancelCharging()
     {
-        TrapDevice[] eSkills = FindObjectsByType<TrapDevice>(FindObjectsSortMode.None);
+        isCharging = false;
+        IsChargingSentinelX = false;
+        chargingRoutine = null;
 
-        foreach (var e in eSkills)
+        if (chargingSlider != null)
         {
-            if (e != null) e.enabled = false;
+            chargingSlider.value = 0f;
+            chargingSlider.gameObject.SetActive(isReady);
+        }
+    }
+
+    private void SetReady(bool ready)
+    {
+        isReady = ready;
+        IsSelectingSentinelX = ready;
+
+        if (chargingSlider != null)
+        {
+            chargingSlider.value = 0f;
+            chargingSlider.gameObject.SetActive(ready);
         }
 
-        yield return new WaitForSeconds(duration);
-
-        foreach (var e in eSkills)
+        if (CharacterSkillUI.Instance != null)
         {
-            if (e != null) e.enabled = true;
+            CharacterSkillUI.Instance.SentinelSkillText(
+                ready,
+                ready ? "X 궁극기: 좌클릭을 길게 눌러 차징" : ""
+            );
         }
+    }
+
+    private bool IsMine()
+    {
+        if (playerIdentity == null)
+            playerIdentity = GetComponent<PlayerIdentity>();
+
+        return
+            playerIdentity != null &&
+            NetworkManager.Instance != null &&
+            playerIdentity.PlayerId ==
+            NetworkManager.Instance.MyPlayerId;
+    }
+
+    private void OnDisable()
+    {
+        if (chargingRoutine != null)
+            StopCoroutine(chargingRoutine);
+
+        CancelCharging();
+        SetReady(false);
     }
 }
