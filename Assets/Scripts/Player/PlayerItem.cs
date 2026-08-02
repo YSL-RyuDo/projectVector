@@ -1349,7 +1349,8 @@ public class PlayerItem : MonoBehaviour
     public void ApplyPickedWeaponFromServer(
     WeaponData weaponData,
     int magAmmo,
-    int reserveAmmo)
+    int reserveAmmo,
+    int skinId = 0)
     {
         if (weaponData == null)
         {
@@ -1357,13 +1358,14 @@ public class PlayerItem : MonoBehaviour
             return;
         }
 
-        EquipWeaponByServerData(weaponData, magAmmo, reserveAmmo);
+        EquipWeaponByServerData(weaponData, magAmmo, reserveAmmo, skinId);
     }
 
     private void EquipWeaponByServerData(
     WeaponData weaponData,
     int magAmmo,
-    int reserveAmmo)
+    int reserveAmmo,
+    int skinId = 0)
     {
         int slot = GetSlotIndex(weaponData);
 
@@ -1398,7 +1400,7 @@ public class PlayerItem : MonoBehaviour
         }
         */
 
-        GameObject obj = SpawnWeaponObject(weaponData, magAmmo, reserveAmmo);
+        GameObject obj = SpawnWeaponObject(weaponData, magAmmo, reserveAmmo, skinId > 0 ? skinId : (int?)null);
 
         DisableHeldWeaponPhysics(obj);
 
@@ -1976,7 +1978,7 @@ public class PlayerItem : MonoBehaviour
         return Camera.main;
     }
 
-    private GameObject SpawnWeaponObject(WeaponData data, int magAmmo, int reserveAmmo)
+    private GameObject SpawnWeaponObject(WeaponData data, int magAmmo, int reserveAmmo, int? forcedSkinId = null)
     {
         GameObject obj = Instantiate(data.weaponPrefab, itemHolder);
         obj.transform.localPosition = Vector3.zero;
@@ -1987,8 +1989,11 @@ public class PlayerItem : MonoBehaviour
         {
             weapon.Initialize(data, dropPoint, magAmmo, reserveAmmo);
 
-            int skinId = skinLoadout != null ? skinLoadout.GetSkinId(data.weaponId) : 0;
-            WeaponSkinData skin = (skinId > 0 && skinDatabase != null) ? skinDatabase.GetById(skinId) : null;
+            int skinId = forcedSkinId ?? (skinLoadout != null ? skinLoadout.GetSkinId(data.weaponId) : 0);
+
+            WeaponSkinData skin = (skinId > 0 && WeaponSkinDatabase.Instance != null)
+                ? WeaponSkinDatabase.Instance.GetById(skinId)
+                : null;
             weapon.ApplySkin(skin, data); // data를 넘겨서 baseWeapon 검증 가능하게 함 (아래 3번 항목 참고)
         }
 

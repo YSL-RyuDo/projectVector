@@ -9,6 +9,7 @@ public class DroppedItem : MonoBehaviour
     public WeaponData weaponData;
     public int magAmmo;
     public int reserveAmmo;
+    public int skinId;
 
     private bool pickupRequested;
 
@@ -16,12 +17,14 @@ public class DroppedItem : MonoBehaviour
         uint serverDropId,
         WeaponData data,
         int mag,
-        int reserve)
+        int reserve,
+        int skin = 0)
     {
         dropId = serverDropId;
         weaponData = data;
         magAmmo = mag;
         reserveAmmo = reserve;
+        skinId = skin;
         pickupRequested = false;
     }
 

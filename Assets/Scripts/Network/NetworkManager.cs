@@ -4116,24 +4116,40 @@ public class NetworkManager : MonoBehaviour
 
         GameObject obj = Instantiate(data.dropPrefab, pos, rot);
 
+        PlayerIdentity dropperIdentity = FindPlayerIdentityById(dropperPlayerId);
+        int skinId = 0;
+
+        if (dropperIdentity != null)
+        {
+            PlayerSkinLoadout dropperLoadout = dropperIdentity.GetComponent<PlayerSkinLoadout>();
+            if (dropperLoadout != null)
+                skinId = dropperLoadout.GetSkinId(weaponId);
+        }
+
         DroppedItem droppedItem = obj.GetComponent<DroppedItem>();
         if (droppedItem == null)
             droppedItem = obj.GetComponentInChildren<DroppedItem>(true);
 
         if (droppedItem != null)
         {
-            droppedItem.InitFromServer(
-                dropId,
-                data,
-                magAmmo,
-                reserveAmmo
-            );
+            droppedItem.InitFromServer(dropId, data, magAmmo, reserveAmmo, skinId);
+        }
+
+        WeaponSkinSlot skinSlot = obj.GetComponent<WeaponSkinSlot>();
+        if (skinSlot == null)
+            skinSlot = obj.GetComponentInChildren<WeaponSkinSlot>(true);
+
+        if (skinSlot != null)
+        {
+            WeaponSkinData skin = (skinId > 0 && WeaponSkinDatabase.Instance != null)
+                ? WeaponSkinDatabase.Instance.GetById(skinId)
+                : null;
+
+            skinSlot.ApplySkin(skin);
         }
 
         RegisterDroppedItem(dropId, obj);
 
-        // 핵심: 모든 클라이언트에서 손에 든 무기에서도 제거
-        PlayerIdentity dropperIdentity = FindPlayerIdentityById(dropperPlayerId);
         if (dropperIdentity != null)
         {
             PlayerItem dropperItem = dropperIdentity.GetComponent<PlayerItem>();
@@ -4195,6 +4211,20 @@ public class NetworkManager : MonoBehaviour
         int reserveAmmo =
             BitConverter.ToInt32(body, offset);
         offset += 4;
+
+        int skinId = 0;
+
+        if (dropId != 0 &&
+        droppedItemMap.TryGetValue(dropId, out GameObject droppedObj) &&
+        droppedObj != null)
+        {
+            DroppedItem droppedItemComp = droppedObj.GetComponent<DroppedItem>();
+            if (droppedItemComp == null)
+                droppedItemComp = droppedObj.GetComponentInChildren<DroppedItem>(true);
+
+            if (droppedItemComp != null)
+                skinId = droppedItemComp.skinId;
+        }
 
         if (dropId != 0)
         {
@@ -4267,7 +4297,8 @@ public class NetworkManager : MonoBehaviour
         pickerItem.ApplyPickedWeaponFromServer(
             data,
             magAmmo,
-            reserveAmmo
+            reserveAmmo,
+            skinId
         );
 
         PlayerCombatSnapshot snapshot =

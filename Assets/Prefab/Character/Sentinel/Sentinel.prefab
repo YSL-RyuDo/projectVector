@@ -238,6 +238,7 @@ GameObject:
   - component: {fileID: 3910757125052037258}
   - component: {fileID: 1291484709126987888}
   - component: {fileID: 4922944473200963728}
+  - component: {fileID: 5337723704719247968}
   m_Layer: 0
   m_Name: Sentinel
   m_TagString: Untagged
@@ -372,6 +373,7 @@ MonoBehaviour:
   itemLayer:
     serializedVersion: 2
     m_Bits: 1024
+  skinDatabase: {fileID: 0}
   currentIndex: -1
 --- !u!114 &1191234149131399422
 MonoBehaviour:
@@ -436,7 +438,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8206fe1bb6bbaae4ab0d8dcea402a87b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::X_Skill
-  xAreaPrefab: {fileID: 7230139109381480530, guid: 579ff7cb0c9db1042b5fa4de879a146a, type: 3}
   chargingTime: 1.5
   skillDistance: 20
 --- !u!114 &8893806549369827747
@@ -636,6 +637,18 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &5337723704719247968
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6886427744864830309}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b7813da8881db64dbd3df82ea5cd86f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSkinLoadout
 --- !u!1 &7074205520252255424
 GameObject:
   m_ObjectHideFlags: 0
