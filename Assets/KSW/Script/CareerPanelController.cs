@@ -77,6 +77,7 @@ public class CareerPanelController : MonoBehaviour
     {
         ChangeTab(TabState.Rank);
         UpdateRankPanelData();
+        OnAchievementsTabButton();
     }
 
     public void OnRankButton() => ChangeTab(TabState.Rank);
@@ -169,5 +170,51 @@ public class CareerPanelController : MonoBehaviour
         if (_seasonNoticeText != null)
             _seasonNoticeText.text = $"현재 시즌은 {_remainingSeasonDays}일 후 종료됩니다";
     }
+    #endregion
+
+    #region Career Record Panel
+
+    #endregion
+
+    #region Card Collection Panel
+
+    [Header("Buttons")]
+    [SerializeField] private Button _achievementsTabButton;
+    [SerializeField] private Button _cardCollectionTabButton;
+
+    [Header("Screens")]
+    [SerializeField] private GameObject _achievementsScreen;
+    [SerializeField] private GameObject _cardCollectionScreen;
+
+    [Header("Colors")]
+    [SerializeField] private Color _selectButtonColor = Color.white;
+    [SerializeField] private Color _defaultButtonColor = Color.gray;
+
+    public void OnAchievementsTabButton()
+    {
+        if (_achievementsScreen != null) _achievementsScreen.SetActive(true);
+        if (_cardCollectionScreen != null) _cardCollectionScreen.SetActive(false);
+
+        SetButtonColor(_achievementsTabButton, _selectButtonColor);
+        SetButtonColor(_cardCollectionTabButton, _defaultButtonColor);
+    }
+
+    public void OnCardCollectionTabButton()
+    {
+        if (_achievementsScreen != null) _achievementsScreen.SetActive(false);
+        if (_cardCollectionScreen != null) _cardCollectionScreen.SetActive(true);
+
+        SetButtonColor(_achievementsTabButton, _defaultButtonColor);
+        SetButtonColor(_cardCollectionTabButton, _selectButtonColor);
+    }
+
+    private void SetButtonColor(Button button, Color color)
+    {
+        if (button != null)
+        {
+            button.image.color = color;
+        }
+    }
+
     #endregion
 }
