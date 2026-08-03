@@ -48,6 +48,7 @@ public class CharacterPanelController : MonoBehaviour
     [SerializeField] private PreviewObjectData[] secondaryWeapons;
     [SerializeField] private PreviewObjectData[] meleeWeapons;
     [SerializeField] private PreviewObjectData[] tacticalItems;
+    [SerializeField] private WeaponPreviewCatalog weaponPreviewCatalog;
 
     [Header("Currently Selected Equipment Indexes")]
     [SerializeField] private int selectedPrimaryIndex = 0;
@@ -231,7 +232,7 @@ public class CharacterPanelController : MonoBehaviour
 
     public void SelectPrimaryWeapon(int index)
     {
-        if (index >= 0 && index < primaryWeapons.Length)
+        if (index >= 0 && index < GetWeaponCount(WeaponPreviewCategory.Primary))
         {
             selectedPrimaryIndex = index;
             if (_previewState == PreviewState.primaryWepon) ChangePreviewState();
@@ -240,7 +241,7 @@ public class CharacterPanelController : MonoBehaviour
 
     public void SelectSecondaryWeapon(int index)
     {
-        if (index >= 0 && index < secondaryWeapons.Length)
+        if (index >= 0 && index < GetWeaponCount(WeaponPreviewCategory.Secondary))
         {
             selectedSecondaryIndex = index;
             if (_previewState == PreviewState.secondaryWepon) ChangePreviewState();
@@ -249,10 +250,42 @@ public class CharacterPanelController : MonoBehaviour
 
     public void SelectMeleeWeapon(int index)
     {
-        if (index >= 0 && index < meleeWeapons.Length)
+        if (index >= 0 && index < GetWeaponCount(WeaponPreviewCategory.Melee))
         {
             selectedMeleeIndex = index;
             if (_previewState == PreviewState.meleeWepon) ChangePreviewState();
+        }
+    }
+
+    public int GetWeaponCount(WeaponPreviewCategory category)
+    {
+        if (weaponPreviewCatalog != null)
+            return weaponPreviewCatalog.GetCount(category);
+
+        PreviewObjectData[] fallback = GetFallbackWeaponData(category);
+        return fallback?.Length ?? 0;
+    }
+
+    public WeaponPreviewEntry GetWeaponPreviewEntry(WeaponPreviewCategory category, int index)
+    {
+        return weaponPreviewCatalog != null
+            ? weaponPreviewCatalog.GetEntry(category, index)
+            : null;
+    }
+
+    public void SelectWeapon(WeaponPreviewCategory category, int index)
+    {
+        switch (category)
+        {
+            case WeaponPreviewCategory.Primary:
+                SelectPrimaryWeapon(index);
+                break;
+            case WeaponPreviewCategory.Secondary:
+                SelectSecondaryWeapon(index);
+                break;
+            case WeaponPreviewCategory.Melee:
+                SelectMeleeWeapon(index);
+                break;
         }
     }
 
@@ -430,26 +463,17 @@ public class CharacterPanelController : MonoBehaviour
                 break;
 
             case PreviewState.primaryWepon:
-                if (primaryWeapons != null && primaryWeapons.Length > selectedPrimaryIndex && primaryWeapons[selectedPrimaryIndex] != null)
-                {
-                    targetWeaponPrefab = primaryWeapons[selectedPrimaryIndex].objectPrefab;
-                }
+                targetWeaponPrefab = GetWeaponPreviewPrefab(WeaponPreviewCategory.Primary, selectedPrimaryIndex);
                 weaponAnimIndex = 1;
                 break;
 
             case PreviewState.secondaryWepon:
-                if (secondaryWeapons != null && secondaryWeapons.Length > selectedSecondaryIndex && secondaryWeapons[selectedSecondaryIndex] != null)
-                {
-                    targetWeaponPrefab = secondaryWeapons[selectedSecondaryIndex].objectPrefab;
-                }
+                targetWeaponPrefab = GetWeaponPreviewPrefab(WeaponPreviewCategory.Secondary, selectedSecondaryIndex);
                 weaponAnimIndex = 2;
                 break;
 
             case PreviewState.meleeWepon:
-                if (meleeWeapons != null && meleeWeapons.Length > selectedMeleeIndex && meleeWeapons[selectedMeleeIndex] != null)
-                {
-                    targetWeaponPrefab = meleeWeapons[selectedMeleeIndex].objectPrefab;
-                }
+                targetWeaponPrefab = GetWeaponPreviewPrefab(WeaponPreviewCategory.Melee, selectedMeleeIndex);
                 weaponAnimIndex = 3;
                 break;
 
@@ -464,6 +488,34 @@ public class CharacterPanelController : MonoBehaviour
 
         EquipWeaponToCharacter(targetWeaponPrefab);
         UpdateCharacterAnimation(weaponAnimIndex);
+    }
+
+    private GameObject GetWeaponPreviewPrefab(WeaponPreviewCategory category, int index)
+    {
+        WeaponPreviewEntry catalogEntry = GetWeaponPreviewEntry(category, index);
+        if (catalogEntry != null)
+            return catalogEntry.PreviewPrefab;
+
+        PreviewObjectData[] fallback = GetFallbackWeaponData(category);
+        if (fallback == null || index < 0 || index >= fallback.Length || fallback[index] == null)
+            return null;
+
+        return fallback[index].objectPrefab;
+    }
+
+    private PreviewObjectData[] GetFallbackWeaponData(WeaponPreviewCategory category)
+    {
+        switch (category)
+        {
+            case WeaponPreviewCategory.Primary:
+                return primaryWeapons;
+            case WeaponPreviewCategory.Secondary:
+                return secondaryWeapons;
+            case WeaponPreviewCategory.Melee:
+                return meleeWeapons;
+            default:
+                return null;
+        }
     }
 
     private void UpdatePreviewPanels()
@@ -518,6 +570,28 @@ public class CharacterPanelController : MonoBehaviour
         currentSpawnedWeapon.transform.localRotation = Quaternion.identity;
 
         SetLayerRecursively(currentSpawnedWeapon, "SelectModel");
+        DisablePreviewWeaponComponents(currentSpawnedWeapon);
+    }
+
+    private void DisablePreviewWeaponComponents(GameObject previewWeapon)
+    {
+        if (previewWeapon == null)
+            return;
+
+        Behaviour[] behaviours = previewWeapon.GetComponentsInChildren<Behaviour>(true);
+        for (int i = 0; i < behaviours.Length; i++)
+            behaviours[i].enabled = false;
+
+        Collider[] colliders = previewWeapon.GetComponentsInChildren<Collider>(true);
+        for (int i = 0; i < colliders.Length; i++)
+            colliders[i].enabled = false;
+
+        Rigidbody[] rigidbodies = previewWeapon.GetComponentsInChildren<Rigidbody>(true);
+        for (int i = 0; i < rigidbodies.Length; i++)
+        {
+            rigidbodies[i].isKinematic = true;
+            rigidbodies[i].detectCollisions = false;
+        }
     }
 
     private void UpdateCharacterAnimation(int weaponAnimIndex)
