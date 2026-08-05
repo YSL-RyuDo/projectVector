@@ -22,6 +22,8 @@ public class PlayerWeaponViewController : MonoBehaviour
 
     private void Awake()
     {
+        EnsureThirdPersonWeaponHolder();
+
         // 소유권과 시점이 확정되기 전에는 둘 다 숨긴다.
         SetHolderActive(firstPersonWeaponHolder, false);
         SetHolderActive(thirdPersonWeaponHolder, false);
@@ -40,6 +42,7 @@ public class PlayerWeaponViewController : MonoBehaviour
         lastViewMode = WeaponViewMode.ThirdPerson;
 
         ApplyViewMode();
+        RefreshThirdPersonWeapon();
     }
     public void HideAll()
     {
@@ -122,5 +125,111 @@ public class PlayerWeaponViewController : MonoBehaviour
             return;
 
         holder.SetActive(active);
+    }
+
+    private void EnsureThirdPersonWeaponHolder()
+    {
+        if (thirdPersonWeaponHolder != null)
+        {
+            EnsureWeaponMirror(thirdPersonWeaponHolder, false);
+            return;
+        }
+
+        Transform rightHand = FindRightHand();
+
+        if (rightHand == null)
+        {
+            Debug.LogError(
+                $"[WEAPON VIEW] third-person holder is missing and RightHand could not be found. object={name}"
+            );
+            return;
+        }
+
+        thirdPersonWeaponHolder = new GameObject("WeaponHolder (Model Runtime)");
+        thirdPersonWeaponHolder.transform.SetParent(rightHand, false);
+
+        // Initiator is the only current character prefab without a serialized
+        // model holder. Match the working Entry holder correction instead of
+        // leaving the runtime holder at the raw humanoid hand transform.
+        thirdPersonWeaponHolder.transform.localPosition =
+            new Vector3(0.008803651f, -0.113508634f, -0.017433593f);
+        thirdPersonWeaponHolder.transform.localRotation =
+            new Quaternion(0.0632022f, -0.70312023f, 0.7055075f, -0.06234216f);
+        thirdPersonWeaponHolder.transform.localScale = Vector3.one;
+
+        EnsureWeaponMirror(thirdPersonWeaponHolder, true);
+
+        Debug.LogWarning(
+            $"[WEAPON VIEW] missing third-person holder was created on RightHand. object={name}"
+        );
+    }
+
+    private void EnsureWeaponMirror(GameObject holder, bool useRuntimeDefaults)
+    {
+        if (holder == null)
+            return;
+
+        WeaponHolderModel mirror = holder.GetComponent<WeaponHolderModel>();
+
+        if (mirror == null)
+            mirror = holder.AddComponent<WeaponHolderModel>();
+
+        if (useRuntimeDefaults)
+        {
+            mirror.ConfigureRuntimeDefaults(
+                new Vector3(0f, 0.1f, 0f),
+                new Vector3(13f, 90f, -90f)
+            );
+        }
+    }
+
+    public void RefreshThirdPersonWeapon()
+    {
+        if (thirdPersonWeaponHolder == null)
+            return;
+
+        WeaponHolderModel mirror =
+            thirdPersonWeaponHolder.GetComponent<WeaponHolderModel>();
+
+        if (mirror != null)
+            mirror.RefreshNow();
+    }
+
+    private Transform FindRightHand()
+    {
+        Animator[] animators = GetComponentsInChildren<Animator>(true);
+
+        foreach (Animator animator in animators)
+        {
+            if (animator == null || !animator.isHuman)
+                continue;
+
+            Transform hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+            if (hand != null)
+                return hand;
+        }
+
+        Transform[] children = GetComponentsInChildren<Transform>(true);
+
+        foreach (Transform child in children)
+        {
+            if (child == null)
+                continue;
+
+            string normalizedName = child.name
+                .Replace("_", string.Empty)
+                .Replace("-", string.Empty)
+                .Replace(" ", string.Empty)
+                .ToLowerInvariant();
+
+            if (normalizedName.Contains("righthand") ||
+                normalizedName.Contains("handright") ||
+                normalizedName == "rhand")
+            {
+                return child;
+            }
+        }
+
+        return null;
     }
 }

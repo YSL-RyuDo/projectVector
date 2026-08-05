@@ -13,6 +13,7 @@ public class GameReadyMemberData
 
     public int characterId;
     public int rankImageId;
+    public Dictionary<int, int> weaponSkinLoadout = new Dictionary<int, int>();
 }
 
 public class GameAllReadyData

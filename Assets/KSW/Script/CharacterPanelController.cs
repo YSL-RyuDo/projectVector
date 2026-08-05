@@ -54,6 +54,9 @@ public class CharacterPanelController : MonoBehaviour
     [SerializeField] private int selectedPrimaryIndex = 0;
     [SerializeField] private int selectedSecondaryIndex = 0;
     [SerializeField] private int selectedMeleeIndex = 0;
+    [SerializeField] private int selectedPrimarySkinIndex = 0;
+    [SerializeField] private int selectedSecondarySkinIndex = 0;
+    [SerializeField] private int selectedMeleeSkinIndex = 0;
     [SerializeField] private int selectedTacticalIndex = 0;
 
     [Header("UI References")]
@@ -120,6 +123,8 @@ public class CharacterPanelController : MonoBehaviour
     private int currentWeaponAnimIndex = -1; // 현재 애니메이션 파라미터 상태 기록
 
     public Transform ObjectSpawnPoint => _objectSpawnPoint;
+    public int CurrentPreviewCharacterId => currentPreviewCharacterId;
+    public event System.Action<int> PreviewCharacterChanged;
 
     private enum PresetState
     {
@@ -214,6 +219,11 @@ public class CharacterPanelController : MonoBehaviour
         UpdateOutline(index);
         currentPreviewCharacterId = data.characterId;
 
+        PreviewCharacterChanged?.Invoke(currentPreviewCharacterId);
+
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SendWeaponSkinLoadoutRequest(currentPreviewCharacterId);
+
         if (preview2DImage != null)
         {
             preview2DImage.sprite = data.characterSprite;
@@ -271,6 +281,63 @@ public class CharacterPanelController : MonoBehaviour
         return weaponPreviewCatalog != null
             ? weaponPreviewCatalog.GetEntry(category, index)
             : null;
+    }
+
+    public int GetWeaponSkinCount(WeaponPreviewCategory category, int weaponIndex)
+    {
+        if (weaponPreviewCatalog != null)
+            return weaponPreviewCatalog.GetSkinCount(category, weaponIndex);
+
+        return weaponIndex >= 0 && weaponIndex < GetWeaponCount(category) ? 1 : 0;
+    }
+
+    public string GetWeaponSkinDisplayName(WeaponPreviewCategory category, int weaponIndex, int skinIndex)
+    {
+        if (skinIndex <= 0)
+            return "기본";
+
+        WeaponSkinData skinData = weaponPreviewCatalog != null
+            ? weaponPreviewCatalog.GetSkinData(category, weaponIndex, skinIndex)
+            : null;
+        return skinData != null && !string.IsNullOrWhiteSpace(skinData.skinName)
+            ? skinData.skinName
+            : $"스킨 {skinIndex}";
+    }
+
+    public int GetWeaponSkinId(WeaponPreviewCategory category, int weaponIndex, int skinIndex)
+    {
+        return weaponPreviewCatalog != null
+            ? weaponPreviewCatalog.GetSkinId(category, weaponIndex, skinIndex)
+            : 0;
+    }
+
+    public int FindWeaponSkinIndex(WeaponPreviewCategory category, int weaponIndex, int skinId)
+    {
+        return weaponPreviewCatalog != null
+            ? weaponPreviewCatalog.FindSkinIndex(category, weaponIndex, skinId)
+            : 0;
+    }
+    public void SelectWeaponSkin(WeaponPreviewCategory category, int weaponIndex, int skinIndex)
+    {
+        int skinCount = GetWeaponSkinCount(category, weaponIndex);
+        if (skinCount <= 0)
+            return;
+
+        int validatedSkinIndex = Mathf.Clamp(skinIndex, 0, skinCount - 1);
+        switch (category)
+        {
+            case WeaponPreviewCategory.Primary:
+                selectedPrimarySkinIndex = validatedSkinIndex;
+                break;
+            case WeaponPreviewCategory.Secondary:
+                selectedSecondarySkinIndex = validatedSkinIndex;
+                break;
+            case WeaponPreviewCategory.Melee:
+                selectedMeleeSkinIndex = validatedSkinIndex;
+                break;
+        }
+
+        SelectWeapon(category, weaponIndex);
     }
 
     public void SelectWeapon(WeaponPreviewCategory category, int index)
@@ -463,17 +530,17 @@ public class CharacterPanelController : MonoBehaviour
                 break;
 
             case PreviewState.primaryWepon:
-                targetWeaponPrefab = GetWeaponPreviewPrefab(WeaponPreviewCategory.Primary, selectedPrimaryIndex);
+                targetWeaponPrefab = GetWeaponPreviewPrefab(WeaponPreviewCategory.Primary, selectedPrimaryIndex, selectedPrimarySkinIndex);
                 weaponAnimIndex = 1;
                 break;
 
             case PreviewState.secondaryWepon:
-                targetWeaponPrefab = GetWeaponPreviewPrefab(WeaponPreviewCategory.Secondary, selectedSecondaryIndex);
+                targetWeaponPrefab = GetWeaponPreviewPrefab(WeaponPreviewCategory.Secondary, selectedSecondaryIndex, selectedSecondarySkinIndex);
                 weaponAnimIndex = 2;
                 break;
 
             case PreviewState.meleeWepon:
-                targetWeaponPrefab = GetWeaponPreviewPrefab(WeaponPreviewCategory.Melee, selectedMeleeIndex);
+                targetWeaponPrefab = GetWeaponPreviewPrefab(WeaponPreviewCategory.Melee, selectedMeleeIndex, selectedMeleeSkinIndex);
                 weaponAnimIndex = 3;
                 break;
 
@@ -490,11 +557,14 @@ public class CharacterPanelController : MonoBehaviour
         UpdateCharacterAnimation(weaponAnimIndex);
     }
 
-    private GameObject GetWeaponPreviewPrefab(WeaponPreviewCategory category, int index)
+    private GameObject GetWeaponPreviewPrefab(WeaponPreviewCategory category, int index, int skinIndex)
     {
-        WeaponPreviewEntry catalogEntry = GetWeaponPreviewEntry(category, index);
-        if (catalogEntry != null)
-            return catalogEntry.PreviewPrefab;
+        if (weaponPreviewCatalog != null)
+        {
+            GameObject catalogPrefab = weaponPreviewCatalog.GetPreviewPrefab(category, index, skinIndex);
+            if (catalogPrefab != null)
+                return catalogPrefab;
+        }
 
         PreviewObjectData[] fallback = GetFallbackWeaponData(category);
         if (fallback == null || index < 0 || index >= fallback.Length || fallback[index] == null)

@@ -13,10 +13,12 @@ public class WeaponADS : MonoBehaviour
 
     private bool isADS = false;
     private Quaternion hipRot;
+    private Animator rootAnimator;
 
     private void Awake()
     {
         hipRot = Quaternion.Euler(hipRotation);
+        rootAnimator = GetComponent<Animator>();
     }
 
     private void LateUpdate()
@@ -29,11 +31,17 @@ public class WeaponADS : MonoBehaviour
                 adsMoveSpeed * Time.deltaTime
             );
 
-            transform.localRotation = Quaternion.Slerp(
-                transform.localRotation,
-                hipRot,
-                adsMoveSpeed * Time.deltaTime
-            );
+            // Do not fight an Animator that owns this same root transform.
+            // WeaponSkinSlot disables that root Animator and moves animation to
+            // the visual model; legacy weapons without a skin slot remain stable.
+            if (rootAnimator == null || !rootAnimator.enabled)
+            {
+                transform.localRotation = Quaternion.Slerp(
+                    transform.localRotation,
+                    hipRot,
+                    adsMoveSpeed * Time.deltaTime
+                );
+            }
 
             return;
         }

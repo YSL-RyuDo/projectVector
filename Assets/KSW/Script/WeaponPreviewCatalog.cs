@@ -37,6 +37,7 @@ public sealed class WeaponPreviewEntry
 public sealed class WeaponPreviewCatalog : ScriptableObject
 {
     [SerializeField] private WeaponPreviewEntry[] weapons;
+    [SerializeField] private WeaponSkinDatabase skinDatabase;
 
     public int GetCount(WeaponPreviewCategory category)
     {
@@ -84,6 +85,99 @@ public sealed class WeaponPreviewCatalog : ScriptableObject
         }
 
         return null;
+    }
+
+    public int GetSkinCount(WeaponPreviewCategory category, int categoryIndex)
+    {
+        WeaponPreviewEntry entry = GetEntry(category, categoryIndex);
+        if (entry == null || entry.WeaponData == null)
+            return 0;
+
+        // Skin index 0 is always the base preview prefab.
+        return 1 + GetAdditionalSkinCount(entry.WeaponData);
+    }
+
+    public WeaponSkinData GetSkinData(WeaponPreviewCategory category, int categoryIndex, int skinIndex)
+    {
+        if (skinIndex <= 0)
+            return null;
+
+        WeaponPreviewEntry entry = GetEntry(category, categoryIndex);
+        if (entry == null || entry.WeaponData == null || skinDatabase?.skins == null)
+            return null;
+
+        int requestedAdditionalIndex = skinIndex - 1;
+        int currentAdditionalIndex = 0;
+
+        for (int i = 0; i < skinDatabase.skins.Length; i++)
+        {
+            WeaponSkinData skin = skinDatabase.skins[i];
+            if (skin == null || skin.baseWeapon != entry.WeaponData || skin.visualModelPrefab == null)
+                continue;
+
+            if (currentAdditionalIndex == requestedAdditionalIndex)
+                return skin;
+
+            currentAdditionalIndex++;
+        }
+
+        return null;
+    }
+
+    public GameObject GetPreviewPrefab(WeaponPreviewCategory category, int categoryIndex, int skinIndex)
+    {
+        WeaponPreviewEntry entry = GetEntry(category, categoryIndex);
+        if (entry == null)
+            return null;
+
+        if (skinIndex <= 0)
+            return entry.PreviewPrefab;
+
+        WeaponSkinData skin = GetSkinData(category, categoryIndex, skinIndex);
+        return skin != null && skin.visualModelPrefab != null
+            ? skin.visualModelPrefab
+            : entry.PreviewPrefab;
+    }
+
+    public int GetSkinId(WeaponPreviewCategory category, int categoryIndex, int skinIndex)
+    {
+        if (skinIndex <= 0)
+            return 0;
+
+        WeaponSkinData skin = GetSkinData(category, categoryIndex, skinIndex);
+        return skin != null ? skin.skinId : 0;
+    }
+
+    public int FindSkinIndex(WeaponPreviewCategory category, int categoryIndex, int skinId)
+    {
+        if (skinId <= 0)
+            return 0;
+
+        int skinCount = GetSkinCount(category, categoryIndex);
+        for (int skinIndex = 1; skinIndex < skinCount; skinIndex++)
+        {
+            WeaponSkinData skin = GetSkinData(category, categoryIndex, skinIndex);
+            if (skin != null && skin.skinId == skinId)
+                return skinIndex;
+        }
+
+        return 0;
+    }
+
+    private int GetAdditionalSkinCount(WeaponData weaponData)
+    {
+        if (weaponData == null || skinDatabase?.skins == null)
+            return 0;
+
+        int count = 0;
+        for (int i = 0; i < skinDatabase.skins.Length; i++)
+        {
+            WeaponSkinData skin = skinDatabase.skins[i];
+            if (skin != null && skin.baseWeapon == weaponData && skin.visualModelPrefab != null)
+                count++;
+        }
+
+        return count;
     }
 
 #if UNITY_EDITOR

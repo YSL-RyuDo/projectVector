@@ -16,7 +16,8 @@ public class WeaponDropSpawner : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        skinDatabase.Register();
+        if (skinDatabase != null)
+            skinDatabase.Register();
     }
 
     private void OnDestroy()
@@ -42,32 +43,33 @@ public class WeaponDropSpawner : MonoBehaviour
         return null;
     }
 
-    public void SpawnDroppedWeapon(
+    public GameObject SpawnDroppedWeapon(
         uint dropId,
         int weaponId,
         int magAmmo,
         int reserveAmmo,
+        int skinId,
         Vector3 position,
         Vector3 direction)
     {
         if (dropId == 0)
-            return;
+            return null;
 
         if (spawnedDrops.ContainsKey(dropId))
-            return;
+            return null;
 
         WeaponData data = GetWeaponData(weaponId);
 
         if (data == null)
         {
             Debug.LogError($"[WEAPON DROP SPAWN] WeaponData missing. weaponId={weaponId}");
-            return;
+            return null;
         }
 
         if (data.dropPrefab == null)
         {
             Debug.LogError($"[WEAPON DROP SPAWN] dropPrefab missing. weaponId={weaponId}");
-            return;
+            return null;
         }
 
         GameObject obj = Instantiate(
@@ -90,41 +92,83 @@ public class WeaponDropSpawner : MonoBehaviour
         {
             Debug.LogError($"[WEAPON DROP SPAWN] DroppedItem missing. prefab={data.dropPrefab.name}");
             Destroy(obj);
-            return;
+            return null;
         }
 
         droppedItem.InitFromServer(
             dropId,
             data,
             magAmmo,
-            reserveAmmo
+            reserveAmmo,
+            skinId
         );
 
-        Rigidbody rb = obj.GetComponent<Rigidbody>();
+        WeaponSkinSlot skinSlot = obj.GetComponent<WeaponSkinSlot>();
+        if (skinSlot == null)
+            skinSlot = obj.GetComponentInChildren<WeaponSkinSlot>(true);
 
-        if (rb != null)
+        if (skinSlot != null)
         {
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+            WeaponSkinDatabase database = skinDatabase != null
+                ? skinDatabase
+                : WeaponSkinDatabase.Instance;
 
-            Vector3 throwDir = direction.normalized;
-            if (throwDir.sqrMagnitude < 0.01f)
-                throwDir = Vector3.forward;
+            WeaponSkinData skin = skinId > 0 && database != null
+                ? database.GetById(weaponId, skinId)
+                : null;
 
-            rb.AddForce(throwDir * 3f + Vector3.up * 1.5f, ForceMode.Impulse);
+            if (skinId > 0 && skin == null)
+            {
+                Debug.LogWarning(
+                    $"[WEAPON DROP SPAWN] SkinData missing. weaponId={weaponId}, skinId={skinId}"
+                );
+            }
+
+            skinSlot.ApplySkin(skin);
         }
+
+        Rigidbody rb = obj.GetComponent<Rigidbody>();
+        if (rb == null)
+            rb = obj.GetComponentInChildren<Rigidbody>(true);
+
+        // A valid drop root should already contain a Rigidbody. Keep this
+        // fallback so a newly-added weapon cannot become frozen in mid-air
+        // just because its drop prefab was configured without one.
+        if (rb == null)
+        {
+            rb = obj.AddComponent<Rigidbody>();
+            Debug.LogWarning(
+                $"[WEAPON DROP SPAWN] Rigidbody was missing and has been added. prefab={data.dropPrefab.name}"
+            );
+        }
+
+        rb.isKinematic = false;
+        rb.useGravity = true;
+        rb.constraints = RigidbodyConstraints.None;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+
+        Vector3 throwDir = direction.normalized;
+        if (throwDir.sqrMagnitude < 0.01f)
+            throwDir = Vector3.forward;
+
+        rb.AddForce(throwDir * 3f + Vector3.up * 1.5f, ForceMode.Impulse);
+        rb.WakeUp();
 
         spawnedDrops.Add(dropId, obj);
 
         Debug.Log(
-            $"[WEAPON DROP SPAWN] dropId={dropId}, weaponId={weaponId}, ammo={magAmmo}/{reserveAmmo}"
+            $"[WEAPON DROP SPAWN] dropId={dropId}, weaponId={weaponId}, " +
+            $"skinId={skinId}, ammo={magAmmo}/{reserveAmmo}"
         );
+
+        return obj;
     }
 
-    public void DestroyDroppedWeapon(uint dropId)
+    public bool DestroyDroppedWeapon(uint dropId)
     {
         if (!spawnedDrops.TryGetValue(dropId, out GameObject obj))
-            return;
+            return false;
 
         spawnedDrops.Remove(dropId);
 
@@ -132,6 +176,7 @@ public class WeaponDropSpawner : MonoBehaviour
             Destroy(obj);
 
         Debug.Log($"[WEAPON DROP DESTROY] dropId={dropId}");
+        return true;
     }
 
     public void ClearAllDroppedWeapons()

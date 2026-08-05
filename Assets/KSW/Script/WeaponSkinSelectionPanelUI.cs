@@ -23,6 +23,8 @@ public sealed class WeaponSkinSelectionPanelUI : MonoBehaviour
     [Header("Skin Selection Colors")]
     [SerializeField] private Color normalSkinColor = new Color(1f, 1f, 1f, 0f);
     [SerializeField] private Color selectedSkinColor = new Color(1f, 1f, 1f, 0.4f);
+    [SerializeField] private string skinIndicatorObjectName = "Image (1)";
+    [SerializeField] private string skinNameObjectName = "Text (TMP) (1)";
 
     [Header("Local Selection State")]
     [SerializeField] private int selectedWeaponIndex;
@@ -30,6 +32,21 @@ public sealed class WeaponSkinSelectionPanelUI : MonoBehaviour
 
     private UnityAction[] weaponButtonActions;
     private UnityAction[] skinButtonActions;
+    private Image[] skinSelectionIndicators;
+
+    private struct SkinIndicatorStyle
+    {
+        public Vector2 AnchorMin;
+        public Vector2 AnchorMax;
+        public Vector2 Pivot;
+        public Vector2 AnchoredPosition;
+        public Vector2 SizeDelta;
+        public Color Color;
+    }
+
+    private SkinIndicatorStyle selectedIndicatorStyle;
+    private SkinIndicatorStyle normalIndicatorStyle;
+    private bool hasSkinIndicatorStyles;
 
     private Vector2 checkAnchorMin;
     private Vector2 checkAnchorMax;
@@ -47,13 +64,17 @@ public sealed class WeaponSkinSelectionPanelUI : MonoBehaviour
         BuildWeaponListFromCatalog();
         EnsureLocalSelectionState();
         CacheCheckMarkLayout();
+        CacheSkinIndicatorStyles();
         BindButtons();
+        SubscribeToServerLoadout();
         ApplyWeaponSelection(selectedWeaponIndex, false);
+        ApplyServerLoadout();
     }
 
     private void OnDestroy()
     {
         UnbindButtons();
+        UnsubscribeFromServerLoadout();
     }
 
     public void SelectWeapon(int weaponIndex)
@@ -69,9 +90,34 @@ public sealed class WeaponSkinSelectionPanelUI : MonoBehaviour
         bool selectionChanged = selectedSkinByWeapon[selectedWeaponIndex] != skinIndex;
         selectedSkinByWeapon[selectedWeaponIndex] = skinIndex;
         RefreshSkinSelection();
+        UpdateWeaponPreview();
 
         if (selectionChanged)
+        {
             SkinSelectionChanged?.Invoke(SelectedServerWeaponId, skinIndex);
+
+            if (NetworkManager.Instance != null)
+            {
+                int skinId = characterPanelController != null
+                    ? characterPanelController.GetWeaponSkinId(
+                        weaponCategory,
+                        selectedWeaponIndex,
+                        skinIndex)
+                    : skinIndex;
+                int characterId = characterPanelController != null
+                    ? characterPanelController.CurrentPreviewCharacterId
+                    : -1;
+
+                if (characterId >= 0)
+                {
+                    NetworkManager.Instance.SendWeaponSkinSelect(
+                        characterId,
+                        SelectedServerWeaponId,
+                        skinId
+                    );
+                }
+            }
+        }
     }
 
     public int GetSelectedSkinIndex(int weaponIndex)
@@ -102,6 +148,7 @@ public sealed class WeaponSkinSelectionPanelUI : MonoBehaviour
         selectedWeaponIndex = weaponIndex;
 
         RefreshWeaponSelection();
+        RefreshAvailableSkins();
         RefreshSkinSelection();
         UpdateWeaponPreview();
 
@@ -308,9 +355,11 @@ public sealed class WeaponSkinSelectionPanelUI : MonoBehaviour
 
         selectedWeaponIndex = Mathf.Clamp(selectedWeaponIndex, 0, weaponCount - 1);
 
-        int maxSkinIndex = Mathf.Max(0, (skinButtons?.Length ?? 1) - 1);
         for (int i = 0; i < selectedSkinByWeapon.Length; i++)
+        {
+            int maxSkinIndex = Mathf.Max(0, GetSkinCount(i) - 1);
             selectedSkinByWeapon[i] = Mathf.Clamp(selectedSkinByWeapon[i], 0, maxSkinIndex);
+        }
     }
 
     private void BindButtons()
@@ -380,8 +429,18 @@ public sealed class WeaponSkinSelectionPanelUI : MonoBehaviour
         for (int i = 0; i < skinButtons.Length; i++)
         {
             Button button = skinButtons[i];
-            if (button?.targetGraphic != null)
-                button.targetGraphic.color = i == selectedSkinIndex ? selectedSkinColor : normalSkinColor;
+            bool isSelected = i == selectedSkinIndex;
+
+            if (button != null && button.gameObject.activeSelf && button.targetGraphic != null)
+                button.targetGraphic.color = isSelected ? selectedSkinColor : normalSkinColor;
+
+            if (skinSelectionIndicators != null && i < skinSelectionIndicators.Length &&
+                skinSelectionIndicators[i] != null)
+            {
+                ApplyIndicatorStyle(
+                    skinSelectionIndicators[i],
+                    isSelected ? selectedIndicatorStyle : normalIndicatorStyle);
+            }
         }
 
         MoveCheckMark(selectedSkinIndex);
@@ -390,7 +449,191 @@ public sealed class WeaponSkinSelectionPanelUI : MonoBehaviour
     private void UpdateWeaponPreview()
     {
         if (characterPanelController != null)
-            characterPanelController.SelectWeapon(weaponCategory, selectedWeaponIndex);
+        {
+            int skinIndex = IsValidWeaponIndex(selectedWeaponIndex)
+                ? selectedSkinByWeapon[selectedWeaponIndex]
+                : 0;
+            characterPanelController.SelectWeaponSkin(weaponCategory, selectedWeaponIndex, skinIndex);
+        }
+    }
+
+    private void SubscribeToServerLoadout()
+    {
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.WeaponSkinLoadoutChanged += OnServerLoadoutChanged;
+
+        if (characterPanelController != null)
+            characterPanelController.PreviewCharacterChanged += OnPreviewCharacterChanged;
+    }
+
+    private void UnsubscribeFromServerLoadout()
+    {
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.WeaponSkinLoadoutChanged -= OnServerLoadoutChanged;
+
+        if (characterPanelController != null)
+            characterPanelController.PreviewCharacterChanged -= OnPreviewCharacterChanged;
+    }
+
+    private void OnServerLoadoutChanged(int characterId)
+    {
+        if (characterPanelController == null ||
+            characterPanelController.CurrentPreviewCharacterId != characterId)
+        {
+            return;
+        }
+
+        ApplyServerLoadout();
+    }
+
+    private void OnPreviewCharacterChanged(int characterId)
+    {
+        if (NetworkManager.Instance != null &&
+            NetworkManager.Instance.HasWeaponSkinLoadout(characterId))
+        {
+            ApplyServerLoadout();
+            return;
+        }
+
+        for (int i = 0; i < (selectedSkinByWeapon?.Length ?? 0); i++)
+            selectedSkinByWeapon[i] = 0;
+
+        RefreshAvailableSkins();
+        RefreshSkinSelection();
+        UpdateWeaponPreview();
+    }
+
+    private void ApplyServerLoadout()
+    {
+        int characterId = characterPanelController != null
+            ? characterPanelController.CurrentPreviewCharacterId
+            : -1;
+
+        if (NetworkManager.Instance == null ||
+            characterId < 0 ||
+            !NetworkManager.Instance.HasWeaponSkinLoadout(characterId) ||
+            characterPanelController == null ||
+            selectedSkinByWeapon == null)
+        {
+            return;
+        }
+
+        for (int weaponIndex = 0; weaponIndex < selectedSkinByWeapon.Length; weaponIndex++)
+        {
+            WeaponPreviewEntry entry = GetWeaponEntry(weaponIndex);
+            if (entry == null)
+                continue;
+
+            int skinId = NetworkManager.Instance.GetEquippedWeaponSkinId(characterId, entry.WeaponId);
+            selectedSkinByWeapon[weaponIndex] = characterPanelController.FindWeaponSkinIndex(
+                weaponCategory,
+                weaponIndex,
+                skinId);
+        }
+
+        RefreshAvailableSkins();
+        RefreshSkinSelection();
+        UpdateWeaponPreview();
+    }
+
+    private void RefreshAvailableSkins()
+    {
+        int skinCount = GetSkinCount(selectedWeaponIndex);
+
+        for (int i = 0; i < (skinButtons?.Length ?? 0); i++)
+        {
+            Button button = skinButtons[i];
+            if (button == null)
+                continue;
+
+            bool isAvailable = i < skinCount;
+            button.gameObject.SetActive(isAvailable);
+            if (isAvailable)
+                SetSkinButtonLabel(button, i);
+        }
+
+        if (IsValidWeaponIndex(selectedWeaponIndex))
+        {
+            selectedSkinByWeapon[selectedWeaponIndex] = Mathf.Clamp(
+                selectedSkinByWeapon[selectedWeaponIndex],
+                0,
+                Mathf.Max(0, skinCount - 1));
+        }
+    }
+
+    private void SetSkinButtonLabel(Button button, int skinIndex)
+    {
+        TextMeshProUGUI[] labels = button.GetComponentsInChildren<TextMeshProUGUI>(true);
+        for (int i = 0; i < labels.Length; i++)
+        {
+            if (labels[i].name != skinNameObjectName)
+                continue;
+
+            labels[i].text = characterPanelController != null
+                ? characterPanelController.GetWeaponSkinDisplayName(weaponCategory, selectedWeaponIndex, skinIndex)
+                : skinIndex == 0 ? "기본" : $"?�킨 {skinIndex}";
+            break;
+        }
+    }
+
+    private int GetSkinCount(int weaponIndex)
+    {
+        if (characterPanelController == null)
+            return skinButtons?.Length ?? 0;
+
+        return characterPanelController.GetWeaponSkinCount(weaponCategory, weaponIndex);
+    }
+
+    private void CacheSkinIndicatorStyles()
+    {
+        skinSelectionIndicators = new Image[skinButtons?.Length ?? 0];
+
+        for (int i = 0; i < skinSelectionIndicators.Length; i++)
+        {
+            Transform indicatorTransform = skinButtons[i] != null
+                ? skinButtons[i].transform.Find(skinIndicatorObjectName)
+                : null;
+            skinSelectionIndicators[i] = indicatorTransform != null
+                ? indicatorTransform.GetComponent<Image>()
+                : null;
+        }
+
+        Image selectedTemplate = skinSelectionIndicators.Length > 0 ? skinSelectionIndicators[0] : null;
+        Image normalTemplate = skinSelectionIndicators.Length > 1 ? skinSelectionIndicators[1] : selectedTemplate;
+        if (selectedTemplate == null || normalTemplate == null)
+            return;
+
+        selectedIndicatorStyle = CaptureIndicatorStyle(selectedTemplate);
+        normalIndicatorStyle = CaptureIndicatorStyle(normalTemplate);
+        hasSkinIndicatorStyles = true;
+    }
+
+    private static SkinIndicatorStyle CaptureIndicatorStyle(Image indicator)
+    {
+        RectTransform rect = indicator.rectTransform;
+        return new SkinIndicatorStyle
+        {
+            AnchorMin = rect.anchorMin,
+            AnchorMax = rect.anchorMax,
+            Pivot = rect.pivot,
+            AnchoredPosition = rect.anchoredPosition,
+            SizeDelta = rect.sizeDelta,
+            Color = indicator.color
+        };
+    }
+
+    private void ApplyIndicatorStyle(Image indicator, SkinIndicatorStyle style)
+    {
+        if (!hasSkinIndicatorStyles || indicator == null)
+            return;
+
+        RectTransform rect = indicator.rectTransform;
+        rect.anchorMin = style.AnchorMin;
+        rect.anchorMax = style.AnchorMax;
+        rect.pivot = style.Pivot;
+        rect.anchoredPosition = style.AnchoredPosition;
+        rect.sizeDelta = style.SizeDelta;
+        indicator.color = style.Color;
     }
 
     private void CacheCheckMarkLayout()
@@ -434,6 +677,8 @@ public sealed class WeaponSkinSelectionPanelUI : MonoBehaviour
 
     private bool IsValidSkinIndex(int index)
     {
-        return skinButtons != null && index >= 0 && index < skinButtons.Length;
+        return skinButtons != null && index >= 0 && index < skinButtons.Length &&
+               index < GetSkinCount(selectedWeaponIndex) && skinButtons[index] != null &&
+               skinButtons[index].gameObject.activeSelf;
     }
 }
