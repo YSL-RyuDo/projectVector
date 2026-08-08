@@ -158,6 +158,9 @@ public class NavigationPanelController : MonoBehaviour
     {
         SelectLobbyMainMenu(LobbyMainMenu.Career);
         Debug.Log("[LOBBY MAIN MENU] Career");
+
+        CareerPanelController careerPanel = GetComponent<CareerPanelController>();
+        careerPanel.StatisticsGroupAnimation();
     }
 
     public void OnClickStoreMainButton()

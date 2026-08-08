@@ -127,7 +127,7 @@ public class CareerPanelController : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _mvpCountText;
 
     [Header("Rank Panel - Sub Info UI")]
-    [SerializeField] private Image[] _favoriteCharacterIcons;
+    [SerializeField] private Sprite[] _favoriteCharacterIcons;
     [SerializeField] private TextMeshProUGUI _seasonNoticeText;
 
     [Header("Rank Panel - Bottom Buttons")]
@@ -142,8 +142,16 @@ public class CareerPanelController : MonoBehaviour
     [SerializeField] private float _roundKillCount = 1.24f;     // 소수점 -> float
     [SerializeField] private float _winRate = 0.60f;            // 60% -> float (0.6f)
     [SerializeField] private float _avgDamage = 383.28f;        // 소수점 -> float
-    [SerializeField] private int _mvpCount = 3;                 // 횟수는 int
+    [SerializeField] private string _mvp = "MVP";
     [SerializeField] private int _remainingSeasonDays = 65;     // 남은 일수는 int
+
+    [SerializeField] private GameObject[] _statisticsGroup;
+
+    public void StatisticsGroupAnimation()
+    {
+        _statisticsGroup[0].GetComponent<UIAnimator>().Show();
+        _statisticsGroup[1].GetComponent<UIAnimator>().Show();
+    }
 
     public void UpdateRankPanelData()
     {
@@ -158,15 +166,15 @@ public class CareerPanelController : MonoBehaviour
         if (_rankPointText != null) _rankPointText.text = $"{_currentPoint} / {_maxPoint}";
 
         if (_rankCountText != null)
-            _rankCountText.text = _rankCount.ToString();
+            _rankCountText.text = "랭크 횟수\n"+_rankCount.ToString();
         if (_roundKillCountText != null)
-            _roundKillCountText.text = _roundKillCount.ToString("F2");
+            _roundKillCountText.text = "라운드 처치 수\n"+_roundKillCount.ToString("F2");
         if (_winRateText != null)
-            _winRateText.text = $"{(_winRate * 100f):F0}%";
+            _winRateText.text = $"랭크 승률\n{(_winRate * 100f):F0}%";
         if (_avgDamageText != null)
-            _avgDamageText.text = _avgDamage.ToString("F2");
+            _avgDamageText.text = "라운드 평균 피해량\n"+_avgDamage.ToString("F2");
         if (_mvpCountText != null)
-            _mvpCountText.text = _mvpCount.ToString();
+            _mvpCountText.text = _mvp;
         if (_seasonNoticeText != null)
             _seasonNoticeText.text = $"현재 시즌은 {_remainingSeasonDays}일 후 종료됩니다";
     }
