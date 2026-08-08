@@ -8,6 +8,10 @@ public class ChatPanelController : MonoBehaviour
     [SerializeField] private Transform ChatSlotContent;
     [SerializeField] private TMP_InputField ChatInputField;
 
+    [Header("Chat Panel")]
+    [SerializeField] private GameObject _chatPanel;
+    [SerializeField] private GameObject _chatButton;
+
     private void Start()
     {
         NetworkManager.Instance.SetChatPanelController(this);
@@ -34,5 +38,19 @@ public class ChatPanelController : MonoBehaviour
 
         NetworkManager.Instance.SendLobbyChat(msg);
         ChatInputField.text = "";
+    }
+
+    public void OnChatPanel()
+    {
+        if (_chatPanel.activeSelf)
+        {
+            _chatPanel.GetComponent<UIAnimator>().Close();
+            _chatButton.GetComponent<UIAnimator>().Show();
+        }
+        else
+        {
+            _chatPanel.GetComponent<UIAnimator>().Show();
+            _chatButton.GetComponent<UIAnimator>().Close();
+        }
     }
 }

@@ -77,6 +77,7 @@ public class CareerPanelController : MonoBehaviour
     {
         ChangeTab(TabState.Rank);
         UpdateRankPanelData();
+        OnAchievementsTabButton();
     }
 
     public void OnRankButton() => ChangeTab(TabState.Rank);
@@ -126,31 +127,34 @@ public class CareerPanelController : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _mvpCountText;
 
     [Header("Rank Panel - Sub Info UI")]
-    [SerializeField] private Image[] _favoriteCharacterIcons;
+    [SerializeField] private Sprite[] _favoriteCharacterIcons;
     [SerializeField] private TextMeshProUGUI _seasonNoticeText;
 
     [Header("Rank Panel - Bottom Buttons")]
     [SerializeField] private Button _rankIconInfoButton;
     [SerializeField] private Button _seasonRewardButton;
 
-    // --- 실제 내부 수치 데이터 (float/int 관리) ---
-    private string _rankName = "원소 II";
-    private int _currentPoint = 11;
-    private int _maxPoint = 100;
+    [SerializeField] private string _rankName = "원소 II";
+    [SerializeField] private int _currentPoint = 11;
+    [SerializeField] private int _maxPoint = 100;
 
-    private int _rankCount = 5;               // 횟수는 int
-    private float _roundKillCount = 1.24f;     // 소수점 -> float
-    private float _winRate = 0.60f;            // 60% -> float (0.6f)
-    private float _avgDamage = 383.28f;        // 소수점 -> float
-    private int _mvpCount = 3;                 // 횟수는 int
-    private int _remainingSeasonDays = 65;     // 남은 일수는 int
+    [SerializeField] private int _rankCount = 5; // 랭크 횟수
+    [SerializeField] private float _roundKillCount = 1.24f; // 라운드 처치 수
+    [SerializeField] private float _winRate = 0.60f; // 랭크 승률
+    [SerializeField] private float _avgDamage = 383.28f; // 라운드 평균 피해량
+    [SerializeField] private string _mvp = "MVP"; // MVP 출력
+    [SerializeField] private int _remainingSeasonDays = 65; // 남은 시즌 출력
 
-    /// <summary>
-    /// float/int 수치 데이터를 UI 텍스트 형태로 변환하여 갱신합니다.
-    /// </summary>
+    [SerializeField] private GameObject[] _statisticsGroup;
+
+    public void StatisticsGroupAnimation()
+    {
+        _statisticsGroup[0].GetComponent<UIAnimator>().Show();
+        _statisticsGroup[1].GetComponent<UIAnimator>().Show();
+    }
+
     public void UpdateRankPanelData()
     {
-        // 1. 메인 정보
         if (_rankNameText != null) _rankNameText.text = _rankName;
 
         if (_rankPointSlider != null)
@@ -161,28 +165,64 @@ public class CareerPanelController : MonoBehaviour
         }
         if (_rankPointText != null) _rankPointText.text = $"{_currentPoint} / {_maxPoint}";
 
-        // 2. 통계 정보 (float 포맷팅 적용)
         if (_rankCountText != null)
-            _rankCountText.text = _rankCount.ToString();
-
-        // 소수점 둘째 자리까지 표시 ("F2") -> 1.24
+            _rankCountText.text = "랭크 횟수\n"+_rankCount.ToString();
         if (_roundKillCountText != null)
-            _roundKillCountText.text = _roundKillCount.ToString("F2");
-
-        // float(0.6f)를 백분율 퍼센트 텍스트("P0" 또는 계산)로 출력 -> 60%
+            _roundKillCountText.text = "라운드 처치 수\n"+_roundKillCount.ToString("F2");
         if (_winRateText != null)
-            _winRateText.text = $"{(_winRate * 100f):F0}%";
-
-        // 소수점 둘째 자리까지 표시 ("F2") -> 383.28
+            _winRateText.text = $"랭크 승률\n{(_winRate * 100f):F0}%";
         if (_avgDamageText != null)
-            _avgDamageText.text = _avgDamage.ToString("F2");
-
+            _avgDamageText.text = "라운드 평균 피해량\n"+_avgDamage.ToString("F2");
         if (_mvpCountText != null)
-            _mvpCountText.text = _mvpCount.ToString();
-
-        // 3. 시즌 안내
+            _mvpCountText.text = _mvp;
         if (_seasonNoticeText != null)
             _seasonNoticeText.text = $"현재 시즌은 {_remainingSeasonDays}일 후 종료됩니다";
     }
+    #endregion
+
+    #region Career Record Panel
+
+    #endregion
+
+    #region Card Collection Panel
+
+    [Header("Buttons")]
+    [SerializeField] private Button _achievementsTabButton;
+    [SerializeField] private Button _cardCollectionTabButton;
+
+    [Header("Screens")]
+    [SerializeField] private GameObject _achievementsScreen;
+    [SerializeField] private GameObject _cardCollectionScreen;
+
+    [Header("Colors")]
+    [SerializeField] private Color _selectButtonColor = Color.white;
+    [SerializeField] private Color _defaultButtonColor = Color.gray;
+
+    public void OnAchievementsTabButton()
+    {
+        if (_achievementsScreen != null) _achievementsScreen.SetActive(true);
+        if (_cardCollectionScreen != null) _cardCollectionScreen.SetActive(false);
+
+        SetButtonColor(_achievementsTabButton, _selectButtonColor);
+        SetButtonColor(_cardCollectionTabButton, _defaultButtonColor);
+    }
+
+    public void OnCardCollectionTabButton()
+    {
+        if (_achievementsScreen != null) _achievementsScreen.SetActive(false);
+        if (_cardCollectionScreen != null) _cardCollectionScreen.SetActive(true);
+
+        SetButtonColor(_achievementsTabButton, _defaultButtonColor);
+        SetButtonColor(_cardCollectionTabButton, _selectButtonColor);
+    }
+
+    private void SetButtonColor(Button button, Color color)
+    {
+        if (button != null)
+        {
+            button.image.color = color;
+        }
+    }
+
     #endregion
 }
