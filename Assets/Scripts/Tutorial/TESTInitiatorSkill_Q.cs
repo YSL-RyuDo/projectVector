@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -11,6 +13,9 @@ public class TESTInitiatorSkill_Q : CharacterSkill
     [SerializeField] private Transform _droneSpawnPoint;
     [SerializeField] private Drone _dronePrefab;
 
+    [Header("드론 스캔 (Quick Outline 연동)")]
+    [SerializeField] private float _scanRadius = 1.0f; 
+
     private Drone _currentTaserDrone;
     private bool _isDroneMode;
     private bool _exitRequested;
@@ -18,6 +23,9 @@ public class TESTInitiatorSkill_Q : CharacterSkill
     public static bool IsLocalDroneMode { get; private set; }
 
     private TESTPlayerItem _playerItem;
+
+   
+    private HashSet<Outline> _activeOutlines = new HashSet<Outline>();
 
     private void Awake()
     {
@@ -44,6 +52,11 @@ public class TESTInitiatorSkill_Q : CharacterSkill
         if (Keyboard.current.qKey.wasPressedThisFrame)
         {
             UseSkill();
+        }
+
+        if (_isDroneMode && _currentTaserDrone != null)
+        {
+            ScanEnemiesAroundDrone();
         }
     }
 
@@ -151,6 +164,12 @@ public class TESTInitiatorSkill_Q : CharacterSkill
         _isDroneMode = active;
         IsLocalDroneMode = active;
 
+       
+        if (!active)
+        {
+            ResetScannedOutlines();
+        }
+
         if (_playerMovement != null)
             _playerMovement.enabled = !active;
 
@@ -208,8 +227,64 @@ public class TESTInitiatorSkill_Q : CharacterSkill
             DroneHUDUI.Instance.SetVisible(active);
     }
 
+   
+    private void ScanEnemiesAroundDrone()
+    {
+        if (_currentTaserDrone == null) return;
+
+        Collider[] hitColliders = Physics.OverlapSphere(_currentTaserDrone.transform.position, _scanRadius);
+        HashSet<Outline> currentInRangeOutlines = new HashSet<Outline>();
+
+        foreach (var col in hitColliders)
+        {
+            if (col.CompareTag("Enemy"))
+            {
+               
+                Outline outline = col.GetComponentInChildren<Outline>();
+                if (outline != null)
+                {
+                    outline.enabled = true; 
+                    currentInRangeOutlines.Add(outline);
+                    _activeOutlines.Add(outline);
+                }
+            }
+        }
+
+        List<Outline> toRemove = new List<Outline>();
+        foreach (var outline in _activeOutlines)
+        {
+            if (!currentInRangeOutlines.Contains(outline))
+            {
+                if (outline != null)
+                {
+                    outline.enabled = false;
+                }
+                toRemove.Add(outline);
+            }
+        }
+
+        foreach (var outline in toRemove)
+        {
+            _activeOutlines.Remove(outline);
+        }
+    }
+
+    private void ResetScannedOutlines()
+    {
+        foreach (var outline in _activeOutlines)
+        {
+            if (outline != null)
+            {
+                outline.enabled = false;
+            }
+        }
+        _activeOutlines.Clear();
+    }
+
     private void ForceReturnToPlayerCamera()
     {
+        ResetScannedOutlines();
+
         _isDroneMode = false;
         IsLocalDroneMode = false;
 
