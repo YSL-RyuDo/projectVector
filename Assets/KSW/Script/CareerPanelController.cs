@@ -138,12 +138,12 @@ public class CareerPanelController : MonoBehaviour
     [SerializeField] private int _currentPoint = 11;
     [SerializeField] private int _maxPoint = 100;
 
-    [SerializeField] private int _rankCount = 5;                // 횟수는 int
-    [SerializeField] private float _roundKillCount = 1.24f;     // 소수점 -> float
-    [SerializeField] private float _winRate = 0.60f;            // 60% -> float (0.6f)
-    [SerializeField] private float _avgDamage = 383.28f;        // 소수점 -> float
-    [SerializeField] private string _mvp = "MVP";
-    [SerializeField] private int _remainingSeasonDays = 65;     // 남은 일수는 int
+    [SerializeField] private int _rankCount = 5; // 랭크 횟수
+    [SerializeField] private float _roundKillCount = 1.24f; // 라운드 처치 수
+    [SerializeField] private float _winRate = 0.60f; // 랭크 승률
+    [SerializeField] private float _avgDamage = 383.28f; // 라운드 평균 피해량
+    [SerializeField] private string _mvp = "MVP"; // MVP 출력
+    [SerializeField] private int _remainingSeasonDays = 65; // 남은 시즌 출력
 
     [SerializeField] private GameObject[] _statisticsGroup;
 
