@@ -211,6 +211,35 @@ public class NetworkManager : MonoBehaviour
 
     private readonly Dictionary<uint, GameObject> droppedItemMap = new();
     private readonly Dictionary<uint, PlayerCombatSnapshot> playerCombatSnapshots = new();
+    private const int WeaponSkinWeaponCount = 14;
+    private const int WeaponSkinCharacterCount = 4;
+    private readonly Dictionary<int, Dictionary<int, int>> equippedWeaponSkinsByCharacter = new();
+
+    public event Action<int> WeaponSkinLoadoutChanged;
+
+    public bool HasWeaponSkinLoadout(int characterId)
+    {
+        return equippedWeaponSkinsByCharacter.ContainsKey(characterId);
+    }
+
+    public int GetEquippedWeaponSkinId(int characterId, int weaponId)
+    {
+        return equippedWeaponSkinsByCharacter.TryGetValue(
+                   characterId,
+                   out Dictionary<int, int> loadout) &&
+               loadout.TryGetValue(weaponId, out int skinId)
+            ? skinId
+            : 0;
+    }
+
+    public Dictionary<int, int> CopyEquippedWeaponSkins(int characterId)
+    {
+        return equippedWeaponSkinsByCharacter.TryGetValue(
+            characterId,
+            out Dictionary<int, int> loadout)
+            ? new Dictionary<int, int>(loadout)
+            : new Dictionary<int, int>();
+    }
     public void ClearPendingReturnRoom()
     {
         pendingReturnRoomId = 0;
@@ -307,6 +336,7 @@ public class NetworkManager : MonoBehaviour
     public void SendLogin(string id, string pw)
     {
         myUserId = id.Trim();
+        equippedWeaponSkinsByCharacter.Clear();
 
         byte[] buffer = new byte[4 + 20 + 64];
 
@@ -373,6 +403,26 @@ public class NetworkManager : MonoBehaviour
         client.Send(bytes);
     }
 
+    public void SendWeaponSkinLoadoutRequest(int characterId)
+    {
+        byte[] buffer = new byte[8];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_WEAPON_SKIN_LOADOUT_REQUEST).CopyTo(buffer, 2);
+        BitConverter.GetBytes(characterId).CopyTo(buffer, 4);
+        client.Send(buffer);
+    }
+
+    public void SendWeaponSkinSelect(int characterId, int weaponId, int skinId)
+    {
+        byte[] buffer = new byte[16];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_WEAPON_SKIN_SELECT).CopyTo(buffer, 2);
+        BitConverter.GetBytes(characterId).CopyTo(buffer, 4);
+        BitConverter.GetBytes(weaponId).CopyTo(buffer, 8);
+        BitConverter.GetBytes(skinId).CopyTo(buffer, 12);
+        client.Send(buffer);
+    }
+
     void HandlePacket(ushort type, byte[] body)
     {
         switch (type)
@@ -403,6 +453,14 @@ public class NetworkManager : MonoBehaviour
 
             case (ushort)PacketType.PKT_SC_LOBBY_CHARACTER_LIST:
                 HandleLobbyCharacterList(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_WEAPON_SKIN_LOADOUT:
+                HandleWeaponSkinLoadout(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_WEAPON_SKIN_SELECT_RESULT:
+                HandleWeaponSkinSelectResult(body);
                 break;
 
             case (ushort)PacketType.PKT_SC_TEMP_GAME_ROOM_ENTER:
@@ -842,6 +900,87 @@ public class NetworkManager : MonoBehaviour
             playerIconId,
             lobbyCharacterModelId,
             lobbyBackgroundId
+        );
+
+        SendWeaponSkinLoadoutRequest(lobbyCharacterModelId);
+    }
+
+    private void HandleWeaponSkinLoadout(byte[] body)
+    {
+        if (body == null || body.Length < 4 + 2 + WeaponSkinWeaponCount * 8)
+        {
+            Debug.LogWarning("[WEAPON SKIN LOADOUT] invalid packet size");
+            return;
+        }
+
+        int offset = 0;
+        int characterId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        if (characterId < 0 || characterId >= WeaponSkinCharacterCount)
+        {
+            Debug.LogWarning($"[WEAPON SKIN LOADOUT] invalid characterId={characterId}");
+            return;
+        }
+
+        ushort count = BitConverter.ToUInt16(body, offset);
+        offset += 2;
+
+        if (!equippedWeaponSkinsByCharacter.TryGetValue(
+                characterId,
+                out Dictionary<int, int> loadout))
+        {
+            loadout = new Dictionary<int, int>();
+            equippedWeaponSkinsByCharacter[characterId] = loadout;
+        }
+
+        loadout.Clear();
+
+        for (int i = 0; i < WeaponSkinWeaponCount; i++)
+        {
+            int weaponId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            int skinId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            if (i < count && weaponId >= 0 && weaponId < WeaponSkinWeaponCount)
+                loadout[weaponId] = skinId;
+        }
+
+        WeaponSkinLoadoutChanged?.Invoke(characterId);
+        Debug.Log(
+            $"[WEAPON SKIN LOADOUT] characterId={characterId}, received count={loadout.Count}"
+        );
+    }
+
+    private void HandleWeaponSkinSelectResult(byte[] body)
+    {
+        if (body == null || body.Length < 13)
+            return;
+
+        bool success = body[0] != 0;
+        int characterId = BitConverter.ToInt32(body, 1);
+        int weaponId = BitConverter.ToInt32(body, 5);
+        int skinId = BitConverter.ToInt32(body, 9);
+
+        if (success)
+        {
+            if (!equippedWeaponSkinsByCharacter.TryGetValue(
+                    characterId,
+                    out Dictionary<int, int> loadout))
+            {
+                loadout = new Dictionary<int, int>();
+                equippedWeaponSkinsByCharacter[characterId] = loadout;
+            }
+
+            loadout[weaponId] = skinId;
+        }
+
+        // On failure this reapplies the last confirmed value to the lobby UI.
+        WeaponSkinLoadoutChanged?.Invoke(characterId);
+        Debug.Log(
+            $"[WEAPON SKIN SELECT] success={success}, characterId={characterId}, " +
+            $"weaponId={weaponId}, skinId={skinId}"
         );
     }
     void HandleLobbyChat(byte[] body)
@@ -1736,6 +1875,12 @@ public class NetworkManager : MonoBehaviour
             member.rankImageId = BitConverter.ToInt32(body, offset);
             offset += 4;
 
+            for (int weaponId = 0; weaponId < WeaponSkinWeaponCount; weaponId++)
+            {
+                member.weaponSkinLoadout[weaponId] = BitConverter.ToInt32(body, offset);
+                offset += 4;
+            }
+
             Debug.Log(
                 $"[GAME ALL READY MEMBER PARSED] " +
                 $"index={i}, " +
@@ -2348,6 +2493,8 @@ public class NetworkManager : MonoBehaviour
             WeaponDropSpawner.Instance.ClearAllDroppedWeapons();
         }
 
+        droppedItemMap.Clear();
+
         if (StorePanelUI.Instance != null)
         {
             StorePanelUI.Instance.ResetOwnedItemsForNewRound();
@@ -2437,6 +2584,9 @@ public class NetworkManager : MonoBehaviour
             int primaryReserveAmmo = BitConverter.ToInt32(body, offset);
             offset += 4;
 
+            int primarySkinId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
             int pistolWeaponId = BitConverter.ToInt32(body, offset);
             offset += 4;
 
@@ -2446,6 +2596,9 @@ public class NetworkManager : MonoBehaviour
             int pistolReserveAmmo = BitConverter.ToInt32(body, offset);
             offset += 4;
 
+            int pistolSkinId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
             int knifeWeaponId = BitConverter.ToInt32(body, offset);
             offset += 4;
 
@@ -2453,6 +2606,9 @@ public class NetworkManager : MonoBehaviour
             offset += 4;
 
             int knifeReserveAmmo = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
+            int knifeSkinId = BitConverter.ToInt32(body, offset);
             offset += 4;
 
             byte purchasedSkillMask = body[offset];
@@ -2506,12 +2662,15 @@ public class NetworkManager : MonoBehaviour
                 primaryWeaponId,
                 primaryMagAmmo,
                 primaryReserveAmmo,
+                primarySkinId,
                 pistolWeaponId,
                 pistolMagAmmo,
                 pistolReserveAmmo,
+                pistolSkinId,
                 knifeWeaponId,
                 knifeMagAmmo,
-                knifeReserveAmmo
+                knifeReserveAmmo,
+                knifeSkinId
             );
         }
 
@@ -2635,11 +2794,6 @@ public class NetworkManager : MonoBehaviour
                 );
             }
 
-            PlayerItem item = targetIdentity.GetComponent<PlayerItem>();
-
-            if (item != null)
-                item.ResetToDefault();
-
             if (movement != null)
             {
                 movement.SetLocalPlayer(true);
@@ -2677,12 +2831,15 @@ public class NetworkManager : MonoBehaviour
     int primaryWeaponId,
     int primaryMagAmmo,
     int primaryReserveAmmo,
+    int primarySkinId,
     int pistolWeaponId,
     int pistolMagAmmo,
     int pistolReserveAmmo,
+    int pistolSkinId,
     int knifeWeaponId,
     int knifeMagAmmo,
-    int knifeReserveAmmo)
+    int knifeReserveAmmo,
+    int knifeSkinId)
     {
         PlayerIdentity target = FindPlayerIdentityById(playerId);
 
@@ -2708,13 +2865,31 @@ public class NetworkManager : MonoBehaviour
             primaryWeaponId,
             primaryMagAmmo,
             primaryReserveAmmo,
+            primarySkinId,
             pistolWeaponId,
             pistolMagAmmo,
             pistolReserveAmmo,
+            pistolSkinId,
             knifeWeaponId,
             knifeMagAmmo,
-            knifeReserveAmmo
+            knifeReserveAmmo,
+            knifeSkinId
         );
+
+        // Reapply the current weapon only after the round inventory is rebuilt.
+        item.SetWeaponVisibility(true);
+
+        PlayerCameraController roundResetCamera =
+            target.GetComponent<PlayerCameraController>();
+
+        if (roundResetCamera == null)
+        {
+            roundResetCamera =
+                target.GetComponentInChildren<PlayerCameraController>(true);
+        }
+
+        if (roundResetCamera != null)
+            roundResetCamera.RefreshViewVisuals();
 
         if (playerId == MyPlayerId)
         {
@@ -4053,6 +4228,13 @@ public class NetworkManager : MonoBehaviour
 
     private void HandleWeaponDropped(byte[] body)
     {
+        const int expectedBodySize = 48;
+        if (body == null || body.Length < expectedBodySize)
+        {
+            Debug.LogError($"[DROP SPAWN FAIL] Invalid packet size. received={body?.Length ?? 0}");
+            return;
+        }
+
         int offset = 0;
 
         uint dropId = BitConverter.ToUInt32(body, offset);
@@ -4068,6 +4250,9 @@ public class NetworkManager : MonoBehaviour
         offset += 4;
 
         int reserveAmmo = BitConverter.ToInt32(body, offset);
+        offset += 4;
+
+        int skinId = BitConverter.ToInt32(body, offset);
         offset += 4;
 
         float x = BitConverter.ToSingle(body, offset);
@@ -4094,6 +4279,9 @@ public class NetworkManager : MonoBehaviour
             return;
         }
 
+        Vector3 pos = new Vector3(x, y, z);
+        Vector3 dir = new Vector3(dirX, dirY, dirZ);
+
         WeaponData data = WeaponDropSpawner.Instance.GetWeaponData(weaponId);
         if (data == null)
         {
@@ -4101,54 +4289,22 @@ public class NetworkManager : MonoBehaviour
             return;
         }
 
-        if (data.dropPrefab == null)
-        {
-            Debug.LogError($"[DROP SPAWN FAIL] dropPrefab is null. weaponId={weaponId}, name={data.name}");
+        GameObject obj = WeaponDropSpawner.Instance.SpawnDroppedWeapon(
+            dropId,
+            weaponId,
+            magAmmo,
+            reserveAmmo,
+            skinId,
+            pos,
+            dir
+        );
+
+        if (obj == null)
             return;
-        }
-
-        Vector3 pos = new Vector3(x, y, z);
-        Vector3 dir = new Vector3(dirX, dirY, dirZ);
-
-        Quaternion rot = dir.sqrMagnitude > 0.0001f
-            ? Quaternion.LookRotation(dir.normalized)
-            : Quaternion.identity;
-
-        GameObject obj = Instantiate(data.dropPrefab, pos, rot);
-
-        PlayerIdentity dropperIdentity = FindPlayerIdentityById(dropperPlayerId);
-        int skinId = 0;
-
-        if (dropperIdentity != null)
-        {
-            PlayerSkinLoadout dropperLoadout = dropperIdentity.GetComponent<PlayerSkinLoadout>();
-            if (dropperLoadout != null)
-                skinId = dropperLoadout.GetSkinId(weaponId);
-        }
-
-        DroppedItem droppedItem = obj.GetComponent<DroppedItem>();
-        if (droppedItem == null)
-            droppedItem = obj.GetComponentInChildren<DroppedItem>(true);
-
-        if (droppedItem != null)
-        {
-            droppedItem.InitFromServer(dropId, data, magAmmo, reserveAmmo, skinId);
-        }
-
-        WeaponSkinSlot skinSlot = obj.GetComponent<WeaponSkinSlot>();
-        if (skinSlot == null)
-            skinSlot = obj.GetComponentInChildren<WeaponSkinSlot>(true);
-
-        if (skinSlot != null)
-        {
-            WeaponSkinData skin = (skinId > 0 && WeaponSkinDatabase.Instance != null)
-                ? WeaponSkinDatabase.Instance.GetById(skinId)
-                : null;
-
-            skinSlot.ApplySkin(skin);
-        }
 
         RegisterDroppedItem(dropId, obj);
+
+        PlayerIdentity dropperIdentity = FindPlayerIdentityById(dropperPlayerId);
 
         if (dropperIdentity != null)
         {
@@ -4184,12 +4340,20 @@ public class NetworkManager : MonoBehaviour
             $"dropper={dropperPlayerId}, " +
             $"weaponId={weaponId}, " +
             $"weaponName={data.name}, " +
+            $"skinId={skinId}, " +
             $"ammo={magAmmo}/{reserveAmmo}"
         );
     }
 
     private void HandleWeaponPickupNotify(byte[] body)
     {
+        const int expectedBodySize = 24;
+        if (body == null || body.Length < expectedBodySize)
+        {
+            Debug.LogError($"[WEAPON PICKUP NOTIFY] Invalid packet size. received={body?.Length ?? 0}");
+            return;
+        }
+
         int offset = 0;
 
         uint dropId =
@@ -4212,19 +4376,9 @@ public class NetworkManager : MonoBehaviour
             BitConverter.ToInt32(body, offset);
         offset += 4;
 
-        int skinId = 0;
-
-        if (dropId != 0 &&
-        droppedItemMap.TryGetValue(dropId, out GameObject droppedObj) &&
-        droppedObj != null)
-        {
-            DroppedItem droppedItemComp = droppedObj.GetComponent<DroppedItem>();
-            if (droppedItemComp == null)
-                droppedItemComp = droppedObj.GetComponentInChildren<DroppedItem>(true);
-
-            if (droppedItemComp != null)
-                skinId = droppedItemComp.skinId;
-        }
+        int skinId =
+            BitConverter.ToInt32(body, offset);
+        offset += 4;
 
         if (dropId != 0)
         {
@@ -4323,6 +4477,7 @@ public class NetworkManager : MonoBehaviour
             $"dropId={dropId}, " +
             $"picker={pickerPlayerId}, " +
             $"weaponId={weaponId}, " +
+            $"skinId={skinId}, " +
             $"ammo={magAmmo}/{reserveAmmo}"
         );
     }
@@ -4485,7 +4640,11 @@ public class NetworkManager : MonoBehaviour
         if (!droppedItemMap.TryGetValue(dropId, out GameObject obj))
             return;
 
-        if (obj != null)
+        bool destroyedBySpawner =
+            WeaponDropSpawner.Instance != null &&
+            WeaponDropSpawner.Instance.DestroyDroppedWeapon(dropId);
+
+        if (!destroyedBySpawner && obj != null)
             Destroy(obj);
 
         droppedItemMap.Remove(dropId);

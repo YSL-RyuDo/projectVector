@@ -27,6 +27,7 @@ public class PlayerItem : MonoBehaviour
     [SerializeField] private int currentIndex = -1;
 
     private PlayerIdentity _playerIdentity;
+    private bool defaultItemsInitialized;
 
     private bool isReloading;
     private Coroutine reloadCoroutine;
@@ -52,9 +53,21 @@ public class PlayerItem : MonoBehaviour
 
     private void Start()
     {
-        playerSpike = GetComponent<PlayerSpike>();
-        _playerIdentity = GetComponent<PlayerIdentity>();
+        InitializeForMatch();
+    }
 
+    public void InitializeForMatch()
+    {
+        if (playerSpike == null)
+            playerSpike = GetComponent<PlayerSpike>();
+
+        if (_playerIdentity == null)
+            _playerIdentity = GetComponent<PlayerIdentity>();
+
+        if (defaultItemsInitialized)
+            return;
+
+        defaultItemsInitialized = true;
         InitializeDefaultItems();
 
         // 프리팹 Inspector에 이전 값이 남아 있어도 강제로 초기화
@@ -65,7 +78,6 @@ public class PlayerItem : MonoBehaviour
         else if (items[2] != null)
             Switch(2);
     }
-
     void Update()
     {
         if (InGameChatUI.BlocksGameplayInput)
@@ -382,7 +394,11 @@ public class PlayerItem : MonoBehaviour
         }
 
         if (currentIndex == index)
+        {
+            // 숨겨진 상태에서 같은 슬롯을 다시 장착하는 경우도 확실히 표시한다.
+            items[index].OnEquip();
             return;
+        }
 
         if (index == 4 && playerSpike != null && !playerSpike.hasSpike)
         {
@@ -1077,12 +1093,15 @@ public class PlayerItem : MonoBehaviour
     int primaryWeaponId,
     int primaryMagAmmo,
     int primaryReserveAmmo,
+    int primarySkinId,
     int pistolWeaponId,
     int pistolMagAmmo,
     int pistolReserveAmmo,
+    int pistolSkinId,
     int knifeWeaponId,
     int knifeMagAmmo,
-    int knifeReserveAmmo)
+    int knifeReserveAmmo,
+    int knifeSkinId)
     {
         CancelReload(false);
 
@@ -1099,7 +1118,8 @@ public class PlayerItem : MonoBehaviour
             CreateWeaponFromServerForRoundReset(
                 primaryWeaponId,
                 primaryMagAmmo,
-                primaryReserveAmmo
+                primaryReserveAmmo,
+                primarySkinId
             );
         }
 
@@ -1108,7 +1128,8 @@ public class PlayerItem : MonoBehaviour
             CreateWeaponFromServerForRoundReset(
                 pistolWeaponId,
                 pistolMagAmmo,
-                pistolReserveAmmo
+                pistolReserveAmmo,
+                pistolSkinId
             );
         }
 
@@ -1117,7 +1138,8 @@ public class PlayerItem : MonoBehaviour
             CreateWeaponFromServerForRoundReset(
                 knifeWeaponId,
                 knifeMagAmmo,
-                knifeReserveAmmo
+                knifeReserveAmmo,
+                knifeSkinId
             );
         }
 
@@ -1210,7 +1232,8 @@ public class PlayerItem : MonoBehaviour
     private void CreateWeaponFromServerForRoundReset(
         int weaponId,
         int magAmmo,
-        int reserveAmmo)
+        int reserveAmmo,
+        int skinId)
     {
         if (WeaponDropSpawner.Instance == null)
         {
@@ -1259,7 +1282,7 @@ public class PlayerItem : MonoBehaviour
         }
         */
 
-        GameObject obj = SpawnWeaponObject(data, magAmmo, reserveAmmo);
+        GameObject obj = SpawnWeaponObject(data, magAmmo, reserveAmmo, skinId);
 
         DisableHeldWeaponPhysics(obj);
 
@@ -1400,7 +1423,8 @@ public class PlayerItem : MonoBehaviour
         }
         */
 
-        GameObject obj = SpawnWeaponObject(weaponData, magAmmo, reserveAmmo, skinId > 0 ? skinId : (int?)null);
+        // A picked weapon keeps the dropped instance skin, including default skin 0.
+        GameObject obj = SpawnWeaponObject(weaponData, magAmmo, reserveAmmo, skinId);
 
         DisableHeldWeaponPhysics(obj);
 
@@ -1992,7 +2016,7 @@ public class PlayerItem : MonoBehaviour
             int skinId = forcedSkinId ?? (skinLoadout != null ? skinLoadout.GetSkinId(data.weaponId) : 0);
 
             WeaponSkinData skin = (skinId > 0 && WeaponSkinDatabase.Instance != null)
-                ? WeaponSkinDatabase.Instance.GetById(skinId)
+                ? WeaponSkinDatabase.Instance.GetById(data.weaponId, skinId)
                 : null;
             weapon.ApplySkin(skin, data); // data를 넘겨서 baseWeapon 검증 가능하게 함 (아래 3번 항목 참고)
         }

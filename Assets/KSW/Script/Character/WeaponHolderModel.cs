@@ -14,6 +14,7 @@ public class WeaponHolderModel : MonoBehaviour
     private PlayerItem playerItem;
 
     private GameObject[] myHolderModels = new GameObject[5];
+    private Item[] mirroredSourceItems = new Item[5];
     private int lastIndex = -1;
 
     // 2. 인스펙터에서 무기군별로 따로 설정할 수 있는 변수들
@@ -22,26 +23,56 @@ public class WeaponHolderModel : MonoBehaviour
     [SerializeField] private WeaponTransformPreset _riflePreset;    // 긴총 (AR, SMG, Shotgun, LMG, DMR, SR)
     [SerializeField] private WeaponTransformPreset _knifePreset;    // 칼 (Knife)
 
+    public void ConfigureRuntimeDefaults(Vector3 localPosition, Vector3 localRotation)
+    {
+        WeaponTransformPreset preset = new WeaponTransformPreset
+        {
+            localPosition = localPosition,
+            localRotation = localRotation
+        };
+
+        _pistolPreset = preset;
+        _riflePreset = preset;
+        _knifePreset = preset;
+    }
+
+    private void OnEnable()
+    {
+        RefreshNow();
+    }
+
     void Start()
     {
-        if (playerItem == null) playerItem = GetComponentInParent<PlayerItem>();
-
-        if (playerItem == null)
+        if (!TryResolvePlayerItem())
         {
             Debug.LogError($"[WeaponHolderModel] PlayerItem을 찾을 수 없습니다!");
             enabled = false;
             return;
         }
+
+        RefreshNow();
     }
 
     void Update()
     {
-        if (playerItem == null) return;
+        RefreshNow();
+    }
 
-        // 1. PlayerItem에 실시간으로 무기가 생기거나 버려졌는지 체크해서 내 자식으로 복사/삭제
+    private bool TryResolvePlayerItem()
+    {
+        if (playerItem == null)
+            playerItem = GetComponentInParent<PlayerItem>(true);
+
+        return playerItem != null;
+    }
+
+    public void RefreshNow()
+    {
+        if (!TryResolvePlayerItem())
+            return;
+
         SyncModelsFromPlayerItem();
 
-        // 2. 현재 들고 있는 인덱스가 바뀌면 복사본들만 껐다 켜기
         int currentIndex = playerItem.CurrentIndex;
         if (lastIndex != currentIndex)
         {
@@ -49,40 +80,58 @@ public class WeaponHolderModel : MonoBehaviour
             UpdateWeaponVisibility(currentIndex);
         }
     }
-
     private void SyncModelsFromPlayerItem()
     {
         Item[] targetItems = playerItem.Items;
-        if (targetItems == null) return;
+        if (targetItems == null)
+            return;
 
-        for (int i = 0; i < targetItems.Length; i++)
+        int slotCount = Mathf.Min(targetItems.Length, myHolderModels.Length);
+
+        for (int i = 0; i < slotCount; i++)
         {
-            if (targetItems[i] != null && myHolderModels[i] == null)
-            {
-                GameObject clone = Instantiate(targetItems[i].gameObject, transform);
+            Item sourceItem = targetItems[i];
 
-                // --- [수정] 무기 종류를 판단해서 맞는 프리셋을 적용 ---
-                WeaponTransformPreset selectedPreset = GetPresetByItem(targetItems[i]);
+            // A pickup or round reset can replace an item inside the same slot
+            // without leaving the slot null for a frame. Track the source
+            // instance so the third-person clone and its exact skin are rebuilt.
+            if (mirroredSourceItems[i] == sourceItem)
+                continue;
 
-                clone.transform.localPosition = selectedPreset.localPosition;
-                clone.transform.localRotation = Quaternion.Euler(selectedPreset.localRotation);
-                // ----------------------------------------------------
+            mirroredSourceItems[i] = sourceItem;
 
-                CleanUpComponents(clone);
-
-                myHolderModels[i] = clone;
-
-                clone.SetActive(false);
-                lastIndex = -2;
-            }
-            else if (targetItems[i] == null && myHolderModels[i] != null)
+            if (myHolderModels[i] != null)
             {
                 Destroy(myHolderModels[i]);
                 myHolderModels[i] = null;
             }
+
+            if (sourceItem == null)
+                continue;
+
+            GameObject clone = Instantiate(sourceItem.gameObject, transform);
+            WeaponTransformPreset selectedPreset = GetPresetByItem(sourceItem);
+
+            // Explicitly copy the applied skin. Runtime child cloning alone is
+            // unreliable when the source first-person holder is inactive.
+            Weapon sourceWeapon = sourceItem.GetComponent<Weapon>();
+            Weapon cloneWeapon = clone.GetComponent<Weapon>();
+
+            if (sourceWeapon != null && cloneWeapon != null)
+            {
+                cloneWeapon.ApplySkin(sourceWeapon.AppliedSkin, sourceWeapon.Data);
+            }
+
+            clone.transform.localPosition = selectedPreset.localPosition;
+            clone.transform.localRotation = Quaternion.Euler(selectedPreset.localRotation);
+            SetLayerRecursively(clone.transform, gameObject.layer);
+            CleanUpComponents(clone);
+
+            myHolderModels[i] = clone;
+            clone.SetActive(false);
+            lastIndex = -2;
         }
     }
-
     // 3. 아이템의 WeaponType을 분석해서 올바른 프리셋을 반환하는 헬퍼 함수
     private WeaponTransformPreset GetPresetByItem(Item item)
     {
@@ -132,7 +181,10 @@ public class WeaponHolderModel : MonoBehaviour
         foreach (MonoBehaviour script in scripts)
         {
             if (script != null)
+            {
+                script.enabled = false;
                 Destroy(script);
+            }
         }
 
         Rigidbody[] rigidbodies =
@@ -152,5 +204,16 @@ public class WeaponHolderModel : MonoBehaviour
             if (col != null)
                 Destroy(col);
         }
+    }
+
+    private static void SetLayerRecursively(Transform root, int layer)
+    {
+        if (root == null)
+            return;
+
+        root.gameObject.layer = layer;
+
+        for (int i = 0; i < root.childCount; i++)
+            SetLayerRecursively(root.GetChild(i), layer);
     }
 }
