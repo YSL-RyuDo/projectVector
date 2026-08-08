@@ -7,13 +7,20 @@ public class ARMotion : MonoBehaviour
         Animator.StringToHash("ReLoad");
 
     private Animator animator;
+    private WeaponSkinSlot skinSlot;
     private Coroutine reloadCoroutine;
 
     public bool IsReloading { get; private set; }
 
     private void Awake()
     {
-        animator = GetComponentInChildren<Animator>(true);
+        skinSlot = GetComponent<WeaponSkinSlot>();
+        ResolveVisualAnimator();
+    }
+
+    private void Start()
+    {
+        ResolveVisualAnimator();
 
         if (animator == null)
         {
@@ -23,6 +30,39 @@ public class ARMotion : MonoBehaviour
                 this
             );
         }
+    }
+
+    public void SetAnimator(Animator visualAnimator)
+    {
+        animator = visualAnimator;
+
+        if (animator != null)
+            animator.SetBool(ReloadHash, IsReloading);
+    }
+
+    private void ResolveVisualAnimator()
+    {
+        if (skinSlot == null)
+            skinSlot = GetComponent<WeaponSkinSlot>();
+
+        if (skinSlot != null && skinSlot.ActiveVisualAnimator != null)
+        {
+            SetAnimator(skinSlot.ActiveVisualAnimator);
+            return;
+        }
+
+        Animator[] animators = GetComponentsInChildren<Animator>(true);
+
+        foreach (Animator candidate in animators)
+        {
+            if (candidate == null || candidate.transform == transform)
+                continue;
+
+            SetAnimator(candidate);
+            return;
+        }
+
+        animator = null;
     }
 
     public void PlayReload(float reloadTime)

@@ -58,6 +58,9 @@ public class Weapon : Item
 
     private WeaponSkinSlot skinSlot;
 
+    public WeaponData Data => weaponData;
+    public WeaponSkinData AppliedSkin { get; private set; }
+
     void Awake()
     {
         audioSource = GetComponent<AudioSource>();
@@ -1592,6 +1595,16 @@ public class Weapon : Item
             );
             return;
         }
+
+        AppliedSkin = skin;
+
+        // Awake can be delayed while the first-person holder is inactive.
+        // Resolve the slot on demand so the first round matches later rounds.
+        if (skinSlot == null)
+            skinSlot = GetComponent<WeaponSkinSlot>();
+
+        if (skinSlot == null)
+            skinSlot = GetComponentInChildren<WeaponSkinSlot>(true);
 
         if (skinSlot == null)
         {
