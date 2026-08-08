@@ -866,6 +866,8 @@ public class PlayerMovement : MonoBehaviour
         _cam =
             GetComponentInChildren<FPSCameraLook>(true);
 
+        GetComponent<FirstPersonViewSetup>()?.Setup(isMine);
+
         Debug.Log(
             $"[외부 호출] SetLocalPlayer 호출. " +
             $"object={gameObject.name}, " +
