@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a113197788b404382fd982bd930936, type: 3}
+  m_Name: UMP
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponData
+  weaponId: 4
+  weaponType: 1
+  weaponPrefab: {fileID: 865374850693021937, guid: 4fe361ed852ed074caad84cd1d2d0c6f, type: 3}
+  dropPrefab: {fileID: 3022230253132609194, guid: 229586009f6b1b1429e29e6241dbbb64, type: 3}
+  weaponIcon: {fileID: 0}
+  fireRate: 0.075
+  range: 1000
+  damage: 23
+  muzzleVelocity: 400
+  bulletHolePrefab: {fileID: 3341232432629068302, guid: b145402b672ee314e9bbbceeabeacce8, type: 3}
+  magSize: 30
+  maxReserveAmmo: 90
+  reloadTime: 2.2
+  normalFOV: 60
+  adsFOV: 40
+  adsSpeed: 16
+  recoilPattern:
+  - {x: 0, y: 0.2}
+  - {x: 0, y: 0.2}
+  - {x: -0.58, y: 0.3}
+  - {x: -0.62, y: 0.3}
+  - {x: -0.58, y: 0.5}
+  - {x: 0.58, y: 0.5}
+  - {x: 0.58, y: 0.4}
+  - {x: 0.56, y: 0.3}
+  - {x: 0.6, y: 0.2}
+  - {x: 0.58, y: 0.1}
+  - {x: -0.56, y: 0.1}
+  - {x: -0.56, y: 0.1}
+  - {x: -0.58, y: 0.1}
+  - {x: -0.56, y: 0.1}
+  - {x: -0.51, y: 0.1}
+  - {x: 0.56, y: 0.1}
+  - {x: 0.56, y: 0.1}
+  - {x: 0.58, y: 0.1}
+  - {x: 0.58, y: 0.1}
+  - {x: 0.6, y: 0.1}
+  - {x: 0.6, y: 0.1}
+  - {x: 0.56, y: 0.1}
+  - {x: 0.56, y: 0.1}
+  - {x: 0.52, y: 0.1}
+  - {x: -0.56, y: 0.1}
+  - {x: -0.56, y: 0.1}
+  - {x: -0.58, y: 0.1}
+  - {x: -0.58, y: 0.1}
+  - {x: -0.57, y: 0.1}
+  - {x: -0.52, y: 0.1}
+  recoilMultiplier: 1.7
+  adsRecoilMultiplier: 1.2
+  hipFireSpread: 0.017
+  adsSpread: 0.01
+  moveSpreadMultiplier: 5
+  weight: 2300
+  gunSound: {fileID: 8300000, guid: d447011cd8e637f49b42f4dbfe9e0c5a, type: 3}

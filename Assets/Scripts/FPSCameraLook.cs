@@ -3,9 +3,15 @@ using UnityEngine.InputSystem;
 
 public class FPSCameraLook : MonoBehaviour
 {
+
+    
+
     [Header("Mouse")]
     [SerializeField] private float _baseSensitivity = 0.2f;
     [SerializeField] private float _adsSensitivityMultiplier = 0.5f;
+
+    [Header("Test Settings")]
+    [SerializeField] private bool _isTestMode = false; //Æ©Åä¸®¾ó
 
     [Header("Recoil")]
     public float recoilReturnSpeed = 10f;
@@ -34,8 +40,19 @@ public class FPSCameraLook : MonoBehaviour
         _playerIdentity =
             GetComponentInParent<PlayerIdentity>();
 
+        if (_isTestMode)//Æ©Åä¸®¾ó
+        {
+            Transform root = transform.parent != null ? transform.parent : transform;
+            SetLocalPlayer(true, root);
+            return;
+        }
+
         enabled = false;
+
+        
     }
+
+    
 
     public void SetLocalPlayer(
         bool isLocal,
@@ -70,8 +87,26 @@ public class FPSCameraLook : MonoBehaviour
         );
     }
 
+
+
     private void Update()
     {
+
+        if (_isTestMode && !TESTInitiatorSkill_Q.IsLocalDroneMode)//Æ©Åä¸®¾ó
+        {
+            var cam = GetComponentInChildren<Camera>(true);
+            if (cam != null && !cam.enabled)
+                cam.enabled = true;
+
+            var listener = GetComponentInChildren<AudioListener>(true);
+            if (listener != null && !listener.enabled)
+                listener.enabled = true;
+        }
+
+        if (!isLocalPlayer)
+            return;
+
+
         if (!isLocalPlayer)
             return;
 
@@ -173,6 +208,19 @@ public class FPSCameraLook : MonoBehaviour
                 0f
             );
     }
+
+    private void LateUpdate() //Æ©Åä¸®¾ó
+    {
+        if (_isTestMode)
+        {
+            var camTransform = GetComponentInChildren<Camera>()?.transform;
+            if (camTransform != null)
+            {
+                camTransform.localPosition = new Vector3(0f, 0f, 0.25f);
+            }
+        }
+    }
+
 
     public float GetYaw()
     {

@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a113197788b404382fd982bd930936, type: 3}
+  m_Name: AK47
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponData
+  weaponId: 9
+  weaponType: 0
+  weaponPrefab: {fileID: 4528968629229385109, guid: 7b5a4559fe181574eb37ab226b8a329b, type: 3}
+  dropPrefab: {fileID: 7009611492088032247, guid: 9a3b831b0fe78df439476f7e36aea4a0, type: 3}
+  weaponIcon: {fileID: 21300000, guid: 311e0d672baa1fa4a8fcbc5bce31629c, type: 3}
+  fireRate: 0.1
+  range: 3000
+  damage: 40
+  muzzleVelocity: 715
+  bulletHolePrefab: {fileID: 3341232432629068302, guid: b145402b672ee314e9bbbceeabeacce8, type: 3}
+  magSize: 25
+  maxReserveAmmo: 75
+  reloadTime: 2.4
+  normalFOV: 60
+  adsFOV: 36
+  adsSpeed: 16
+  recoilPattern:
+  - {x: 0, y: 1}
+  - {x: 0, y: 1.2}
+  - {x: 0.1, y: 1.5}
+  - {x: 0.1, y: 1.8}
+  - {x: 0.2, y: 2}
+  - {x: 0.5, y: 1.2}
+  - {x: 0.8, y: 0.8}
+  - {x: 1.2, y: 0.5}
+  - {x: 1.5, y: 0.3}
+  - {x: 1.8, y: 0.1}
+  - {x: -1.5, y: 0.1}
+  - {x: -1.3, y: 0.1}
+  - {x: -1, y: 0.1}
+  - {x: -0.8, y: 0.1}
+  - {x: -0.5, y: 0.1}
+  - {x: -0.1, y: 0.1}
+  - {x: 0.8, y: 0.2}
+  - {x: 1, y: 0.1}
+  - {x: 1.1, y: 0.1}
+  - {x: 1.3, y: 0.1}
+  - {x: 1.5, y: 0.1}
+  - {x: 1.7, y: 0.1}
+  - {x: -1.8, y: 0.1}
+  - {x: -1.5, y: 0.1}
+  - {x: -1.2, y: 0.1}
+  recoilMultiplier: 3
+  adsRecoilMultiplier: 1.75
+  hipFireSpread: 0.02
+  adsSpread: 0.008
+  moveSpreadMultiplier: 10
+  weight: 3100
+  gunSound: {fileID: 8300000, guid: d447011cd8e637f49b42f4dbfe9e0c5a, type: 3}

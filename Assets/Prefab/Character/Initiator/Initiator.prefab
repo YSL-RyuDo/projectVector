@@ -350,6 +350,7 @@ GameObject:
   - component: {fileID: 7881917121856476300}
   - component: {fileID: -1001847290355664696}
   - component: {fileID: 5060105075839583054}
+  - component: {fileID: 6543488097280519208}
   m_Layer: 0
   m_Name: Initiator
   m_TagString: Untagged
@@ -465,6 +466,7 @@ MonoBehaviour:
   itemLayer:
     serializedVersion: 2
     m_Bits: 1024
+  skinDatabase: {fileID: 0}
   currentIndex: -1
 --- !u!114 &1275202334242850848
 MonoBehaviour:
@@ -894,6 +896,18 @@ MonoBehaviour:
   _bodyPrefab: {fileID: 1975292866561040841, guid: 40d023f3444e19a43b7d6533689dd76b, type: 3}
   _positionOffset: {x: 0, y: 0, z: 0}
   _rotationOffset: {x: 0, y: 0, z: 0}
+--- !u!114 &6543488097280519208
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9177276548501388304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b7813da8881db64dbd3df82ea5cd86f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSkinLoadout
 --- !u!1001 &4201979817069989925
 PrefabInstance:
   m_ObjectHideFlags: 0

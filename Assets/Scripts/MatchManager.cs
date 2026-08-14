@@ -473,6 +473,29 @@ public class MatchManager : MonoBehaviour
             identity.SlotIndex = member.slotIndex;
             identity.CharacterId = member.characterId;
 
+            PlayerSkinLoadout skinLoadout = characterObj.GetComponent<PlayerSkinLoadout>();
+            if (skinLoadout == null)
+                skinLoadout = characterObj.GetComponentInChildren<PlayerSkinLoadout>(true);
+
+            if (skinLoadout != null)
+                skinLoadout.ApplyServerConfirmedLoadout(member.weaponSkinLoadout);
+            else
+                Debug.LogWarning($"[WEAPON SKIN LOADOUT] PlayerSkinLoadout not found. playerId={member.playerId}");
+
+            PlayerItem spawnedPlayerItem =
+                characterObj.GetComponent<PlayerItem>();
+
+            if (spawnedPlayerItem == null)
+            {
+                spawnedPlayerItem =
+                    characterObj.GetComponentInChildren<PlayerItem>(true);
+            }
+
+            if (spawnedPlayerItem != null)
+                spawnedPlayerItem.InitializeForMatch();
+            else
+                Debug.LogWarning($"[PLAYER ITEM] PlayerItem not found. playerId={member.playerId}");
+
             Debug.Log(
                 $"[IDENTITY SET] " +
                 $"object={characterObj.name}, " +

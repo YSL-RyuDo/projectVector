@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a113197788b404382fd982bd930936, type: 3}
+  m_Name: AA-12
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponData
+  weaponId: 6
+  weaponType: 2
+  weaponPrefab: {fileID: 3030174618948520911, guid: 573fc6628979e3a46a34a36345e5f169, type: 3}
+  dropPrefab: {fileID: 5160197835966776585, guid: 7b9200fed9058a4419053d3121dcfb1d, type: 3}
+  weaponIcon: {fileID: 0}
+  fireRate: 0.5
+  range: 100
+  damage: 19
+  muzzleVelocity: 350
+  bulletHolePrefab: {fileID: 3341232432629068302, guid: b145402b672ee314e9bbbceeabeacce8, type: 3}
+  magSize: 5
+  maxReserveAmmo: 15
+  reloadTime: 2.1
+  normalFOV: 60
+  adsFOV: 0
+  adsSpeed: 0
+  recoilPattern:
+  - {x: 0, y: 1}
+  - {x: 0, y: 1}
+  - {x: 0, y: 1}
+  - {x: 0, y: 1}
+  - {x: 0, y: 1}
+  recoilMultiplier: 1.3
+  adsRecoilMultiplier: 0
+  hipFireSpread: 0.075
+  adsSpread: 0
+  moveSpreadMultiplier: 3.4
+  weight: 5200
+  gunSound: {fileID: 8300000, guid: d447011cd8e637f49b42f4dbfe9e0c5a, type: 3}

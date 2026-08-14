@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a113197788b404382fd982bd930936, type: 3}
+  m_Name: Dragunov
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponData
+  weaponId: 7
+  weaponType: 4
+  weaponPrefab: {fileID: 1628603641264953458, guid: 914a569366762864a8638f61286d425d, type: 3}
+  dropPrefab: {fileID: 1124302441833841811, guid: f99e786c382c06344b442b391d402358, type: 3}
+  weaponIcon: {fileID: 0}
+  fireRate: 0.22
+  range: 3800
+  damage: 75
+  muzzleVelocity: 500
+  bulletHolePrefab: {fileID: 3341232432629068302, guid: b145402b672ee314e9bbbceeabeacce8, type: 3}
+  magSize: 12
+  maxReserveAmmo: 36
+  reloadTime: 2.4
+  normalFOV: 60
+  adsFOV: 30
+  adsSpeed: 16
+  recoilPattern:
+  - {x: 0, y: 0.1}
+  - {x: 0, y: 0.3}
+  - {x: -0.4, y: 0.43}
+  - {x: -0.62, y: 0.7}
+  - {x: -0.7, y: 0.75}
+  - {x: -0.71, y: 0.8}
+  - {x: -0.72, y: 0.7}
+  - {x: 0.3, y: 0.1}
+  - {x: 0.6, y: 0.1}
+  - {x: 0.3, y: 0.2}
+  - {x: -0.5, y: 0.1}
+  - {x: -0.3, y: 0.1}
+  recoilMultiplier: 2.1
+  adsRecoilMultiplier: 1.5
+  hipFireSpread: 0.01
+  adsSpread: 0
+  moveSpreadMultiplier: 5
+  weight: 4300
+  gunSound: {fileID: 8300000, guid: d447011cd8e637f49b42f4dbfe9e0c5a, type: 3}
