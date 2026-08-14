@@ -838,13 +838,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   _pistolPreset:
-    localPosition: {x: 0, y: 0.1, z: 0}
-    localRotation: {x: 13, y: 90, z: -90}
+    localPosition: {x: 0.022, y: 0.131, z: -0.001}
+    localRotation: {x: -6.256, y: 90.205, z: -88.471}
   _riflePreset:
-    localPosition: {x: 0, y: 0.1, z: 0}
-    localRotation: {x: 13, y: 90, z: -90}
+    localPosition: {x: 0.06, y: 0.16, z: -0.016}
+    localRotation: {x: 12.864, y: 81.6, z: -81.147}
   _knifePreset:
-    localPosition: {x: 0, y: 0.1, z: 0}
+    localPosition: {x: 0.09, y: 0.117, z: -0.007}
     localRotation: {x: 13, y: 90, z: -90}
 --- !u!1 &9173829662598906387
 GameObject:
@@ -894,6 +894,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FPSCameraLook
   _baseSensitivity: 0.2
   _adsSensitivityMultiplier: 0.5
+  _isTestMode: 0
   recoilReturnSpeed: 10
   CanMove: 1
   downDistance: 0.5
