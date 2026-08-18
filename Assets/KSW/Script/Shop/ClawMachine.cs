@@ -95,6 +95,12 @@ public class ClawMachine : MonoBehaviour
 
     public void StartGacha(int count)
     {
+        if (GamePanelController.IsMatchmakingActive)
+        {
+            Debug.LogWarning("[GACHA] 매칭 중에는 뽑기를 이용할 수 없습니다.");
+            return;
+        }
+
         if (isPlaying) return;
 
         isPlaying = true;
