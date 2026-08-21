@@ -1,7 +1,8 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using System.Collections;
+using static UnityEngine.Rendering.DebugUI;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
@@ -27,6 +28,7 @@ public class PlayerMovement : MonoBehaviour
     private CharacterController _cc;
     private FPSCameraLook _cam;
     private Animator _animator;
+    private Animator _armAnimator;
     private PlayerIdentity _playerIdentity;
     private FootstepManager _footstepManager;
 
@@ -49,6 +51,9 @@ public class PlayerMovement : MonoBehaviour
     [Header("카메라 높이 설정")]
     [SerializeField] private float _crouchHeightOffset = 0.5f; // 얼마나 내릴지
     [SerializeField] private float _crouchSpeed = 8f;         // 카메라 움직임 속도
+
+    [Header("1인칭 팔 모델")]
+    [SerializeField] private GameObject firstPersonArmModel;
 
     private int _currentAnimIndex = -1;
 
@@ -90,6 +95,9 @@ public class PlayerMovement : MonoBehaviour
         _cc = GetComponent<CharacterController>();
         _cam = GetComponentInChildren<FPSCameraLook>(true);
         _animator = GetComponentInChildren<Animator>(true);
+
+        if (firstPersonArmModel != null)
+            _armAnimator = firstPersonArmModel.GetComponentInChildren<Animator>(true);
 
         _playerIdentity = GetComponent<PlayerIdentity>();
         _playerItem = GetComponent<PlayerItem>();
@@ -556,6 +564,8 @@ public class PlayerMovement : MonoBehaviour
             weaponTypeForAnimator
         );
 
+        _armAnimator?.SetInteger("WeaponType", weaponTypeForAnimator);
+
         // 현재 구조에서 10번은 긴 총 조준 상태
         bool isAiming = animIndex == 10;
 
@@ -867,6 +877,9 @@ public class PlayerMovement : MonoBehaviour
             GetComponentInChildren<FPSCameraLook>(true);
 
         GetComponent<FirstPersonViewSetup>()?.Setup(isMine);
+
+        if (firstPersonArmModel != null)
+            firstPersonArmModel.SetActive(isMine);
 
         Debug.Log(
             $"[외부 호출] SetLocalPlayer 호출. " +
