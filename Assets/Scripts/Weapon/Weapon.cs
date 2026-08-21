@@ -230,14 +230,16 @@ public class Weapon : Item
     void OnEnable()
     {
         isADS = false;
-        crosshair?.SetActive(true);
+        SetCrosshairActive(true);
         UpdateAmmoUI();
     }
 
     void OnDisable()
     {
         isADS = false;
-        crosshair?.SetActive(true);
+
+        SetCrosshairActive(true);
+
         StopAllCoroutines();
     }
 
@@ -252,7 +254,7 @@ public class Weapon : Item
         weaponADS?.SetADS(false);
         playerMovement?.SetADS(false);
 
-        crosshair?.SetActive(true);
+        SetCrosshairActive(true);
 
         if (weaponData != null && cameraController != null)
             cameraController.SetFOV(weaponData.normalFOV);
@@ -364,7 +366,7 @@ public class Weapon : Item
                 playerMovement?.SetADS(false);
             }
 
-            crosshair?.SetActive(true);
+            SetCrosshairActive(true);
             cameraController.SetFOV(weaponData.normalFOV);
 
             return;
@@ -384,7 +386,7 @@ public class Weapon : Item
             weaponADS?.SetADS(isADS);
             playerMovement?.SetADS(isADS);
 
-            crosshair?.SetActive(!isADS);
+            SetCrosshairActive(!isADS);
         }
 
         float targetFOV =
@@ -400,6 +402,14 @@ public class Weapon : Item
             );
 
         cameraController.SetFOV(nextFOV);
+    }
+
+    private void SetCrosshairActive(bool active)
+    {
+        // UnityEngine.Object는 파괴된 뒤 C# null 조건 연산자(?.)로는
+        // fake-null 검사가 되지 않으므로 반드시 Unity의 != null을 사용한다.
+        if (crosshair != null)
+            crosshair.SetActive(active);
     }
 
     public override void OnUse()

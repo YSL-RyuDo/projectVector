@@ -4,6 +4,90 @@ using System;
 using Unity.VisualScripting;
 using UnityEngine.SceneManagement;
 using System.Security.Principal;
+using System.Text;
+
+public class CareerOverviewData
+{
+    public int seasonId;
+    public string seasonName;
+    public long seasonEndUnix;
+    public int remainingSeasonDays;
+    public int tierId;
+    public string tierName;
+    public int rankImageId;
+    public int tierMinPoints;
+    public int tierMaxPoints;
+    public int rankPoints;
+    public int rankedMatches;
+    public int wins;
+    public int roundsPlayed;
+    public int kills;
+    public int totalDamage;
+    public int mvpCount;
+}
+
+public class CareerRankingEntryData
+{
+    public int position;
+    public string userId;
+    public string nickname;
+    public int tierId;
+    public string tierName;
+    public int rankImageId;
+    public int rankPoints;
+    public int rankedMatches;
+    public int wins;
+}
+
+public class CareerRankingPageData
+{
+    public int rankingType;
+    public int characterId;
+    public int page;
+    public int totalPages;
+    public int totalEntries;
+    public List<CareerRankingEntryData> entries = new();
+}
+
+public class CareerMatchPlayerData
+{
+    public string userId;
+    public string nickname;
+    public byte team;
+    public int characterId;
+    public int combatScore;
+    public int attackScore;
+    public int skillScore;
+    public int teamworkScore;
+    public int kills;
+    public int deaths;
+    public int assists;
+    public int damage;
+    public bool isMvp;
+}
+
+public class CareerMatchData
+{
+    public ulong matchId;
+    public string mapName;
+    public long startedAtUnix;
+    public int durationSeconds;
+    public byte scoreA;
+    public byte scoreB;
+    public byte winnerTeam;
+    public byte myTeam;
+    public List<CareerMatchPlayerData> players = new();
+}
+
+public class CareerInventoryEntryData
+{
+    public int itemId;
+    public string itemName;
+    public string description;
+    public int iconId;
+    public int quantity;
+    public long acquiredAtUnix;
+}
 
 public class LobbyCharacterData
 {
@@ -423,6 +507,68 @@ public class NetworkManager : MonoBehaviour
         client.Send(buffer);
     }
 
+    public void SendCareerDataRequests(int matchFilterType)
+    {
+        SendHeaderOnly(PacketType.PKT_CS_CAREER_OVERVIEW_REQUEST);
+        SendCareerRankingRequest(0, 0, 1, string.Empty);
+        SendCareerMatchHistoryRequest(matchFilterType);
+        SendHeaderOnly(PacketType.PKT_CS_CAREER_INVENTORY_REQUEST);
+    }
+
+    public void SendCareerMatchHistoryRequest(int filterType)
+    {
+        byte[] buffer = new byte[5];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes(
+            (ushort)PacketType.PKT_CS_CAREER_MATCH_HISTORY_REQUEST
+        ).CopyTo(buffer, 2);
+        buffer[4] = (byte)Mathf.Clamp(filterType, 0, 2);
+        client.Send(buffer);
+    }
+
+    public void SendCareerRankingRequest(
+        int rankingType,
+        int characterId,
+        int page,
+        string searchQuery)
+    {
+        const int QuerySize = 64;
+        byte[] buffer = new byte[4 + 1 + 4 + 1 + QuerySize];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes(
+            (ushort)PacketType.PKT_CS_CAREER_RANKING_REQUEST
+        ).CopyTo(buffer, 2);
+        buffer[4] = (byte)(rankingType == 1 ? 1 : 0);
+        BitConverter.GetBytes(Math.Max(0, characterId)).CopyTo(buffer, 5);
+        buffer[9] = (byte)Math.Clamp(page, 1, 255);
+
+        string query = searchQuery ?? string.Empty;
+        char[] queryChars = query.ToCharArray();
+        byte[] queryBytes = new byte[QuerySize - 1];
+        Encoding.UTF8.GetEncoder().Convert(
+            queryChars,
+            0,
+            queryChars.Length,
+            queryBytes,
+            0,
+            queryBytes.Length,
+            true,
+            out _,
+            out int bytesUsed,
+            out _
+        );
+        Array.Copy(queryBytes, 0, buffer, 10, bytesUsed);
+        client.Send(buffer);
+    }
+
+    private void SendHeaderOnly(PacketType packetType)
+    {
+        byte[] buffer = new byte[4];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)packetType).CopyTo(buffer, 2);
+        client.Send(buffer);
+    }
+
     void HandlePacket(ushort type, byte[] body)
     {
         switch (type)
@@ -461,6 +607,22 @@ public class NetworkManager : MonoBehaviour
 
             case (ushort)PacketType.PKT_SC_WEAPON_SKIN_SELECT_RESULT:
                 HandleWeaponSkinSelectResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CAREER_OVERVIEW:
+                HandleCareerOverview(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CAREER_RANKING:
+                HandleCareerRanking(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CAREER_MATCH_HISTORY:
+                HandleCareerMatchHistory(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CAREER_INVENTORY:
+                HandleCareerInventory(body);
                 break;
 
             case (ushort)PacketType.PKT_SC_TEMP_GAME_ROOM_ENTER:
@@ -983,6 +1145,223 @@ public class NetworkManager : MonoBehaviour
             $"weaponId={weaponId}, skinId={skinId}"
         );
     }
+
+    private void HandleCareerOverview(byte[] body)
+    {
+        const int ExpectedBodySize = 124;
+        if (body == null || body.Length < ExpectedBodySize)
+        {
+            Debug.LogWarning("[CAREER OVERVIEW] invalid packet size");
+            return;
+        }
+
+        int offset = 0;
+        CareerOverviewData data = new();
+        data.seasonId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        data.seasonName = Packet.ReadFixedString(body, offset, 32);
+        offset += 32;
+        data.seasonEndUnix = BitConverter.ToInt64(body, offset);
+        offset += 8;
+        data.remainingSeasonDays = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        data.tierId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        data.tierName = Packet.ReadFixedString(body, offset, 32);
+        offset += 32;
+        data.rankImageId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        data.tierMinPoints = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        data.tierMaxPoints = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        data.rankPoints = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        data.rankedMatches = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        data.wins = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        data.roundsPlayed = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        data.kills = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        data.totalDamage = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        data.mvpCount = BitConverter.ToInt32(body, offset);
+
+        CareerPanelController panel = FindFirstObjectByType<CareerPanelController>();
+        panel?.ApplyOverview(data);
+    }
+
+    private void HandleCareerRanking(byte[] body)
+    {
+        const int EntrySize = 96;
+        const int HeaderSize = 12;
+        const int MaxEntries = 10;
+        if (body == null || body.Length < HeaderSize)
+            return;
+
+        int offset = 0;
+        CareerRankingPageData pageData = new();
+        pageData.rankingType = body[offset++];
+        pageData.characterId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        pageData.page = body[offset++];
+        pageData.totalPages = Math.Max(1, (int)body[offset++]);
+        pageData.totalEntries = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        int count = Math.Min((int)body[offset++], MaxEntries);
+
+        if (body.Length < HeaderSize + count * EntrySize)
+        {
+            Debug.LogWarning("[CAREER RANKING] invalid packet size");
+            return;
+        }
+
+        for (int i = 0; i < count; ++i)
+        {
+            CareerRankingEntryData entry = new();
+            entry.position = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            entry.userId = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+            entry.nickname = Packet.ReadFixedString(body, offset, 20);
+            offset += 20;
+            entry.tierId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            entry.tierName = Packet.ReadFixedString(body, offset, 32);
+            offset += 32;
+            entry.rankImageId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            entry.rankPoints = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            entry.rankedMatches = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            entry.wins = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            pageData.entries.Add(entry);
+        }
+
+        CareerPanelController panel = FindFirstObjectByType<CareerPanelController>();
+        panel?.ApplyRanking(pageData);
+    }
+
+    private void HandleCareerMatchHistory(byte[] body)
+    {
+        const int PlayerEntrySize = 78;
+        const int PlayersPerMatch = 6;
+        const int MatchEntrySize = 57 + PlayerEntrySize * PlayersPerMatch;
+        const int MaxMatches = 5;
+
+        if (body == null || body.Length < 2)
+            return;
+
+        int filterType = Math.Min((int)body[0], 2);
+        int count = Math.Min((int)body[1], MaxMatches);
+        if (body.Length < 2 + count * MatchEntrySize)
+        {
+            Debug.LogWarning("[CAREER MATCH HISTORY] invalid packet size");
+            return;
+        }
+
+        int offset = 2;
+        List<CareerMatchData> matches = new(count);
+
+        for (int i = 0; i < count; ++i)
+        {
+            CareerMatchData match = new();
+            match.matchId = BitConverter.ToUInt64(body, offset);
+            offset += 8;
+            match.mapName = Packet.ReadFixedString(body, offset, 32);
+            offset += 32;
+            match.startedAtUnix = BitConverter.ToInt64(body, offset);
+            offset += 8;
+            match.durationSeconds = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            match.scoreA = body[offset++];
+            match.scoreB = body[offset++];
+            match.winnerTeam = body[offset++];
+            match.myTeam = body[offset++];
+            int playerCount = Math.Min((int)body[offset++], PlayersPerMatch);
+
+            for (int playerIndex = 0; playerIndex < PlayersPerMatch; ++playerIndex)
+            {
+                CareerMatchPlayerData player = new();
+                player.userId = Packet.ReadFixedString(body, offset, 20);
+                offset += 20;
+                player.nickname = Packet.ReadFixedString(body, offset, 20);
+                offset += 20;
+                player.team = body[offset++];
+                player.characterId = BitConverter.ToInt32(body, offset);
+                offset += 4;
+                player.combatScore = BitConverter.ToInt32(body, offset);
+                offset += 4;
+                player.attackScore = BitConverter.ToInt32(body, offset);
+                offset += 4;
+                player.skillScore = BitConverter.ToInt32(body, offset);
+                offset += 4;
+                player.teamworkScore = BitConverter.ToInt32(body, offset);
+                offset += 4;
+                player.kills = BitConverter.ToInt32(body, offset);
+                offset += 4;
+                player.deaths = BitConverter.ToInt32(body, offset);
+                offset += 4;
+                player.assists = BitConverter.ToInt32(body, offset);
+                offset += 4;
+                player.damage = BitConverter.ToInt32(body, offset);
+                offset += 4;
+                player.isMvp = body[offset++] != 0;
+
+                if (playerIndex < playerCount)
+                    match.players.Add(player);
+            }
+
+            matches.Add(match);
+        }
+
+        CareerPanelController panel = FindFirstObjectByType<CareerPanelController>();
+        panel?.ApplyMatchHistory(filterType, matches);
+    }
+
+    private void HandleCareerInventory(byte[] body)
+    {
+        const int EntrySize = 148;
+        const int MaxEntries = 20;
+        if (body == null || body.Length < 1)
+            return;
+
+        int count = Math.Min((int)body[0], MaxEntries);
+        if (body.Length < 1 + count * EntrySize)
+        {
+            Debug.LogWarning("[CAREER INVENTORY] invalid packet size");
+            return;
+        }
+
+        int offset = 1;
+        List<CareerInventoryEntryData> entries = new(count);
+
+        for (int i = 0; i < count; ++i)
+        {
+            CareerInventoryEntryData entry = new();
+            entry.itemId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            entry.itemName = Packet.ReadFixedString(body, offset, 32);
+            offset += 32;
+            entry.description = Packet.ReadFixedString(body, offset, 96);
+            offset += 96;
+            entry.iconId = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            entry.quantity = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            entry.acquiredAtUnix = BitConverter.ToInt64(body, offset);
+            offset += 8;
+            entries.Add(entry);
+        }
+
+        CareerPanelController panel = FindFirstObjectByType<CareerPanelController>();
+        panel?.ApplyInventory(entries);
+    }
+
     void HandleLobbyChat(byte[] body)
     {
         Debug.Log($"[CLIENT HANDLE LOBBY CHAT] bodyLen={body.Length}");
@@ -1047,14 +1426,20 @@ public class NetworkManager : MonoBehaviour
         client.Send(buffer);
     }
 
-    public void SendTempGameStart()
+    public void SendTempGameStart(int mode)
     {
-        byte[] buffer = new byte[4];
+        byte[] buffer = new byte[5];
 
         BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
         BitConverter.GetBytes((ushort)PacketType.PKT_CS_TEMP_GAME_START).CopyTo(buffer, 2);
+        buffer[4] = (byte)Mathf.Clamp(mode, 0, 1);
 
         client.Send(buffer);
+    }
+
+    public void SendMatchmakingCancel()
+    {
+        SendHeaderOnly(PacketType.PKT_CS_MATCHMAKING_CANCEL);
     }
 
     void HandleTempGameRoomEnter(byte[] body)
@@ -1097,8 +1482,22 @@ public class NetworkManager : MonoBehaviour
 
     void HandleTempGameStartResult(byte[] body)
     {
+        if (body == null || body.Length < 10)
+            return;
+
         byte result = body[0];
-        gamePanelController?.OnRecvTempGameStartResult(result);
+        byte state = body[1];
+        byte mode = body[2];
+        ushort elapsedSeconds = BitConverter.ToUInt16(body, 3);
+        byte tierRange = body[5];
+        uint roomId = BitConverter.ToUInt32(body, 6);
+        gamePanelController?.OnRecvTempGameStartResult(
+            result,
+            state,
+            mode,
+            elapsedSeconds,
+            tierRange,
+            roomId);
     }
 
     public void SendRoomList()
@@ -3096,6 +3495,24 @@ public class NetworkManager : MonoBehaviour
 
     private void HandleMatchResultDetail(byte[] body)
     {
+        const int HeaderSize = 5;
+        const int MemberEntrySize = 118;
+
+        if (body == null || body.Length < HeaderSize)
+        {
+            Debug.LogWarning("[MATCH RESULT DETAIL] invalid packet header");
+            return;
+        }
+
+        int expectedSize = HeaderSize + body[4] * MemberEntrySize;
+        if (body.Length < expectedSize)
+        {
+            Debug.LogWarning(
+                $"[MATCH RESULT DETAIL] invalid packet size: " +
+                $"expected={expectedSize}, actual={body.Length}");
+            return;
+        }
+
         int offset = 0;
 
         MatchResultCache.Clear();
@@ -3107,6 +3524,9 @@ public class NetworkManager : MonoBehaviour
         offset += 1;
 
         MatchResultCache.scoreB = body[offset];
+        offset += 1;
+
+        MatchResultCache.matchType = body[offset];
         offset += 1;
 
         byte memberCount = body[offset];
@@ -3170,7 +3590,48 @@ public class NetworkManager : MonoBehaviour
             member.isMvp = body[offset] != 0;
             offset += 1;
 
+            member.freeCurrencyReward = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            member.victoryCurrencyReward = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            member.rankPointDelta = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            member.rankPointsBefore = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            member.rankPointsAfter = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            member.rankTierIdBefore = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            member.rankTierIdAfter = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            member.rankExpectedWinRatePermille =
+                BitConverter.ToUInt16(body, offset);
+            offset += 2;
+            member.rankModifierFlags = body[offset];
+            offset += 1;
+            member.totalFreeCurrency = BitConverter.ToInt32(body, offset);
+            offset += 4;
+            member.totalVictoryCurrency = BitConverter.ToInt32(body, offset);
+            offset += 4;
+
             MatchResultCache.members.Add(member);
+
+            if (member.playerId == MyPlayerId)
+            {
+                MatchResultCache.freeCurrencyReward = member.freeCurrencyReward;
+                MatchResultCache.victoryCurrencyReward = member.victoryCurrencyReward;
+                MatchResultCache.rankPointDelta = member.rankPointDelta;
+                MatchResultCache.rankPointsBefore = member.rankPointsBefore;
+                MatchResultCache.rankPointsAfter = member.rankPointsAfter;
+                MatchResultCache.rankTierIdBefore = member.rankTierIdBefore;
+                MatchResultCache.rankTierIdAfter = member.rankTierIdAfter;
+                MatchResultCache.rankExpectedWinRatePermille =
+                    member.rankExpectedWinRatePermille;
+                MatchResultCache.rankModifierFlags =
+                    member.rankModifierFlags;
+                MatchResultCache.totalFreeCurrency = member.totalFreeCurrency;
+                MatchResultCache.totalVictoryCurrency = member.totalVictoryCurrency;
+            }
         }
 
         Debug.Log(
@@ -3179,7 +3640,10 @@ public class NetworkManager : MonoBehaviour
             $"members={MatchResultCache.members.Count}"
         );
 
-        SceneManager.LoadScene("Result");
+        SceneManager.LoadScene(
+            MatchResultCache.matchType == 1
+                ? "RankResult"
+                : "Result");
     }
 
     public void SendResultLeave()

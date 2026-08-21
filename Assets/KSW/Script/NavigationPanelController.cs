@@ -160,7 +160,11 @@ public class NavigationPanelController : MonoBehaviour
         Debug.Log("[LOBBY MAIN MENU] Career");
 
         CareerPanelController careerPanel = GetComponent<CareerPanelController>();
-        careerPanel.StatisticsGroupAnimation();
+        if (careerPanel != null)
+        {
+            careerPanel.RefreshFromServer();
+            careerPanel.StatisticsGroupAnimation();
+        }
     }
 
     public void OnClickStoreMainButton()
@@ -174,8 +178,12 @@ public class NavigationPanelController : MonoBehaviour
         /*
          * 게임 버튼 자체 이미지는 바꾸지 않는다.
          * 대신 로비/캐릭터/커리어/스토어 버튼은 모두 일반 이미지로 복구한다.
-         */
+        */
         SelectLobbyMainMenu(LobbyMainMenu.Game);
+
+        GamePanelController gamePanelController = GetComponent<GamePanelController>();
+        if (gamePanelController != null)
+            gamePanelController.OpenGamePanel();
     }
 
     private void ApplyLobbyMainButtonSprites()

@@ -54,6 +54,10 @@ public class GamePanelController : MonoBehaviour
     [Header("Game UI Root")]
     [SerializeField] private GameObject gamePanel;
 
+    [Header("Matchmaking")]
+    [SerializeField] private Button matchmakingStartButton;
+    [SerializeField] private TMP_Text matchmakingStartButtonText;
+
     [SerializeField] private Color unselectedModeButtonColor = new Color(0.8f, 0.8f, 0.8f, 1f);
     [SerializeField] private Color selectedModeButtonColor = new Color(0.75f, 1f, 0.35f, 1f);
 
@@ -100,10 +104,19 @@ public class GamePanelController : MonoBehaviour
     private GameMode currentGameMode = GameMode.Normal;
     private GameMode previousModeBeforeCustom = GameMode.Normal;
 
+    public static bool IsMatchmakingActive { get; private set; }
+
+    private bool isMatchmakingQueued;
+    private float matchmakingStartedRealtime;
+    private bool isMatchmakingCancelConfirmation;
+    private bool hasPendingModeAfterMatchmakingCancel;
+    private GameMode pendingModeAfterMatchmakingCancel = GameMode.None;
+
     private void Start()
     {
         NetworkManager.Instance.SetGamePanelController(this);
         _profilePanelController = GetComponent<ProfilePanelController>();
+        ClearMatchmakingState();
 
         if (tempGameRoomPanel != null)
             tempGameRoomPanel.SetActive(false);
@@ -224,6 +237,8 @@ public class GamePanelController : MonoBehaviour
 
     private void Update()
     {
+        UpdateMatchmakingButtonText();
+
         //if (roomPanelUI != null && roomPanelUI.IsRoomOpen())
         //{
         //    if (roomPanelUI.IsLeaveConfirmOpen())
@@ -355,6 +370,9 @@ public class GamePanelController : MonoBehaviour
     {
         Debug.Log("[GAME MODE] NormalButton Click");
 
+        if (RequestMatchmakingCancelBeforeModeChange(GameMode.Normal))
+            return;
+
         if (currentGameMode == GameMode.Normal)
         {
             Debug.Log("[GAME MODE] already normal");
@@ -422,9 +440,17 @@ public class GamePanelController : MonoBehaviour
         }
     }
 
+    public void OpenGamePanel()
+    {
+        ShowCurrentGamePanelView();
+    }
+
     public void OnClickRankGameButton()
     {
         Debug.Log("[GAME MODE] RankButton Click");
+
+        if (RequestMatchmakingCancelBeforeModeChange(GameMode.Rank))
+            return;
 
         if (currentGameMode == GameMode.Rank)
         {
@@ -495,6 +521,9 @@ public class GamePanelController : MonoBehaviour
     {
         Debug.Log("[ROOM LIST] UserRoomButton Click");
 
+        if (RequestMatchmakingCancelBeforeModeChange(GameMode.Custom))
+            return;
+
         if (NetworkManager.Instance == null)
         {
             Debug.LogError(
@@ -539,7 +568,23 @@ public class GamePanelController : MonoBehaviour
     }
     public void OnClickTempGameStart()
     {
-        Debug.Log("[TEMP GAME ROOM] StartButton Click - not used in prototype");
+        if (NetworkManager.Instance == null)
+            return;
+
+        if (isMatchmakingQueued)
+        {
+            NetworkManager.Instance.SendMatchmakingCancel();
+            return;
+        }
+
+        if (currentGameMode != GameMode.Normal && currentGameMode != GameMode.Rank)
+        {
+            ShowRoomMessage("일반 또는 랭크 모드에서 매칭할 수 있습니다.");
+            return;
+        }
+
+        int mode = currentGameMode == GameMode.Rank ? 1 : 0;
+        NetworkManager.Instance.SendTempGameStart(mode);
     }
 
     public void OnClickCloseTempGameRoom()
@@ -582,9 +627,158 @@ public class GamePanelController : MonoBehaviour
         }
     }
 
-    public void OnRecvTempGameStartResult(byte result)
+    public void OnRecvTempGameStartResult(
+        byte result,
+        byte state,
+        byte mode,
+        ushort elapsedSeconds,
+        byte tierRange,
+        uint roomId)
     {
-        Debug.Log($"[TEMP GAME] start result={result}");
+        Debug.Log(
+            $"[MATCHMAKING] result={result}, state={state}, mode={mode}, " +
+            $"elapsed={elapsedSeconds}, tierRange={tierRange}, roomId={roomId}");
+
+        // state 0: queued, 1: found, 2: cancelled, 3: rejected
+        if (result == 0 && state == 0)
+        {
+            isMatchmakingQueued = true;
+            IsMatchmakingActive = true;
+            matchmakingStartedRealtime = Time.realtimeSinceStartup - elapsedSeconds;
+            UpdateMatchmakingButtonText(true);
+            return;
+        }
+
+        if (result == 0 && state == 1)
+        {
+            ClearMatchmakingState();
+            ClearPendingMatchmakingModeChange();
+            SceneManager.LoadScene("Game_TestVersion");
+            return;
+        }
+
+        if (result == 0 && state == 2)
+        {
+            ClearMatchmakingState();
+
+            if (hasPendingModeAfterMatchmakingCancel)
+            {
+                GameMode nextMode = pendingModeAfterMatchmakingCancel;
+                ClearPendingMatchmakingModeChange();
+                EnterSelectedGameMode(nextMode);
+            }
+
+            return;
+        }
+
+        // result 2는 취소 요청이 이미 성립할 수 없는 상태다. 매칭 완료 응답을
+        // 기다려야 할 수 있으므로 여기서 로컬 큐 상태를 임의로 해제하지 않는다.
+        if (result != 2)
+        {
+            ClearMatchmakingState();
+            ClearPendingMatchmakingModeChange();
+        }
+
+        ShowRoomMessage(
+            result == 2
+                ? "이미 매칭이 완료되었거나 취소할 매칭이 없습니다."
+                : "매칭을 시작할 수 없습니다.");
+    }
+
+    private void UpdateMatchmakingButtonText(bool force = false)
+    {
+        if (matchmakingStartButtonText == null)
+            return;
+
+        if (!isMatchmakingQueued)
+        {
+            if (force || matchmakingStartButtonText.text != "시작")
+                matchmakingStartButtonText.text = "시작";
+
+            return;
+        }
+
+        bool isPointerOverButton = false;
+        if (matchmakingStartButton != null && matchmakingStartButton.gameObject.activeInHierarchy)
+        {
+            RectTransform buttonRect = matchmakingStartButton.transform as RectTransform;
+            if (buttonRect != null)
+                isPointerOverButton = RectTransformUtility.RectangleContainsScreenPoint(buttonRect, Input.mousePosition);
+        }
+
+        string nextText;
+        if (isPointerOverButton)
+        {
+            nextText = "매치 취소";
+        }
+        else
+        {
+            int elapsedSeconds = Mathf.Max(
+                0,
+                Mathf.FloorToInt(Time.realtimeSinceStartup - matchmakingStartedRealtime));
+            nextText = $"{elapsedSeconds / 60:00}:{elapsedSeconds % 60:00}";
+        }
+
+        if (force || matchmakingStartButtonText.text != nextText)
+            matchmakingStartButtonText.text = nextText;
+    }
+
+    private void ClearMatchmakingState()
+    {
+        isMatchmakingQueued = false;
+        IsMatchmakingActive = false;
+        matchmakingStartedRealtime = 0f;
+        UpdateMatchmakingButtonText(true);
+
+        if (slotChangeConfirmPanel != null && isMatchmakingCancelConfirmation)
+            slotChangeConfirmPanel.SetActive(false);
+
+        isMatchmakingCancelConfirmation = false;
+    }
+
+    private bool RequestMatchmakingCancelBeforeModeChange(GameMode nextMode)
+    {
+        if (!isMatchmakingQueued || currentGameMode == nextMode)
+            return false;
+
+        pendingModeAfterMatchmakingCancel = nextMode;
+        hasPendingModeAfterMatchmakingCancel = true;
+        isMatchmakingCancelConfirmation = true;
+
+        if (slotChangeConfirmText != null)
+        {
+            string modeName = nextMode == GameMode.Normal
+                ? "일반"
+                : nextMode == GameMode.Rank ? "랭크" : "사용자 설정";
+            slotChangeConfirmText.text = $"매칭을 취소하고 {modeName} 모드로 이동하시겠습니까?";
+        }
+
+        if (slotChangeConfirmPanel != null)
+            slotChangeConfirmPanel.SetActive(true);
+
+        return true;
+    }
+
+    private void EnterSelectedGameMode(GameMode mode)
+    {
+        if (mode == GameMode.Custom)
+        {
+            previousModeBeforeCustom = currentGameMode;
+            SelectGameMode(GameMode.Custom);
+            ShowRoomListPanel();
+            NetworkManager.Instance.SendRoomList();
+            return;
+        }
+
+        SelectGameMode(mode);
+        EnterTempGameRoom();
+    }
+
+    private void ClearPendingMatchmakingModeChange()
+    {
+        hasPendingModeAfterMatchmakingCancel = false;
+        pendingModeAfterMatchmakingCancel = GameMode.None;
+        isMatchmakingCancelConfirmation = false;
     }
 
     private Sprite GetSafeSprite(Sprite[] sprites, int index)
@@ -1049,6 +1243,16 @@ public class GamePanelController : MonoBehaviour
 
     private void OnClickConfirmSlotChange()
     {
+        if (isMatchmakingCancelConfirmation)
+        {
+            if (slotChangeConfirmPanel != null)
+                slotChangeConfirmPanel.SetActive(false);
+
+            isMatchmakingCancelConfirmation = false;
+            NetworkManager.Instance.SendMatchmakingCancel();
+            return;
+        }
+
         Debug.Log(
             $"[ROOM SLOT CHANGE CONFIRM] " +
             $"team={pendingSlotChangeTeam}, slot={pendingSlotChangeIndex}"
@@ -1065,6 +1269,16 @@ public class GamePanelController : MonoBehaviour
 
     private void OnClickCancelSlotChange()
     {
+        if (isMatchmakingCancelConfirmation)
+        {
+            ClearPendingMatchmakingModeChange();
+
+            if (slotChangeConfirmPanel != null)
+                slotChangeConfirmPanel.SetActive(false);
+
+            return;
+        }
+
         Debug.Log("[ROOM SLOT CHANGE CANCEL]");
 
         if (slotChangeConfirmPanel != null)
