@@ -39,6 +39,8 @@ public class StorePanelController : MonoBehaviour
     [SerializeField] private Button _weaponSkinGachaButton;
     [SerializeField] private Button _gachaCloseButton;
 
+    [SerializeField] private GameObject[] _weaponPrefabs;
+
     private void WeaponSkinGachaPanelStart()
     {
         if (_weaponPreviewImage == null || _weaponPreviewImage.Length == 0)
@@ -75,6 +77,8 @@ public class StorePanelController : MonoBehaviour
     {
         if (_weaponRenderTextures == null || _weaponRenderTextures.Length == 0)
             return;
+
+        WeaponRotate.CallRotateInit();
 
         int resultRandomIndex = Random.Range(0, _weaponRenderTextures.Length);
 
