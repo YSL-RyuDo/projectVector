@@ -242,6 +242,8 @@ public class StorePanelController : MonoBehaviour
         }
     }
 
+    
+
     private void OnProfileGachaButton()
     {
         if (_profileItemPool == null || _profileItemPool.Count == 0) return;
@@ -307,7 +309,7 @@ public class StorePanelController : MonoBehaviour
             if (_statusStateText != null) _statusStateText.text = "DUPLICATE";
             if (_itemCategoryTitleText != null)
             {
-                _itemCategoryTitleText.text = $"재화 +{item.refundCurrency}";
+                _itemCategoryTitleText.text = $"재화 2 +{item.refundCurrency}";
             }
         }
         else
@@ -336,9 +338,55 @@ public class StorePanelController : MonoBehaviour
     [Header("---------Exchange Store Panel---------")]
     [SerializeField] private GameObject _popup;
 
+    [Header("----------Item Select Popup----------")]
+    [SerializeField] private GameObject _itemSelectPopupUI;
+    [SerializeField] private TMP_Text _popupitemName;
+
+    private int _selectedItemCost;
+
     private void ExchangeStorePanelStart()
     {
 
     }
+
+    public void OnSelectPopupOpen(string itemName)
+    {
+        if (_itemSelectPopupUI != null && _itemSelectPopupUI.TryGetComponent<UIAnimator>(out var animator))
+        {
+            animator.Show();
+        }
+        else if (_itemSelectPopupUI != null)
+        {
+            _itemSelectPopupUI.SetActive(true);
+        }
+
+        if (_popupitemName != null)
+        {
+            _popupitemName.text = $"{itemName} ({_selectedItemCost})";
+        }
+    }
+
+    public void RegisterItemPrice(int amount)
+    {
+        _selectedItemCost = amount;
+    }
+
+    public void OnSelectPopupClose()
+    {
+        if (_itemSelectPopupUI != null && _itemSelectPopupUI.TryGetComponent<UIAnimator>(out var animator))
+        {
+            animator.Close();
+        }
+        else if (_itemSelectPopupUI != null)
+        {
+            _itemSelectPopupUI.SetActive(false);
+        }
+    }
+
+    public void OnItemChangeButton()
+    {
+        MoneyManager.Instance.DecreaseMoney2(_selectedItemCost);
+    }
+
     #endregion
 }
