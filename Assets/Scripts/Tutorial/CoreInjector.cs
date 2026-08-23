@@ -17,7 +17,10 @@ public class CoreInjector : MonoBehaviour
     [SerializeField] private GameObject plantCanvasGroup;
     [SerializeField] private Slider progressSlider;
     [SerializeField] private TextMeshProUGUI statusText;
-    [SerializeField] private TextMeshProUGUI breachText; 
+    [SerializeField] private TextMeshProUGUI breachText;
+
+    [Header("튜토리얼 진행")]
+    [SerializeField] private TutorialManager tutorialManager;
 
     private float currentPlantTime = 0f;
     private bool isInPlantZone = false;
@@ -126,6 +129,8 @@ public class CoreInjector : MonoBehaviour
         }
 
         StartCoroutine(PostPlantSequence());
+
+        tutorialManager.StartSection(TutorialManager.TutorialSection.EP5);
     }
 
     private IEnumerator PostPlantSequence()
