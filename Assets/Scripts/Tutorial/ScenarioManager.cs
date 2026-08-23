@@ -9,50 +9,68 @@ public class ScenarioManager : MonoBehaviour
     class DialogueData
     {
         public string section;
+        public int order;
         public string speaker;
         public string dialogue;
         public string mode;
     }
 
-    [SerializeField] TextAsset csv;
+    [SerializeField] private TextAsset csv;
 
-    [SerializeField] GameObject talkPanel;
-    [SerializeField] TMP_Text nameText;
-    [SerializeField] TMP_Text dialogText;
-    [SerializeField] TMP_Text ingameDialog;
+    [SerializeField] private GameObject talkPanel;
+    [SerializeField] private TMP_Text nameText;
+    [SerializeField] private TMP_Text dialogText;
+    [SerializeField] private TMP_Text ingameDialog;
 
-    [SerializeField] float ingameTime = 4f;
+    [SerializeField] private float ingameTime = 4f;
 
-    List<DialogueData> dialogues = new();
+    private List<DialogueData> dialogues = new();
 
-    bool waitSpace;
-    Coroutine playCoroutine;
+    private bool waitSpace;
+    private Coroutine playCoroutine;
 
-    void Awake()
+    private void Awake()
     {
-        talkPanel.SetActive(false);
-        ingameDialog.gameObject.SetActive(false);
+        if (csv == null)
+            return;
 
-        string[] lines = csv.text.Replace("\r", "").Split('\n');
+        string text = csv.text.TrimStart('\uFEFF').Replace("\r", "");
+        string[] lines = text.Split('\n');
 
         for (int i = 1; i < lines.Length; i++)
         {
             if (string.IsNullOrWhiteSpace(lines[i]))
                 continue;
 
-            string[] value = lines[i].Split(',');
+            string line = lines[i].Trim();
+
+            if (line.StartsWith("\"") && line.EndsWith("\""))
+                line = line.Substring(1, line.Length - 2);
+
+            string[] value = line.Split(',');
+
+            if (value.Length < 5)
+                continue;
+
+            int.TryParse(
+                value[1].Replace("\"", "").Trim(),
+                out int parsedOrder
+            );
 
             dialogues.Add(new DialogueData
             {
-                section = value[0],
-                speaker = value[2],
-                dialogue = value[3],
-                mode = value[4]
+                section = value[0].Replace("\"", "").Trim(),
+                order = parsedOrder,
+                speaker = value[2].Replace("\"", "").Trim(),
+                dialogue = value[3].Replace("\"", "").Trim(),
+                mode = value[4].Replace("\"", "").Trim()
             });
         }
+
+        ResetUI();
     }
 
-    void Update()
+    private void Update()
     {
         if (waitSpace &&
             Keyboard.current != null &&
@@ -62,51 +80,100 @@ public class ScenarioManager : MonoBehaviour
         }
     }
 
-    public void PlaySection(string section)
+    private void ResetUI()
     {
+        if (talkPanel != null)
+            talkPanel.SetActive(false);
 
-        if (playCoroutine != null)
-            StopCoroutine(playCoroutine);
-
-        playCoroutine = StartCoroutine(Play(section));
+        if (ingameDialog != null)
+            ingameDialog.gameObject.SetActive(false);
     }
 
-    IEnumerator Play(string section)
+    public void PlaySection(string section)
+    {
+        PlaySectionFromTo(section, 0, int.MaxValue);
+    }
+
+    public void PlaySectionFromTo(string section, int startOrder, int endOrder)
+    {
+        if (playCoroutine != null)
+        {
+            StopCoroutine(playCoroutine);
+            playCoroutine = null;
+        }
+
+        waitSpace = false;
+        ResetUI();
+
+        playCoroutine = StartCoroutine(
+            Play(section, startOrder, endOrder)
+        );
+    }
+
+    private IEnumerator Play(string section, int startOrder, int endOrder)
     {
         foreach (DialogueData data in dialogues)
         {
-            if (data.section != section)
+            if (!data.section.Equals(
+                    section.Trim(),
+                    System.StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            if (data.mode == "Cutscene")
+            if (data.order < startOrder || data.order > endOrder)
+                continue;
+
+            if (data.mode.Equals(
+                    "Cutscene",
+                    System.StringComparison.OrdinalIgnoreCase))
+            {
                 yield return Cutscene(data);
-            else
+            }
+            else if (data.mode.Equals(
+                         "Gameplay",
+                         System.StringComparison.OrdinalIgnoreCase))
+            {
                 yield return Ingame(data);
+            }
         }
 
+        ResetUI();
         playCoroutine = null;
     }
 
-    IEnumerator Cutscene(DialogueData data)
+    private IEnumerator Cutscene(DialogueData data)
     {
+        if (talkPanel == null)
+            yield break;
+
         talkPanel.SetActive(true);
 
-        nameText.text = data.speaker;
-        dialogText.text = data.dialogue;
+        if (ingameDialog != null)
+            ingameDialog.gameObject.SetActive(false);
+
+        if (nameText != null)
+            nameText.text = data.speaker;
+
+        if (dialogText != null)
+            dialogText.text = data.dialogue;
+
+        yield return null;
 
         waitSpace = true;
-        yield return new WaitUntil(() => !waitSpace);
 
-        talkPanel.SetActive(false);
+        yield return new WaitUntil(() => !waitSpace);
     }
 
-    IEnumerator Ingame(DialogueData data)
+    private IEnumerator Ingame(DialogueData data)
     {
+        if (talkPanel != null)
+            talkPanel.SetActive(false);
+
+        if (ingameDialog == null)
+            yield break;
+
         ingameDialog.gameObject.SetActive(true);
         ingameDialog.text = data.dialogue;
 
         yield return new WaitForSeconds(ingameTime);
-
-        ingameDialog.gameObject.SetActive(false);
     }
 }

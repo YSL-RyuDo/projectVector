@@ -4,6 +4,11 @@ using UnityEngine.InputSystem;
 
 public class TESTPlayerItem : MonoBehaviour
 {
+
+    //튜토리얼용 추가
+    [Header("Tutorial Weapon")]
+    [SerializeField] private GameObject tutorialP92Prefab;
+
     [Header("References")]
     [SerializeField] private WeaponData primary;
     [SerializeField] private WeaponData secondary;
@@ -587,7 +592,13 @@ public class TESTPlayerItem : MonoBehaviour
             items[slot] = null;
         }
 
+        GameObject obj = Instantiate(
+        tutorialP92Prefab,
+        itemHolder
+        );
+        /*
         GameObject obj = Instantiate(weaponData.weaponPrefab, itemHolder);
+        */
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
 
