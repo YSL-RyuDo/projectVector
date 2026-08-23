@@ -1,7 +1,25 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+
+public enum ProfileItemType
+{
+    PlayerCard,
+    PlayerIcon,
+    ProfileBorder
+}
+
+[System.Serializable]
+public class ProfileGachaItem
+{
+    public string itemId;
+    public string itemName;
+    public ProfileItemType itemType;
+    public Sprite itemSprite;
+    public int refundCurrency = 10;
+}
 
 public class StorePanelController : MonoBehaviour
 {
@@ -87,7 +105,14 @@ public class StorePanelController : MonoBehaviour
 
     private void OnGachaPopupCloseButton()
     {
-        _gachaPopUpUI.GetComponent<UIAnimator>().Close();
+        if (_gachaPopUpUI != null && _gachaPopUpUI.TryGetComponent<UIAnimator>(out var animator))
+        {
+            animator.Close();
+        }
+        else if (_gachaPopUpUI != null)
+        {
+            _gachaPopUpUI.SetActive(false);
+        }
     }
 
     private IEnumerator WeaponPreviewFade()
@@ -161,8 +186,8 @@ public class StorePanelController : MonoBehaviour
     {
         if (image == null) return;
         Color color = image.color;
-        color.a = alpha;
-        image.color = color;
+        Color newColor = new Color(color.r, color.g, color.b, alpha);
+        image.color = newColor;
     }
 
     #endregion
@@ -171,11 +196,139 @@ public class StorePanelController : MonoBehaviour
 
     [Header("---------Profile Gacha Panel---------")]
     [SerializeField] private Button _profileGachaButton;
+    [SerializeField] private Button _profileGachaCloseButton;
+
+    [Header("---------Profile PopUp UI---------")]
+    [SerializeField] private GameObject _profileGachaPopUpUI;
+
+    [SerializeField] private GameObject _cardHandler;
+    [SerializeField] private GameObject _profileHandler;
+    [SerializeField] private GameObject _borderHandler;
+
+    [SerializeField] private Image _cardImage;
+    [SerializeField] private Image _profileIconImage;
+    [SerializeField] private Image _profileBorderImage;
+    [SerializeField] private Sprite _defaultProfileIcon;
+
+    [Header("---------Profile Result Text UI---------")]
+    [SerializeField] private TMP_Text _statusStateText;
+    [SerializeField] private TMP_Text _itemCategoryTitleText;
+
+    [Header("---------Profile Gacha Data Pool---------")]
+    [SerializeField] private List<ProfileGachaItem> _profileItemPool = new List<ProfileGachaItem>();
+
+    [Header("---------Debug / Test Option---------")]
+    [SerializeField] private bool _forceDuplicateTest = false;
+
+    private HashSet<string> _ownedItemIds = new HashSet<string>();
 
     private void ProfileGachaPanelStart()
     {
+        if (_profileGachaPopUpUI != null)
+        {
+            _profileGachaPopUpUI.SetActive(false);
+        }
 
+        if (_profileGachaButton != null)
+        {
+            _profileGachaButton.onClick.RemoveAllListeners();
+            _profileGachaButton.onClick.AddListener(OnProfileGachaButton);
+        }
+
+        if (_profileGachaCloseButton != null)
+        {
+            _profileGachaCloseButton.onClick.RemoveAllListeners();
+            _profileGachaCloseButton.onClick.AddListener(OnProfileGachaCloseButton);
+        }
     }
+
+    private void OnProfileGachaButton()
+    {
+        if (_profileItemPool == null || _profileItemPool.Count == 0) return;
+
+        int randomIndex = Random.Range(0, _profileItemPool.Count);
+        ProfileGachaItem resultItem = _profileItemPool[randomIndex];
+
+        ShowProfileGachaResultPopUp(resultItem);
+    }
+
+    private void OnProfileGachaCloseButton()
+    {
+        if (_profileGachaPopUpUI != null && _profileGachaPopUpUI.TryGetComponent<UIAnimator>(out var animator))
+        {
+            animator.Close();
+        }
+        else if (_profileGachaPopUpUI != null)
+        {
+            _profileGachaPopUpUI.SetActive(false);
+        }
+    }
+
+    private void ShowProfileGachaResultPopUp(ProfileGachaItem item)
+    {
+        if (_profileGachaPopUpUI == null || item == null) return;
+
+        bool isDuplicate = _ownedItemIds.Contains(item.itemId) || _forceDuplicateTest;
+        if (!isDuplicate)
+        {
+            _ownedItemIds.Add(item.itemId);
+        }
+
+        switch (item.itemType)
+        {
+            case ProfileItemType.PlayerCard:
+                if (_cardHandler != null) _cardHandler.SetActive(true);
+                if (_profileHandler != null) _profileHandler.SetActive(false);
+                if (_borderHandler != null) _borderHandler.SetActive(false);
+
+                if (_cardImage != null) _cardImage.sprite = item.itemSprite;
+                break;
+
+            case ProfileItemType.PlayerIcon:
+                if (_cardHandler != null) _cardHandler.SetActive(false);
+                if (_profileHandler != null) _profileHandler.SetActive(true);
+                if (_borderHandler != null) _borderHandler.SetActive(false);
+
+                if (_profileIconImage != null) _profileIconImage.sprite = item.itemSprite;
+                break;
+
+            case ProfileItemType.ProfileBorder:
+                if (_cardHandler != null) _cardHandler.SetActive(false);
+                if (_profileHandler != null) _profileHandler.SetActive(true);
+                if (_borderHandler != null) _borderHandler.SetActive(true);
+
+                if (_profileIconImage != null) _profileIconImage.sprite = _defaultProfileIcon;
+                if (_profileBorderImage != null) _profileBorderImage.sprite = item.itemSprite;
+                break;
+        }
+
+        if (isDuplicate)
+        {
+            if (_statusStateText != null) _statusStateText.text = "DUPLICATE";
+            if (_itemCategoryTitleText != null)
+            {
+                _itemCategoryTitleText.text = $"¿Á»≠ +{item.refundCurrency}";
+            }
+        }
+        else
+        {
+            if (_statusStateText != null) _statusStateText.text = "NEW";
+            if (_itemCategoryTitleText != null)
+            {
+                _itemCategoryTitleText.text = item.itemName;
+            }
+        }
+
+        if (_profileGachaPopUpUI.TryGetComponent<UIAnimator>(out var animator))
+        {
+            animator.Show();
+        }
+        else
+        {
+            _profileGachaPopUpUI.SetActive(true);
+        }
+    }
+
     #endregion
 
     #region Exchange Store Panel
