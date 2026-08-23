@@ -44,9 +44,9 @@ public class MoneyManager : MonoBehaviour
     // UI 전체 갱신
     public void UpdateAllUI()
     {
-        if (_money0Text != null) _money0Text.text = "재화 0"+_money0.ToString("#,##0");
-        if (_money1Text != null) _money1Text.text = "재화 1"+_money1.ToString("#,##0");
-        if (_money2Text != null) _money2Text.text = "재화 2"+_money2.ToString("#,##0");
+        if (_money0Text != null) _money0Text.text = "재화 0 "+_money0.ToString("#,##0");
+        if (_money1Text != null) _money1Text.text = "재화 1 "+_money1.ToString("#,##0");
+        if (_money2Text != null) _money2Text.text = "재화 2 "+_money2.ToString("#,##0");
     }
 
     #region 통합 제어 메서드 (Enum 지정 방식)
