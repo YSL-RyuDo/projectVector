@@ -15,7 +15,7 @@ public class BackgroundStoryData : ScriptableObject
     [Header("키")] public string stature;
     [Header("진영")] public string camp;
     [Header("취미")] public string hobby;
-    [Header("식습관")] public string eatingHabits;
+    [Header("좋아하는 음식")] public string eatingHabits;
     [Header("개성 멘트")] public string individuality;
 
     [Header("소개")] [TextArea(1, 10)]
