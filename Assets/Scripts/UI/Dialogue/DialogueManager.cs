@@ -7,16 +7,10 @@ using UnityEngine.UI;
 /// <summary>
 /// 카카오톡 스타일 대화 시스템
 ///
-/// [구조]
-/// 왼쪽: 캐릭터 목록 버튼 (CharacterListPanel)
-/// 오른쪽 위: 채팅 ScrollRect (ChatPanel)
-/// 오른쪽 아래: 선택지 패널 (ChoicePanel)
-///
-/// [기능]
-/// 캐릭터별 채팅 기록 독립 보존
-/// 캐릭터 전환 시 이전 채팅 기록 복원
-/// 아이콘은 DialogueManager Inspector에서 직접 관리 (별도 SO 불필요)
-/// FavorLevel 단위 대화 (D0_x 완료 → D1_x)
+/// 1. 로비 씬 시작 → NetworkManager로부터 캐릭터별 호감도 수신
+/// 2. 이전 세션 데이터(PlayerPrefs)와 비교해서 호감도가 올랐으면 새 대화 출력 + 알림 표시
+/// 3. 이미 본 대화는 말풍선 히스토리로 복원 (반복 출력 없음)
+/// 4. 게임 종료 후 재접속해도 이전 대화 내역 유지
 /// </summary>
 public class DialogueManager : MonoBehaviour
 {
@@ -25,6 +19,7 @@ public class DialogueManager : MonoBehaviour
     public class CharacterEntry
     {
         public string characterName;      // CSV의 Speaker 이름과 일치
+        public int characterId;           // 서버 캐릭터 ID (NetworkManager와 매핑)
         public Sprite icon;               // 캐릭터 아이콘 Sprite
         public DialogueData dialogueData; // 이 캐릭터의 DialogueData 에셋
     }
@@ -54,24 +49,35 @@ public class DialogueManager : MonoBehaviour
     [SerializeField] private TMP_Text choiceText2;
     [SerializeField] private TMP_Text choiceText3;
 
+    [Header("새 톡 알림 UI")]
+    [SerializeField] private GameObject[] newBadges;
+
     [Header("설정")]
     [SerializeField] private float lineInterval = 1f;
+
+    // PlayerPrefs 키
+    // "DM_favor_{characterName}"      마지막으로 저장된 호감도 레벨 (int)
+    // "DM_seen_{characterName}_{id}"  해당 DialogueID를 완료했는지 (1 = 완료)
+    private const string PrefsFavorKey = "DM_favor_";
+    private const string PrefsSeenKey = "DM_seen_";
 
     // 캐릭터별 상태
     private class CharacterState
     {
-        public int favorLevel = 0;
-        public List<GameObject> bubbles = new List<GameObject>(); // 생성된 말풍선들
+        public int serverFavorLevel = 0;       // 서버에서 받은 현재 호감도
+        public int lastSeenFavorLevel = 0;     // 이전 세션에서 마지막으로 본 호감도
+        public List<GameObject> bubbles = new List<GameObject>();
         public bool isPlaying = false;
         public Coroutine playCoroutine;
         public bool isWaitingChoice = false;
-        public DialogueEntry pendingChoiceEntry = null;  // 대기 중인 선택지 엔트리
-        public System.Action<string> pendingOnSelected = null; // 선택 콜백
+        public DialogueEntry pendingChoiceEntry = null;
+        public System.Action<string> pendingOnSelected = null;
+        public bool hasNewContent = false;     // 새 톡 알림 여부
+        public GameObject buttonRef;           // 캐릭터 버튼 GameObject 참조
     }
 
     private Dictionary<string, CharacterState> states = new Dictionary<string, CharacterState>();
     private CharacterEntry currentCharacter;
-    private Coroutine currentCoroutine;
 
     // 초기화
 
@@ -81,15 +87,81 @@ public class DialogueManager : MonoBehaviour
         foreach (var c in characters)
         {
             if (c == null) continue;
-            states[c.characterName] = new CharacterState();
+
+            var state = new CharacterState();
+            // PlayerPrefs에서 이전 세션 호감도 로드
+            state.lastSeenFavorLevel = PlayerPrefs.GetInt(PrefsFavorKey + c.characterName, 0);
+            state.serverFavorLevel = state.lastSeenFavorLevel; // 서버 응답 전 기본값
+            states[c.characterName] = state;
         }
 
         // 캐릭터 목록 버튼 생성
         BuildCharacterList();
 
-        // 첫 번째 캐릭터 선택
+        // 서버에 호감도 요청 - NetworkManager에 SendFavorLevelRequest() 추가 필요
+        // NetworkManager.Instance?.SendFavorLevelRequest();
+        // -> 서버 응답 시 OnRecvFavorLevels()가 호출됨
+
+        // 개발 테스트용 서버 없이 바로 로컬 데이터로 시작
+        InitWithLocalData();
+    }
+
+    private void InitWithLocalData()
+    {
+        foreach (var c in characters)
+        {
+            if (c == null) continue;
+            var state = states[c.characterName];
+            // 로컬 저장값 = 마지막으로 본 레벨이므로 새 톡 없음
+            state.hasNewContent = false;
+        }
+
+        UpdateAllBadges();
+
         if (characters.Length > 0 && characters[0] != null)
             SelectCharacter(characters[0]);
+    }
+
+    public static DialogueManager Instance;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+    }
+
+    /// <summary>
+    /// NetworkManager가 서버로부터 호감도를 받아오면 이 함수를 호출
+    /// key = characterId (int), value = favorLevel (int)
+    /// </summary>
+    public void OnRecvFavorLevels(Dictionary<int, int> favorByCharacterId)
+    {
+        foreach (var c in characters)
+        {
+            if (c == null) continue;
+            if (!favorByCharacterId.TryGetValue(c.characterId, out int serverLevel)) continue;
+            if (!states.TryGetValue(c.characterName, out var state)) continue;
+
+            int prevLevel = state.lastSeenFavorLevel;
+            state.serverFavorLevel = serverLevel;
+
+            if (serverLevel > prevLevel)
+            {
+                // 호감도 올랐음 -> 새 톡 알림
+                state.hasNewContent = true;
+                Debug.Log($"[DIALOGUE] {c.characterName} 호감도 상승: {prevLevel} → {serverLevel}");
+            }
+        }
+
+        UpdateAllBadges();
+
+        // 현재 선택된 캐릭터가 새 톡이 있으면 바로 이어서 출력
+        if (currentCharacter != null &&
+            states.TryGetValue(currentCharacter.characterName, out var cur) &&
+            cur.hasNewContent)
+        {
+            PlayNewLevels(currentCharacter, cur);
+        }
     }
 
     // 캐릭터 목록 버튼 생성
@@ -99,35 +171,86 @@ public class DialogueManager : MonoBehaviour
         foreach (Transform child in characterListParent)
             Destroy(child.gameObject);
 
-        foreach (var c in characters)
+        for (int i = 0; i < characters.Length; i++)
         {
+            var c = characters[i];
             if (c == null) continue;
 
             GameObject btn = Instantiate(characterButtonPrefab, characterListParent);
 
-            // 버튼 안의 이름 텍스트
+            if (!states.TryGetValue(c.characterName, out var state)) continue;
+            state.buttonRef = btn;
+
             TMP_Text label = btn.GetComponentInChildren<TMP_Text>();
             if (label != null) label.text = c.characterName;
 
-            // 버튼 안의 아이콘 Image 이름에 "Icon" 포함된 Image
             Image[] images = btn.GetComponentsInChildren<Image>(true);
             foreach (var img in images)
             {
-                if (img.gameObject.name.Contains("Icon") && c.icon != null)
+                if (img.gameObject.name == "Image" && c.icon != null)
                 {
                     img.sprite = c.icon;
+                    img.color = Color.white;
                     img.gameObject.SetActive(true);
                     break;
                 }
             }
 
-            // 캐릭터 캡처 (람다 클로저 방지)
+            // newBadges 배열에 직접 연결된 게 있으면 사용
+            // 없으면 버튼 프리팹 안에서 "NewBadge" 이름으로 찾기
+            if (newBadges != null && i < newBadges.Length && newBadges[i] != null)
+            {
+                Debug.Log("No Badges");
+            }
+            else
+            {
+                // 프리팹 안에서 자동 탐색
+                foreach (Transform child in btn.GetComponentsInChildren<Transform>(true))
+                {
+                    if (child.gameObject.name == "NewBadge")
+                    {
+                        // newBadges 배열 크기 확장해서 저장
+                        if (newBadges == null) newBadges = new GameObject[characters.Length];
+                        if (i < newBadges.Length) newBadges[i] = child.gameObject;
+                        break;
+                    }
+                }
+            }
+
             CharacterEntry captured = c;
             Button button = btn.GetComponentInChildren<Button>();
             if (button != null)
                 button.onClick.AddListener(() => SelectCharacter(captured));
             else
-                Debug.LogError($"[DIALOGUE] {c.characterName} 버튼 프리팹에 Button 컴포넌트 없음");
+                Debug.LogError($"[DIALOGUE] {c.characterName} 버튼에 Button 컴포넌트 없음");
+        }
+    }
+
+    // 배지(알림) 갱신
+
+    private void UpdateAllBadges()
+    {
+        for (int i = 0; i < characters.Length; i++)
+        {
+            var c = characters[i];
+            if (c == null) continue;
+            if (!states.TryGetValue(c.characterName, out var state)) continue;
+
+            bool show = state.hasNewContent;
+
+            if (newBadges != null && i < newBadges.Length && newBadges[i] != null)
+                newBadges[i].SetActive(show);
+        }
+    }
+
+    private void SetBadge(CharacterEntry character, bool show)
+    {
+        for (int i = 0; i < characters.Length; i++)
+        {
+            if (characters[i] != character) continue;
+            if (newBadges != null && i < newBadges.Length && newBadges[i] != null)
+                newBadges[i].SetActive(show);
+            break;
         }
     }
 
@@ -157,44 +280,113 @@ public class DialogueManager : MonoBehaviour
         foreach (var b in state.bubbles)
             if (b != null) b.SetActive(true);
 
-        // 내용까지 다시 세팅
+        // 선택지 복원
         if (state.isWaitingChoice && state.pendingChoiceEntry != null)
-        {
             ShowChoices(state.pendingChoiceEntry, state.pendingOnSelected);
-        }
         else
-        {
             choicePanel.SetActive(false);
+
+        // 처음 진입 -> 이미 본 대화 히스토리 복원 후 새 대화 출력
+        if (state.bubbles.Count == 0 && !state.isPlaying)
+            StartCoroutine(RestoreAndPlayRoutine(character, state));
+
+        // 새 톡이 있으면 배지 끄기 (읽음 처리)
+        if (state.hasNewContent)
+        {
+            state.hasNewContent = false;
+            SetBadge(character, false);
         }
 
-        // 대화가 아직 한 번도 시작 안 됐으면 자동 시작
-        if (state.bubbles.Count == 0 && !state.isPlaying)
-            StartFavorLevel(character, state.favorLevel);
-
-        // 재생 중이었으면 코루틴 이어서 진행 (contentRect는 공유하므로 버블만 on off)
         StartCoroutine(ScrollToBottom());
     }
 
-    // 대화 재생
+    // 히스토리 복원 -> 새 대화 재생
 
-    private void StartFavorLevel(CharacterEntry character, int favorLevel)
+    /// <summary>
+    /// 이미 본 대화(lastSeenFavorLevel까지)를 빠르게 복원하고
+    /// 새로 올라온 레벨(serverFavorLevel까지)을 정상 속도로 출력
+    /// </summary>
+    private IEnumerator RestoreAndPlayRoutine(CharacterEntry character, CharacterState state)
     {
-        if (!states.TryGetValue(character.characterName, out var state)) return;
-
-        if (state.playCoroutine != null)
-            StopCoroutine(state.playCoroutine);
-
         state.isPlaying = true;
-        state.favorLevel = favorLevel;
-        state.playCoroutine = StartCoroutine(PlayFavorLevel(character, state, favorLevel));
+        DialogueData data = character.dialogueData;
+        if (data == null) { state.isPlaying = false; yield break; }
+
+        //  1 이미 본 레벨 히스토리 즉시 복원 
+        for (int lv = 0; lv <= state.lastSeenFavorLevel; lv++)
+        {
+            List<string> ids = data.GetDialogueIds(lv);
+            if (ids == null) continue;
+
+            foreach (string id in ids)
+            {
+                // 이 DialogueID를 완료했으면 복원
+                if (!IsSeenDialogue(character.characterName, id)) continue;
+
+                List<DialogueEntry> lines = data.GetLines(id);
+                foreach (var entry in lines)
+                {
+                    // 선택지 줄은 텍스트만 복원 (버튼 표시 안 함)
+                    SpawnBubbleInstant(character, entry.speaker, entry.text, state);
+
+                    // 선택지 결과도 복원
+                    if (entry.HasChoices)
+                    {
+                        string selectedNextId = LoadSelectedChoice(character.characterName, id);
+                        if (!string.IsNullOrEmpty(selectedNextId))
+                        {
+                            DialogueChoice chosen = GetChoiceByNextId(entry, selectedNextId);
+                            if (chosen != null)
+                                SpawnBubbleInstant(character, myName, chosen.text, state);
+
+                            List<DialogueEntry> resultLines = data.GetLines(selectedNextId);
+                            foreach (var r in resultLines)
+                                SpawnBubbleInstant(character, r.speaker, r.text, state);
+                        }
+                        break; // 선택지 이후 이 블록 종료
+                    }
+                }
+            }
+        }
+
+        yield return new WaitForEndOfFrame();
+        scrollRect.verticalNormalizedPosition = 0f;
+
+        //  2 새 레벨 대화 순서대로 출력
+        for (int lv = state.lastSeenFavorLevel + 1; lv <= state.serverFavorLevel; lv++)
+        {
+            yield return StartCoroutine(PlayFavorLevel(character, state, lv));
+        }
+
+        // 현재 레벨도 아직 안 본 경우 (첫 로그인 등)
+        if (state.bubbles.Count == 0 || !IsSeenDialogue(character.characterName,
+            data.GetDialogueIds(state.lastSeenFavorLevel)?[0] ?? ""))
+        {
+            // lastSeenFavorLevel 자체를 아직 안 봤으면 출력
+            if (!HasSeenAnyDialogue(character.characterName, state.lastSeenFavorLevel))
+                yield return StartCoroutine(PlayFavorLevel(character, state, state.lastSeenFavorLevel));
+        }
+
+        state.isPlaying = false;
     }
 
-    public void AdvanceToNextLevel()
+    /// <summary>새 레벨만 추가 출력 (SelectCharacter에서 새 톡 감지 시 호출)</summary>
+    private void PlayNewLevels(CharacterEntry character, CharacterState state)
     {
-        if (currentCharacter == null) return;
-        if (!states.TryGetValue(currentCharacter.characterName, out var state)) return;
-        StartFavorLevel(currentCharacter, state.favorLevel + 1);
+        if (state.isPlaying) return;
+        state.isPlaying = true;
+        state.playCoroutine = StartCoroutine(PlayNewLevelsRoutine(character, state));
     }
+
+    private IEnumerator PlayNewLevelsRoutine(CharacterEntry character, CharacterState state)
+    {
+        for (int lv = state.lastSeenFavorLevel + 1; lv <= state.serverFavorLevel; lv++)
+            yield return StartCoroutine(PlayFavorLevel(character, state, lv));
+
+        state.isPlaying = false;
+    }
+
+    // FavorLevel 대화 재생
 
     private IEnumerator PlayFavorLevel(CharacterEntry character, CharacterState state, int favorLevel)
     {
@@ -205,7 +397,6 @@ public class DialogueManager : MonoBehaviour
         if (ids == null || ids.Count == 0)
         {
             Debug.Log($"[DIALOGUE] {character.characterName} FavorLevel {favorLevel} 데이터 없음");
-            state.isPlaying = false;
             yield break;
         }
 
@@ -224,8 +415,6 @@ public class DialogueManager : MonoBehaviour
                     SpawnBubble(character, entry.speaker, entry.text, state);
                     yield return new WaitForSeconds(lineInterval);
 
-                    // 현재 선택 중인 캐릭터일 때만 선택지 표시
-                    // 다른 캐릭터 보는 중이면 이 캐릭터로 돌아올 때까지 대기
                     yield return new WaitUntil(() => currentCharacter == character);
 
                     bool chosen = false;
@@ -235,6 +424,9 @@ public class DialogueManager : MonoBehaviour
                     {
                         chosen = true;
                         nextId = selectedNextId;
+
+                        // 선택 결과 영구 저장
+                        SaveSelectedChoice(character.characterName, dialogueId, selectedNextId);
                     };
 
                     state.pendingChoiceEntry = entry;
@@ -245,18 +437,15 @@ public class DialogueManager : MonoBehaviour
 
                     yield return new WaitUntil(() => chosen);
 
-                    // 선택 완료 시 정리
                     state.pendingChoiceEntry = null;
                     state.pendingOnSelected = null;
 
-                    // 내 선택을 오른쪽 말풍선으로
                     DialogueChoice selectedChoice = GetChoiceByNextId(entry, nextId);
                     if (selectedChoice != null)
                         SpawnBubble(character, myName, selectedChoice.text, state);
 
                     yield return new WaitForSeconds(lineInterval);
 
-                    // 선택 결과 대화
                     if (!string.IsNullOrEmpty(nextId))
                     {
                         List<DialogueEntry> resultLines = data.GetLines(nextId);
@@ -267,7 +456,9 @@ public class DialogueManager : MonoBehaviour
                         }
                     }
 
-                    i = ids.Count; // 선택지 블록 이후 나머지 ID 스킵
+                    // 이 DialogueID 완료 저장
+                    MarkSeenDialogue(character.characterName, dialogueId);
+                    i = ids.Count;
                     break;
                 }
                 else
@@ -277,24 +468,103 @@ public class DialogueManager : MonoBehaviour
                 }
             }
 
+            // 선택지 없는 블록 완료 저장
+            if (i < ids.Count)
+                MarkSeenDialogue(character.characterName, dialogueId);
+
             i++;
         }
 
+        // 이 레벨 완료 -> lastSeenFavorLevel 갱신 및 저장
+        if (favorLevel > state.lastSeenFavorLevel)
+        {
+            state.lastSeenFavorLevel = favorLevel;
+            PlayerPrefs.SetInt(PrefsFavorKey + character.characterName, favorLevel);
+            PlayerPrefs.Save();
+        }
+
         Debug.Log($"[DIALOGUE] {character.characterName} FavorLevel {favorLevel} 완료");
-        state.isPlaying = false;
+    }
+
+    // PlayerPrefs 저장/로드
+
+    private void MarkSeenDialogue(string charName, string dialogueId)
+    {
+        PlayerPrefs.SetInt(PrefsSeenKey + charName + "_" + dialogueId, 1);
+        PlayerPrefs.Save();
+    }
+
+    private bool IsSeenDialogue(string charName, string dialogueId)
+    {
+        return PlayerPrefs.GetInt(PrefsSeenKey + charName + "_" + dialogueId, 0) == 1;
+    }
+
+    private bool HasSeenAnyDialogue(string charName, int favorLevel)
+    {
+        foreach (var c in characters)
+        {
+            if (c == null || c.characterName != charName) continue;
+            if (c.dialogueData == null) return false;
+
+            List<string> ids = c.dialogueData.GetDialogueIds(favorLevel);
+            if (ids == null) return false;
+
+            foreach (var id in ids)
+                if (IsSeenDialogue(charName, id)) return true;
+
+            return false;
+        }
+        return false;
+    }
+
+    private void SaveSelectedChoice(string charName, string dialogueId, string nextId)
+    {
+        PlayerPrefs.SetString(PrefsSeenKey + charName + "_choice_" + dialogueId, nextId);
+        PlayerPrefs.Save();
+    }
+
+    private string LoadSelectedChoice(string charName, string dialogueId)
+    {
+        return PlayerPrefs.GetString(PrefsSeenKey + charName + "_choice_" + dialogueId, "");
     }
 
     // 말풍선 생성
 
+    /// 일반 말풍선 (lineInterval 포함, 현재 캐릭터가 아니면 숨김)
     private void SpawnBubble(CharacterEntry character, string speaker, string text, CharacterState state)
+    {
+        GameObject bubble = CreateBubbleObject(character, speaker, text);
+        if (bubble == null) return;
+
+        if (currentCharacter != character)
+            bubble.SetActive(false);
+
+        state.bubbles.Add(bubble);
+
+        if (currentCharacter == character)
+            StartCoroutine(ScrollToBottom());
+    }
+
+    /// 히스토리 복원용 말풍선 (즉시 생성, 현재 캐릭터가 아니면 숨김)
+    private void SpawnBubbleInstant(CharacterEntry character, string speaker, string text, CharacterState state)
+    {
+        GameObject bubble = CreateBubbleObject(character, speaker, text);
+        if (bubble == null) return;
+
+        if (currentCharacter != character)
+            bubble.SetActive(false);
+
+        state.bubbles.Add(bubble);
+    }
+
+    private GameObject CreateBubbleObject(CharacterEntry character, string speaker, string text)
     {
         bool isMine = speaker == myName;
         GameObject prefab = isMine ? rightBubblePrefab : leftBubblePrefab;
-        if (prefab == null) return;
+        if (prefab == null) return null;
 
         GameObject bubble = Instantiate(prefab, contentRect);
 
-        // 텍스트
         TMP_Text[] texts = bubble.GetComponentsInChildren<TMP_Text>(true);
         foreach (var t in texts)
         {
@@ -305,8 +575,6 @@ public class DialogueManager : MonoBehaviour
                 t.text = text;
         }
 
-        // 아이콘: 프리팹 밖 CharacterData에서 동적으로 주입
-        // 말풍선 프리팹 안에 "Icon" 이름 Image가 있으면 CharacterData.icon을 넣어줌
         if (!isMine)
         {
             Image[] images = bubble.GetComponentsInChildren<Image>(true);
@@ -314,28 +582,14 @@ public class DialogueManager : MonoBehaviour
             {
                 if (img.gameObject.name.ToLower().Contains("icon"))
                 {
-                    if (character.icon != null)
-                    {
-                        img.sprite = character.icon;
-                        img.gameObject.SetActive(true);
-                    }
-                    else
-                    {
-                        img.gameObject.SetActive(false);
-                    }
+                    img.sprite = character.icon != null ? character.icon : null;
+                    img.gameObject.SetActive(character.icon != null);
                     break;
                 }
             }
         }
 
-        // 현재 보고 있는 캐릭터가 아니면 즉시 숨김 (기록은 유지)
-        if (currentCharacter != character)
-            bubble.SetActive(false);
-
-        state.bubbles.Add(bubble);
-
-        if (currentCharacter == character)
-            StartCoroutine(ScrollToBottom());
+        return bubble;
     }
 
     private IEnumerator ScrollToBottom()
@@ -367,8 +621,8 @@ public class DialogueManager : MonoBehaviour
         {
             choicePanel.SetActive(false);
 
-            // 현재 캐릭터 선택지 대기 상태 해제
-            if (currentCharacter != null && states.TryGetValue(currentCharacter.characterName, out var state))
+            if (currentCharacter != null &&
+                states.TryGetValue(currentCharacter.characterName, out var state))
             {
                 state.isWaitingChoice = false;
                 state.pendingChoiceEntry = null;

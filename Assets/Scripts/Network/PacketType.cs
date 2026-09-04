@@ -248,6 +248,9 @@ public enum PacketType : ushort
     PKT_CS_SENTINEL_X_CAST = 321,
     PKT_SC_SENTINEL_X_SPAWN = 322,
     PKT_SC_SENTINEL_X_DESTROY = 323,
+
+    PKT_CS_FAVOR_LEVEL_REQUEST = 324,
+    PKT_SC_FAVOR_LEVEL_RESPONSE = 325,
 }
 
 public enum RegisterResult : byte

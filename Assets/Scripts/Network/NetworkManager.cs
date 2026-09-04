@@ -981,6 +981,10 @@ public class NetworkManager : MonoBehaviour
                 HandleSentinelXDestroy(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_FAVOR_LEVEL_RESPONSE:    // 호감도 레벨
+                HandleFavorLevelResponse(body);
+                break;
+
             default:
                 Debug.LogWarning($"처리 안 된 패킷 type={type}");
                 break;
@@ -1065,6 +1069,8 @@ public class NetworkManager : MonoBehaviour
         );
 
         SendWeaponSkinLoadoutRequest(lobbyCharacterModelId);
+
+        SendFavorLevelRequest();        // 로비 씬 입장 마다 호감도 레벨 불러오기
     }
 
     private void HandleWeaponSkinLoadout(byte[] body)
@@ -8692,5 +8698,45 @@ public class NetworkManager : MonoBehaviour
                 ultimateId
             );
         }
+    }
+
+    // 호감도 레벨 송수신
+
+    public void SendFavorLevelRequest()
+    {
+        ushort size = 4;
+        ushort type = (ushort)PacketType.PKT_CS_FAVOR_LEVEL_REQUEST;
+
+        byte[] buffer = new byte[size];
+        Buffer.BlockCopy(BitConverter.GetBytes(size), 0, buffer, 0, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes(type), 0, buffer, 2, 2);
+
+        client.Send(buffer);
+        Debug.Log("[SEND] FavorLevelRequest");
+    }
+
+    private void HandleFavorLevelResponse(byte[] body)
+    {
+        if (body == null || body.Length < 1) return;
+
+        int offset = 0;
+        int count = body[offset++];
+
+        var favorDict = new Dictionary<int, int>();
+
+        for (int i = 0; i < count; i++)
+        {
+            if (offset + 8 > body.Length) break;
+
+            int characterId = BitConverter.ToInt32(body, offset); offset += 4;
+            int favorLevel = BitConverter.ToInt32(body, offset); offset += 4;
+
+            favorDict[characterId] = favorLevel;
+
+            Debug.Log($"[RECV] FavorLevel characterId={characterId}, level={favorLevel}");
+        }
+
+        // DialogueManager에 전달
+        DialogueManager.Instance?.OnRecvFavorLevels(favorDict);
     }
 }
