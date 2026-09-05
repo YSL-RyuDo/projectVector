@@ -62,7 +62,7 @@ public class GamePassManager : MonoBehaviour
 
     void Update()
     {
-        _passPointText.text = _passPointSlider.value.ToString("F2") + "%";
+        _passPointText.text = _passPointSlider.value.ToString("F0") + " Point";
         UpdateOutlines();
         UpdateAcquireButtonState();
     }
@@ -104,7 +104,7 @@ public class GamePassManager : MonoBehaviour
         if (percentText != null)
         {
             int requiredPercent = (index + 1) * 10;
-            percentText.text = requiredPercent.ToString() + "%";
+            percentText.text = requiredPercent.ToString() + " Point";
         }
 
         UnityEngine.UI.Outline outline = newItemBox.GetComponent<UnityEngine.UI.Outline>();
