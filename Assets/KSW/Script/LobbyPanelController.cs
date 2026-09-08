@@ -37,6 +37,7 @@ public class LobbyPanelController : MonoBehaviour
 
     void Start()
     {
+        NetworkManager.Instance?.SetLobbyPanelController(this);
         _profilePanelController = GetComponent<ProfilePanelController>();
 
         if (characterSelectPopup != null)
@@ -44,15 +45,6 @@ public class LobbyPanelController : MonoBehaviour
 
         if (backgroundSelectPopup != null)
             backgroundSelectPopup.SetActive(false);
-    }
-
-    void Update()
-    {
-        if (backgroundSelectPopup != null)
-            backgroundSelectPopup.SetActive(false);
-
-        if (characterSelectPopup != null)
-            characterSelectPopup.SetActive(false);
     }
 
     public void ApplyCharacter(int characterId)
@@ -265,12 +257,7 @@ public class LobbyPanelController : MonoBehaviour
             });
         }
 
-        // 모든 버튼 생성 후 팝업 열기
-        if (characterSelectPopup != null)
-        {
-            characterSelectPopup.SetActive(true);
-        }
-        else
+        if (characterSelectPopup == null)
         {
             Debug.LogError(
                 "[CHARACTER LIST] characterSelectPopup이 연결되지 않았습니다."
@@ -288,15 +275,11 @@ public class LobbyPanelController : MonoBehaviour
         if (characterSelectPopup == null)
             return;
 
-        // 이미 열려 있으면 닫기
-        if (characterSelectPopup.activeSelf)
-        {
-            characterSelectPopup.SetActive(false);
-            return;
-        }
+        bool shouldOpen = !characterSelectPopup.activeSelf;
+        characterSelectPopup.SetActive(shouldOpen);
 
-        // 닫혀 있으면 서버에 캐릭터 목록 요청
-        NetworkManager.Instance.SendLobbyCharacterList();
+        if (shouldOpen)
+            NetworkManager.Instance.SendLobbyCharacterList();
     }
 
     public void OnClickOpenBackgroundSelect()
@@ -304,19 +287,16 @@ public class LobbyPanelController : MonoBehaviour
         if (backgroundSelectPopup == null)
             return;
 
-        // 이미 열려 있으면 닫기
-        if (backgroundSelectPopup.activeSelf)
-        {
-            backgroundSelectPopup.SetActive(false);
-            return;
-        }
-
-        // 닫혀 있으면 열기
-        backgroundSelectPopup.SetActive(true);
+        backgroundSelectPopup.SetActive(!backgroundSelectPopup.activeSelf);
     }
 
     public void OnClickBackgroundSelect(int backgroundId)
     {
         NetworkManager.Instance.SendLobbyBackgroundSelect(backgroundId);
+    }
+
+    private void OnDestroy()
+    {
+        NetworkManager.Instance?.ClearLobbyPanelController(this);
     }
 }

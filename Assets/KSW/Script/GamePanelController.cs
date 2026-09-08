@@ -316,6 +316,8 @@ public class GamePanelController : MonoBehaviour
     {
         ShowGamePanel();
 
+        NetworkManager.Instance?.SetReadyRoomChatContext();
+
         if (roomListPanel != null)
             roomListPanel.SetActive(false);
 
@@ -331,6 +333,8 @@ public class GamePanelController : MonoBehaviour
     private void ShowTempGameRoomPanelOnly()
     {
         ShowGamePanel();
+
+        NetworkManager.Instance?.SetReadyRoomChatContext();
 
         if (roomListPanel != null)
             roomListPanel.SetActive(false);

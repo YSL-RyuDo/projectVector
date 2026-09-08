@@ -275,7 +275,16 @@ public class NetworkManager : MonoBehaviour
     GamePanelController gamePanelController;
     ProfilePanelController profilePanelController;
     ChatPanelController chatPanelController;
+    FriendPanelController friendPanelController;
     LobbyManager lobbyManager;
+
+    private LobbyRoomChatKind lobbyRoomChatKind = LobbyRoomChatKind.None;
+    private uint lobbyRoomChatId;
+    private string lobbyRoomChatName = "";
+
+    public LobbyRoomChatKind CurrentLobbyRoomChatKind => lobbyRoomChatKind;
+    public uint CurrentLobbyRoomChatId => lobbyRoomChatId;
+    public string CurrentLobbyRoomChatName => lobbyRoomChatName;
 
     private PickManager pickManager;
     private MatchManager matchManager;
@@ -287,6 +296,8 @@ public class NetworkManager : MonoBehaviour
 
     private string myUserId = "";
     public string MyUserId => myUserId;
+    public bool IsConnected => client != null && client.IsConnected;
+    public bool IsAuthenticated { get; private set; }
 
     private uint pendingReturnRoomId = 0;
 
@@ -382,6 +393,17 @@ public class NetworkManager : MonoBehaviour
         lobbyManager = manager;
     }
 
+    public void SetLobbyPanelController(LobbyPanelController controller)
+    {
+        lobbyPanelController = controller;
+    }
+
+    public void ClearLobbyPanelController(LobbyPanelController controller)
+    {
+        if (ReferenceEquals(lobbyPanelController, controller))
+            lobbyPanelController = null;
+    }
+
     public void SetGamePanelController(GamePanelController controller)
     {
         gamePanelController = controller;
@@ -395,6 +417,77 @@ public class NetworkManager : MonoBehaviour
     public void SetChatPanelController(ChatPanelController controller)
     {
         chatPanelController = controller;
+        SyncLobbyRoomChatContext();
+    }
+
+    public void ClearChatPanelController(ChatPanelController controller)
+    {
+        if (ReferenceEquals(chatPanelController, controller))
+            chatPanelController = null;
+    }
+
+    public void SetFriendPanelController(FriendPanelController controller)
+    {
+        friendPanelController = controller;
+    }
+
+    public void ClearFriendPanelController(FriendPanelController controller)
+    {
+        if (ReferenceEquals(friendPanelController, controller))
+            friendPanelController = null;
+    }
+
+    public void SetReadyRoomChatContext()
+    {
+        lobbyRoomChatKind = LobbyRoomChatKind.ReadyRoom;
+        lobbyRoomChatId = 0;
+        lobbyRoomChatName = "ÁØºñ¹æ";
+        SyncLobbyRoomChatContext();
+    }
+
+    public void SetPrivateRoomChatContext(uint roomId, string roomName)
+    {
+        if (roomId == 0)
+            return;
+
+        lobbyRoomChatKind = LobbyRoomChatKind.PrivateRoom;
+        lobbyRoomChatId = roomId;
+        lobbyRoomChatName = roomName ?? "";
+        SyncLobbyRoomChatContext();
+    }
+
+    public void ClearTemporaryRoomChatContext()
+    {
+        if (lobbyRoomChatKind == LobbyRoomChatKind.ReadyRoom)
+            ClearLobbyRoomChatContext();
+    }
+
+    public void ClearPrivateRoomChatContext(uint roomId = 0)
+    {
+        if (lobbyRoomChatKind != LobbyRoomChatKind.PrivateRoom)
+            return;
+
+        if (roomId != 0 && lobbyRoomChatId != roomId)
+            return;
+
+        ClearLobbyRoomChatContext();
+    }
+
+    public void ClearLobbyRoomChatContext()
+    {
+        lobbyRoomChatKind = LobbyRoomChatKind.None;
+        lobbyRoomChatId = 0;
+        lobbyRoomChatName = "";
+        SyncLobbyRoomChatContext();
+    }
+
+    private void SyncLobbyRoomChatContext()
+    {
+        chatPanelController?.SetRoomChatContext(
+            lobbyRoomChatKind,
+            lobbyRoomChatId,
+            lobbyRoomChatName
+        );
     }
 
     public void SetMatchManager(MatchManager manager)
@@ -419,8 +512,10 @@ public class NetworkManager : MonoBehaviour
 
     public void SendLogin(string id, string pw)
     {
+        IsAuthenticated = false;
         myUserId = id.Trim();
         equippedWeaponSkinsByCharacter.Clear();
+        ClearLobbyRoomChatContext();
 
         byte[] buffer = new byte[4 + 20 + 64];
 
@@ -451,6 +546,118 @@ public class NetworkManager : MonoBehaviour
         BitConverter.GetBytes((ushort)PacketType.PKT_CS_LOBBY_CHAT).CopyTo(buffer, 2);
 
         Packet.WriteFixedString(buffer, 4, message, 128);
+        client.Send(buffer);
+    }
+
+    public void SendRoomChat(string message)
+    {
+        if (lobbyRoomChatKind == LobbyRoomChatKind.None)
+            return;
+
+        byte[] buffer = new byte[4 + 128];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_CHAT).CopyTo(buffer, 2);
+
+        Packet.WriteFixedString(buffer, 4, message, 128);
+        client.Send(buffer);
+    }
+
+    public void SendFriendChat(uint targetPlayerId, string message)
+    {
+        if (targetPlayerId == 0 || targetPlayerId == myPlayerId)
+            return;
+
+        byte[] buffer = new byte[4 + 4 + 128];
+
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_FRIEND_CHAT).CopyTo(buffer, 2);
+        BitConverter.GetBytes(targetPlayerId).CopyTo(buffer, 4);
+
+        Packet.WriteFixedString(buffer, 8, message, 128);
+        client.Send(buffer);
+    }
+
+    public void SendFriendOverviewRequest()
+    {
+        SendHeaderOnly(PacketType.PKT_CS_FRIEND_OVERVIEW_REQUEST);
+    }
+
+    public void SendFriendPresenceSet(FriendPresenceMode mode)
+    {
+        byte[] buffer = new byte[5];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_FRIEND_PRESENCE_SET)
+            .CopyTo(buffer, 2);
+        buffer[4] = (byte)mode;
+        client.Send(buffer);
+    }
+
+    public void SendFriendSearch(string query)
+    {
+        if (!IsConnected)
+        {
+            Debug.LogWarning("[FRIEND SEARCH SEND BLOCKED] server is not connected");
+            return;
+        }
+
+        if (!IsAuthenticated)
+        {
+            Debug.LogWarning("[FRIEND SEARCH SEND BLOCKED] login is not complete");
+            return;
+        }
+
+        byte[] buffer = new byte[4 + 40];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_FRIEND_SEARCH)
+            .CopyTo(buffer, 2);
+        Packet.WriteFixedString(buffer, 4, query, 40);
+        Debug.Log($"[FRIEND SEARCH SEND] type=70 query='{query}' bytes={buffer.Length}");
+        client.Send(buffer);
+    }
+
+    public void SendFriendRecommendRequest()
+    {
+        SendHeaderOnly(PacketType.PKT_CS_FRIEND_RECOMMEND_REQUEST);
+    }
+
+    public void SendFriendOperation(
+        FriendOperation operation,
+        string targetUserId)
+    {
+        if (string.IsNullOrWhiteSpace(targetUserId))
+            return;
+
+        byte[] buffer = new byte[4 + 1 + 20];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_FRIEND_OPERATION)
+            .CopyTo(buffer, 2);
+        buffer[4] = (byte)operation;
+        Packet.WriteFixedString(buffer, 5, targetUserId, 20);
+        client.Send(buffer);
+    }
+
+    public void SendFriendRequestListRequest()
+    {
+        SendHeaderOnly(PacketType.PKT_CS_FRIEND_REQUEST_LIST_REQUEST);
+    }
+
+    public void SendFriendRecentRequest()
+    {
+        SendHeaderOnly(PacketType.PKT_CS_FRIEND_RECENT_REQUEST);
+    }
+
+    public void SendFriendMemoSet(string targetUserId, string memo)
+    {
+        if (string.IsNullOrWhiteSpace(targetUserId))
+            return;
+
+        byte[] buffer = new byte[4 + 20 + 32];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_FRIEND_MEMO_SET)
+            .CopyTo(buffer, 2);
+        Packet.WriteFixedString(buffer, 4, targetUserId, 20);
+        Packet.WriteFixedString(buffer, 24, memo ?? "", 32);
         client.Send(buffer);
     }
 
@@ -587,6 +794,46 @@ public class NetworkManager : MonoBehaviour
 
             case (ushort)PacketType.PKT_SC_LOBBY_CHAT:
                 HandleLobbyChat(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_ROOM_CHAT:
+                HandleRoomChat(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_FRIEND_CHAT:
+                HandleFriendChat(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_FRIEND_OVERVIEW:
+                HandleFriendOverview(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_FRIEND_PRESENCE_SET_RESULT:
+                HandleFriendPresenceSetResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_FRIEND_SEARCH:
+                HandleFriendSearch(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_FRIEND_RECOMMEND:
+                HandleFriendRecommend(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_FRIEND_OPERATION_RESULT:
+                HandleFriendOperationResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_FRIEND_REQUEST_LIST:
+                HandleFriendRequestList(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_FRIEND_RECENT:
+                HandleFriendRecent(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_FRIEND_MEMO_SET_RESULT:
+                HandleFriendMemoSetResult(body);
                 break;
 
             case (ushort)PacketType.PKT_SC_LOBBY_CHARACTER_SELECT_RESULT:
@@ -981,12 +1228,12 @@ public class NetworkManager : MonoBehaviour
                 HandleSentinelXDestroy(body);
                 break;
 
-            case (ushort)PacketType.PKT_SC_FAVOR_LEVEL_RESPONSE:    // í˜¸ê°ë„ ë ˆë²¨
+            case (ushort)PacketType.PKT_SC_FAVOR_LEVEL_RESPONSE:    // È£°¨µµ ·¹º§
                 HandleFavorLevelResponse(body);
                 break;
 
             default:
-                Debug.LogWarning($"ì²˜ë¦¬ ì•ˆ ëœ íŒ¨í‚· type={type}");
+                Debug.LogWarning($"Ã³¸® ¾È µÈ ÆĞÅ¶ type={type}");
                 break;
 
 
@@ -1007,11 +1254,11 @@ public class NetworkManager : MonoBehaviour
         {
             string msg = result switch
             {
-                (byte)RegisterResult.ID_DUPLICATE => "ì•„ì´ë”” ì¤‘ë³µ",
-                (byte)RegisterResult.NICK_DUPLICATE => "ë‹‰ë„¤ì„ ì¤‘ë³µ",
-                (byte)RegisterResult.PASSWORD_MISMATCH => "ë¹„ë°€ë²ˆí˜¸ ë¶ˆì¼ì¹˜",
-                (byte)RegisterResult.INVALID_INPUT => "ì…ë ¥ ì˜¤ë¥˜",
-                _ => "íšŒì›ê°€ì… ì‹¤íŒ¨"
+                (byte)RegisterResult.ID_DUPLICATE => "¾ÆÀÌµğ Áßº¹",
+                (byte)RegisterResult.NICK_DUPLICATE => "´Ğ³×ÀÓ Áßº¹",
+                (byte)RegisterResult.PASSWORD_MISMATCH => "ºñ¹Ğ¹øÈ£ ºÒÀÏÄ¡",
+                (byte)RegisterResult.INVALID_INPUT => "ÀÔ·Â ¿À·ù",
+                _ => "È¸¿ø°¡ÀÔ ½ÇÆĞ"
             };
 
             loginUI?.ShowError(msg);
@@ -1023,6 +1270,7 @@ public class NetworkManager : MonoBehaviour
         byte result = body[0];
 
         bool success = (result == (byte)LoginResult.SUCCESS);
+        IsAuthenticated = success;
 
         Debug.Log($"[LOGIN RESULT] success={success}");
 
@@ -1034,11 +1282,11 @@ public class NetworkManager : MonoBehaviour
 
             string msg = result switch
             {
-                (byte)LoginResult.NO_ID => "ì•„ì´ë”” ì—†ìŒ",
-                (byte)LoginResult.WRONG_PASSWORD => "ë¹„ë°€ë²ˆí˜¸ í‹€ë¦¼",
-                (byte)LoginResult.INVALID_INPUT => "ì…ë ¥ ì˜¤ë¥˜",
-                (byte)LoginResult.ALREADY_LOGIN => "ì´ë¯¸ ë¡œê·¸ì¸ëœ ê³„ì •ì…ë‹ˆë‹¤.",
-                _ => "ë¡œê·¸ì¸ ì‹¤íŒ¨"
+                (byte)LoginResult.NO_ID => "¾ÆÀÌµğ ¾øÀ½",
+                (byte)LoginResult.WRONG_PASSWORD => "ºñ¹Ğ¹øÈ£ Æ²¸²",
+                (byte)LoginResult.INVALID_INPUT => "ÀÔ·Â ¿À·ù",
+                (byte)LoginResult.ALREADY_LOGIN => "ÀÌ¹Ì ·Î±×ÀÎµÈ °èÁ¤ÀÔ´Ï´Ù.",
+                _ => "·Î±×ÀÎ ½ÇÆĞ"
             };
 
             loginUI?.ShowError(msg);
@@ -1046,6 +1294,12 @@ public class NetworkManager : MonoBehaviour
     }
     void HandleLobbyEnter(byte[] body)
     {
+        if (body == null || body.Length < 52)
+        {
+            Debug.LogWarning("[CLIENT LOBBY ENTER] invalid packet size");
+            return;
+        }
+
         string nickname = Packet.ReadFixedString(body, 0, 20);
 
         int level = BitConverter.ToInt32(body, 20);
@@ -1055,8 +1309,15 @@ public class NetworkManager : MonoBehaviour
         int playerIconId = BitConverter.ToInt32(body, 32);
         int lobbyCharacterModelId = BitConverter.ToInt32(body, 36);
         int lobbyBackgroundId = BitConverter.ToInt32(body, 40);
+        int freeCurrency = BitConverter.ToInt32(body, 44);
+        int victoryCurrency = BitConverter.ToInt32(body, 48);
 
-        Debug.Log($"[CLIENT LOBBY ENTER] nickname={nickname}, level={level}, exp={currentExp}/{requiredExp}, icon={playerIconId}, char={lobbyCharacterModelId}, bg={lobbyBackgroundId}");
+        Debug.Log($"[CLIENT LOBBY ENTER] nickname={nickname}, level={level}, exp={currentExp}/{requiredExp}, icon={playerIconId}, char={lobbyCharacterModelId}, bg={lobbyBackgroundId}, coin0={freeCurrency}, coin1={victoryCurrency}");
+
+        MoneyManager.Instance?.SetServerBalances(
+            freeCurrency,
+            victoryCurrency
+        );
 
         profilePanelController?.OnRecvLobbyEnter(
             nickname,
@@ -1070,7 +1331,7 @@ public class NetworkManager : MonoBehaviour
 
         SendWeaponSkinLoadoutRequest(lobbyCharacterModelId);
 
-        SendFavorLevelRequest();        // ë¡œë¹„ ì”¬ ì…ì¥ ë§ˆë‹¤ í˜¸ê°ë„ ë ˆë²¨ ë¶ˆëŸ¬ì˜¤ê¸°
+        SendFavorLevelRequest();        // ·Îºñ ¾À ÀÔÀå ¸¶´Ù È£°¨µµ ·¹º§ ºÒ·¯¿À±â
     }
 
     private void HandleWeaponSkinLoadout(byte[] body)
@@ -1381,6 +1642,215 @@ public class NetworkManager : MonoBehaviour
         chatPanelController?.OnRecvLobbyChat(playerId, nickname, message);
     }
 
+    void HandleRoomChat(byte[] body)
+    {
+        if (body == null || body.Length < 156)
+            return;
+
+        uint roomId = BitConverter.ToUInt32(body, 0);
+        uint playerId = BitConverter.ToUInt32(body, 4);
+        string nickname = Packet.ReadFixedString(body, 8, 20);
+        string message = Packet.ReadFixedString(body, 28, 128);
+
+        chatPanelController?.OnRecvRoomChat(
+            roomId,
+            playerId,
+            nickname,
+            message
+        );
+    }
+
+    void HandleFriendChat(byte[] body)
+    {
+        if (body == null || body.Length < 156)
+            return;
+
+        uint senderPlayerId = BitConverter.ToUInt32(body, 0);
+        uint targetPlayerId = BitConverter.ToUInt32(body, 4);
+        string senderNickname = Packet.ReadFixedString(body, 8, 20);
+        string message = Packet.ReadFixedString(body, 28, 128);
+
+        chatPanelController?.OnRecvFriendChat(
+            senderPlayerId,
+            targetPlayerId,
+            senderNickname,
+            message
+        );
+    }
+
+    private void HandleFriendOverview(byte[] body)
+    {
+        const int UserSize = 89;
+        const int MaxContacts = 50;
+        if (body == null || body.Length < 3 + MaxContacts * UserSize * 2)
+            return;
+
+        FriendPresenceMode presenceMode = body[0] == 1
+            ? FriendPresenceMode.DoNotDisturb
+            : FriendPresenceMode.Online;
+        int friendCount = Math.Min((int)body[1], MaxContacts);
+        int blockedCount = Math.Min((int)body[2], MaxContacts);
+        int offset = 3;
+
+        List<FriendUserData> friends = new(friendCount);
+        for (int i = 0; i < MaxContacts; i++)
+        {
+            FriendUserData user = ReadFriendUser(body, ref offset);
+            if (i < friendCount)
+                friends.Add(user);
+        }
+
+        List<FriendUserData> blocked = new(blockedCount);
+        for (int i = 0; i < MaxContacts; i++)
+        {
+            FriendUserData user = ReadFriendUser(body, ref offset);
+            if (i < blockedCount)
+                blocked.Add(user);
+        }
+
+        friendPanelController?.ApplyOverview(presenceMode, friends, blocked);
+        chatPanelController?.ApplyFriendOverview(friends);
+    }
+
+    private void HandleFriendPresenceSetResult(byte[] body)
+    {
+        if (body == null || body.Length < 2)
+            return;
+
+        FriendPresenceMode mode = body[1] == 1
+            ? FriendPresenceMode.DoNotDisturb
+            : FriendPresenceMode.Online;
+        friendPanelController?.ApplyPresenceResult(body[0] == 0, mode);
+    }
+
+    private void HandleFriendSearch(byte[] body)
+    {
+        List<FriendUserData> users = ReadFriendUserList(body, 10);
+        Debug.Log(
+            $"[FRIEND SEARCH RECV] type=71 count={users.Count} bodyBytes={body?.Length ?? 0}"
+        );
+
+        if (friendPanelController == null)
+        {
+            Debug.LogWarning("[FRIEND SEARCH RECV] FriendPanelController is not registered");
+            return;
+        }
+
+        friendPanelController.ApplySearchResults(users);
+    }
+
+    private void HandleFriendRecommend(byte[] body)
+    {
+        friendPanelController?.ApplyRecommendations(
+            ReadFriendUserList(body, 3)
+        );
+    }
+
+    private void HandleFriendOperationResult(byte[] body)
+    {
+        if (body == null || body.Length < 22)
+            return;
+
+        FriendOperation operation = (FriendOperation)body[0];
+        FriendOperationResult result = (FriendOperationResult)body[1];
+        string targetUserId = Packet.ReadFixedString(body, 2, 20);
+        friendPanelController?.ApplyOperationResult(
+            operation,
+            result,
+            targetUserId
+        );
+    }
+
+    private void HandleFriendRequestList(byte[] body)
+    {
+        const int MaxRequests = 30;
+        const int RequestSize = 90;
+        if (body == null || body.Length < 1 + MaxRequests * RequestSize)
+            return;
+
+        int count = Math.Min((int)body[0], MaxRequests);
+        int offset = 1;
+        List<FriendRequestData> requests = new(count);
+
+        for (int i = 0; i < MaxRequests; i++)
+        {
+            bool incoming = body[offset++] == 1;
+            FriendUserData user = ReadFriendUser(body, ref offset);
+            if (i < count)
+            {
+                requests.Add(new FriendRequestData
+                {
+                    incoming = incoming,
+                    user = user
+                });
+            }
+        }
+
+        friendPanelController?.ApplyRequests(requests);
+    }
+
+    private void HandleFriendRecent(byte[] body)
+    {
+        friendPanelController?.ApplyRecent(
+            ReadFriendUserList(body, 20)
+        );
+    }
+
+    private void HandleFriendMemoSetResult(byte[] body)
+    {
+        if (body == null || body.Length < 53)
+            return;
+
+        bool success = body[0] == 0;
+        string targetUserId = Packet.ReadFixedString(body, 1, 20);
+        string memo = Packet.ReadFixedString(body, 21, 32);
+        Debug.Log($"[FRIEND MEMO RESULT] success={success} target={targetUserId} memo='{memo}'");
+
+        if (success)
+            SendFriendOverviewRequest();
+    }
+
+    private static List<FriendUserData> ReadFriendUserList(
+        byte[] body,
+        int maxCount)
+    {
+        const int UserSize = 89;
+        List<FriendUserData> users = new();
+        if (body == null || body.Length < 1 + maxCount * UserSize)
+            return users;
+
+        int count = Math.Min((int)body[0], maxCount);
+        int offset = 1;
+        for (int i = 0; i < maxCount; i++)
+        {
+            FriendUserData user = ReadFriendUser(body, ref offset);
+            if (i < count)
+                users.Add(user);
+        }
+        return users;
+    }
+
+    private static FriendUserData ReadFriendUser(byte[] body, ref int offset)
+    {
+        FriendUserData user = new();
+        user.playerId = BitConverter.ToUInt32(body, offset);
+        offset += 4;
+        user.userId = Packet.ReadFixedString(body, offset, 20);
+        offset += 20;
+        user.nickname = Packet.ReadFixedString(body, offset, 20);
+        offset += 20;
+        user.level = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        user.playerIconId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        user.rankImageId = BitConverter.ToInt32(body, offset);
+        offset += 4;
+        user.presenceStatus = (FriendPresenceStatus)body[offset++];
+        user.memo = Packet.ReadFixedString(body, offset, 32);
+        offset += 32;
+        return user;
+    }
+
     void HandleLobbyCharacterSelectResult(byte[] body)
     {
 
@@ -1483,6 +1953,7 @@ public class NetworkManager : MonoBehaviour
             players.Add(data);
         }
 
+        SetReadyRoomChatContext();
         gamePanelController?.OnRecvTempGameRoomEnter(playerCount, players);
     }
 
@@ -1540,7 +2011,7 @@ public class NetworkManager : MonoBehaviour
             room.roomId = BitConverter.ToUInt32(body, offset);
             offset += 4;
 
-            // ë¬¸ìì—´ raw ë°”ì´íŠ¸ í™•ì¸
+            // ¹®ÀÚ¿­ raw ¹ÙÀÌÆ® È®ÀÎ
             Debug.Log($"[RAW roomName bytes] {BitConverter.ToString(body, offset, 32)}");
             room.roomName = Packet.ReadFixedString(body, offset, 32);
             offset += 32;
@@ -1658,6 +2129,7 @@ public class NetworkManager : MonoBehaviour
             roomState.members.Add(member);
         }
 
+        SetPrivateRoomChatContext(roomState.roomId, roomState.roomName);
         gamePanelController?.OnRecvRoomCreateResult(roomState);
     }
 
@@ -1687,6 +2159,9 @@ public class NetworkManager : MonoBehaviour
         offset += 1;
 
         Debug.Log($"[ROOM LEAVE RESULT] result={result}, roomId={roomId}, roomDeleted={roomDeleted}");
+
+        if (result == 0)
+            ClearPrivateRoomChatContext(roomId);
 
         gamePanelController?.OnRecvRoomLeaveResult(result, roomId, roomDeleted != 0);
     }
@@ -1776,6 +2251,7 @@ public class NetworkManager : MonoBehaviour
             );
         }
 
+        SetPrivateRoomChatContext(roomState.roomId, roomState.roomName);
         gamePanelController?.OnRecvRoomState(roomState);
     }
 
@@ -1959,6 +2435,8 @@ public class NetworkManager : MonoBehaviour
         offset += 20;
 
         Debug.Log($"[ROOM KICKED] roomId={roomId}, kicker={kickerNickname}");
+
+        ClearPrivateRoomChatContext(roomId);
 
         gamePanelController?.OnRecvRoomKicked(roomId, kickerNickname);
     }
@@ -2371,7 +2849,7 @@ public class NetworkManager : MonoBehaviour
 
             if (remainingSeconds == 0)
             {
-                TopInfoUI.Instance.SetGameDescription("ì „íˆ¬ ë‹¨ê³„");
+                TopInfoUI.Instance.SetGameDescription("ÀüÅõ ´Ü°è");
             }
         }
 
@@ -2933,7 +3411,7 @@ public class NetworkManager : MonoBehaviour
         if (TopInfoUI.Instance != null)
         {
             TopInfoUI.Instance.SetScoreByTeam(scoreA, scoreB);
-            TopInfoUI.Instance.SetGameDescription("êµ¬ë§¤ ë‹¨ê³„");
+            TopInfoUI.Instance.SetGameDescription("±¸¸Å ´Ü°è");
         }
 
         if (RoundManager.Instance != null)
@@ -3311,7 +3789,7 @@ public class NetworkManager : MonoBehaviour
                 if (knifeWeaponId >= 0)
                     StorePanelUI.Instance.SetOwnedWeaponFromServer(knifeWeaponId);
 
-                // ë°©ì–´êµ¬ë¥¼ 0ìœ¼ë¡œ ì´ˆê¸°í™”
+                // ¹æ¾î±¸¸¦ 0À¸·Î ÃÊ±âÈ­
                 StorePanelUI.Instance.SetOwnedArmorFromServer(0);
             }
         }
@@ -3637,6 +4115,10 @@ public class NetworkManager : MonoBehaviour
                     member.rankModifierFlags;
                 MatchResultCache.totalFreeCurrency = member.totalFreeCurrency;
                 MatchResultCache.totalVictoryCurrency = member.totalVictoryCurrency;
+                MoneyManager.Instance?.SetServerBalances(
+                    member.totalFreeCurrency,
+                    member.totalVictoryCurrency
+                );
             }
         }
 
@@ -3776,7 +4258,7 @@ public class NetworkManager : MonoBehaviour
 
         if (TopInfoUI.Instance != null)
         {
-            TopInfoUI.Instance.SetGameDescription("ì „íˆ¬ ë‹¨ê³„");
+            TopInfoUI.Instance.SetGameDescription("ÀüÅõ ´Ü°è");
             TopInfoUI.Instance.SetTimer(remainingSeconds);
         }
         else
@@ -3855,7 +4337,7 @@ public class NetworkManager : MonoBehaviour
             ps.SetHasSpikeFromServer(hasSpike);
         }
 
-        // í•µì‹¬: ëª¨ë“  í´ë¼ì—ì„œ ë°”ë‹¥ ìŠ¤íŒŒì´í¬ ì œê±°
+        // ÇÙ½É: ¸ğµç Å¬¶ó¿¡¼­ ¹Ù´Ú ½ºÆÄÀÌÅ© Á¦°Å
         DroppedSpikePickup[] droppedSpikes =
             FindObjectsByType<DroppedSpikePickup>(
                 FindObjectsInactive.Include,
@@ -3875,9 +4357,9 @@ public class NetworkManager : MonoBehaviour
         if (TopInfoUI.Instance != null)
         {
             if (showCarrierInfo != 0)
-                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} ìŠ¤íŒŒì´í¬ íšë“");
+                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} ½ºÆÄÀÌÅ© È¹µæ");
             else
-                TopInfoUI.Instance.SetGameDescription("ìŠ¤íŒŒì´í¬ íšë“ë¨");
+                TopInfoUI.Instance.SetGameDescription("½ºÆÄÀÌÅ© È¹µæµÊ");
         }
     }
     private void HandleSpikePlanted(byte[] body)
@@ -3901,7 +4383,7 @@ public class NetworkManager : MonoBehaviour
 
         if (TopInfoUI.Instance != null)
         {
-            TopInfoUI.Instance.SetGameDescription("ìŠ¤íŒŒì´í¬ ì„¤ì¹˜ë¨");
+            TopInfoUI.Instance.SetGameDescription("½ºÆÄÀÌÅ© ¼³Ä¡µÊ");
             TopInfoUI.Instance.SetUnknownTimer();
         }
 
@@ -3910,7 +4392,7 @@ public class NetworkManager : MonoBehaviour
             CombatFeedbackUI.Instance.HideSpikeProgress();
 
             CombatFeedbackUI.Instance.ShowObjectiveNotice(
-                "ê³µê²©íŒ€ì´ ìŠ¤íŒŒì´í¬ë¥¼ ì„¤ì¹˜í–ˆìŠµë‹ˆë‹¤.",
+                "°ø°İÆÀÀÌ ½ºÆÄÀÌÅ©¸¦ ¼³Ä¡Çß½À´Ï´Ù.",
                 true
             );
         }
@@ -3950,7 +4432,7 @@ public class NetworkManager : MonoBehaviour
         if (SpikeSpawner.Instance != null)
             SpikeSpawner.Instance.SpawnDroppedAt(pos, dir, dropperPlayerId);
 
-        // í•µì‹¬: ìŠ¤íŒŒì´í¬ë¥¼ ë²„ë¦° í”Œë ˆì´ì–´ëŠ” ë” ì´ìƒ ìŠ¤íŒŒì´í¬ ì†Œìœ ìê°€ ì•„ë‹˜
+        // ÇÙ½É: ½ºÆÄÀÌÅ©¸¦ ¹ö¸° ÇÃ·¹ÀÌ¾î´Â ´õ ÀÌ»ó ½ºÆÄÀÌÅ© ¼ÒÀ¯ÀÚ°¡ ¾Æ´Ô
         ApplySpikeDroppedToPlayer(dropperPlayerId);
     }
 
@@ -4000,18 +4482,18 @@ public class NetworkManager : MonoBehaviour
         }
 
         if (TopInfoUI.Instance != null)
-            TopInfoUI.Instance.SetGameDescription("ìŠ¤íŒŒì´í¬ í•´ì²´ë¨");
+            TopInfoUI.Instance.SetGameDescription("½ºÆÄÀÌÅ© ÇØÃ¼µÊ");
 
         if (CombatFeedbackUI.Instance != null)
         {
             CombatFeedbackUI.Instance.HideSpikeProgress();
 
-            // ê¸°ì¡´ ì„¤ì¹˜ ìƒíƒœ ì•„ì´ì½˜ ì œê±°
+            // ±âÁ¸ ¼³Ä¡ »óÅÂ ¾ÆÀÌÄÜ Á¦°Å
             CombatFeedbackUI.Instance.ClearObjectiveState();
 
-            // í•´ì²´ ì™„ë£Œ ë©”ì‹œì§€ë§Œ ì ê¹ í‘œì‹œ
+            // ÇØÃ¼ ¿Ï·á ¸Ş½ÃÁö¸¸ Àá±ñ Ç¥½Ã
             CombatFeedbackUI.Instance.ShowObjectiveNotice(
-                "ìˆ˜ë¹„íŒ€ì´ ìŠ¤íŒŒì´í¬ë¥¼ í•´ì²´í–ˆìŠµë‹ˆë‹¤.",
+                "¼öºñÆÀÀÌ ½ºÆÄÀÌÅ©¸¦ ÇØÃ¼Çß½À´Ï´Ù.",
                 false
             );
         }
@@ -4099,14 +4581,14 @@ public class NetworkManager : MonoBehaviour
             $"deadCharacter={deadCharacterId}"
         );
 
-        // í‚¬ëŸ¬ê°€ ì •ìƒì ìœ¼ë¡œ ì¡´ì¬í•˜ëŠ” ê²½ìš°ë§Œ í‚¬ë¡œê·¸ í‘œì‹œ
+        // Å³·¯°¡ Á¤»óÀûÀ¸·Î Á¸ÀçÇÏ´Â °æ¿ì¸¸ Å³·Î±× Ç¥½Ã
         if (killerPlayerId != 0 &&
             KillLogManager.Instance != null)
         {
             byte myTeam = GetMyTeamForKillLog();
 
-            // í‚¬ëŸ¬ê°€ ë‚´ íŒ€ì´ë©´ OurKillLogPrefab
-            // í‚¬ëŸ¬ê°€ ìƒëŒ€ íŒ€ì´ë©´ EnemyKillLogPrefab
+            // Å³·¯°¡ ³» ÆÀÀÌ¸é OurKillLogPrefab
+            // Å³·¯°¡ »ó´ë ÆÀÀÌ¸é EnemyKillLogPrefab
             bool isOurKill =
                 killerTeam == myTeam;
 
@@ -4359,7 +4841,7 @@ public class NetworkManager : MonoBehaviour
         snapshot.weaponId = weaponId;
         snapshot.isADS = false;
 
-        // ë¡œì»¬ì€ ë¬´ê¸° Switchì—ì„œ ì´ë¯¸ ì²˜ë¦¬í•¨
+        // ·ÎÄÃÀº ¹«±â Switch¿¡¼­ ÀÌ¹Ì Ã³¸®ÇÔ
         if (playerId == MyPlayerId)
         {
             Debug.Log(
@@ -4392,7 +4874,7 @@ public class NetworkManager : MonoBehaviour
                     weaponId
                 );
 
-                // ë¬´ê¸° ë³€ê²½ í›„ ê¸°ì¡´ ADS ìƒíƒœ í•´ì œ
+                // ¹«±â º¯°æ ÈÄ ±âÁ¸ ADS »óÅÂ ÇØÁ¦
                 item.SetADSVisualFromServer(false);
             }
             else
@@ -4429,7 +4911,7 @@ public class NetworkManager : MonoBehaviour
         if (isCurrentSpectatorTarget &&
             InGameUIManager.Instance != null)
         {
-            // ë¬´ê¸°ë¥¼ ë³€ê²½í•˜ë©´ ì„œë²„ ìŠ¤ëƒ…ìƒ·ì˜ ADSë„ falseë¡œ ì´ˆê¸°í™”ëœë‹¤.
+            // ¹«±â¸¦ º¯°æÇÏ¸é ¼­¹ö ½º³À¼¦ÀÇ ADSµµ false·Î ÃÊ±âÈ­µÈ´Ù.
             InGameUIManager.Instance.SetDisplayedPlayerADS(false);
         }
 
@@ -4535,7 +5017,7 @@ public class NetworkManager : MonoBehaviour
         if (isCurrentSpectatorTarget &&
             InGameUIManager.Instance != null)
         {
-            // ê´€ì „ ì¤‘ì¸ ëŒ€ìƒì˜ ADS ìƒíƒœë¥¼ í¬ë¡œìŠ¤í—¤ì–´ì— ì¦‰ì‹œ ë°˜ì˜í•œë‹¤.
+            // °üÀü ÁßÀÎ ´ë»óÀÇ ADS »óÅÂ¸¦ Å©·Î½ºÇì¾î¿¡ Áï½Ã ¹İ¿µÇÑ´Ù.
             InGameUIManager.Instance.SetDisplayedPlayerADS(isADS);
         }
 
@@ -5044,12 +5526,12 @@ public class NetworkManager : MonoBehaviour
         {
             if (itemType == 0)
             {
-                // ë¬´ê¸° êµ¬ë§¤ ì„±ê³µ
+                // ¹«±â ±¸¸Å ¼º°ø
                 StorePanelUI.Instance.SetOwnedWeaponFromServer(weaponId);
             }
             else if (itemType == 1)
             {
-                // ë°©ì–´êµ¬ êµ¬ë§¤ ì„±ê³µ
+                // ¹æ¾î±¸ ±¸¸Å ¼º°ø
                 StorePanelUI.Instance.SetOwnedArmorFromServer(maxBarrier);
             }
         }
@@ -5077,7 +5559,7 @@ public class NetworkManager : MonoBehaviour
 
     private byte GetMyTeamForKillLog()
     {
-        // Scoreboardì—ì„œ ë°›ì€ ë‚´ íŒ€ ì •ë³´ê°€ ê°€ì¥ ì •í™•í•˜ë‹¤.
+        // Scoreboard¿¡¼­ ¹ŞÀº ³» ÆÀ Á¤º¸°¡ °¡Àå Á¤È®ÇÏ´Ù.
         if (latestScoreboardData != null)
             return latestScoreboardData.myTeam;
 
@@ -5284,7 +5766,7 @@ public class NetworkManager : MonoBehaviour
             ) != 0;
         offset += 4;
 
-        // ë‚´ í™”ë©´ì€ ì´ë¯¸ ë¡œì»¬ì—ì„œ ì²˜ë¦¬í–ˆë‹¤.
+        // ³» È­¸éÀº ÀÌ¹Ì ·ÎÄÃ¿¡¼­ Ã³¸®Çß´Ù.
         if (playerId == MyPlayerId)
             return;
 
@@ -5737,8 +6219,8 @@ public class NetworkManager : MonoBehaviour
             hit != 0 &&
             targetPlayerId != 0;
 
-        // í•µì‹¬:
-        // ì„œë²„ íŒì • ê²°ê³¼ë¥¼ ë‚´ ë“œë¡  HUDì— ë°˜ì˜
+        // ÇÙ½É:
+        // ¼­¹ö ÆÇÁ¤ °á°ú¸¦ ³» µå·Ğ HUD¿¡ ¹İ¿µ
         if (isMyDroneTaser && DroneHUDUI.Instance != null)
         {
             if (successHit)
@@ -5751,7 +6233,7 @@ public class NetworkManager : MonoBehaviour
             }
         }
 
-        // ë¹—ë‚˜ê°ì´ë©´ HUD í”¼ë“œë°±ë§Œ ì£¼ê³  ì¢…ë£Œ
+        // ºø³ª°¨ÀÌ¸é HUD ÇÇµå¹é¸¸ ÁÖ°í Á¾·á
         if (!successHit)
             return;
 
@@ -5789,7 +6271,7 @@ public class NetworkManager : MonoBehaviour
             $"duration={duration}, stack={stack}, damage={damage}"
         );
 
-        // ë‚˜ì¤‘ì— ElectricShockì— ìŠ¤íƒ í•¨ìˆ˜ ë§Œë“¤ë©´ ì´ê±¸ë¡œ êµì²´
+        // ³ªÁß¿¡ ElectricShock¿¡ ½ºÅÃ ÇÔ¼ö ¸¸µé¸é ÀÌ°É·Î ±³Ã¼
         // shock.ApplyStack(stack, duration);
     }
 
@@ -8700,7 +9182,7 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    // í˜¸ê°ë„ ë ˆë²¨ ì†¡ìˆ˜ì‹ 
+    // È£°¨µµ ·¹º§ ¼Û¼ö½Å
 
     public void SendFavorLevelRequest()
     {
@@ -8736,7 +9218,7 @@ public class NetworkManager : MonoBehaviour
             Debug.Log($"[RECV] FavorLevel characterId={characterId}, level={favorLevel}");
         }
 
-        // DialogueManagerì— ì „ë‹¬
+        // DialogueManager¿¡ Àü´Ş
         DialogueManager.Instance?.OnRecvFavorLevels(favorDict);
     }
 }
