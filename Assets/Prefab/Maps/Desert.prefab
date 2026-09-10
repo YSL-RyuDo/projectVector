@@ -2053,6 +2053,12 @@ PrefabInstance:
       insertIndex: 5
       addedObject: {fileID: 6723706002602188734}
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1ebaaee4b99a20b43afd30661c86344e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3066803813727288319}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1ebaaee4b99a20b43afd30661c86344e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 638526688822456512}
     - targetCorrespondingSourceObject: {fileID: -6126299565173381380, guid: 1ebaaee4b99a20b43afd30661c86344e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 9151785448314483440}
@@ -4268,6 +4274,46 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -8677435429356793961, guid: 1ebaaee4b99a20b43afd30661c86344e, type: 3}
+--- !u!1 &8231130973371251128 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 1ebaaee4b99a20b43afd30661c86344e, type: 3}
+  m_PrefabInstance: {fileID: 9150104788423083241}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3066803813727288319
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8231130973371251128}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d351c4ee001f7b541b8173a5d72ca81e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MapInfo
+  attackSpawnPoints:
+  - {fileID: 6490134332481830917}
+  - {fileID: 4570221723859626545}
+  - {fileID: 1914025675115815415}
+  defendSpawnPoints:
+  - {fileID: 2300823677777684497}
+  - {fileID: 782064846769765695}
+  - {fileID: 2342612446608720241}
+  spikeSpawnPoint: {fileID: 6723706002602188734}
+  barriers: {fileID: 8763267308397676705}
+--- !u!114 &638526688822456512
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8231130973371251128}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69e7c7d975813da47b6878d8937bfb0f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RoundManager
+  currentState: 0
 --- !u!1 &8309263999536171812 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -8238248899353735219, guid: 1ebaaee4b99a20b43afd30661c86344e, type: 3}

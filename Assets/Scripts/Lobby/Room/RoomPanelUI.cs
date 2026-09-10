@@ -21,6 +21,7 @@ public class RoomPanelUI : MonoBehaviour
     [Header("Buttons")]
     [SerializeField] private Button gameStartButton;
     [SerializeField] private Button settingButton;
+    [SerializeField] private RoomRulesPanelUI roomRulesPanelUI;
 
     [Header("Leave")]
     [SerializeField] private Button leaveButton;
@@ -32,6 +33,7 @@ public class RoomPanelUI : MonoBehaviour
     public Action<RoomSlotTeam, byte> OnSlotClicked;
     public Action<RoomSlotTeam, byte> OnSlotRightClicked;
     public Action OnGameStartClicked;
+    public Action<GameMapId> OnMapSelected;
 
     private void Awake()
     {
@@ -67,6 +69,18 @@ public class RoomPanelUI : MonoBehaviour
             });
         }
 
+        if (settingButton != null)
+        {
+            settingButton.onClick.RemoveAllListeners();
+            settingButton.onClick.AddListener(ShowRoomRulesPanel);
+        }
+
+        if (roomRulesPanelUI != null)
+        {
+            roomRulesPanelUI.OnMapSelected = mapId => OnMapSelected?.Invoke(mapId);
+            roomRulesPanelUI.Hide();
+        }
+
         HideLeaveConfirmPanel();
         InitSlotButtons();
     }
@@ -91,6 +105,12 @@ public class RoomPanelUI : MonoBehaviour
 
         if (mapNameText != null)
             mapNameText.text = data.mapName;
+
+        if (settingButton != null)
+            settingButton.gameObject.SetActive(data.isLeader);
+
+        if (roomRulesPanelUI != null)
+            roomRulesPanelUI.ApplySelectedMap(data.mapName);
 
         foreach (RoomMemberData member in data.members)
         {
@@ -145,6 +165,9 @@ public class RoomPanelUI : MonoBehaviour
     {
         HideLeaveConfirmPanel();
 
+        if (roomRulesPanelUI != null)
+            roomRulesPanelUI.Hide();
+
         if (roomPanel != null)
             roomPanel.SetActive(false);
     }
@@ -171,6 +194,21 @@ public class RoomPanelUI : MonoBehaviour
             leaveConfirmPanel.SetActive(false);
     }
 
+    public void ShowRoomRulesPanel()
+    {
+        if (roomRulesPanelUI == null)
+        {
+            Debug.LogWarning("[ROOM PANEL] RoomRulesPanelUI is not assigned.");
+            return;
+        }
+
+        roomRulesPanelUI.Show(mapNameText != null ? mapNameText.text : "TestMap");
+    }
+
+    public void ShowMapSetError(string message)
+    {
+        Debug.LogWarning($"[ROOM MAP SET] {message}");
+    }
     private void InitSlotButtons()
     {
         if (aTeamSlots != null)

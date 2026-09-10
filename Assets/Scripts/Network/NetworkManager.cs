@@ -31,6 +31,7 @@ public class CareerRankingEntryData
     public int position;
     public string userId;
     public string nickname;
+    public int playerIconId;
     public int tierId;
     public string tierName;
     public int rankImageId;
@@ -836,6 +837,10 @@ public class NetworkManager : MonoBehaviour
                 HandleFriendMemoSetResult(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_ROOM_MAP_SET_RESULT:
+                HandleRoomMapSetResult(body);
+                break;
+
             case (ushort)PacketType.PKT_SC_LOBBY_CHARACTER_SELECT_RESULT:
                 HandleLobbyCharacterSelectResult(body);
                 break;
@@ -1462,7 +1467,7 @@ public class NetworkManager : MonoBehaviour
 
     private void HandleCareerRanking(byte[] body)
     {
-        const int EntrySize = 96;
+        const int EntrySize = 100;
         const int HeaderSize = 12;
         const int MaxEntries = 10;
         if (body == null || body.Length < HeaderSize)
@@ -1494,6 +1499,8 @@ public class NetworkManager : MonoBehaviour
             offset += 20;
             entry.nickname = Packet.ReadFixedString(body, offset, 20);
             offset += 20;
+            entry.playerIconId = BitConverter.ToInt32(body, offset);
+            offset += 4;
             entry.tierId = BitConverter.ToInt32(body, offset);
             offset += 4;
             entry.tierName = Packet.ReadFixedString(body, offset, 32);
@@ -2441,6 +2448,28 @@ public class NetworkManager : MonoBehaviour
         gamePanelController?.OnRecvRoomKicked(roomId, kickerNickname);
     }
 
+    public void SendRoomMapSet(GameMapId mapId)
+    {
+        byte[] buffer = new byte[5];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_ROOM_MAP_SET).CopyTo(buffer, 2);
+        buffer[4] = (byte)mapId;
+        client.Send(buffer);
+        Debug.Log($"[CLIENT] SendRoomMapSet map={mapId}");
+    }
+
+    private void HandleRoomMapSetResult(byte[] body)
+    {
+        if (body == null || body.Length < 2)
+        {
+            Debug.LogWarning("[ROOM MAP SET] Invalid response.");
+            return;
+        }
+
+        byte result = body[0];
+        GameMapId mapId = (GameMapId)body[1];
+        gamePanelController?.OnRecvRoomMapSetResult(result, mapId);
+    }
     public void SendRoomGameStart()
     {
         Debug.Log("[CLIENT] SendRoomGameStart");
@@ -2725,6 +2754,9 @@ public class NetworkManager : MonoBehaviour
 
         data.roomId = BitConverter.ToUInt32(body, offset);
         offset += 4;
+
+        data.mapName = Packet.ReadFixedString(body, offset, 32);
+        offset += 32;
 
         data.prepareSeconds = BitConverter.ToUInt16(body, offset);
         offset += 2;

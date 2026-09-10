@@ -142,6 +142,7 @@ public class GamePanelController : MonoBehaviour
             roomPanelUI.HideRoom();
             roomPanelUI.OnConfirmLeave = OnConfirmRoomLeave;
             roomPanelUI.OnGameStartClicked = OnClickRoomGameStart;
+            roomPanelUI.OnMapSelected = OnSelectRoomMap;
             roomPanelUI.OnSlotClicked = OnClickRoomSlot;
             roomPanelUI.OnSlotRightClicked = OnRightClickRoomSlot;
         }
@@ -1440,6 +1441,39 @@ public class GamePanelController : MonoBehaviour
         ShowRoomMessage(kickerNickname + "님에 의해 방에서 강퇴되었습니다.");
     }
 
+    private void OnSelectRoomMap(GameMapId mapId)
+    {
+        if (currentRoomState == null || !currentRoomState.isLeader)
+        {
+            ShowRoomMessage("방장만 맵을 변경할 수 있습니다.");
+            return;
+        }
+
+        NetworkManager.Instance?.SendRoomMapSet(mapId);
+    }
+
+    public void OnRecvRoomMapSetResult(byte result, GameMapId mapId)
+    {
+        if (result == 0)
+        {
+            Debug.Log($"[ROOM MAP SET UI] success map={mapId}");
+            return;
+        }
+
+        string message = result switch
+        {
+            1 => "현재 사설방에 들어가 있지 않습니다.",
+            2 => "방을 찾을 수 없습니다.",
+            3 => "방장만 맵을 변경할 수 있습니다.",
+            4 => "선택할 수 없는 맵입니다.",
+            5 => "게임이 시작된 뒤에는 맵을 변경할 수 없습니다.",
+            6 => "사설방에서만 맵을 직접 설정할 수 있습니다.",
+            _ => "맵 변경에 실패했습니다."
+        };
+
+        roomPanelUI?.ShowMapSetError(message);
+        ShowRoomMessage(message);
+    }
     private void OnClickRoomGameStart()
     {
         Debug.Log("[ROOM GAME START] button click");

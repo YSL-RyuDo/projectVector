@@ -26,6 +26,12 @@ public class ChatPanelController : MonoBehaviour
         public string Message;
     }
 
+    private sealed class PendingFriendEcho
+    {
+        public uint PeerPlayerId;
+        public string Message;
+    }
+
     private const int MaxMessagesPerChannel = 100;
 
     [Header("Chat")]
@@ -61,6 +67,7 @@ public class ChatPanelController : MonoBehaviour
     private readonly List<ChatMessage> lobbyMessages = new();
     private readonly Dictionary<string, List<ChatMessage>> roomMessages = new();
     private readonly Dictionary<uint, List<ChatMessage>> friendMessages = new();
+    private readonly List<PendingFriendEcho> pendingFriendEchoes = new();
     private readonly List<FriendUserData> friendUsers = new();
     private readonly List<FriendListItemUI> friendSelectorItems = new();
 
@@ -204,6 +211,12 @@ public class ChatPanelController : MonoBehaviour
 
         if (peerPlayerId == 0)
             return;
+
+        if (senderPlayerId == NetworkManager.Instance.MyPlayerId &&
+            ConsumePendingFriendEcho(peerPlayerId, message))
+        {
+            return;
+        }
 
         List<ChatMessage> history = GetFriendHistory(peerPlayerId);
         bool historyTrimmed = AddMessage(
@@ -477,6 +490,7 @@ public class ChatPanelController : MonoBehaviour
                 friendChatTargetId,
                 message
             );
+            AppendOwnFriendMessage(friendChatTargetId, message);
         }
         else
         {
@@ -485,6 +499,56 @@ public class ChatPanelController : MonoBehaviour
 
         ChatInputField.text = "";
         ChatInputField.ActivateInputField();
+    }
+
+    private void AppendOwnFriendMessage(uint peerPlayerId, string message)
+    {
+        if (NetworkManager.Instance == null || peerPlayerId == 0)
+            return;
+
+        pendingFriendEchoes.Add(new PendingFriendEcho
+        {
+            PeerPlayerId = peerPlayerId,
+            Message = message
+        });
+
+        if (pendingFriendEchoes.Count > MaxMessagesPerChannel)
+            pendingFriendEchoes.RemoveAt(0);
+
+        List<ChatMessage> history = GetFriendHistory(peerPlayerId);
+        bool historyTrimmed = AddMessage(
+            history,
+            NetworkManager.Instance.MyPlayerId,
+            "나",
+            message
+        );
+
+        if (activeChannel == ChatChannel.Friends &&
+            friendChatTargetId == peerPlayerId)
+        {
+            if (historyTrimmed)
+                RenderActiveHistory();
+            else
+                AppendMessage(history[history.Count - 1]);
+        }
+    }
+
+    private bool ConsumePendingFriendEcho(uint peerPlayerId, string message)
+    {
+        for (int i = 0; i < pendingFriendEchoes.Count; i++)
+        {
+            PendingFriendEcho pending = pendingFriendEchoes[i];
+            if (pending.PeerPlayerId != peerPlayerId ||
+                pending.Message != message)
+            {
+                continue;
+            }
+
+            pendingFriendEchoes.RemoveAt(i);
+            return true;
+        }
+
+        return false;
     }
 
     private bool AddMessage(

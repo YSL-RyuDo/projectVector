@@ -19,6 +19,7 @@ public class GameReadyMemberData
 public class GameAllReadyData
 {
     public uint roomId;
+    public string mapName;
     public ushort prepareSeconds;
 
     public List<GameReadyMemberData> members = new List<GameReadyMemberData>();
