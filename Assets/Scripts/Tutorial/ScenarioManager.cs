@@ -21,6 +21,10 @@ public class ScenarioManager : MonoBehaviour
     [SerializeField] private TMP_Text nameText;
     [SerializeField] private TMP_Text dialogText;
     [SerializeField] private TMP_Text ingameDialog;
+    [SerializeField] private GameObject enemy;
+    [SerializeField] private TutorialManager tutorialManager;
+    [SerializeField] private TESTPlayerItem playerItem;
+    [SerializeField] private WeaponData ep2WeaponData;
 
     [SerializeField] private float ingameTime = 4f;
 
@@ -70,6 +74,11 @@ public class ScenarioManager : MonoBehaviour
         ResetUI();
     }
 
+    private void Start()
+    {
+        enemy.SetActive(false);
+    }
+
     private void Update()
     {
         if (waitSpace &&
@@ -91,6 +100,16 @@ public class ScenarioManager : MonoBehaviour
 
     public void PlaySection(string section)
     {
+
+        if (section.Equals("EP2", System.StringComparison.OrdinalIgnoreCase))
+        {
+            playerItem.ApplyPickedWeaponLocal(
+                ep2WeaponData,
+                ep2WeaponData.magSize,
+                ep2WeaponData.maxReserveAmmo
+            );
+        }
+
         PlaySectionFromTo(section, 0, int.MaxValue);
     }
 
@@ -138,6 +157,11 @@ public class ScenarioManager : MonoBehaviour
 
         ResetUI();
         playCoroutine = null;
+
+        if (section.Equals("EP2", System.StringComparison.OrdinalIgnoreCase))
+        {
+            enemy.SetActive(true);
+        }
     }
 
     private IEnumerator Cutscene(DialogueData data)

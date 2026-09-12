@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro;
 
 public class TESTWepon : MonoBehaviour
 {
@@ -7,6 +8,7 @@ public class TESTWepon : MonoBehaviour
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private Transform firePoint;
     [SerializeField] private Camera cam;
+    [SerializeField] private TMP_Text ammoText;
 
     private int currentAmmo;
     private float nextFireTime;
@@ -16,21 +18,32 @@ public class TESTWepon : MonoBehaviour
         if (cam == null)
             cam = Camera.main;
 
-        if (weaponData != null)
-            currentAmmo = weaponData.magSize;
+        if (ammoText == null)
+        {
+            GameObject ammoObj = GameObject.Find("AmmoText");
+
+            if (ammoObj != null)
+                ammoText = ammoObj.GetComponent<TMP_Text>();
+        }
+
+        UpdateAmmoUI();
     }
 
     private void Update()
     {
-        if (Mouse.current == null)
-            return;
-
         if (weaponData == null)
             return;
 
-        if (Mouse.current.leftButton.wasPressedThisFrame)
+        if (Mouse.current != null &&
+            Mouse.current.leftButton.wasPressedThisFrame)
         {
             Fire();
+        }
+
+        if (Keyboard.current != null &&
+            Keyboard.current.rKey.wasPressedThisFrame)
+        {
+            Reload();
         }
     }
 
@@ -42,11 +55,15 @@ public class TESTWepon : MonoBehaviour
         if (currentAmmo <= 0)
             return;
 
-        if (bulletPrefab == null || firePoint == null || cam == null)
+        if (bulletPrefab == null ||
+            firePoint == null ||
+            cam == null)
             return;
 
         nextFireTime = Time.time + weaponData.fireRate;
+
         currentAmmo--;
+        UpdateAmmoUI();
 
         Vector3 direction = cam.transform.forward;
 
@@ -56,25 +73,47 @@ public class TESTWepon : MonoBehaviour
             Quaternion.LookRotation(direction)
         );
 
-        Bullet bulletScript = bullet.GetComponent<Bullet>();
+        TutorialBullet bulletScript =
+            bullet.GetComponent<TutorialBullet>();
 
         if (bulletScript != null)
         {
             bulletScript.Init(
-                null,
                 weaponData.range,
                 weaponData.muzzleVelocity,
-                direction,
-                false
+                direction
             );
         }
     }
 
+    private void Reload()
+    {
+        if (weaponData == null)
+            return;
+
+        currentAmmo = weaponData.magSize;
+
+        UpdateAmmoUI();
+    }
+
     public void Initialize(
         WeaponData data,
-        int magAmmo)
+        int magAmmo,
+        int reserve)
     {
         weaponData = data;
-        currentAmmo = magAmmo;
+
+        currentAmmo = weaponData.magSize;
+
+        UpdateAmmoUI();
+    }
+
+    private void UpdateAmmoUI()
+    {
+        if (ammoText != null && weaponData != null)
+        {
+            ammoText.text =
+                $"{currentAmmo} / {weaponData.magSize}";
+        }
     }
 }
