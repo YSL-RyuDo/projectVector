@@ -44,8 +44,8 @@ public class MoneyManager : MonoBehaviour
     // UI 전체 갱신
     public void UpdateAllUI()
     {
-        if (_money0Text != null) _money0Text.text = "재화 0 "+_money0.ToString("#,##0");
-        if (_money1Text != null) _money1Text.text = "재화 1 "+_money1.ToString("#,##0");
+        if (_money0Text != null) _money0Text.text = _money0.ToString("#,##0");
+        if (_money1Text != null) _money1Text.text = _money1.ToString("#,##0");
         if (_money2Text != null) _money2Text.text = "재화 2 "+_money2.ToString("#,##0");
     }
 
@@ -76,6 +76,13 @@ public class MoneyManager : MonoBehaviour
     #endregion
 
     #region 각 재화별 개별 메서드
+
+    public void SetServerBalances(int coin0, int coin1)
+    {
+        _money0 = Mathf.Max(0, coin0);
+        _money1 = Mathf.Max(0, coin1);
+        UpdateAllUI();
+    }
 
     // Money 0
     public void IncreaseMoney0(int amount) { _money0 += amount; UpdateAllUI(); }

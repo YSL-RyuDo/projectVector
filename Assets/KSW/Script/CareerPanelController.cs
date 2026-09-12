@@ -328,6 +328,7 @@ public class CareerPanelController : MonoBehaviour
                 : entry.nickname;
             SetDirectChildText(row, "Text (TMP)", entry.position.ToString());
             SetDirectChildText(row, "Text (TMP) (1)", navigatorName);
+            SetRankingProfileIcon(row, entry.playerIconId);
             SetDirectChildText(
                 row,
                 "Text (TMP) (2)",
@@ -1185,6 +1186,28 @@ public class CareerPanelController : MonoBehaviour
         Transform child = root.Find(objectName);
         if (child != null && child.TryGetComponent(out TextMeshProUGUI text))
             text.text = value;
+    }
+
+    private static void SetRankingProfileIcon(Transform row, int playerIconId)
+    {
+        if (row == null)
+            return;
+
+        Transform iconTransform = row.Find("Image");
+        if (iconTransform == null ||
+            !iconTransform.TryGetComponent(out Image iconImage))
+        {
+            return;
+        }
+
+        int safeIconId = Mathf.Max(0, playerIconId);
+        Sprite icon = Resources.Load<Sprite>($"PlayerIcon/{safeIconId}");
+        if (icon == null && safeIconId != 0)
+            icon = Resources.Load<Sprite>("PlayerIcon/0");
+
+        iconImage.sprite = icon;
+        iconImage.preserveAspect = true;
+        iconImage.enabled = icon != null;
     }
 
     private readonly struct RankingRowLayout

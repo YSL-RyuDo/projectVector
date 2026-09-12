@@ -62,6 +62,7 @@ public sealed class WeaponSkinSelectionPanelUI : MonoBehaviour
     private void Awake()
     {
         BuildWeaponListFromCatalog();
+        BuildSkinListFromCatalog();
         EnsureLocalSelectionState();
         CacheCheckMarkLayout();
         CacheSkinIndicatorStyles();
@@ -212,6 +213,61 @@ public sealed class WeaponSkinSelectionPanelUI : MonoBehaviour
         return null;
     }
 
+    private void BuildSkinListFromCatalog()
+    {
+        int weaponCount = characterPanelController != null
+            ? characterPanelController.GetWeaponCount(weaponCategory)
+            : 0;
+        int requiredSkinCount = 0;
+
+        for (int weaponIndex = 0; weaponIndex < weaponCount; weaponIndex++)
+            requiredSkinCount = Mathf.Max(requiredSkinCount, GetSkinCount(weaponIndex));
+
+        Button template = FindFirstUsableSkinButton();
+        if (requiredSkinCount <= 0 || template == null)
+        {
+            skinButtons = Array.Empty<Button>();
+            return;
+        }
+
+        Transform content = template.transform.parent;
+        List<Button> generatedButtons = new List<Button>(requiredSkinCount);
+
+        for (int i = 0; i < requiredSkinCount; i++)
+        {
+            Button button = i < (skinButtons?.Length ?? 0) && skinButtons[i] != null
+                ? skinButtons[i]
+                : Instantiate(template, content);
+
+            button.transform.SetParent(content, false);
+            button.transform.SetSiblingIndex(i);
+            button.gameObject.name = $"Skin Item {i + 1}";
+            button.gameObject.SetActive(true);
+            generatedButtons.Add(button);
+        }
+
+        for (int i = requiredSkinCount; i < (skinButtons?.Length ?? 0); i++)
+        {
+            if (skinButtons[i] != null)
+                skinButtons[i].gameObject.SetActive(false);
+        }
+
+        skinButtons = generatedButtons.ToArray();
+
+        if (content is RectTransform contentRect)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
+    }
+
+    private Button FindFirstUsableSkinButton()
+    {
+        for (int i = 0; i < (skinButtons?.Length ?? 0); i++)
+        {
+            if (skinButtons[i] != null)
+                return skinButtons[i];
+        }
+
+        return null;
+    }
     private RectTransform PrepareScrollableWeaponList(RectTransform viewport)
     {
         if (viewport == null)
