@@ -607,11 +607,19 @@ public class TESTPlayerItem : MonoBehaviour
 
         items[slot] = item;
 
+        /*
         Weapon weapon = obj.GetComponent<Weapon>();
         if (weapon != null)
-            weapon.Initialize(weaponData, dropPoint, magAmmo, reserveAmmo);
+            weapon.Initialize(weaponData, dropPoint, magAmmo, reserveAmmo);*/
+        TESTWepon weapon = obj.GetComponent<TESTWepon>();
+        if (weapon != null)
+            weapon.Initialize(weaponData, magAmmo, reserveAmmo);//튜토리얼
 
         obj.SetActive(false);
+
+        currentIndex = -1;//튜토리얼용 추가
+
+
         Switch(slot);
     }
 
