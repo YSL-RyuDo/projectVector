@@ -11,7 +11,10 @@ public class NetworkClient
 
     public Action<ushort, byte[]> OnPacket;
 
-    private readonly byte[] recvBuffer = new byte[8192];
+    // PacketHeader.size is ushort, so one packet can be up to 65,535 bytes.
+    // Leave room for a maximum packet plus following TCP data.
+    private const int ReceiveBufferCapacity = 128 * 1024;
+    private readonly byte[] recvBuffer = new byte[ReceiveBufferCapacity];
     private int recvSize = 0;
 
     private volatile bool isRunning = false;
@@ -72,7 +75,7 @@ public class NetworkClient
 
     private void ReceiveLoop()
     {
-        byte[] tempBuffer = new byte[1024];
+        byte[] tempBuffer = new byte[8192];
 
         try
         {
@@ -88,7 +91,7 @@ public class NetworkClient
 
                 if (recvSize + bytes > recvBuffer.Length)
                 {
-                    Debug.LogError("[NETWORK] Receive buffer overflow. Disconnect.");
+                    Debug.LogError("[NETWORK] Receive buffer overflow (capacity 128 KB). Disconnect.");
                     break;
                 }
 

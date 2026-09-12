@@ -149,7 +149,7 @@ public class MatchManager : MonoBehaviour
             topInfoUI.SetTimer(data.prepareSeconds);
         }
 
-        SpawnMapIfNeeded();
+        SpawnMapIfNeeded(data.mapName);
 
         if (currentMapInfo == null)
         {
@@ -322,32 +322,58 @@ public class MatchManager : MonoBehaviour
         );
     }
 
-    private void SpawnMapIfNeeded()
+    private void SpawnMapIfNeeded(string mapName)
     {
         if (spawnedMap != null)
             return;
 
-        if (maps == null || maps.Length == 0 || maps[0] == null)
+        if (maps == null || maps.Length == 0)
         {
-            Debug.LogError("[MATCH MANAGER] 등록된 맵이 없습니다.");
+            Debug.LogError("[MATCH MANAGER] No map prefabs are assigned.");
             return;
         }
 
-        spawnedMap = Instantiate(maps[0], Vector3.zero, Quaternion.identity);
+        GameObject selectedMap = null;
+
+        for (int i = 0; i < maps.Length; i++)
+        {
+            GameObject candidate = maps[i];
+            if (candidate == null)
+                continue;
+
+            if (string.Equals(candidate.name, mapName, System.StringComparison.OrdinalIgnoreCase))
+            {
+                selectedMap = candidate;
+                break;
+            }
+        }
+
+        if (selectedMap == null)
+        {
+            selectedMap = maps[0];
+            Debug.LogWarning($"[MATCH MANAGER] Unknown map '{mapName}'. Falling back to '{selectedMap?.name}'.");
+        }
+
+        if (selectedMap == null)
+        {
+            Debug.LogError("[MATCH MANAGER] Selected map prefab is null.");
+            return;
+        }
+
+        spawnedMap = Instantiate(selectedMap, Vector3.zero, Quaternion.identity);
         currentMapInfo = spawnedMap.GetComponent<MapInfo>();
 
         if (currentMapInfo == null)
         {
-            Debug.LogError("[MATCH MANAGER] 맵 프리팹에 MapInfo가 없습니다.");
+            Debug.LogError("[MATCH MANAGER] MapInfo is missing from the selected map prefab.");
             return;
         }
 
         if (RoundManager.Instance != null)
             RoundManager.Instance.SetMapInfo(currentMapInfo);
 
-        Debug.Log($"[MATCH MANAGER] Map spawned. map={spawnedMap.name}");
+        Debug.Log($"[MATCH MANAGER] Map spawned. requested={mapName}, prefab={selectedMap.name}");
     }
-
     private void FindMyTeam(GameAllReadyData data)
     {
         uint myPlayerId = GetMyPlayerId();
