@@ -720,6 +720,13 @@ public class PickManager : MonoBehaviour
         if (camera != null)
             camera.gameObject.SetActive(false);
 
+        Light[] lights = target.GetComponentsInChildren<Light>(true);
+        foreach (Light previewLight in lights)
+        {
+            if (previewLight != null)
+                previewLight.enabled = false;
+        }
+
         AudioListener listener = target.GetComponentInChildren<AudioListener>();
         if (listener != null)
             listener.enabled = false;

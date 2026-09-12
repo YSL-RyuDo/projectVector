@@ -45,6 +45,9 @@ public class PlayerItem : MonoBehaviour
 
     void Awake()
     {
+        if (skinDatabase != null)
+            skinDatabase.Register();
+
         skinLoadout = GetComponent<PlayerSkinLoadout>();
 
         if (skinLoadout == null)
@@ -2015,8 +2018,12 @@ public class PlayerItem : MonoBehaviour
 
             int skinId = forcedSkinId ?? (skinLoadout != null ? skinLoadout.GetSkinId(data.weaponId) : 0);
 
-            WeaponSkinData skin = (skinId > 0 && WeaponSkinDatabase.Instance != null)
-                ? WeaponSkinDatabase.Instance.GetById(data.weaponId, skinId)
+            WeaponSkinDatabase database = skinDatabase != null
+                ? skinDatabase
+                : WeaponSkinDatabase.Instance;
+
+            WeaponSkinData skin = (skinId > 0 && database != null)
+                ? database.GetById(data.weaponId, skinId)
                 : null;
             weapon.ApplySkin(skin, data); // data를 넘겨서 baseWeapon 검증 가능하게 함 (아래 3번 항목 참고)
         }

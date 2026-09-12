@@ -14,6 +14,7 @@ public class WeaponSkinDatabase : ScriptableObject
     public void Register()
     {
         Instance = this;
+        lookup = null;
     }
 
     public WeaponSkinData GetById(int weaponId, int skinId)
