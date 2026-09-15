@@ -12,6 +12,7 @@ public class PlayerDeathController : MonoBehaviour
     [SerializeField] private GameObject modelRoot;
 
     private Renderer[] modelRenderers;
+    private Animator animator;
 
     public bool IsDead { get; private set; }
     private PlayerWeaponViewController weaponViewController;
@@ -29,6 +30,7 @@ public class PlayerDeathController : MonoBehaviour
         cameraController = GetComponent<PlayerCameraController>();
         _playerHp = GetComponent<PlayerHP>();
 
+        // 이름이 Model인 자식 오브젝트를 직접 찾음
         if (modelRoot == null)
         {
             Transform model = transform.Find("Model");
@@ -37,8 +39,20 @@ public class PlayerDeathController : MonoBehaviour
                 modelRoot = model.gameObject;
         }
 
+        // 찾아낸 modelRoot에서 Renderer와 Animator를 각각 가져옴
         if (modelRoot != null)
+        {
             modelRenderers = modelRoot.GetComponentsInChildren<Renderer>(true);
+
+            // Model 오브젝트 본체 또는 그 바로 하위에 있는 Animator 가져오기
+            animator = modelRoot.GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = modelRoot.GetComponentInChildren<Animator>(true);
+            }
+        }
+
+        // 모델이 하나로 바뀌면 GetComponentInChildren으로 Animator 불러오면 됩니다.
 
         cameraLook = GetComponentInChildren<FPSCameraLook>(true);
     }
@@ -73,7 +87,15 @@ public class PlayerDeathController : MonoBehaviour
         if (weaponViewController != null)
             weaponViewController.HideAll();
 
-        SetModelVisible(false);
+        // 사망 애니메이션 재생
+        if (animator != null)
+        {
+            animator.SetTrigger("Die");
+        }
+
+        // 기존 SetModelVisible(false); 를 호출하면 모델이 바로 사라져서 애니메이션이 안 보임.
+        // 타인 시점(3인칭)에서도 죽는 모습을 봐야 하므로 렌더러를 끄지 않거나, 애니메이션이 끝난 후 끄도록 변경해야 함.
+        // SetModelVisible(false);
 
         if (MatchManager.Instance != null && identity != null)
         {
@@ -94,6 +116,13 @@ public class PlayerDeathController : MonoBehaviour
             NetworkManager.Instance != null &&
             identity != null &&
             identity.PlayerId == NetworkManager.Instance.MyPlayerId;
+
+        // 리스폰 시 애니메이션 상태 초기화
+        if (animator != null)
+        {
+            animator.Rebind();
+            animator.Update(0f);
+        }
 
         if (characterController != null)
             characterController.enabled = true;

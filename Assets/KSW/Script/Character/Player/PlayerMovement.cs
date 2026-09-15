@@ -94,7 +94,17 @@ public class PlayerMovement : MonoBehaviour
     {
         _cc = GetComponent<CharacterController>();
         _cam = GetComponentInChildren<FPSCameraLook>(true);
-        _animator = GetComponentInChildren<Animator>(true);
+
+        // 자식 중 "Model" 오브젝트를 찾아 해당 위치의 Animator를 가져옴
+        Transform modelTransform = transform.Find("Model");
+        if (modelTransform != null)
+        {
+            _animator = modelTransform.GetComponentInChildren<Animator>(true);
+        }
+        else
+        {
+            Debug.LogWarning("자식 오브젝트 중 'Model'을 찾을 수 없습니다.");
+        }
 
         if (firstPersonArmModel != null)
             _armAnimator = firstPersonArmModel.GetComponentInChildren<Animator>(true);

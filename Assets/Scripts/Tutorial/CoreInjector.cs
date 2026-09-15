@@ -22,6 +22,13 @@ public class CoreInjector : MonoBehaviour
     [Header("튜토리얼 진행")]
     [SerializeField] private TutorialManager tutorialManager;
 
+    [Header("15초 방어")]
+    [SerializeField] private GameObject enemyPrefab;
+    [SerializeField] private Transform[] enemySpawnPoints;
+    [SerializeField] private float defenseDuration = 15f;
+    [SerializeField] private float spawnInterval = 1f;
+
+
     private float currentPlantTime = 0f;
     private bool isInPlantZone = false;
     private bool isPlanting = false;
@@ -129,8 +136,47 @@ public class CoreInjector : MonoBehaviour
         }
 
         StartCoroutine(PostPlantSequence());
+        StartCoroutine(DefenseSequence());
 
-        tutorialManager.StartSection(TutorialManager.TutorialSection.EP5);
+
+    }
+
+    private IEnumerator DefenseSequence()
+    {
+        float defenseTime = 0f;
+        float spawnTime = 0f;
+
+        while (defenseTime < defenseDuration)
+        {
+            defenseTime += Time.deltaTime;
+            spawnTime += Time.deltaTime;
+
+            if (spawnTime >= spawnInterval)
+            {
+                SpawnEnemy();
+                spawnTime = 0f;
+            }
+
+            yield return null;
+        }
+
+        tutorialManager.StartSection(
+            TutorialManager.TutorialSection.EP5
+        );
+    }
+    private void SpawnEnemy()
+    {
+        if (enemyPrefab == null || enemySpawnPoints.Length == 0)
+            return;
+
+        Transform spawnPoint =
+            enemySpawnPoints[Random.Range(0, enemySpawnPoints.Length)];
+
+        Instantiate(
+            enemyPrefab,
+            spawnPoint.position,
+            spawnPoint.rotation
+        );
     }
 
     private IEnumerator PostPlantSequence()
@@ -147,4 +193,6 @@ public class CoreInjector : MonoBehaviour
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(transform.position, plantRadius);
     }
+
+
 }

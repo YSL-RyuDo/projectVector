@@ -3,6 +3,10 @@ using TMPro;
 
 public class TutoEnemyMove : MonoBehaviour
 {
+
+    [SerializeField] private TutorialManager tutorialManager;
+
+
     [Header("Move")]
     public bool canMove = true;
 
@@ -48,6 +52,11 @@ public class TutoEnemyMove : MonoBehaviour
             hpText.text = hp.ToString();
 
         if (hp <= 0)
+        {
+            if (tutorialManager != null)
+                tutorialManager.OnEnemyKilled();
+
             Destroy(gameObject);
+        }
     }
 }

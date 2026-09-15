@@ -116,6 +116,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5845481878991695680}
   - component: {fileID: 49302087298725709}
+  - component: {fileID: 8758306651110709811}
   m_Layer: 0
   m_Name: WeaponHolder
   m_TagString: Untagged
@@ -131,9 +132,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4003038213765283715}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.54020494, y: -0.43445563, z: 0.53395164, w: 0.48406884}
-  m_LocalPosition: {x: -0.3168507, y: -1.0519898, z: -0.25032467}
-  m_LocalScale: {x: 1.7391297, y: 1.739131, z: 1.7391313}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.005, y: -0.05, z: 0.033}
+  m_LocalScale: {x: 1.8, y: 1.8, z: 1.8}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5565248629657153407}
@@ -160,6 +161,19 @@ MonoBehaviour:
   adsWeaponRecoilMultiplier: 0.15
   adsCameraRecoilMultiplier: 0.75
   adsShakeMultiplier: 0.2
+--- !u!114 &8758306651110709811
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4003038213765283715}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fc668e989eaca242a5d9566201d333a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterType
+  role: 4
 --- !u!1 &6061389350875815988
 GameObject:
   m_ObjectHideFlags: 0
@@ -240,6 +254,7 @@ GameObject:
   - component: {fileID: 1291484709126987888}
   - component: {fileID: 4922944473200963728}
   - component: {fileID: 5337723704719247968}
+  - component: {fileID: 7330079423634821165}
   m_Layer: 0
   m_Name: Sentinel
   m_TagString: Untagged
@@ -651,6 +666,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b7813da8881db64dbd3df82ea5cd86f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSkinLoadout
+--- !u!95 &7330079423634821165
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6886427744864830309}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 835872cb032479349b589f9ae9260ea6, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &7074205520252255424
 GameObject:
   m_ObjectHideFlags: 0
@@ -896,15 +933,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 0.25
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1.45
+      value: -1.33
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.14
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1500,7 +1537,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 8e526af249278a0498ce8273e07fcc49, type: 2}
     - target: {fileID: 919132149155446097, guid: f6082a2fbc19194478c242774495fdb0, type: 3}
       propertyPath: m_Name
-      value: Sentinel
+      value: Model
       objectReference: {fileID: 0}
     - target: {fileID: 2411249476894125236, guid: f6082a2fbc19194478c242774495fdb0, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
