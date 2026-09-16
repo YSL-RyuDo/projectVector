@@ -131,7 +131,9 @@ public class Bullet : MonoBehaviour
 
             if (NetworkManager.Instance != null)
             {
-                NetworkManager.Instance.SendHit(targetIdentity.PlayerId);
+                string hitName = collision.collider != null ? collision.collider.name.ToLowerInvariant() : string.Empty;
+                bool isHeadshot = hitName.Contains("head") || hitName.Contains("¸Ó¸®");
+                NetworkManager.Instance.SendHit(targetIdentity.PlayerId, isHeadshot);
             }
             else
             {

@@ -14,6 +14,7 @@ public class ProfilePanelController : MonoBehaviour
     public string currentNickname;
     public int currentLevel;
     public int currentplayerIconId;
+    public int currentLogoBorderId;
     public int currentlobbyCharacterId;
     public int currentlobbyBackgroundId;
 
@@ -24,7 +25,10 @@ public class ProfilePanelController : MonoBehaviour
 
     private void Start()
     {
-        NetworkManager.Instance.SetProfilePanelController(this);
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SetProfilePanelController(this);
+        else
+            Debug.LogWarning("[PROFILE] NetworkManager is not available in this scene run.");
 
         lobbyPanelController = GetComponent<LobbyPanelController>();
     }

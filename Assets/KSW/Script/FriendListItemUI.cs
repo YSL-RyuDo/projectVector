@@ -128,7 +128,7 @@ public class FriendListItemUI : MonoBehaviour
         BindSimpleButton(contextCloseButton, CloseContextMenu);
         BindSimpleButton(memoButton, OpenMemoPopup);
         BindSimpleButton(messageButton, SendMessage);
-        BindSimpleButton(profileButton, () => ShowPlaceholder("\uD504\uB85C\uD544 \uBCF4\uAE30"));
+        BindSimpleButton(profileButton, OpenProfile);
         BindSimpleButton(careerButton, () => ShowPlaceholder("\uCD5C\uADFC \uC804\uC801 \uBCF4\uAE30"));
         BindSimpleButton(deleteButton, DeleteFriend);
         BindSimpleButton(blockButton, BlockFriend);
@@ -374,6 +374,14 @@ public class FriendListItemUI : MonoBehaviour
         blockAction?.Invoke(currentUser);
     }
 
+    private void OpenProfile()
+    {
+        if (currentUser == null)
+            return;
+        CloseContextMenu();
+        FindFirstObjectByType<FriendPanelController>()?.ClosePanel();
+        MyPagePanelController.Instance?.OpenForUser(currentUser.userId);
+    }
     private void ShowPlaceholder(string title)
     {
         SetText(placeholderTitleText, title);

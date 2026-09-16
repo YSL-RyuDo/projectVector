@@ -406,8 +406,8 @@ public class Weapon : Item
 
     private void SetCrosshairActive(bool active)
     {
-        // UnityEngine.Object는 파괴된 뒤 C# null 조건 연산자(?.)로는
-        // fake-null 검사가 되지 않으므로 반드시 Unity의 != null을 사용한다.
+        // UnityEngine.Object???�괴????C# null 조건 ?�산???.)로는
+        // fake-null 검?��? ?��? ?�으므�?반드??Unity??!= null???�용?�다.
         if (crosshair != null)
             crosshair.SetActive(active);
     }
@@ -916,10 +916,18 @@ public class Weapon : Item
         HitManager.TriggerEnemyHit();
 
         NetworkManager.Instance.SendHit(
-            targetIdentity.PlayerId
+            targetIdentity.PlayerId,
+            IsHeadCollider(hit.collider)
         );
 
         return true;
+    }
+
+    private static bool IsHeadCollider(Collider collider)
+    {
+        if (collider == null) return false;
+        string value = collider.name.ToLowerInvariant();
+        return value.Contains("head") || value.Contains("�Ӹ�");
     }
 
     private void SpawnBulletVisual(
