@@ -19,12 +19,9 @@ public class WeaponADS : MonoBehaviour
     [SerializeField] private RoleHipTransform entryHip = new RoleHipTransform { position = new Vector3(0.45f, -0.12f, 0.38f), rotation = Vector3.zero };
     [SerializeField] private RoleHipTransform sentinelHip = new RoleHipTransform { position = new Vector3(0.38f, -0.18f, 0.42f), rotation = Vector3.zero };
 
-    [Header("ADS")]
-    [SerializeField] private Transform adsPoint;
-    [SerializeField] private Transform adsTarget;
-    [SerializeField] private float adsMoveSpeed = 15f;
+    [Header("Hip Movement Speed")]
+    [SerializeField] private float hipMoveSpeed = 15f;
 
-    private bool isADS = false;
     private Vector3 activeHipPosition;
     private Quaternion activeHipRotation;
     private Animator rootAnimator;
@@ -44,12 +41,8 @@ public class WeaponADS : MonoBehaviour
         UpdateHipTransformByCharacter();
     }
 
-    /// <summary>
-    /// 상위 부모의 characterType 스크립트를 찾아 역할군에 맞는 Transform을 적용한다.
-    /// </summary>
     public void UpdateHipTransformByCharacter()
     {
-        // 부모 오브젝트 중에서 characterType 스크립트 찾기
         CharacterType characterType = GetComponentInParent<CharacterType>();
 
         AgentRole role = characterType != null ? characterType.Role : AgentRole.Default;
@@ -83,46 +76,19 @@ public class WeaponADS : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (!isADS)
-        {
-            transform.localPosition = Vector3.Lerp(
-                transform.localPosition,
-                activeHipPosition,
-                adsMoveSpeed * Time.deltaTime
-            );
-
-            if (rootAnimator == null || !rootAnimator.enabled)
-            {
-                transform.localRotation = Quaternion.Slerp(
-                    transform.localRotation,
-                    activeHipRotation,
-                    adsMoveSpeed * Time.deltaTime
-                );
-            }
-
-            return;
-        }
-
-        if (adsPoint == null || adsTarget == null)
-            return;
-
-        Vector3 worldOffset = adsTarget.position - adsPoint.position;
-        Vector3 targetWorldPosition = transform.position + worldOffset;
-
-        transform.position = Vector3.Lerp(
-            transform.position,
-            targetWorldPosition,
-            adsMoveSpeed * Time.deltaTime
+        transform.localPosition = Vector3.Lerp(
+            transform.localPosition,
+            activeHipPosition,
+            hipMoveSpeed * Time.deltaTime
         );
-    }
 
-    public void SetADS(bool ads)
-    {
-        isADS = ads;
-    }
-
-    public void SetADSTarget(Transform target)
-    {
-        adsTarget = target;
+        if (rootAnimator == null || !rootAnimator.enabled)
+        {
+            transform.localRotation = Quaternion.Slerp(
+                transform.localRotation,
+                activeHipRotation,
+                hipMoveSpeed * Time.deltaTime
+            );
+        }
     }
 }

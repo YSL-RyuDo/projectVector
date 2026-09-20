@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &819834591341292623
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8484814920711683114}
+  m_Layer: 0
+  m_Name: ADS Point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8484814920711683114
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 819834591341292623}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.272, z: 0.1271}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2662626554352696185}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1806073796303525808
 GameObject:
   m_ObjectHideFlags: 0
@@ -252,6 +283,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GeneralCameraShake
   returnSpeed: 10
   snapiness: 20
+--- !u!1 &5520543147289044956
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4786791696791529790}
+  m_Layer: 0
+  m_Name: ADS Target
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4786791696791529790
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5520543147289044956}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.333, z: 0.1271}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2662626554352696185}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7822568149154353014
 GameObject:
   m_ObjectHideFlags: 0
@@ -463,6 +525,8 @@ Transform:
   m_Children:
   - {fileID: 1046142029210639036}
   - {fileID: 2394164600379354572}
+  - {fileID: 4786791696791529790}
+  - {fileID: 8484814920711683114}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!143 &3632973935905670340
@@ -1236,7 +1300,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1166754175604888097, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
       propertyPath: m_Layer
@@ -1348,6 +1412,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
       insertIndex: -1
       addedObject: {fileID: 579330454907588070}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3221413100246986654}
   m_SourcePrefab: {fileID: 100100000, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
 --- !u!4 &6269397457692942464 stripped
 Transform:
@@ -1386,3 +1453,19 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &3221413100246986654
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8843242207594975737}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b97f1fa5e2c6a942981ed7af830dd7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ArmADS
+  adsPosition: {x: -0.005, y: -1.27, z: 0}
+  adsRotation: {x: 0, y: 0, z: 0}
+  adsSpeed: 7
+  fovZoomSpeed: 15

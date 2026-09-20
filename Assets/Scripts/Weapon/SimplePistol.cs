@@ -96,7 +96,6 @@ public class SimplePistol : MonoBehaviour
         {
             isADS = adsInput;
             cameraLook?.SetADS(isADS);
-            weaponADS?.SetADS(isADS);
         }
 
         float targetFOV = isADS ? weaponData.adsFOV : weaponData.normalFOV;
@@ -113,7 +112,6 @@ public class SimplePistol : MonoBehaviour
         {
             isADS = false;
             cameraLook?.SetADS(false);
-            weaponADS?.SetADS(false);
         }
 
         if (cam != null && weaponData != null)

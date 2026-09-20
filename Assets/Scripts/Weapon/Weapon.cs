@@ -19,9 +19,7 @@ public class Weapon : Item
     [Header("Camera")]
     private Camera cam;
     private FPSCameraLook cameraLook;
-    private WeaponADS weaponADS;
     private PlayerCameraController cameraController;
-    private Transform adsTarget;
 
     [Header("Drop")]
     [SerializeField] private Transform dropPoint;
@@ -93,22 +91,10 @@ public class Weapon : Item
             cameraLook = cameraController.CameraLook;
         }
 
-        weaponADS = GetComponent<WeaponADS>();
         _playerIdentity = GetComponentInParent<PlayerIdentity>();
 
         if (recoilSystem == null)
             recoilSystem = GetComponentInParent<WeaponRecoil>();
-
-        if (cameraController != null && cameraController.PlayerCamera != null)
-        {
-            Transform target = cameraController.PlayerCamera.transform.Find("ADSTarget");
-
-            if (target != null)
-            {
-                adsTarget = target;
-                weaponADS?.SetADSTarget(adsTarget);
-            }
-        }
 
         GameObject ammoObj = GameObject.Find("AmmoText");
 
@@ -251,7 +237,6 @@ public class Weapon : Item
         isADS = false;
 
         cameraLook?.SetADS(false);
-        weaponADS?.SetADS(false);
         playerMovement?.SetADS(false);
 
         SetCrosshairActive(true);
@@ -362,7 +347,6 @@ public class Weapon : Item
                 isADS = false;
 
                 cameraLook?.SetADS(false);
-                weaponADS?.SetADS(false);
                 playerMovement?.SetADS(false);
             }
 
@@ -383,7 +367,6 @@ public class Weapon : Item
             isADS = adsInput;
 
             cameraLook?.SetADS(isADS);
-            weaponADS?.SetADS(isADS);
             playerMovement?.SetADS(isADS);
 
             SetCrosshairActive(!isADS);
@@ -406,8 +389,7 @@ public class Weapon : Item
 
     private void SetCrosshairActive(bool active)
     {
-        // UnityEngine.Object는 파괴된 뒤 C# null 조건 연산자(?.)로는
-        // fake-null 검사가 되지 않으므로 반드시 Unity의 != null을 사용한다.
+
         if (crosshair != null)
             crosshair.SetActive(active);
     }
@@ -1608,8 +1590,6 @@ public class Weapon : Item
 
         AppliedSkin = skin;
 
-        // Awake can be delayed while the first-person holder is inactive.
-        // Resolve the slot on demand so the first round matches later rounds.
         if (skinSlot == null)
             skinSlot = GetComponent<WeaponSkinSlot>();
 

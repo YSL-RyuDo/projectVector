@@ -215,6 +215,68 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GeneralCameraShake
   returnSpeed: 10
   snapiness: 20
+--- !u!1 &3801380616725163398
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4074962102025685312}
+  m_Layer: 0
+  m_Name: ADS Point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4074962102025685312
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3801380616725163398}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.109, z: 0.224}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3365465223917956775}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &5739488407520521990
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6131020682677205208}
+  m_Layer: 0
+  m_Name: ADS Target
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6131020682677205208
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5739488407520521990}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.214, z: 0.1271}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3365465223917956775}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7286507536929022138
 GameObject:
   m_ObjectHideFlags: 0
@@ -266,6 +328,8 @@ Transform:
   - {fileID: 3193245476691523729}
   - {fileID: 5693219732936660254}
   - {fileID: 8092479215126171755}
+  - {fileID: 6131020682677205208}
+  - {fileID: 4074962102025685312}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!143 &628989166336261260
@@ -1948,6 +2012,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1172991653528344951}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2373564391051813644}
   m_SourcePrefab: {fileID: 100100000, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
 --- !u!4 &160613865415865674 stripped
 Transform:
@@ -1981,6 +2048,22 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &2373564391051813644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8500229857040763075}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b97f1fa5e2c6a942981ed7af830dd7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ArmADS
+  adsPosition: {x: -0.015, y: -1.16, z: 0}
+  adsRotation: {x: 0, y: 0, z: 0}
+  adsSpeed: 7
+  fovZoomSpeed: 15
 --- !u!4 &9132511317731955321 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}

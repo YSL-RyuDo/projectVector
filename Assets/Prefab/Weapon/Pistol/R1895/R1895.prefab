@@ -82,25 +82,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8633c2b64b906848bd06add36e6a574, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponADS
-  overrideByRole: 1
-  currentRole: 0
-  initiatorTransform:
-    position: {x: 0.4, y: -0.15, z: 0.4}
-    rotation: {x: 0, y: 0, z: 0}
-  controllerTransform:
-    position: {x: 0.4, y: -0.15, z: 0.4}
-    rotation: {x: 0, y: 0, z: 0}
-  entryTransform:
-    position: {x: 0.4, y: -0.15, z: 0.4}
-    rotation: {x: 0, y: 0, z: 0}
-  sentinelTransform:
-    position: {x: 0.4, y: -0.15, z: 0.4}
-    rotation: {x: 0, y: 0, z: 0}
-  hipPosition: {x: 0, y: 0, z: 0}
-  hipRotation: {x: -90, y: 90, z: 0}
-  adsPoint: {fileID: 0}
-  adsTarget: {fileID: 0}
-  adsMoveSpeed: 10
+  defaultHipPosition: {x: 0, y: 0, z: 0}
+  defaultHipRotation: {x: 0, y: 0, z: 0}
+  initiatorHip:
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: -80, y: 12, z: 81}
+  controllerHip:
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: -80, y: 12, z: 81}
+  entryHip:
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: -215, y: 10, z: 91.5}
+  sentinelHip:
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: -215, y: 10, z: 91.5}
+  hipMoveSpeed: 15
 --- !u!114 &6366122668325504444
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -925,9 +925,6 @@ public class PlayerItem : MonoBehaviour
 
         WeaponADS weaponADS = currentWeapon.GetComponent<WeaponADS>();
 
-        if (weaponADS != null)
-            weaponADS.SetADS(isADS);
-
         Debug.Log($"[PLAYER ITEM] ADS visual from server isADS={isADS}");
     }
 
