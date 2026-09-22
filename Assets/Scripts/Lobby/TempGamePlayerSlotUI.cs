@@ -10,12 +10,20 @@ public class TempGamePlayerSlotUI : MonoBehaviour
     [SerializeField] private Image rankImage;
     [SerializeField] private TMP_Text nicknameText;
 
+    public string Nickname => nicknameText != null ? nicknameText.text : string.Empty;
+
+    public void SetCardSprite(Sprite card)
+    {
+        if (iconImage == null) return;
+        iconImage.sprite = card;
+        iconImage.enabled = card != null;
+    }
+
     public void SetData(Sprite icon, Sprite border, Sprite rank, string nickname)
     {
         gameObject.SetActive(true);
 
-        if (iconImage != null)
-            iconImage.sprite = icon;
+        SetCardSprite(icon);
 
         if (borderImage != null)
             borderImage.sprite = border;

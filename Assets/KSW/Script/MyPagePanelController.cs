@@ -30,6 +30,7 @@ public class MyPagePanelController : MonoBehaviour
     private CanvasGroup visitorCanvasGroup;
     private readonly List<int> skinDropdownCharacterIds = new();
     private bool isOpen;
+    private MyPageChipCraftController chipCraft;
 
     private static readonly Dictionary<string, string> StatLabels = new()
     {
@@ -46,6 +47,7 @@ public class MyPagePanelController : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        chipCraft = GetComponent<MyPageChipCraftController>();
         EnsureViewportMasks();
         EnsureFixedProfileLayout();
         EnsureCharacterIdentityLayout();
@@ -80,7 +82,7 @@ public class MyPagePanelController : MonoBehaviour
 
     private void Update()
     {
-        if (isOpen && Input.GetKeyDown(KeyCode.Escape)) Close();
+        if (isOpen && Input.GetKeyDown(KeyCode.Escape) && !(chipCraft != null && chipCraft.HandleEscape())) Close();
     }
 
     public void OpenSelf() => OpenForUser(string.Empty);
@@ -92,6 +94,7 @@ public class MyPagePanelController : MonoBehaviour
         EnsureFixedProfileLayout();
         EnsureCharacterIdentityLayout();
         SetVisible(true);
+        chipCraft?.SetTarget(userId);
         MyPageCareerDataController career = GetComponent<MyPageCareerDataController>();
         if (career != null)
         {
@@ -102,7 +105,10 @@ public class MyPagePanelController : MonoBehaviour
         ScrollRect scroll = Find("MainScrollView")?.GetComponent<ScrollRect>();
         if (scroll != null) scroll.verticalNormalizedPosition = 1f;
         if (NetworkManager.Instance != null)
+        {
             NetworkManager.Instance.SendProfileRequest(userId ?? string.Empty);
+            NetworkManager.Instance.SendChipCraftRequest(userId ?? string.Empty);
+        }
         else
             SetText("StatusMessage", "서버 연결이 없어 프로필 데이터를 불러올 수 없습니다.");
     }
@@ -112,6 +118,7 @@ public class MyPagePanelController : MonoBehaviour
         ShowLayer(battleCustomCanvasGroup, false);
         ShowLayer(skinCustomCanvasGroup, false);
         ShowLayer(visitorCanvasGroup, false);
+        chipCraft?.SetTarget(string.Empty);
         SetVisible(false);
     }
 
@@ -139,6 +146,8 @@ public class MyPagePanelController : MonoBehaviour
         SetSelfOnly("PrivacyStateText", data.isSelf);
         SetSelfOnly("BattleCustomButton", data.isSelf);
         SetSelfOnly("SkinCustomButton", data.isSelf);
+        SetSelfOnly("ChipCraftOpenButton", data.isSelf);
+        SetSelfOnly("ChipCraftCardOpenButton", data.isSelf);
         if (!data.isSelf)
         {
             ShowLayer(battleCustomCanvasGroup, false);
@@ -150,7 +159,7 @@ public class MyPagePanelController : MonoBehaviour
         if (nicknameEdit != null) nicknameEdit.SetActive(data.isSelf);
 
         ApplySprite("ProfileIconImage", Resources.Load<Sprite>($"PlayerIcon/{Mathf.Max(0, data.playerIconId)}"));
-        ApplySprite("CardIconImage", Resources.Load<Sprite>($"PlayerIcon/{Mathf.Max(0, data.playerIconId)}"));
+        ApplySprite("CardIconImage", Resources.Load<Sprite>($"IconCard/icon{Mathf.Clamp(data.playerIconId, 0, 2)}_card"));
         ApplyCardBorder(data.logoBorderId);
         SetText("CardNicknameText", data.nickname);
         SetText("CardLevelText", data.level.ToString());
@@ -223,6 +232,24 @@ public class MyPagePanelController : MonoBehaviour
         RefreshBattleSlots();
         RefreshStatCustomItems();
         SetText("BattleCustomHelp", "전투 데이터 구성을 서버에 저장했습니다.");
+    }
+
+    public void ApplyChipCraft(ChipCraftData value) => chipCraft?.ApplyData(value);
+    public void ApplyChipCraftSaveResult(bool success, ChipCraftPresetData preset)
+    {
+        chipCraft?.ApplySaveResult(success, preset);
+        if (success && preset != null)
+        {
+            if (current != null && current.isSelf)
+            {
+                current.playerIconId = preset.cardId;
+                ApplySprite("ProfileIconImage", Resources.Load<Sprite>($"PlayerIcon/{preset.cardId}"));
+            }
+            ProfilePanelController profile = FindObjectOfType<ProfilePanelController>(true);
+            profile?.ApplyPlayerIcon(preset.cardId);
+            GamePanelController gamePanel = FindObjectOfType<GamePanelController>(true);
+            gamePanel?.RefreshLocalPlayerIcon(preset.cardId);
+        }
     }
 
     public bool TryReplaceStat(int slotIndex, string statKey)
@@ -573,15 +600,9 @@ public class MyPagePanelController : MonoBehaviour
     {
         Image preview = Find("CardBorderImage")?.GetComponent<Image>();
         if (preview == null) return;
-
-        GamePanelController gamePanel = FindObjectOfType<GamePanelController>(true);
-        if (gamePanel == null) return;
-        var field = typeof(GamePanelController).GetField("tempRoomBorderSprites",
-            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-        Sprite[] borders = field?.GetValue(gamePanel) as Sprite[];
-        if (borders == null || borders.Length == 0) return;
-        preview.sprite = borders[Mathf.Clamp(borderId, 0, borders.Length - 1)];
+        preview.sprite = Resources.Load<Sprite>("IconBorder/border");
         preview.enabled = preview.sprite != null;
+        preview.color = Color.white;
     }
 
     private static Sprite[] LoadRankSprites() => new[]

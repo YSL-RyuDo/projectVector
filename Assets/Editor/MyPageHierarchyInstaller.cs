@@ -342,8 +342,8 @@ public static class MyPageHierarchyInstaller
         Stretch(cardBorder.GetComponent<RectTransform>(), 8);
         cardBorder.transform.SetAsFirstSibling();
         Text("CardTitle", card.transform, "PLAYER CARD", 18, TextAlignmentOptions.Center, new Color32(120,220,255,255), new Vector2(0, 395), new Vector2(310, 32));
-        Image cardIcon = ImageObject("CardIconImage", card.transform, new Vector2(0, 255), new Vector2(250, 250));
-        cardIcon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/PlayerIcon/0.jpg"); cardIcon.preserveAspect = true;
+        Image cardIcon = ImageObject("CardIconImage", card.transform, new Vector2(0, 80), new Vector2(325, 810));
+        cardIcon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/IconCard/icon0_card.png"); cardIcon.preserveAspect = false;
         Text("CardNicknameText", card.transform, "Nickname", 29, TextAlignmentOptions.Center, new Color32(255,215,90,255), new Vector2(0, 85), new Vector2(330, 48));
         Text("CardLevelText", card.transform, "1", 24, TextAlignmentOptions.Center, Color.white, new Vector2(0, 30), new Vector2(160, 40));
     }

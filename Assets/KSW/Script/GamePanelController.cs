@@ -358,7 +358,7 @@ public class GamePanelController : MonoBehaviour
         if (slot0 == null)
             return;
 
-        Sprite icon = GetSafeSprite(tempRoomIconSprites, _profilePanelController.currentplayerIconId);
+        Sprite icon = GetTempRoomCardSprite(_profilePanelController.currentplayerIconId);
         Sprite border = GetSafeSprite(tempRoomBorderSprites, _profilePanelController.currentLogoBorderId);
         Sprite rank = GetSafeSprite(tempRoomRankSprites, 0);
 
@@ -623,7 +623,7 @@ public class GamePanelController : MonoBehaviour
             if (p.slotIndex >= playerCount)
                 continue;
 
-            Sprite icon = GetSafeSprite(tempRoomIconSprites, p.playerIconId);
+            Sprite icon = GetTempRoomCardSprite(p.playerIconId);
             Sprite border = GetSafeSprite(tempRoomBorderSprites, p.logoBorderId);
             Sprite rank = GetSafeSprite(tempRoomRankSprites, p.rankImageId);
 
@@ -795,6 +795,39 @@ public class GamePanelController : MonoBehaviour
             return sprites[0];
 
         return sprites[index];
+    }
+
+    private Sprite GetTempRoomCardSprite(int iconId)
+    {
+        int cardId = Mathf.Clamp(iconId, 0, 2);
+        Sprite card = Resources.Load<Sprite>($"IconCard/icon{cardId}_card");
+        return card != null ? card : GetSafeSprite(tempRoomIconSprites, cardId);
+    }
+
+    public void RefreshLocalPlayerIcon(int iconId)
+    {
+        if (currentGamePanelView == GamePanelView.TempGameRoom && tempGamePlayerSlots != null)
+        {
+            // The local player's assigned slot can differ from slot zero.
+            for (int i = 0; i < tempGamePlayerSlots.Length; i++)
+            {
+                TempGamePlayerSlotUI slot = tempGamePlayerSlots[i];
+                if (slot != null && slot.gameObject.activeSelf &&
+                    slot.Nickname == _profilePanelController.currentNickname)
+                    slot.SetCardSprite(GetTempRoomCardSprite(iconId));
+            }
+        }
+
+        if (currentRoomState == null || currentRoomState.members == null) return;
+        uint localId = NetworkManager.Instance != null ? NetworkManager.Instance.MyPlayerId : 0;
+        foreach (RoomMemberData member in currentRoomState.members)
+        {
+            if ((localId != 0 && member.playerId == localId) ||
+                (localId == 0 && member.nickname == _profilePanelController.currentNickname))
+                member.playerIconId = iconId;
+        }
+        if (currentGamePanelView == GamePanelView.RoomPanel && roomPanelUI != null)
+            roomPanelUI.ApplyRoomState(currentRoomState);
     }
 
     public void OnRecvRoomList(List<RoomListData> rooms)
