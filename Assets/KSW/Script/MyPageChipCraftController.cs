@@ -376,13 +376,3 @@ public class MyPageChipCraftController : MonoBehaviour
         if (child != null) child.gameObject.SetActive(value);
     }
 }
-
-public class ChipCraftMedalDragHandle : MonoBehaviour, IDragHandler
-{
-    [SerializeField] private int slot;
-    public void SetSlot(int value) => slot = value;
-    public void OnDrag(PointerEventData eventData)
-    {
-        GetComponentInParent<MyPageChipCraftController>()?.DragPlacedMedal(slot, eventData);
-    }
-}
