@@ -17,12 +17,15 @@ public class MyPageCareerDataController : MonoBehaviour
     private int selectedModeType = 1; // 1: ranked, 0: normal, 2: private
     private int selectedCharacterId;
     private bool suppressDropdownEvents;
+    private bool initialized;
     private readonly List<int> seasonIds = new();
 
-    private void Awake()
+    private void Awake() => Initialize();
+
+    private void Initialize()
     {
-        BindButton("ProfileTabButton", ShowProfilePage);
-        BindButton("CareerTabButton", ShowCareerPage);
+        if (initialized) return;
+        initialized = true;
         BindButton("CareerCharacterSelectButton", ToggleCharacterPopup);
         BindButton("CareerCharacterPopupCloseButton", () => SetCharacterPopup(false));
         for (int i = 0; i < 4; ++i)
@@ -49,11 +52,11 @@ public class MyPageCareerDataController : MonoBehaviour
         }
 
         SetCharacterPopup(false);
-        ShowProfilePage();
     }
 
     public void SetTargetUser(string userId)
     {
+        Initialize();
         targetUserId = userId ?? string.Empty;
         selectedSeasonId = 0;
         selectedModeType = 1;
@@ -65,30 +68,20 @@ public class MyPageCareerDataController : MonoBehaviour
 
     public void ShowProfilePage()
     {
-        SetActive("ProfileSection", true);
-        SetActive("MainScrollView", true);
-        SetActive("PlayerCardPreview", true);
-        SetActive("CareerDataPanel", false);
-        SetActive("ProfileTabSelected", true);
-        SetActive("CareerTabSelected", false);
-        SetText("PageTitle", "프로필");
+        GetComponentInParent<MyPageTabController>(true)?.Select(MyPageTabController.Page.Profile);
         SetCharacterPopup(false);
     }
 
     public void ShowCareerPage()
     {
-        SetActive("ProfileSection", false);
-        SetActive("MainScrollView", false);
-        SetActive("PlayerCardPreview", false);
-        SetActive("CareerDataPanel", true);
-        SetActive("ProfileTabSelected", false);
-        SetActive("CareerTabSelected", true);
-        SetText("PageTitle", "커리어 데이터");
+        Initialize();
+        GetComponentInParent<MyPageTabController>(true)?.Select(MyPageTabController.Page.Career);
         RequestData();
     }
 
     public void ApplyData(CareerDetailData data)
     {
+        Initialize();
         if (data == null || !data.success)
         {
             SetText("CareerStatusText", "커리어 데이터를 불러오지 못했습니다.");

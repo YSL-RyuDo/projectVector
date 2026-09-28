@@ -8,7 +8,6 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 // Saves real, editable ChipCraft UI objects in Lobby.unity. No play-mode UI construction.
-[InitializeOnLoad]
 public static class ChipCraftHierarchyInstaller
 {
     private static readonly Color Dark = new Color32(31, 34, 38, 255);
@@ -16,19 +15,6 @@ public static class ChipCraftHierarchyInstaller
     private static readonly Color Red = new Color32(193, 37, 53, 255);
     private static readonly Color Paper = new Color32(199, 209, 219, 250);
     private static TMP_FontAsset font;
-
-    static ChipCraftHierarchyInstaller() { EditorApplication.delayCall += InstallWhenReady; }
-
-    private static void InstallWhenReady()
-    {
-        if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)
-        {
-            EditorApplication.delayCall += InstallWhenReady;
-            return;
-        }
-        try { Install(); }
-        catch (Exception exception) { Debug.LogError("[CHIP CRAFT] Hierarchy install failed: " + exception); }
-    }
 
     [MenuItem("Project Vector/UI/Install Chip Craft Hierarchy")]
     public static void Install()
@@ -41,7 +27,7 @@ public static class ChipCraftHierarchyInstaller
         if (root == null) throw new InvalidOperationException("Lobby/MyPagePanel is missing.");
         font = GetKoreanFont();
         bool changed = false;
-        if (root.GetComponent<MyPageChipCraftController>() == null)
+        if (root.GetComponentInChildren<MyPageChipCraftController>(true) == null)
         {
             root.AddComponent<MyPageChipCraftController>();
             changed = true;
@@ -52,6 +38,7 @@ public static class ChipCraftHierarchyInstaller
             changed = true;
         }
         if (EnsureProfileCard(root.transform)) changed = true;
+        if (EnsureTempRoomMedals(scene)) changed = true;
         if (changed)
         {
             EditorSceneManager.MarkSceneDirty(scene);
@@ -68,6 +55,43 @@ public static class ChipCraftHierarchyInstaller
         if (asset == null || asset.atlasTexture == null || asset.material == null)
             throw new InvalidOperationException("Pretendard-Black SDF atlas/material is missing.");
         return asset;
+    }
+
+    private static bool EnsureTempRoomMedals(Scene scene)
+    {
+        bool changed = false;
+        foreach (GameObject sceneRoot in scene.GetRootGameObjects())
+        foreach (TempGamePlayerSlotUI slot in sceneRoot.GetComponentsInChildren<TempGamePlayerSlotUI>(true))
+        {
+            SerializedObject serialized = new(slot);
+            Image card = serialized.FindProperty("iconImage").objectReferenceValue as Image;
+            if (card == null) continue;
+            SerializedProperty medals = serialized.FindProperty("medalImages");
+            if (medals.arraySize != 3) { medals.arraySize = 3; changed = true; }
+            for (int i = 0; i < 3; ++i)
+            {
+                string name = "TempGameMedal" + i;
+                Transform existing = Find(card.transform, name);
+                Image image = existing != null ? existing.GetComponent<Image>() : null;
+                if (image == null)
+                {
+                    image = UI(name, card.transform, Color.white).GetComponent<Image>();
+                    Fix(image.gameObject, Vector2.zero, new Vector2(92, 92));
+                    image.preserveAspect = true;
+                    image.raycastTarget = false;
+                    image.gameObject.SetActive(false);
+                    changed = true;
+                }
+                SerializedProperty entry = medals.GetArrayElementAtIndex(i);
+                if (entry.objectReferenceValue != image)
+                {
+                    entry.objectReferenceValue = image;
+                    changed = true;
+                }
+            }
+            if (serialized.hasModifiedProperties) serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+        return changed;
     }
 
     private static bool EnsureProfileCard(Transform root)

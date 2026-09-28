@@ -628,7 +628,7 @@ public class GamePanelController : MonoBehaviour
             Sprite rank = GetSafeSprite(tempRoomRankSprites, p.rankImageId);
 
             if (tempGamePlayerSlots[p.slotIndex] != null)
-                tempGamePlayerSlots[p.slotIndex].SetData(icon, border, rank, p.nickname);
+                tempGamePlayerSlots[p.slotIndex].SetData(icon, border, rank, p.nickname, p.preset);
         }
     }
 
@@ -804,8 +804,10 @@ public class GamePanelController : MonoBehaviour
         return card != null ? card : GetSafeSprite(tempRoomIconSprites, cardId);
     }
 
-    public void RefreshLocalPlayerIcon(int iconId)
+    public void RefreshLocalChipCraft(ChipCraftPresetData preset)
     {
+        if (preset == null) return;
+        int iconId = preset.cardId;
         if (currentGamePanelView == GamePanelView.TempGameRoom && tempGamePlayerSlots != null)
         {
             // The local player's assigned slot can differ from slot zero.
@@ -814,7 +816,10 @@ public class GamePanelController : MonoBehaviour
                 TempGamePlayerSlotUI slot = tempGamePlayerSlots[i];
                 if (slot != null && slot.gameObject.activeSelf &&
                     slot.Nickname == _profilePanelController.currentNickname)
+                {
                     slot.SetCardSprite(GetTempRoomCardSprite(iconId));
+                    slot.SetChipCraftPreset(preset);
+                }
             }
         }
 

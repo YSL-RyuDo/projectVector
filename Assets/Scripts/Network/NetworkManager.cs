@@ -231,6 +231,7 @@ public class TempGamePlayerData
     public int playerIconId;
     public int logoBorderId;
     public int rankImageId;
+    public ChipCraftPresetData preset = new();
 }
 
 public class RoomListData
@@ -912,6 +913,35 @@ public class NetworkManager : MonoBehaviour
         client.Send(buffer);
     }
 
+    public void SendLevelRewardRequest() => SendHeaderOnly(PacketType.PKT_CS_LEVEL_REWARD_REQUEST);
+
+    public void SendLevelRewardClaim(int targetLevel)
+    {
+        byte[] buffer = new byte[8];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_LEVEL_REWARD_CLAIM).CopyTo(buffer, 2);
+        BitConverter.GetBytes(targetLevel).CopyTo(buffer, 4);
+        client.Send(buffer);
+    }
+
+    public void SendHonorRequest(int page = 1)
+    {
+        byte[] buffer = new byte[5];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_HONOR_REQUEST).CopyTo(buffer, 2);
+        buffer[4] = (byte)Mathf.Clamp(page, 1, 5);
+        client.Send(buffer);
+    }
+
+    public void SendHonorClaim(int grade)
+    {
+        byte[] buffer = new byte[8];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_HONOR_CLAIM).CopyTo(buffer, 2);
+        BitConverter.GetBytes(grade).CopyTo(buffer, 4);
+        client.Send(buffer);
+    }
+
     public void SendChipCraftSave(ChipCraftPresetData preset)
     {
         if (preset == null || preset.medals.Count > 3) return;
@@ -1106,6 +1136,22 @@ public class NetworkManager : MonoBehaviour
 
             case (ushort)PacketType.PKT_SC_CHIPCRAFT_SAVE_RESULT:
                 HandleChipCraftSaveResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_LEVEL_REWARD_STATE:
+                HandleLevelRewardState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_LEVEL_REWARD_CLAIM_RESULT:
+                HandleLevelRewardClaimResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_HONOR_STATE:
+                HandleHonorState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_HONOR_CLAIM_RESULT:
+                HandleHonorClaimResult(body);
                 break;
 
             case (ushort)PacketType.PKT_SC_LOBBY_CHARACTER_SELECT_RESULT:
@@ -1910,6 +1956,65 @@ public class NetworkManager : MonoBehaviour
         ChipCraftPresetData preset = body[0] == 0 ? ReadChipCraftPreset(body, ref offset) : null;
         MyPagePanelController.Instance?.ApplyChipCraftSaveResult(body[0] == 0, preset);
     }
+
+    private void HandleLevelRewardState(byte[] body)
+    {
+        if (body == null || body.Length < 25) return;
+        MyPageLevelRewardController panel = FindFirstObjectByType<MyPageLevelRewardController>(FindObjectsInactive.Include);
+        panel?.ApplyState(body[0] == 0,
+            BitConverter.ToInt32(body, 1), BitConverter.ToInt32(body, 5),
+            BitConverter.ToInt32(body, 9), BitConverter.ToInt32(body, 13));
+        if (body[0] == 0)
+            MoneyManager.Instance?.SetServerBalances(BitConverter.ToInt32(body, 17), BitConverter.ToInt32(body, 21));
+    }
+
+    private void HandleLevelRewardClaimResult(byte[] body)
+    {
+        if (body == null || body.Length < 21) return;
+        MyPageLevelRewardController panel = FindFirstObjectByType<MyPageLevelRewardController>(FindObjectsInactive.Include);
+        panel?.ApplyClaim(body[0] == 0, BitConverter.ToInt32(body, 1),
+            BitConverter.ToInt32(body, 5), BitConverter.ToInt32(body, 9));
+        if (body[0] == 0)
+            MoneyManager.Instance?.SetServerBalances(BitConverter.ToInt32(body, 13), BitConverter.ToInt32(body, 17));
+    }
+
+    private void HandleHonorState(byte[] body)
+    {
+        if (body == null || body.Length < 20) return;
+        int offset = 0;
+        bool success = body[offset++] == 0;
+        int score = BitConverter.ToInt32(body, offset); offset += 4;
+        int claimed = BitConverter.ToInt32(body, offset); offset += 4;
+        int free = BitConverter.ToInt32(body, offset); offset += 4;
+        int victory = BitConverter.ToInt32(body, offset); offset += 4;
+        int page = body[offset++], pageCount = body[offset++], count = body[offset++];
+        if (count > 10 || body.Length < 20 + count * 13) return;
+        var changes = new System.Collections.Generic.List<HonorChangeData>(count);
+        for (int index = 0; index < count; ++index)
+        {
+            long time = BitConverter.ToInt64(body, offset); offset += 8;
+            int delta = BitConverter.ToInt32(body, offset); offset += 4;
+            byte reason = body[offset++];
+            changes.Add(new HonorChangeData(time, delta, reason));
+        }
+        FindFirstObjectByType<MyPageHonorController>(FindObjectsInactive.Include)
+            ?.ApplyState(success, score, claimed, page, pageCount, changes);
+        if (success) MoneyManager.Instance?.SetServerBalances(free, victory);
+    }
+
+    private void HandleHonorClaimResult(byte[] body)
+    {
+        if (body == null || body.Length < 21) return;
+        bool success = body[0] == 0;
+        int grade = BitConverter.ToInt32(body, 1);
+        int freeAward = BitConverter.ToInt32(body, 5);
+        int victoryAward = BitConverter.ToInt32(body, 9);
+        FindFirstObjectByType<MyPageHonorController>(FindObjectsInactive.Include)
+            ?.ApplyClaim(success, grade, freeAward, victoryAward);
+        if (success)
+            MoneyManager.Instance?.SetServerBalances(
+                BitConverter.ToInt32(body, 13), BitConverter.ToInt32(body, 17));
+    }
     private void HandleCareerRanking(byte[] body)
     {
         const int EntrySize = 100;
@@ -2372,6 +2477,10 @@ public class NetworkManager : MonoBehaviour
 
     void HandleTempGameRoomEnter(byte[] body)
     {
+        const int BaseSlotSize = 33;
+        const int PresetSize = 57;
+        if (body == null || body.Length < 2 + 3 * BaseSlotSize) return;
+        bool hasPresets = body.Length >= 2 + 3 * (BaseSlotSize + PresetSize);
         byte result = body[0];
         byte playerCount = body[1];
 
@@ -2401,6 +2510,9 @@ public class NetworkManager : MonoBehaviour
 
             data.rankImageId = BitConverter.ToInt32(body, offset);
             offset += 4;
+
+            if (hasPresets)
+                data.preset = ReadChipCraftPreset(body, ref offset);
 
             players.Add(data);
         }

@@ -31,6 +31,9 @@ public class MyPagePanelController : MonoBehaviour
     private readonly List<int> skinDropdownCharacterIds = new();
     private bool isOpen;
     private MyPageChipCraftController chipCraft;
+    private MyPageLevelRewardController levelRewards;
+    private MyPageHonorController honor;
+    private MyPageTabController tabs;
 
     private static readonly Dictionary<string, string> StatLabels = new()
     {
@@ -47,15 +50,18 @@ public class MyPagePanelController : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        chipCraft = GetComponent<MyPageChipCraftController>();
+        chipCraft = GetComponentInChildren<MyPageChipCraftController>(true);
+        levelRewards = GetComponentInChildren<MyPageLevelRewardController>(true);
+        honor = GetComponentInChildren<MyPageHonorController>(true);
+        tabs = GetComponent<MyPageTabController>();
         EnsureViewportMasks();
-        EnsureFixedProfileLayout();
-        EnsureCharacterIdentityLayout();
+        BindStatInteractions();
+        RefreshCharacterRoles();
         panelCanvasGroup = GetComponent<CanvasGroup>();
         battleCustomCanvasGroup = Find("BattleCustomPanel")?.GetComponent<CanvasGroup>();
         skinCustomCanvasGroup = Find("SkinCustomPanel")?.GetComponent<CanvasGroup>();
         visitorCanvasGroup = Find("RecentVisitorsPopup")?.GetComponent<CanvasGroup>();
-        BindButton("BackButton", Close);
+        BindButton("BackButton", Back);
         BindButton("PrivacyToggleButton", TogglePrivacy);
         BindButton("LikeButton", Like);
         BindButton("RecentVisitorsButton", () => ShowLayer(visitorCanvasGroup, true));
@@ -82,7 +88,12 @@ public class MyPagePanelController : MonoBehaviour
 
     private void Update()
     {
-        if (isOpen && Input.GetKeyDown(KeyCode.Escape) && !(chipCraft != null && chipCraft.HandleEscape())) Close();
+        if (isOpen && Input.GetKeyDown(KeyCode.Escape)) Back();
+    }
+
+    private void Back()
+    {
+        if (tabs == null || !tabs.HandleBack()) Close();
     }
 
     public void OpenSelf() => OpenForUser(string.Empty);
@@ -91,11 +102,12 @@ public class MyPagePanelController : MonoBehaviour
     {
         gameObject.SetActive(true);
         EnsureViewportMasks();
-        EnsureFixedProfileLayout();
-        EnsureCharacterIdentityLayout();
+        RefreshCharacterRoles();
         SetVisible(true);
         chipCraft?.SetTarget(userId);
-        MyPageCareerDataController career = GetComponent<MyPageCareerDataController>();
+        levelRewards?.Close();
+        honor?.Close();
+        MyPageCareerDataController career = GetComponentInChildren<MyPageCareerDataController>(true);
         if (career != null)
         {
             career.SetTargetUser(userId ?? string.Empty);
@@ -119,6 +131,8 @@ public class MyPagePanelController : MonoBehaviour
         ShowLayer(skinCustomCanvasGroup, false);
         ShowLayer(visitorCanvasGroup, false);
         chipCraft?.SetTarget(string.Empty);
+        levelRewards?.Close();
+        honor?.Close();
         SetVisible(false);
     }
 
@@ -147,6 +161,8 @@ public class MyPagePanelController : MonoBehaviour
         SetSelfOnly("BattleCustomButton", data.isSelf);
         SetSelfOnly("SkinCustomButton", data.isSelf);
         SetSelfOnly("ChipCraftOpenButton", data.isSelf);
+        SetSelfOnly("LevelRewardOpenButton", data.isSelf);
+        SetSelfOnly("HonorTabButton", data.isSelf);
         SetSelfOnly("ChipCraftCardOpenButton", data.isSelf);
         if (!data.isSelf)
         {
@@ -248,7 +264,7 @@ public class MyPagePanelController : MonoBehaviour
             ProfilePanelController profile = FindObjectOfType<ProfilePanelController>(true);
             profile?.ApplyPlayerIcon(preset.cardId);
             GamePanelController gamePanel = FindObjectOfType<GamePanelController>(true);
-            gamePanel?.RefreshLocalPlayerIcon(preset.cardId);
+            gamePanel?.RefreshLocalChipCraft(preset);
         }
     }
 
@@ -310,14 +326,6 @@ public class MyPagePanelController : MonoBehaviour
         {
             SetText($"BattleSlot{i}ValueText", GetStatValue(displayedStats[i]));
             SetText($"BattleSlot{i}LabelText", StatLabels[displayedStats[i]]);
-            RectTransform icon = Find($"BattleSlot{i}Icon") as RectTransform;
-            if (icon != null)
-            {
-                bool left = i < 3;
-                bool center = i == 3;
-                icon.anchorMin = icon.anchorMax = new Vector2(center ? 0.5f : left ? 1f : 0f, 0.5f);
-                icon.anchoredPosition = new Vector2(center ? 0f : left ? -20f : 20f, 0f);
-            }
         }
     }
 
@@ -447,35 +455,8 @@ public class MyPagePanelController : MonoBehaviour
             Debug.Log($"[MY PAGE] Runtime viewport repair: disabled Mask={disabled}, added RectMask2D={added}.");
     }
 
-    private void EnsureFixedProfileLayout()
+    private void BindStatInteractions()
     {
-        RectTransform profile = Find("ProfileSection") as RectTransform;
-        RectTransform scroll = Find("MainScrollView") as RectTransform;
-        ScrollRect mainScroll = scroll != null ? scroll.GetComponent<ScrollRect>() : null;
-        RectTransform content = mainScroll != null ? mainScroll.content : null;
-        if (profile == null || scroll == null || content == null) return;
-
-        if (profile.parent != transform)
-            profile.SetParent(transform, false);
-        profile.anchorMin = profile.anchorMax = new Vector2(0f, 1f);
-        profile.pivot = new Vector2(.5f, 1f);
-        profile.sizeDelta = new Vector2(1290f, 215f);
-        // MainScrollView begins at x=84. With a centered pivot and width 1290,
-        // x=84 + 1290/2 keeps the fixed header's left edge perfectly aligned.
-        profile.anchoredPosition = new Vector2(729f, -84f);
-        profile.SetSiblingIndex(Mathf.Min(2, transform.childCount - 1));
-
-        scroll.anchorMin = Vector2.zero;
-        scroll.anchorMax = Vector2.one;
-        scroll.offsetMin = new Vector2(84f, 34f);
-        scroll.offsetMax = new Vector2(-520f, -305f);
-        content.sizeDelta = new Vector2(content.sizeDelta.x, 1460f);
-
-        SetSectionPosition("RankSection", -10f);
-        SetSectionPosition("FrequentCharactersSection", -430f);
-        SetSectionPosition("BattleDataSection", -750f);
-        SetSectionPosition("SkinCollectionSection", -1160f);
-
         for (int i = 0; i < 15; ++i)
         {
             Transform item = Find("StatItem" + i);
@@ -493,56 +474,11 @@ public class MyPagePanelController : MonoBehaviour
         }
     }
 
-    private void EnsureCharacterIdentityLayout()
+
+    private void RefreshCharacterRoles()
     {
         for (int i = 0; i < 4; ++i)
-        {
-            RectTransform card = Find($"CharacterCard{i}") as RectTransform;
-            TMP_Text name = Find($"Character{i}NameText")?.GetComponent<TMP_Text>();
-            TMP_Text stats = Find($"Character{i}StatsText")?.GetComponent<TMP_Text>();
-            if (card == null || name == null || stats == null) continue;
-
-            RectTransform nameRect = name.rectTransform;
-            nameRect.anchoredPosition = new Vector2(50f, 50f);
-            nameRect.sizeDelta = new Vector2(160f, 34f);
-
-            TMP_Text role = Find($"Character{i}RoleText")?.GetComponent<TMP_Text>();
-            if (role == null)
-            {
-                GameObject roleObject = new GameObject($"Character{i}RoleText",
-                    typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-                roleObject.transform.SetParent(card, false);
-                role = roleObject.GetComponent<TextMeshProUGUI>();
-                role.font = name.font;
-                role.fontSharedMaterial = name.fontSharedMaterial;
-                role.fontStyle = FontStyles.Normal;
-                role.fontSize = 13f;
-                role.alignment = TextAlignmentOptions.Left;
-                role.color = new Color32(105, 215, 240, 255);
-                role.raycastTarget = false;
-            }
-
-            RectTransform roleRect = role.rectTransform;
-            roleRect.anchorMin = roleRect.anchorMax = new Vector2(.5f, .5f);
-            roleRect.pivot = new Vector2(.5f, .5f);
-            roleRect.anchoredPosition = new Vector2(50f, 15f);
-            roleRect.sizeDelta = new Vector2(160f, 26f);
-            role.text = CharacterRole(i);
-
-            RectTransform statsRect = stats.rectTransform;
-            statsRect.anchoredPosition = new Vector2(50f, -42f);
-            statsRect.sizeDelta = new Vector2(160f, 72f);
-        }
-    }
-
-    private void SetSectionPosition(string objectName, float y)
-    {
-        RectTransform section = Find(objectName) as RectTransform;
-        if (section == null) return;
-        section.anchorMin = section.anchorMax = new Vector2(.5f, 1f);
-        section.pivot = new Vector2(.5f, 1f);
-        section.sizeDelta = new Vector2(1290f, section.sizeDelta.y);
-        section.anchoredPosition = new Vector2(0f, y);
+            SetText($"Character{i}RoleText", CharacterRole(i));
     }
 
     private void SetVisible(bool visible)

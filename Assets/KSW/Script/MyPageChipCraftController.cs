@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-// All visual objects are authored by ChipCraftHierarchyInstaller in Lobby.unity.
+// Visual objects are authored in Lobby.unity; this component only updates their state.
 // This component only binds interactions and updates their existing Image/Text fields.
 public class MyPageChipCraftController : MonoBehaviour
 {
@@ -19,11 +19,16 @@ public class MyPageChipCraftController : MonoBehaviour
     private int selectedMedal = -1;
     private int selectedPlaced = -1;
     private string targetUserId = "";
+    [SerializeField] private Transform profileContent;
+    private bool initialized;
 
     private Transform Find(string name)
     {
         foreach (Transform child in GetComponentsInChildren<Transform>(true))
             if (child.name == name) return child;
+        if (profileContent != null)
+            foreach (Transform child in profileContent.GetComponentsInChildren<Transform>(true))
+                if (child.name == name) return child;
         return null;
     }
 
@@ -33,13 +38,14 @@ public class MyPageChipCraftController : MonoBehaviour
         if (button != null) button.onClick.AddListener(action);
     }
 
-    private void Awake()
+    private void Awake() => Initialize();
+
+    private void Initialize()
     {
+        if (initialized) return;
+        initialized = true;
         panel = Find("ChipCraftPanel")?.gameObject;
         dialog = Find("ChipCraftSaveDialog")?.gameObject;
-        Bind("ChipCraftOpenButton", Open);
-        Bind("ChipCraftCardOpenButton", Open);
-        Bind("ChipCraftBackButton", Back);
         Bind("ChipCraftEditButton", EnterEdit);
         Bind("ChipCraftSaveButton", RequestSaveConfirmation);
         Bind("ChipCraftResetButton", ResetDraft);
@@ -68,12 +74,12 @@ public class MyPageChipCraftController : MonoBehaviour
             int index = i;
             Bind("ChipCraftPlacedMedal" + i, () => SelectPlacedMedal(index));
         }
-        if (panel != null) panel.SetActive(false);
         if (dialog != null) dialog.SetActive(false);
     }
 
     public void SetTarget(string userId)
     {
+        Initialize();
         targetUserId = userId ?? "";
         data = null;
         editing = false;
@@ -83,6 +89,7 @@ public class MyPageChipCraftController : MonoBehaviour
 
     public void ApplyData(ChipCraftData value)
     {
+        Initialize();
         if (value == null) return;
         if (targetUserId.Length != 0 && targetUserId != value.userId) return;
         data = value;
@@ -109,18 +116,21 @@ public class MyPageChipCraftController : MonoBehaviour
 
     public void Open()
     {
+        Initialize();
         if (panel == null) return;
+        panel.SetActive(true);
+        dialog?.SetActive(false);
+        editing = false;
+        selectedPlaced = -1;
+        selectedMedal = -1;
+        tab = 0;
         if (data == null)
         {
+            SetText("ChipCraftStatus", "칩 크래프트 정보를 불러오는 중입니다.");
             NetworkManager.Instance?.SendChipCraftRequest(targetUserId);
             return;
         }
-        panel.SetActive(true);
-        panel.transform.SetAsLastSibling();
-        editing = false;
         draft = data.preset.Clone();
-        selectedPlaced = -1;
-        selectedMedal = -1;
         SelectTab(0);
     }
 
@@ -135,7 +145,7 @@ public class MyPageChipCraftController : MonoBehaviour
             SetText("ChipCraftStatus", "");
             Refresh();
         }
-        else if (panel != null) panel.SetActive(false);
+        else GetComponentInParent<MyPageTabController>(true)?.Select(MyPageTabController.Page.Profile);
     }
 
     public bool HandleEscape()
@@ -254,7 +264,7 @@ public class MyPageChipCraftController : MonoBehaviour
     {
         if (data == null || draft == null) return;
         if (panel == null || !panel.activeSelf) return;
-        SetText("ChipCraftPageTitle", editing ? "칩 크래프트 - 편집 모드" : "칩 크래프트");
+        SetText("ChipCraftPageTitle", string.Empty);
         SetActive("ChipCraftEditButton", !editing && data.isSelf);
         SetActive("ChipCraftSaveButton", editing);
         SetActive("ChipCraftResetButton", editing);
