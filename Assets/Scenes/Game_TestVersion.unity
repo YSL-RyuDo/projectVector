@@ -12025,6 +12025,128 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 684880142}
   m_CullTransparentMesh: 1
+--- !u!1 &685901670
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 685901671}
+  - component: {fileID: 685901675}
+  - component: {fileID: 685901674}
+  - component: {fileID: 685901673}
+  - component: {fileID: 685901672}
+  m_Layer: 5
+  m_Name: PingManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &685901671
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 685901670}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1395018038}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &685901672
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 685901670}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fa4be2e5d7b3c847a1f99ffa270b32d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Pings.PingBridge
+  offlineLocalPlayer: {fileID: 0}
+--- !u!114 &685901673
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 685901670}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89e8c8b195770264aaa0af627bfc1d97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Pings.PingSystem
+  pingKey: 122
+  inputEnabled: 1
+  wheelHoldDelay: 0.2
+  hitMask:
+    serializedVersion: 2
+    m_Bits: 8
+  maxDistance: 150
+  aimViewport: {x: 0.5, y: 0.5}
+  ignoreCharactersAndDrones: 1
+  wheelRadius: 130
+  deadZone: 30
+  mouseSensitivity: 1
+  unlockCursorWhileOpen: 0
+  showSystemCursor: 0
+--- !u!114 &685901674
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 685901670}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef91d4a0ee238924ca13fdab7dad039c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Pings.PingManager
+  options:
+  - type: 0
+    label: HERE
+    color: {r: 0.25, g: 0.8, b: 1, a: 1}
+  - type: 1
+    label: DANGER
+    color: {r: 1, g: 0.3, b: 0.25, a: 1}
+  - type: 2
+    label: ATTACK
+    color: {r: 1, g: 0.7, b: 0.2, a: 1}
+  - type: 3
+    label: DEFEND
+    color: {r: 0.35, g: 1, b: 0.55, a: 1}
+  maxMarkers: 16
+  edgePadding: 80
+  requestCooldown: 0.35
+  networkMode: 0
+  localTeamId: -1
+--- !u!114 &685901675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 685901670}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0760daa363793d34da76280b2ff2b859, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Pings.PingCameraProvider
+  aimCamera: {fileID: 0}
+  allowMainCameraFallback: 0
 --- !u!1 &694522636
 GameObject:
   m_ObjectHideFlags: 0
@@ -22140,6 +22262,7 @@ RectTransform:
   - {fileID: 205253705}
   - {fileID: 2096996114}
   - {fileID: 72185160}
+  - {fileID: 685901671}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}

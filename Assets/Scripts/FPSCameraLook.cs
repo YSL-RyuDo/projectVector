@@ -3,9 +3,6 @@ using UnityEngine.InputSystem;
 
 public class FPSCameraLook : MonoBehaviour
 {
-
-    
-
     [Header("Mouse")]
     [SerializeField] private float _baseSensitivity = 0.2f;
     [SerializeField] private float _adsSensitivityMultiplier = 0.5f;
@@ -134,8 +131,10 @@ public class FPSCameraLook : MonoBehaviour
         if (Mouse.current == null)
             return;
 
-        Vector2 mouseDelta =
-            Mouse.current.delta.ReadValue();
+        // Ping wheel consumes look input; keep recoil, movement and networking updates.
+        Vector2 mouseDelta = Game.Pings.PingSystem.WheelOpen
+            ? Vector2.zero
+            : Mouse.current.delta.ReadValue();
 
         float mouseX = mouseDelta.x;
         float mouseY = mouseDelta.y;

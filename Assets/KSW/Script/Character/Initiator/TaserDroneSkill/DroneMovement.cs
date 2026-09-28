@@ -127,7 +127,10 @@ public class DroneMovement : MonoBehaviour
         if (_cameraTransform == null)
             return;
 
-        Vector2 mouseDelta = Mouse.current.delta.ReadValue();
+        // Ping wheel consumes look input; keep recoil, movement and networking updates.
+        Vector2 mouseDelta = Game.Pings.PingSystem.WheelOpen
+            ? Vector2.zero
+            : Mouse.current.delta.ReadValue();
 
         _yaw += mouseDelta.x * _mouseSensitivity;
         _pitch -= mouseDelta.y * _mouseSensitivity;
