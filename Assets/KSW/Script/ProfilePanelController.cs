@@ -14,6 +14,7 @@ public class ProfilePanelController : MonoBehaviour
     public string currentNickname;
     public int currentLevel;
     public int currentplayerIconId;
+    public int currentLogoBorderId;
     public int currentlobbyCharacterId;
     public int currentlobbyBackgroundId;
 
@@ -24,7 +25,10 @@ public class ProfilePanelController : MonoBehaviour
 
     private void Start()
     {
-        NetworkManager.Instance.SetProfilePanelController(this);
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SetProfilePanelController(this);
+        else
+            Debug.LogWarning("[PROFILE] NetworkManager is not available in this scene run.");
 
         lobbyPanelController = GetComponent<LobbyPanelController>();
     }
@@ -53,17 +57,23 @@ public class ProfilePanelController : MonoBehaviour
         if (levelText != null)
             levelText.text = "Lv." + level;
 
-        if (Icon != null && Icon.Length > 0 && playerIcon != null)
-        {
-            if (currentplayerIconId < 0 || currentplayerIconId >= Icon.Length)
-                currentplayerIconId = 0;
-
-            playerIcon.sprite = Icon[currentplayerIconId];
-        }
+        ApplyPlayerIcon(playerIconId);
 
         ApplyExpUI(currentExp, requiredExp);
         lobbyPanelController.ApplyCharacter(currentlobbyCharacterId);
         lobbyPanelController.ApplyBackgroundPreset(currentlobbyBackgroundId);
+    }
+
+    public void ApplyPlayerIcon(int iconId)
+    {
+        currentplayerIconId = Mathf.Clamp(iconId, 0, 2);
+        if (playerIcon == null) return;
+        Sprite sprite = Resources.Load<Sprite>($"PlayerIcon/{currentplayerIconId}");
+        if (sprite == null && Icon != null && currentplayerIconId < Icon.Length)
+            sprite = Icon[currentplayerIconId];
+        playerIcon.sprite = sprite;
+        playerIcon.enabled = sprite != null;
+        playerIcon.color = Color.white;
     }
 
     private void ApplyExpUI(int current, int required)

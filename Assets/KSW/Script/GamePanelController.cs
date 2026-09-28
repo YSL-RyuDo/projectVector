@@ -199,7 +199,7 @@ public class GamePanelController : MonoBehaviour
         else
         {
             Debug.LogWarning(
-                "[ROOM LIST] ¹æ Á¶È¸ ¹öÆ°ÀÌ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù."
+                "[ROOM LIST] ë°© ì¡°íšŒ ë²„íŠ¼ì´ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤."
             );
         }
 
@@ -217,7 +217,7 @@ public class GamePanelController : MonoBehaviour
 
             NetworkManager.Instance.ClearPendingReturnRoom();
 
-            // °á°ú È­¸é¿¡¼­ µ¹¾Æ¿Ã ¶§´Â °ÔÀÓ ¸Ş´º »óÅÂ¸¦ À¯ÁöÇÑ´Ù.
+            // ê²°ê³¼ í™”ë©´ì—ì„œ ëŒì•„ì˜¬ ë•ŒëŠ” ê²Œì„ ë©”ë‰´ ìƒíƒœë¥¼ ìœ ì§€í•œë‹¤.
             GetComponent<NavigationPanelController>().SelectLobbyMainMenu(LobbyMainMenu.Game);
 
             NetworkManager.Instance.SendRoomStateRequest(roomId);
@@ -231,7 +231,7 @@ public class GamePanelController : MonoBehaviour
         {
             SelectGameMode(GameMode.Normal);
 
-            // ÃÖÃÊ ·Îºñ ÀÔÀå ½Ã ·Îºñ ¹öÆ°¸¸ ¼±ÅÃ ÀÌ¹ÌÁö·Î Ç¥½ÃÇÑ´Ù.
+            // ìµœì´ˆ ë¡œë¹„ ì…ì¥ ì‹œ ë¡œë¹„ ë²„íŠ¼ë§Œ ì„ íƒ ì´ë¯¸ì§€ë¡œ í‘œì‹œí•œë‹¤.
             GetComponent<NavigationPanelController>().SelectLobbyMainMenu(LobbyMainMenu.Lobby);
         }
     }
@@ -273,7 +273,7 @@ public class GamePanelController : MonoBehaviour
         if (gamePanel == null)
             return;
 
-        // ¼­¹ö ÀÀ´äÀÌ ´Ê°Ô µµÂøÇØµµ ´Ù¸¥ ¸ŞÀÎ ¸Ş´º À§¿¡ °ÔÀÓ ÆĞ³ÎÀ» °­Á¦·Î ¶ç¿ìÁö ¾Ê´Â´Ù.
+        // ì„œë²„ ì‘ë‹µì´ ëŠ¦ê²Œ ë„ì°©í•´ë„ ë‹¤ë¥¸ ë©”ì¸ ë©”ë‰´ ìœ„ì— ê²Œì„ íŒ¨ë„ì„ ê°•ì œë¡œ ë„ìš°ì§€ ì•ŠëŠ”ë‹¤.
         gamePanel.SetActive(GetComponent<NavigationPanelController>().currentLobbyMainMenu == LobbyMainMenu.Game);
     }
 
@@ -358,8 +358,8 @@ public class GamePanelController : MonoBehaviour
         if (slot0 == null)
             return;
 
-        Sprite icon = GetSafeSprite(tempRoomIconSprites, _profilePanelController.currentplayerIconId);
-        Sprite border = GetSafeSprite(tempRoomBorderSprites, 0);
+        Sprite icon = GetTempRoomCardSprite(_profilePanelController.currentplayerIconId);
+        Sprite border = GetSafeSprite(tempRoomBorderSprites, _profilePanelController.currentLogoBorderId);
         Sprite rank = GetSafeSprite(tempRoomRankSprites, 0);
 
         slot0.SetData(icon, border, rank, _profilePanelController.currentNickname);
@@ -486,18 +486,18 @@ public class GamePanelController : MonoBehaviour
             return;
         }
 
-        // ÇöÀç ¹æ ¾È¿¡ µé¾î°¡ ÀÖ´Â »óÅÂ¶ó¸é
-        // ¹æ ¸ñ·ÏÀ¸·Î °­Á¦·Î ³Ñ¾î°¡Áö ¾Ê´Â´Ù.
+        // í˜„ì¬ ë°© ì•ˆì— ë“¤ì–´ê°€ ìˆëŠ” ìƒíƒœë¼ë©´
+        // ë°© ëª©ë¡ìœ¼ë¡œ ê°•ì œë¡œ ë„˜ì–´ê°€ì§€ ì•ŠëŠ”ë‹¤.
         if (IsInCustomRoom())
         {
             ShowRoomMessage(
-                "¹æ¿¡ µé¾î°¡ ÀÖ´Â µ¿¾È¿¡´Â ¹æ ¸ñ·ÏÀ» Á¶È¸ÇÒ ¼ö ¾ø½À´Ï´Ù."
+                "ë°©ì— ë“¤ì–´ê°€ ìˆëŠ” ë™ì•ˆì—ëŠ” ë°© ëª©ë¡ì„ ì¡°íšŒí•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤."
             );
 
             return;
         }
 
-        // ¸ŞÀÎ °ÔÀÓ ¸Ş´º°¡ ´İÇô ÀÖ¾îµµ ¹æ ¸ñ·Ï È­¸éÀ» ¿­¾î ÁØ´Ù.
+        // ë©”ì¸ ê²Œì„ ë©”ë‰´ê°€ ë‹«í˜€ ìˆì–´ë„ ë°© ëª©ë¡ í™”ë©´ì„ ì—´ì–´ ì¤€ë‹¤.
         GetComponent<NavigationPanelController>().SelectLobbyMainMenu(
             LobbyMainMenu.Game
         );
@@ -514,7 +514,7 @@ public class GamePanelController : MonoBehaviour
 
         ShowRoomListPanel();
 
-        // ÇöÀç ¼­¹ö¿¡ Á¸ÀçÇÏ´Â ¹æ ¸ñ·ÏÀ» »õ·Î ¿äÃ»ÇÑ´Ù.
+        // í˜„ì¬ ì„œë²„ì— ì¡´ì¬í•˜ëŠ” ë°© ëª©ë¡ì„ ìƒˆë¡œ ìš”ì²­í•œë‹¤.
         NetworkManager.Instance.SendRoomList();
 
         Debug.Log(
@@ -541,14 +541,14 @@ public class GamePanelController : MonoBehaviour
         if (IsInCustomRoom())
         {
             ShowRoomMessage(
-                "ÇöÀç ¹æ¿¡ µé¾î°¡ ÀÖ½À´Ï´Ù."
+                "í˜„ì¬ ë°©ì— ë“¤ì–´ê°€ ìˆìŠµë‹ˆë‹¤."
             );
 
             return;
         }
 
-        // ÀÌ¹Ì »ç¼³¹æ ¸ğµå¿©µµ Á¾·áÇÏÁö ¾Ê°í
-        // ÇöÀç ¹æ ¸ñ·ÏÀ» ´Ù½Ã ¿äÃ»ÇÑ´Ù.
+        // ì´ë¯¸ ì‚¬ì„¤ë°© ëª¨ë“œì—¬ë„ ì¢…ë£Œí•˜ì§€ ì•Šê³ 
+        // í˜„ì¬ ë°© ëª©ë¡ì„ ë‹¤ì‹œ ìš”ì²­í•œë‹¤.
         if (currentGameMode == GameMode.Custom)
         {
             ShowRoomListPanel();
@@ -584,7 +584,7 @@ public class GamePanelController : MonoBehaviour
 
         if (currentGameMode != GameMode.Normal && currentGameMode != GameMode.Rank)
         {
-            ShowRoomMessage("ÀÏ¹İ ¶Ç´Â ·©Å© ¸ğµå¿¡¼­ ¸ÅÄªÇÒ ¼ö ÀÖ½À´Ï´Ù.");
+            ShowRoomMessage("ì¼ë°˜ ë˜ëŠ” ë­í¬ ëª¨ë“œì—ì„œ ë§¤ì¹­í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.");
             return;
         }
 
@@ -623,12 +623,12 @@ public class GamePanelController : MonoBehaviour
             if (p.slotIndex >= playerCount)
                 continue;
 
-            Sprite icon = GetSafeSprite(tempRoomIconSprites, p.playerIconId);
+            Sprite icon = GetTempRoomCardSprite(p.playerIconId);
             Sprite border = GetSafeSprite(tempRoomBorderSprites, p.logoBorderId);
             Sprite rank = GetSafeSprite(tempRoomRankSprites, p.rankImageId);
 
             if (tempGamePlayerSlots[p.slotIndex] != null)
-                tempGamePlayerSlots[p.slotIndex].SetData(icon, border, rank, p.nickname);
+                tempGamePlayerSlots[p.slotIndex].SetData(icon, border, rank, p.nickname, p.preset);
         }
     }
 
@@ -676,8 +676,8 @@ public class GamePanelController : MonoBehaviour
             return;
         }
 
-        // result 2´Â Ãë¼Ò ¿äÃ»ÀÌ ÀÌ¹Ì ¼º¸³ÇÒ ¼ö ¾ø´Â »óÅÂ´Ù. ¸ÅÄª ¿Ï·á ÀÀ´äÀ»
-        // ±â´Ù·Á¾ß ÇÒ ¼ö ÀÖÀ¸¹Ç·Î ¿©±â¼­ ·ÎÄÃ Å¥ »óÅÂ¸¦ ÀÓÀÇ·Î ÇØÁ¦ÇÏÁö ¾Ê´Â´Ù.
+        // result 2ëŠ” ì·¨ì†Œ ìš”ì²­ì´ ì´ë¯¸ ì„±ë¦½í•  ìˆ˜ ì—†ëŠ” ìƒíƒœë‹¤. ë§¤ì¹­ ì™„ë£Œ ì‘ë‹µì„
+        // ê¸°ë‹¤ë ¤ì•¼ í•  ìˆ˜ ìˆìœ¼ë¯€ë¡œ ì—¬ê¸°ì„œ ë¡œì»¬ í ìƒíƒœë¥¼ ì„ì˜ë¡œ í•´ì œí•˜ì§€ ì•ŠëŠ”ë‹¤.
         if (result != 2)
         {
             ClearMatchmakingState();
@@ -686,8 +686,8 @@ public class GamePanelController : MonoBehaviour
 
         ShowRoomMessage(
             result == 2
-                ? "ÀÌ¹Ì ¸ÅÄªÀÌ ¿Ï·áµÇ¾ú°Å³ª Ãë¼ÒÇÒ ¸ÅÄªÀÌ ¾ø½À´Ï´Ù."
-                : "¸ÅÄªÀ» ½ÃÀÛÇÒ ¼ö ¾ø½À´Ï´Ù.");
+                ? "ì´ë¯¸ ë§¤ì¹­ì´ ì™„ë£Œë˜ì—ˆê±°ë‚˜ ì·¨ì†Œí•  ë§¤ì¹­ì´ ì—†ìŠµë‹ˆë‹¤."
+                : "ë§¤ì¹­ì„ ì‹œì‘í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
     }
 
     private void UpdateMatchmakingButtonText(bool force = false)
@@ -697,8 +697,8 @@ public class GamePanelController : MonoBehaviour
 
         if (!isMatchmakingQueued)
         {
-            if (force || matchmakingStartButtonText.text != "½ÃÀÛ")
-                matchmakingStartButtonText.text = "½ÃÀÛ";
+            if (force || matchmakingStartButtonText.text != "ì‹œì‘")
+                matchmakingStartButtonText.text = "ì‹œì‘";
 
             return;
         }
@@ -714,7 +714,7 @@ public class GamePanelController : MonoBehaviour
         string nextText;
         if (isPointerOverButton)
         {
-            nextText = "¸ÅÄ¡ Ãë¼Ò";
+            nextText = "ë§¤ì¹˜ ì·¨ì†Œ";
         }
         else
         {
@@ -753,9 +753,9 @@ public class GamePanelController : MonoBehaviour
         if (slotChangeConfirmText != null)
         {
             string modeName = nextMode == GameMode.Normal
-                ? "ÀÏ¹İ"
-                : nextMode == GameMode.Rank ? "·©Å©" : "»ç¿ëÀÚ ¼³Á¤";
-            slotChangeConfirmText.text = $"¸ÅÄªÀ» Ãë¼ÒÇÏ°í {modeName} ¸ğµå·Î ÀÌµ¿ÇÏ½Ã°Ú½À´Ï±î?";
+                ? "ì¼ë°˜"
+                : nextMode == GameMode.Rank ? "ë­í¬" : "ì‚¬ìš©ì ì„¤ì •";
+            slotChangeConfirmText.text = $"ë§¤ì¹­ì„ ì·¨ì†Œí•˜ê³  {modeName} ëª¨ë“œë¡œ ì´ë™í•˜ì‹œê² ìŠµë‹ˆê¹Œ?";
         }
 
         if (slotChangeConfirmPanel != null)
@@ -795,6 +795,44 @@ public class GamePanelController : MonoBehaviour
             return sprites[0];
 
         return sprites[index];
+    }
+
+    private Sprite GetTempRoomCardSprite(int iconId)
+    {
+        int cardId = Mathf.Clamp(iconId, 0, 2);
+        Sprite card = Resources.Load<Sprite>($"IconCard/icon{cardId}_card");
+        return card != null ? card : GetSafeSprite(tempRoomIconSprites, cardId);
+    }
+
+    public void RefreshLocalChipCraft(ChipCraftPresetData preset)
+    {
+        if (preset == null) return;
+        int iconId = preset.cardId;
+        if (currentGamePanelView == GamePanelView.TempGameRoom && tempGamePlayerSlots != null)
+        {
+            // The local player's assigned slot can differ from slot zero.
+            for (int i = 0; i < tempGamePlayerSlots.Length; i++)
+            {
+                TempGamePlayerSlotUI slot = tempGamePlayerSlots[i];
+                if (slot != null && slot.gameObject.activeSelf &&
+                    slot.Nickname == _profilePanelController.currentNickname)
+                {
+                    slot.SetCardSprite(GetTempRoomCardSprite(iconId));
+                    slot.SetChipCraftPreset(preset);
+                }
+            }
+        }
+
+        if (currentRoomState == null || currentRoomState.members == null) return;
+        uint localId = NetworkManager.Instance != null ? NetworkManager.Instance.MyPlayerId : 0;
+        foreach (RoomMemberData member in currentRoomState.members)
+        {
+            if ((localId != 0 && member.playerId == localId) ||
+                (localId == 0 && member.nickname == _profilePanelController.currentNickname))
+                member.playerIconId = iconId;
+        }
+        if (currentGamePanelView == GamePanelView.RoomPanel && roomPanelUI != null)
+            roomPanelUI.ApplyRoomState(currentRoomState);
     }
 
     public void OnRecvRoomList(List<RoomListData> rooms)
@@ -864,12 +902,12 @@ public class GamePanelController : MonoBehaviour
 
         string msg = result switch
         {
-            (byte)RoomEnterResult.ROOM_NOT_FOUND => "¹æÀ» Ã£À» ¼ö ¾ø½À´Ï´Ù.",
-            (byte)RoomEnterResult.ROOM_FULL => "¹æÀÌ °¡µæ Ã¡½À´Ï´Ù.",
-            (byte)RoomEnterResult.ALREADY_IN_ROOM => "ÀÌ¹Ì ¹æ¿¡ µé¾î°¡ ÀÖ½À´Ï´Ù.",
-            (byte)RoomEnterResult.PLAYER_DATA_NOT_FOUND => "ÇÃ·¹ÀÌ¾î Á¤º¸¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù.",
-            (byte)RoomEnterResult.NOT_IN_LOBBY => "·Îºñ »óÅÂ°¡ ¾Æ´Õ´Ï´Ù.",
-            _ => "¹æ ÀÔÀå¿¡ ½ÇÆĞÇß½À´Ï´Ù."
+            (byte)RoomEnterResult.ROOM_NOT_FOUND => "ë°©ì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.",
+            (byte)RoomEnterResult.ROOM_FULL => "ë°©ì´ ê°€ë“ ì°¼ìŠµë‹ˆë‹¤.",
+            (byte)RoomEnterResult.ALREADY_IN_ROOM => "ì´ë¯¸ ë°©ì— ë“¤ì–´ê°€ ìˆìŠµë‹ˆë‹¤.",
+            (byte)RoomEnterResult.PLAYER_DATA_NOT_FOUND => "í”Œë ˆì´ì–´ ì •ë³´ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.",
+            (byte)RoomEnterResult.NOT_IN_LOBBY => "ë¡œë¹„ ìƒíƒœê°€ ì•„ë‹™ë‹ˆë‹¤.",
+            _ => "ë°© ì…ì¥ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤."
         };
 
         Debug.LogWarning($"[ROOM ENTER UI] fail: {msg}");
@@ -939,8 +977,8 @@ public class GamePanelController : MonoBehaviour
     public void OnClickCloseGamePanel()
     {
         /*
-         * °ÔÀÓ ³»ºÎ »óÅÂ´Â À¯ÁöÇÏ°í ¸ŞÀÎ ·Îºñ È­¸éÀ¸·Î¸¸ µ¹¾Æ°£´Ù.
-         * ÀÌÈÄ GameButtonÀ» ´Ù½Ã ´©¸£¸é currentGamePanelView »óÅÂ°¡ º¹¿øµÈ´Ù.
+         * ê²Œì„ ë‚´ë¶€ ìƒíƒœëŠ” ìœ ì§€í•˜ê³  ë©”ì¸ ë¡œë¹„ í™”ë©´ìœ¼ë¡œë§Œ ëŒì•„ê°„ë‹¤.
+         * ì´í›„ GameButtonì„ ë‹¤ì‹œ ëˆ„ë¥´ë©´ currentGamePanelView ìƒíƒœê°€ ë³µì›ëœë‹¤.
          */
         GetComponent<NavigationPanelController>().SelectLobbyMainMenu(LobbyMainMenu.Lobby);
     }
@@ -1093,12 +1131,12 @@ public class GamePanelController : MonoBehaviour
         {
             if (targetMember == null)
             {
-                slotChangeConfirmText.text = "ÀÌ ÀÚ¸®·Î ÀÌµ¿ÇÏ½Ã°Ú½À´Ï±î?";
+                slotChangeConfirmText.text = "ì´ ìë¦¬ë¡œ ì´ë™í•˜ì‹œê² ìŠµë‹ˆê¹Œ?";
             }
             else
             {
                 slotChangeConfirmText.text =
-                    targetMember.nickname + "´Ô°ú ÀÚ¸® º¯°æÀ» ¿äÃ»ÇÏ½Ã°Ú½À´Ï±î?";
+                    targetMember.nickname + "ë‹˜ê³¼ ìë¦¬ ë³€ê²½ì„ ìš”ì²­í•˜ì‹œê² ìŠµë‹ˆê¹Œ?";
             }
         }
 
@@ -1119,35 +1157,35 @@ public class GamePanelController : MonoBehaviour
 
         if (result == (byte)RoomSlotChangeResult.SUCCESS)
         {
-            ShowRoomMessage("ÀÚ¸®¸¦ º¯°æÇß½À´Ï´Ù.");
+            ShowRoomMessage("ìë¦¬ë¥¼ ë³€ê²½í–ˆìŠµë‹ˆë‹¤.");
             return;
         }
 
         if (result == (byte)RoomSlotChangeResult.REQUEST_SENT)
         {
-            ShowRoomMessage(targetNickname + "´Ô¿¡°Ô ÀÚ¸® º¯°æ ¿äÃ»À» º¸³Â½À´Ï´Ù.");
+            ShowRoomMessage(targetNickname + "ë‹˜ì—ê²Œ ìë¦¬ ë³€ê²½ ìš”ì²­ì„ ë³´ëƒˆìŠµë‹ˆë‹¤.");
             return;
         }
 
         if (result == (byte)RoomSlotChangeResult.REJECTED)
         {
-            ShowRoomMessage(targetNickname + "´ÔÀÌ ÀÚ¸® º¯°æ ¿äÃ»À» °ÅÀıÇß½À´Ï´Ù.");
+            ShowRoomMessage(targetNickname + "ë‹˜ì´ ìë¦¬ ë³€ê²½ ìš”ì²­ì„ ê±°ì ˆí–ˆìŠµë‹ˆë‹¤.");
             return;
         }
 
         if (result == (byte)RoomSlotChangeResult.SAME_SLOT)
         {
-            ShowRoomMessage("ÀÌ¹Ì ÇØ´ç ÀÚ¸®¿¡ ÀÖ½À´Ï´Ù.");
+            ShowRoomMessage("ì´ë¯¸ í•´ë‹¹ ìë¦¬ì— ìˆìŠµë‹ˆë‹¤.");
             return;
         }
 
         if (result == (byte)RoomSlotChangeResult.REQUEST_ALREADY_EXISTS)
         {
-            ShowRoomMessage("»ó´ë¹æ¿¡°Ô ÀÌ¹Ì Ã³¸® ÁßÀÎ ¿äÃ»ÀÌ ÀÖ½À´Ï´Ù.");
+            ShowRoomMessage("ìƒëŒ€ë°©ì—ê²Œ ì´ë¯¸ ì²˜ë¦¬ ì¤‘ì¸ ìš”ì²­ì´ ìˆìŠµë‹ˆë‹¤.");
             return;
         }
 
-        ShowRoomMessage("ÀÚ¸® º¯°æ¿¡ ½ÇÆĞÇß½À´Ï´Ù.");
+        ShowRoomMessage("ìë¦¬ ë³€ê²½ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.");
     }
 
     public void OnRecvRoomSlotSwapRequest(RoomSlotSwapRequestData data)
@@ -1161,7 +1199,7 @@ public class GamePanelController : MonoBehaviour
         if (slotSwapRequestText != null)
         {
             slotSwapRequestText.text =
-                data.requesterNickname + "´Ô°ú ÀÚ¸®¸¦ º¯°æÇÏ½Ã°Ú½À´Ï±î?";
+                data.requesterNickname + "ë‹˜ê³¼ ìë¦¬ë¥¼ ë³€ê²½í•˜ì‹œê² ìŠµë‹ˆê¹Œ?";
         }
 
         if (slotSwapRequestPanel != null)
@@ -1299,7 +1337,7 @@ public class GamePanelController : MonoBehaviour
 
         if (!currentRoomState.isLeader)
         {
-            ShowRoomMessage("¹æÀå¸¸ »ç¿ëÇÒ ¼ö ÀÖ½À´Ï´Ù.");
+            ShowRoomMessage("ë°©ì¥ë§Œ ì‚¬ìš©í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.");
             return;
         }
 
@@ -1312,7 +1350,7 @@ public class GamePanelController : MonoBehaviour
 
         if (targetMember.nickname == _profilePanelController.currentNickname)
         {
-            ShowRoomMessage("ÀÚ±â ÀÚ½Å¿¡°Ô´Â »ç¿ëÇÒ ¼ö ¾ø½À´Ï´Ù.");
+            ShowRoomMessage("ìê¸° ìì‹ ì—ê²ŒëŠ” ì‚¬ìš©í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
             HideSlotAdminMenu();
             return;
         }
@@ -1374,23 +1412,23 @@ public class GamePanelController : MonoBehaviour
 
         if (result == (byte)RoomAdminResult.SUCCESS)
         {
-            ShowRoomMessage(targetNickname + "´Ô¿¡°Ô ¹æÀåÀ» ³Ñ°å½À´Ï´Ù.");
+            ShowRoomMessage(targetNickname + "ë‹˜ì—ê²Œ ë°©ì¥ì„ ë„˜ê²¼ìŠµë‹ˆë‹¤.");
             return;
         }
 
         if (result == (byte)RoomAdminResult.NOT_LEADER)
         {
-            ShowRoomMessage("¹æÀå¸¸ »ç¿ëÇÒ ¼ö ÀÖ½À´Ï´Ù.");
+            ShowRoomMessage("ë°©ì¥ë§Œ ì‚¬ìš©í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.");
             return;
         }
 
         if (result == (byte)RoomAdminResult.CANNOT_TARGET_SELF)
         {
-            ShowRoomMessage("ÀÚ±â ÀÚ½Å¿¡°Ô´Â »ç¿ëÇÒ ¼ö ¾ø½À´Ï´Ù.");
+            ShowRoomMessage("ìê¸° ìì‹ ì—ê²ŒëŠ” ì‚¬ìš©í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
             return;
         }
 
-        ShowRoomMessage("¹æÀå ³Ñ±â±â¿¡ ½ÇÆĞÇß½À´Ï´Ù.");
+        ShowRoomMessage("ë°©ì¥ ë„˜ê¸°ê¸°ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.");
     }
 
     public void OnRecvRoomKickResult(
@@ -1404,23 +1442,23 @@ public class GamePanelController : MonoBehaviour
 
         if (result == (byte)RoomAdminResult.SUCCESS)
         {
-            ShowRoomMessage(targetNickname + "´ÔÀ» °­ÅğÇß½À´Ï´Ù.");
+            ShowRoomMessage(targetNickname + "ë‹˜ì„ ê°•í‡´í–ˆìŠµë‹ˆë‹¤.");
             return;
         }
 
         if (result == (byte)RoomAdminResult.NOT_LEADER)
         {
-            ShowRoomMessage("¹æÀå¸¸ »ç¿ëÇÒ ¼ö ÀÖ½À´Ï´Ù.");
+            ShowRoomMessage("ë°©ì¥ë§Œ ì‚¬ìš©í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.");
             return;
         }
 
         if (result == (byte)RoomAdminResult.CANNOT_TARGET_SELF)
         {
-            ShowRoomMessage("ÀÚ±â ÀÚ½ÅÀº °­ÅğÇÒ ¼ö ¾ø½À´Ï´Ù.");
+            ShowRoomMessage("ìê¸° ìì‹ ì€ ê°•í‡´í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
             return;
         }
 
-        ShowRoomMessage("°­Åğ¿¡ ½ÇÆĞÇß½À´Ï´Ù.");
+        ShowRoomMessage("ê°•í‡´ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.");
     }
 
     public void OnRecvRoomKicked(uint roomId, string kickerNickname)
@@ -1438,14 +1476,14 @@ public class GamePanelController : MonoBehaviour
         ShowRoomListPanel();
         NetworkManager.Instance.SendRoomList();
 
-        ShowRoomMessage(kickerNickname + "´Ô¿¡ ÀÇÇØ ¹æ¿¡¼­ °­ÅğµÇ¾ú½À´Ï´Ù.");
+        ShowRoomMessage(kickerNickname + "ë‹˜ì— ì˜í•´ ë°©ì—ì„œ ê°•í‡´ë˜ì—ˆìŠµë‹ˆë‹¤.");
     }
 
     private void OnSelectRoomMap(GameMapId mapId)
     {
         if (currentRoomState == null || !currentRoomState.isLeader)
         {
-            ShowRoomMessage("¹æÀå¸¸ ¸ÊÀ» º¯°æÇÒ ¼ö ÀÖ½À´Ï´Ù.");
+            ShowRoomMessage("ë°©ì¥ë§Œ ë§µì„ ë³€ê²½í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.");
             return;
         }
 
@@ -1462,13 +1500,13 @@ public class GamePanelController : MonoBehaviour
 
         string message = result switch
         {
-            1 => "ÇöÀç »ç¼³¹æ¿¡ µé¾î°¡ ÀÖÁö ¾Ê½À´Ï´Ù.",
-            2 => "¹æÀ» Ã£À» ¼ö ¾ø½À´Ï´Ù.",
-            3 => "¹æÀå¸¸ ¸ÊÀ» º¯°æÇÒ ¼ö ÀÖ½À´Ï´Ù.",
-            4 => "¼±ÅÃÇÒ ¼ö ¾ø´Â ¸ÊÀÔ´Ï´Ù.",
-            5 => "°ÔÀÓÀÌ ½ÃÀÛµÈ µÚ¿¡´Â ¸ÊÀ» º¯°æÇÒ ¼ö ¾ø½À´Ï´Ù.",
-            6 => "»ç¼³¹æ¿¡¼­¸¸ ¸ÊÀ» Á÷Á¢ ¼³Á¤ÇÒ ¼ö ÀÖ½À´Ï´Ù.",
-            _ => "¸Ê º¯°æ¿¡ ½ÇÆĞÇß½À´Ï´Ù."
+            1 => "í˜„ì¬ ì‚¬ì„¤ë°©ì— ë“¤ì–´ê°€ ìˆì§€ ì•ŠìŠµë‹ˆë‹¤.",
+            2 => "ë°©ì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.",
+            3 => "ë°©ì¥ë§Œ ë§µì„ ë³€ê²½í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.",
+            4 => "ì„ íƒí•  ìˆ˜ ì—†ëŠ” ë§µì…ë‹ˆë‹¤.",
+            5 => "ê²Œì„ì´ ì‹œì‘ëœ ë’¤ì—ëŠ” ë§µì„ ë³€ê²½í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.",
+            6 => "ì‚¬ì„¤ë°©ì—ì„œë§Œ ë§µì„ ì§ì ‘ ì„¤ì •í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.",
+            _ => "ë§µ ë³€ê²½ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤."
         };
 
         roomPanelUI?.ShowMapSetError(message);
@@ -1480,19 +1518,19 @@ public class GamePanelController : MonoBehaviour
 
         if (currentRoomState == null)
         {
-            ShowRoomMessage("¹æ Á¤º¸°¡ ¾ø½À´Ï´Ù.");
+            ShowRoomMessage("ë°© ì •ë³´ê°€ ì—†ìŠµë‹ˆë‹¤.");
             return;
         }
 
         if (!currentRoomState.isLeader)
         {
-            ShowRoomMessage("¹æÀå¸¸ °ÔÀÓÀ» ½ÃÀÛÇÒ ¼ö ÀÖ½À´Ï´Ù.");
+            ShowRoomMessage("ë°©ì¥ë§Œ ê²Œì„ì„ ì‹œì‘í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.");
             return;
         }
 
         if (!currentRoomState.canStart)
         {
-            ShowRoomMessage("AÆÀ 3¸í, BÆÀ 3¸íÀÌ ÀÖ¾î¾ß ½ÃÀÛÇÒ ¼ö ÀÖ½À´Ï´Ù.");
+            ShowRoomMessage("AíŒ€ 3ëª…, BíŒ€ 3ëª…ì´ ìˆì–´ì•¼ ì‹œì‘í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.");
             return;
         }
 
@@ -1511,28 +1549,28 @@ public class GamePanelController : MonoBehaviour
 
         if (result == (byte)RoomGameStartResult.NOT_LEADER)
         {
-            ShowRoomMessage("¹æÀå¸¸ °ÔÀÓÀ» ½ÃÀÛÇÒ ¼ö ÀÖ½À´Ï´Ù.");
+            ShowRoomMessage("ë°©ì¥ë§Œ ê²Œì„ì„ ì‹œì‘í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.");
             return;
         }
 
         if (result == (byte)RoomGameStartResult.NOT_ALL_RETURNED_FROM_RESULT)
         {
-            ShowRoomMessage("·ëÀ¸·Î µ¹¾Æ¿ÀÁö ¸øÇÑ ÇÃ·¹ÀÌ¾î°¡ ÀÖ½À´Ï´Ù.");
+            ShowRoomMessage("ë£¸ìœ¼ë¡œ ëŒì•„ì˜¤ì§€ ëª»í•œ í”Œë ˆì´ì–´ê°€ ìˆìŠµë‹ˆë‹¤.");
             return;
         }
 
         if (result == (byte)RoomGameStartResult.NOT_ENOUGH_PLAYERS)
         {
-            ShowRoomMessage("AÆÀ 3¸í, BÆÀ 3¸íÀÌ ÀÖ¾î¾ß ½ÃÀÛÇÒ ¼ö ÀÖ½À´Ï´Ù.");
+            ShowRoomMessage("AíŒ€ 3ëª…, BíŒ€ 3ëª…ì´ ìˆì–´ì•¼ ì‹œì‘í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.");
             return;
         }
 
         if (result == (byte)RoomGameStartResult.ALREADY_PLAYING)
         {
-            ShowRoomMessage("ÀÌ¹Ì °ÔÀÓÀÌ ½ÃÀÛµÇ¾ú½À´Ï´Ù.");
+            ShowRoomMessage("ì´ë¯¸ ê²Œì„ì´ ì‹œì‘ë˜ì—ˆìŠµë‹ˆë‹¤.");
             return;
         }
 
-        ShowRoomMessage("°ÔÀÓ ½ÃÀÛ¿¡ ½ÇÆĞÇß½À´Ï´Ù.");
+        ShowRoomMessage("ê²Œì„ ì‹œì‘ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.");
     }
 }

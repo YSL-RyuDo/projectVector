@@ -88,7 +88,12 @@ public class RoomPlayerSlotUI : MonoBehaviour, IPointerClickHandler
         if (image != null)
         {
             image.gameObject.SetActive(true);
-            image.enabled = true;
+            Sprite icon = Resources.Load<Sprite>($"PlayerIcon/{Mathf.Clamp(data.playerIconId, 0, 2)}");
+            if (icon == null) icon = Resources.Load<Sprite>("PlayerIcon/0");
+            image.sprite = icon;
+            image.enabled = icon != null;
+            image.color = Color.white;
+            image.preserveAspect = true;
         }
 
         if (nicknameText != null)

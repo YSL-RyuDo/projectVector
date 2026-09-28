@@ -6,6 +6,91 @@ using UnityEngine.SceneManagement;
 using System.Security.Principal;
 using System.Text;
 
+public class MyPageCharacterData
+{
+    public int characterId;
+    public int matches;
+    public int wins;
+    public int maxKills;
+    public bool owned;
+}
+
+public class MyPageVisitorData
+{
+    public string userId;
+    public string nickname;
+    public int playerIconId;
+    public long visitedAtUnix;
+}
+
+public class MyPageProfileData
+{
+    public bool isSelf;
+    public bool privacyEnabled;
+    public string userId;
+    public string nickname;
+    public int level;
+    public int playerIconId;
+    public int logoBorderId;
+    public string joinDate;
+    public string region;
+    public string birthday;
+    public int likeCount;
+    public int seasonId;
+    public int currentRankImageId;
+    public string currentTierName;
+    public int seasonHighestRankImageId;
+    public int allTimeHighestRankImageId;
+    public int allTimeHighestSeasonId;
+    public int playCount;
+    public int wins;
+    public int roundsPlayed;
+    public int totalKills;
+    public int totalAssists;
+    public int totalDamage;
+    public int mvpCount;
+    public int headshotKills;
+    public int spikePlants;
+    public int spikeDefuses;
+    public int weaponSkinOwnedCount;
+    public int weaponSkinTotalCount;
+    public int characterSkinOwnedCount;
+    public int characterSkinTotalCount;
+    public int[] battleStatIds = { 0, 1, 2, 3, 4, 5, 6 };
+    public List<MyPageCharacterData> characters = new();
+    public List<MyPageVisitorData> visitors = new();
+}
+public class ChipCraftMedalData
+{
+    public int medalId;
+    public float x;
+    public float y;
+    public float rotation;
+    public float scale = 1f;
+    public bool flipped;
+    public ChipCraftMedalData Clone() => (ChipCraftMedalData)MemberwiseClone();
+}
+public class ChipCraftPresetData
+{
+    public int cardId;
+    public int caseId;
+    public List<ChipCraftMedalData> medals = new();
+    public ChipCraftPresetData Clone() => new()
+    {
+        cardId = cardId,
+        caseId = caseId,
+        medals = medals.ConvertAll(value => value.Clone())
+    };
+}
+public class ChipCraftData
+{
+    public bool isSelf;
+    public string userId;
+    public int ownedCardMask;
+    public int ownedCaseMask;
+    public int ownedMedalMask;
+    public ChipCraftPresetData preset = new();
+}
 public class CareerOverviewData
 {
     public int seasonId;
@@ -26,6 +111,49 @@ public class CareerOverviewData
     public int mvpCount;
 }
 
+public class CareerDetailSeasonData
+{
+    public int seasonId;
+    public string seasonName;
+    public bool isActive;
+}
+
+public class CareerDetailCharacterData
+{
+    public int characterId;
+    public int performanceScore;
+    public int matches;
+    public int wins;
+    public int kills;
+    public int deaths;
+    public int maxKills;
+    public int maxDamage;
+}
+
+public class CareerDetailData
+{
+    public bool success;
+    public bool hasData;
+    public int seasonId;
+    public int modeType;
+    public int selectedCharacterId;
+    public List<CareerDetailSeasonData> seasons = new();
+    public List<CareerDetailCharacterData> characters = new();
+    public int playCount;
+    public int wins;
+    public int roundsPlayed;
+    public int totalDamage;
+    public int kills;
+    public int deaths;
+    public int assists;
+    public int headshotKills;
+    public int meleeKills;
+    public int spikePlants;
+    public int spikeDefuses;
+    public int maxAssists;
+    public int maxRoundDamageHundredths;
+    public int maxRoundKillsHundredths;
+}
 public class CareerRankingEntryData
 {
     public int position;
@@ -103,6 +231,7 @@ public class TempGamePlayerData
     public int playerIconId;
     public int logoBorderId;
     public int rankImageId;
+    public ChipCraftPresetData preset = new();
 }
 
 public class RoomListData
@@ -442,7 +571,7 @@ public class NetworkManager : MonoBehaviour
     {
         lobbyRoomChatKind = LobbyRoomChatKind.ReadyRoom;
         lobbyRoomChatId = 0;
-        lobbyRoomChatName = "ÁØºñ¹æ";
+        lobbyRoomChatName = "ì¤€ë¹„ë°©";
         SyncLobbyRoomChatContext();
     }
 
@@ -662,6 +791,48 @@ public class NetworkManager : MonoBehaviour
         client.Send(buffer);
     }
 
+    public void SendProfileRequest(string targetUserId = "")
+    {
+        byte[] buffer = new byte[24];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_PROFILE_REQUEST).CopyTo(buffer, 2);
+        Packet.WriteFixedString(buffer, 4, targetUserId ?? string.Empty, 20);
+        client.Send(buffer);
+    }
+
+    public void SendProfilePrivacySet(bool enabled)
+    {
+        byte[] buffer = new byte[5];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_PROFILE_PRIVACY_SET).CopyTo(buffer, 2);
+        buffer[4] = enabled ? (byte)1 : (byte)0;
+        client.Send(buffer);
+    }
+
+    public void SendProfileLike(string targetUserId)
+    {
+        if (string.IsNullOrWhiteSpace(targetUserId))
+            return;
+        byte[] buffer = new byte[24];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_PROFILE_LIKE).CopyTo(buffer, 2);
+        Packet.WriteFixedString(buffer, 4, targetUserId, 20);
+        client.Send(buffer);
+    }
+    public void SendProfileBattleStatsSet(IReadOnlyList<int> battleStatIds)
+    {
+        if (battleStatIds == null || battleStatIds.Count != 7) return;
+        byte[] buffer = new byte[11];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_PROFILE_BATTLE_STATS_SET).CopyTo(buffer, 2);
+        for (int i = 0; i < 7; ++i)
+        {
+            if (battleStatIds[i] < 0 || battleStatIds[i] > 14) return;
+            buffer[4 + i] = (byte)battleStatIds[i];
+        }
+        client.Send(buffer);
+    }
+
     public void SendLobbyCharacterSelect(int modelId)
     {
         byte[] buffer = new byte[4 + 4];
@@ -715,6 +886,108 @@ public class NetworkManager : MonoBehaviour
         client.Send(buffer);
     }
 
+    public void SendCareerDetailRequest(
+        string targetUserId,
+        int seasonId,
+        int modeType,
+        int characterId)
+    {
+        byte[] buffer = new byte[33];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes(
+            (ushort)PacketType.PKT_CS_CAREER_DETAIL_REQUEST
+        ).CopyTo(buffer, 2);
+        Packet.WriteFixedString(buffer, 4, targetUserId ?? string.Empty, 20);
+        BitConverter.GetBytes(seasonId).CopyTo(buffer, 24);
+        buffer[28] = (byte)Mathf.Clamp(modeType, 0, 2);
+        BitConverter.GetBytes(Mathf.Clamp(characterId, 0, 3)).CopyTo(buffer, 29);
+        client.Send(buffer);
+    }
+
+    public void SendChipCraftRequest(string targetUserId = "")
+    {
+        byte[] buffer = new byte[24];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_CHIPCRAFT_REQUEST).CopyTo(buffer, 2);
+        Packet.WriteFixedString(buffer, 4, targetUserId ?? string.Empty, 20);
+        client.Send(buffer);
+    }
+
+    public void SendLevelRewardRequest() => SendHeaderOnly(PacketType.PKT_CS_LEVEL_REWARD_REQUEST);
+
+    public void SendLevelRewardClaim(int targetLevel)
+    {
+        byte[] buffer = new byte[8];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_LEVEL_REWARD_CLAIM).CopyTo(buffer, 2);
+        BitConverter.GetBytes(targetLevel).CopyTo(buffer, 4);
+        client.Send(buffer);
+    }
+
+    public void SendHonorRequest(int page = 1)
+    {
+        byte[] buffer = new byte[5];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_HONOR_REQUEST).CopyTo(buffer, 2);
+        buffer[4] = (byte)Mathf.Clamp(page, 1, 5);
+        client.Send(buffer);
+    }
+
+    public void SendHonorClaim(int grade)
+    {
+        byte[] buffer = new byte[8];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_HONOR_CLAIM).CopyTo(buffer, 2);
+        BitConverter.GetBytes(grade).CopyTo(buffer, 4);
+        client.Send(buffer);
+    }
+
+    public void SendChipCraftSave(ChipCraftPresetData preset)
+    {
+        if (preset == null || preset.medals.Count > 3) return;
+        byte[] buffer = new byte[61];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)PacketType.PKT_CS_CHIPCRAFT_SAVE).CopyTo(buffer, 2);
+        WriteChipCraftPreset(buffer, 4, preset);
+        client.Send(buffer);
+    }
+
+    private static void WriteChipCraftPreset(byte[] buffer, int offset, ChipCraftPresetData preset)
+    {
+        buffer[offset++] = (byte)preset.cardId;
+        buffer[offset++] = (byte)preset.caseId;
+        buffer[offset++] = (byte)preset.medals.Count;
+        for (int i = 0; i < 3; ++i)
+        {
+            ChipCraftMedalData medal = i < preset.medals.Count ? preset.medals[i] : new ChipCraftMedalData();
+            buffer[offset++] = (byte)medal.medalId;
+            BitConverter.GetBytes(medal.x).CopyTo(buffer, offset); offset += 4;
+            BitConverter.GetBytes(medal.y).CopyTo(buffer, offset); offset += 4;
+            BitConverter.GetBytes(medal.rotation).CopyTo(buffer, offset); offset += 4;
+            BitConverter.GetBytes(medal.scale).CopyTo(buffer, offset); offset += 4;
+            buffer[offset++] = medal.flipped ? (byte)1 : (byte)0;
+        }
+    }
+
+    private static ChipCraftPresetData ReadChipCraftPreset(byte[] body, ref int offset)
+    {
+        ChipCraftPresetData preset = new();
+        preset.cardId = body[offset++];
+        preset.caseId = body[offset++];
+        int count = Mathf.Min(body[offset++], (byte)3);
+        for (int i = 0; i < 3; ++i)
+        {
+            ChipCraftMedalData medal = new();
+            medal.medalId = body[offset++];
+            medal.x = BitConverter.ToSingle(body, offset); offset += 4;
+            medal.y = BitConverter.ToSingle(body, offset); offset += 4;
+            medal.rotation = BitConverter.ToSingle(body, offset); offset += 4;
+            medal.scale = BitConverter.ToSingle(body, offset); offset += 4;
+            medal.flipped = body[offset++] != 0;
+            if (i < count) preset.medals.Add(medal);
+        }
+        return preset;
+    }
     public void SendCareerDataRequests(int matchFilterType)
     {
         SendHeaderOnly(PacketType.PKT_CS_CAREER_OVERVIEW_REQUEST);
@@ -841,6 +1114,46 @@ public class NetworkManager : MonoBehaviour
                 HandleRoomMapSetResult(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_PROFILE:
+                HandleProfile(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_PROFILE_PRIVACY_SET_RESULT:
+                HandleProfilePrivacySetResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_PROFILE_LIKE_RESULT:
+                HandleProfileLikeResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_PROFILE_BATTLE_STATS_SET_RESULT:
+                HandleProfileBattleStatsSetResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CHIPCRAFT:
+                HandleChipCraft(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_CHIPCRAFT_SAVE_RESULT:
+                HandleChipCraftSaveResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_LEVEL_REWARD_STATE:
+                HandleLevelRewardState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_LEVEL_REWARD_CLAIM_RESULT:
+                HandleLevelRewardClaimResult(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_HONOR_STATE:
+                HandleHonorState(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_HONOR_CLAIM_RESULT:
+                HandleHonorClaimResult(body);
+                break;
+
             case (ushort)PacketType.PKT_SC_LOBBY_CHARACTER_SELECT_RESULT:
                 HandleLobbyCharacterSelectResult(body);
                 break;
@@ -865,6 +1178,9 @@ public class NetworkManager : MonoBehaviour
                 HandleCareerOverview(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_CAREER_DETAIL:
+                HandleCareerDetail(body);
+                break;
             case (ushort)PacketType.PKT_SC_CAREER_RANKING:
                 HandleCareerRanking(body);
                 break;
@@ -1233,12 +1549,12 @@ public class NetworkManager : MonoBehaviour
                 HandleSentinelXDestroy(body);
                 break;
 
-            case (ushort)PacketType.PKT_SC_FAVOR_LEVEL_RESPONSE:    // È£°¨µµ ·¹º§
+            case (ushort)PacketType.PKT_SC_FAVOR_LEVEL_RESPONSE:    // í˜¸ê°ë„ ë ˆë²¨
                 HandleFavorLevelResponse(body);
                 break;
 
             default:
-                Debug.LogWarning($"Ã³¸® ¾È µÈ ÆĞÅ¶ type={type}");
+                Debug.LogWarning($"ì²˜ë¦¬ ì•ˆ ëœ íŒ¨í‚· type={type}");
                 break;
 
 
@@ -1259,11 +1575,11 @@ public class NetworkManager : MonoBehaviour
         {
             string msg = result switch
             {
-                (byte)RegisterResult.ID_DUPLICATE => "¾ÆÀÌµğ Áßº¹",
-                (byte)RegisterResult.NICK_DUPLICATE => "´Ğ³×ÀÓ Áßº¹",
-                (byte)RegisterResult.PASSWORD_MISMATCH => "ºñ¹Ğ¹øÈ£ ºÒÀÏÄ¡",
-                (byte)RegisterResult.INVALID_INPUT => "ÀÔ·Â ¿À·ù",
-                _ => "È¸¿ø°¡ÀÔ ½ÇÆĞ"
+                (byte)RegisterResult.ID_DUPLICATE => "ì•„ì´ë”” ì¤‘ë³µ",
+                (byte)RegisterResult.NICK_DUPLICATE => "ë‹‰ë„¤ì„ ì¤‘ë³µ",
+                (byte)RegisterResult.PASSWORD_MISMATCH => "ë¹„ë°€ë²ˆí˜¸ ë¶ˆì¼ì¹˜",
+                (byte)RegisterResult.INVALID_INPUT => "ì…ë ¥ ì˜¤ë¥˜",
+                _ => "íšŒì›ê°€ì… ì‹¤íŒ¨"
             };
 
             loginUI?.ShowError(msg);
@@ -1287,11 +1603,11 @@ public class NetworkManager : MonoBehaviour
 
             string msg = result switch
             {
-                (byte)LoginResult.NO_ID => "¾ÆÀÌµğ ¾øÀ½",
-                (byte)LoginResult.WRONG_PASSWORD => "ºñ¹Ğ¹øÈ£ Æ²¸²",
-                (byte)LoginResult.INVALID_INPUT => "ÀÔ·Â ¿À·ù",
-                (byte)LoginResult.ALREADY_LOGIN => "ÀÌ¹Ì ·Î±×ÀÎµÈ °èÁ¤ÀÔ´Ï´Ù.",
-                _ => "·Î±×ÀÎ ½ÇÆĞ"
+                (byte)LoginResult.NO_ID => "ì•„ì´ë”” ì—†ìŒ",
+                (byte)LoginResult.WRONG_PASSWORD => "ë¹„ë°€ë²ˆí˜¸ í‹€ë¦¼",
+                (byte)LoginResult.INVALID_INPUT => "ì…ë ¥ ì˜¤ë¥˜",
+                (byte)LoginResult.ALREADY_LOGIN => "ì´ë¯¸ ë¡œê·¸ì¸ëœ ê³„ì •ì…ë‹ˆë‹¤.",
+                _ => "ë¡œê·¸ì¸ ì‹¤íŒ¨"
             };
 
             loginUI?.ShowError(msg);
@@ -1336,7 +1652,7 @@ public class NetworkManager : MonoBehaviour
 
         SendWeaponSkinLoadoutRequest(lobbyCharacterModelId);
 
-        SendFavorLevelRequest();        // ·Îºñ ¾À ÀÔÀå ¸¶´Ù È£°¨µµ ·¹º§ ºÒ·¯¿À±â
+        SendFavorLevelRequest();        // ë¡œë¹„ ì”¬ ì…ì¥ ë§ˆë‹¤ í˜¸ê°ë„ ë ˆë²¨ ë¶ˆëŸ¬ì˜¤ê¸°
     }
 
     private void HandleWeaponSkinLoadout(byte[] body)
@@ -1418,6 +1734,96 @@ public class NetworkManager : MonoBehaviour
         );
     }
 
+    private void HandleProfile(byte[] body)
+    {
+        const int ExpectedSize = 711;
+        if (body == null || body.Length < ExpectedSize)
+        {
+            Debug.LogWarning($"[PROFILE] invalid body size={body?.Length ?? 0}");
+            return;
+        }
+        int offset = 0;
+        if (body[offset++] != 0) { MyPagePanelController.Instance?.ShowLoadFailure(); return; }
+        MyPageProfileData data = new();
+        data.isSelf = body[offset++] != 0;
+        data.privacyEnabled = body[offset++] != 0;
+        data.userId = Packet.ReadFixedString(body, offset, 20); offset += 20;
+        data.nickname = Packet.ReadFixedString(body, offset, 20); offset += 20;
+        data.level = BitConverter.ToInt32(body, offset); offset += 4;
+        data.playerIconId = BitConverter.ToInt32(body, offset); offset += 4;
+        data.logoBorderId = BitConverter.ToInt32(body, offset); offset += 4;
+        data.joinDate = Packet.ReadFixedString(body, offset, 16); offset += 16;
+        data.region = Packet.ReadFixedString(body, offset, 20); offset += 20;
+        data.birthday = Packet.ReadFixedString(body, offset, 16); offset += 16;
+        data.likeCount = BitConverter.ToInt32(body, offset); offset += 4;
+        data.seasonId = BitConverter.ToInt32(body, offset); offset += 4;
+        data.currentRankImageId = BitConverter.ToInt32(body, offset); offset += 4;
+        data.currentTierName = Packet.ReadFixedString(body, offset, 32); offset += 32;
+        data.seasonHighestRankImageId = BitConverter.ToInt32(body, offset); offset += 4;
+        data.allTimeHighestRankImageId = BitConverter.ToInt32(body, offset); offset += 4;
+        data.allTimeHighestSeasonId = BitConverter.ToInt32(body, offset); offset += 4;
+        data.playCount = BitConverter.ToInt32(body, offset); offset += 4;
+        data.wins = BitConverter.ToInt32(body, offset); offset += 4;
+        data.roundsPlayed = BitConverter.ToInt32(body, offset); offset += 4;
+        data.totalKills = BitConverter.ToInt32(body, offset); offset += 4;
+        data.totalAssists = BitConverter.ToInt32(body, offset); offset += 4;
+        data.totalDamage = BitConverter.ToInt32(body, offset); offset += 4;
+        data.mvpCount = BitConverter.ToInt32(body, offset); offset += 4;
+        data.headshotKills = BitConverter.ToInt32(body, offset); offset += 4;
+        data.spikePlants = BitConverter.ToInt32(body, offset); offset += 4;
+        data.spikeDefuses = BitConverter.ToInt32(body, offset); offset += 4;
+        data.weaponSkinOwnedCount = BitConverter.ToInt32(body, offset); offset += 4;
+        data.weaponSkinTotalCount = BitConverter.ToInt32(body, offset); offset += 4;
+        data.characterSkinOwnedCount = BitConverter.ToInt32(body, offset); offset += 4;
+        data.characterSkinTotalCount = BitConverter.ToInt32(body, offset); offset += 4;
+        data.battleStatIds = new int[7];
+        for (int i = 0; i < data.battleStatIds.Length; ++i)
+            data.battleStatIds[i] = body[offset++];
+        for (int i = 0; i < 4; ++i)
+        {
+            MyPageCharacterData character = new();
+            character.characterId = BitConverter.ToInt32(body, offset); offset += 4;
+            character.matches = BitConverter.ToInt32(body, offset); offset += 4;
+            character.wins = BitConverter.ToInt32(body, offset); offset += 4;
+            character.maxKills = BitConverter.ToInt32(body, offset); offset += 4;
+            character.owned = body[offset++] != 0;
+            data.characters.Add(character);
+        }
+        int visitorCount = Mathf.Min(body[offset++], (byte)8);
+        for (int i = 0; i < 8; ++i)
+        {
+            MyPageVisitorData visitor = new();
+            visitor.userId = Packet.ReadFixedString(body, offset, 20); offset += 20;
+            visitor.nickname = Packet.ReadFixedString(body, offset, 20); offset += 20;
+            visitor.playerIconId = BitConverter.ToInt32(body, offset); offset += 4;
+            visitor.visitedAtUnix = BitConverter.ToInt64(body, offset); offset += 8;
+            if (i < visitorCount) data.visitors.Add(visitor);
+        }
+        MyPagePanelController.Instance?.ApplyProfile(data);
+    }
+
+    private void HandleProfilePrivacySetResult(byte[] body)
+    {
+        if (body == null || body.Length < 2) return;
+        MyPagePanelController.Instance?.ApplyPrivacyResult(body[0] == 0, body[1] != 0);
+    }
+
+    private void HandleProfileLikeResult(byte[] body)
+    {
+        if (body == null || body.Length < 25) return;
+        bool success = body[0] == 0;
+        string targetUserId = Packet.ReadFixedString(body, 1, 20);
+        int likeCount = BitConverter.ToInt32(body, 21);
+        MyPagePanelController.Instance?.ApplyLikeResult(success, targetUserId, likeCount);
+    }
+    private void HandleProfileBattleStatsSetResult(byte[] body)
+    {
+        if (body == null || body.Length < 8) return;
+        int[] battleStatIds = new int[7];
+        for (int i = 0; i < battleStatIds.Length; ++i) battleStatIds[i] = body[1 + i];
+        MyPagePanelController.Instance?.ApplyBattleStatsResult(body[0] == 0, battleStatIds);
+    }
+
     private void HandleCareerOverview(byte[] body)
     {
         const int ExpectedBodySize = 124;
@@ -1465,6 +1871,150 @@ public class NetworkManager : MonoBehaviour
         panel?.ApplyOverview(data);
     }
 
+    private void HandleCareerDetail(byte[] body)
+    {
+        const int ExpectedBodySize = 492;
+        const int SeasonEntrySize = 37;
+        const int SeasonCapacity = 8;
+        const int CharacterCapacity = 4;
+        if (body == null || body.Length < ExpectedBodySize)
+        {
+            Debug.LogWarning("[CAREER DETAIL] invalid packet size");
+            return;
+        }
+
+        int offset = 0;
+        CareerDetailData data = new();
+        data.success = body[offset++] == 0;
+        data.hasData = body[offset++] != 0;
+        data.seasonId = BitConverter.ToInt32(body, offset); offset += 4;
+        data.modeType = body[offset++];
+        data.selectedCharacterId = BitConverter.ToInt32(body, offset); offset += 4;
+        int seasonCount = Math.Min((int)body[offset++], SeasonCapacity);
+
+        for (int i = 0; i < SeasonCapacity; ++i)
+        {
+            CareerDetailSeasonData season = new();
+            season.seasonId = BitConverter.ToInt32(body, offset); offset += 4;
+            season.seasonName = Packet.ReadFixedString(body, offset, 32); offset += 32;
+            season.isActive = body[offset++] != 0;
+            if (i < seasonCount) data.seasons.Add(season);
+        }
+
+        for (int i = 0; i < CharacterCapacity; ++i)
+        {
+            CareerDetailCharacterData character = new();
+            character.characterId = BitConverter.ToInt32(body, offset); offset += 4;
+            character.performanceScore = BitConverter.ToInt32(body, offset); offset += 4;
+            character.matches = BitConverter.ToInt32(body, offset); offset += 4;
+            character.wins = BitConverter.ToInt32(body, offset); offset += 4;
+            character.kills = BitConverter.ToInt32(body, offset); offset += 4;
+            character.deaths = BitConverter.ToInt32(body, offset); offset += 4;
+            character.maxKills = BitConverter.ToInt32(body, offset); offset += 4;
+            character.maxDamage = BitConverter.ToInt32(body, offset); offset += 4;
+            data.characters.Add(character);
+        }
+
+        data.playCount = BitConverter.ToInt32(body, offset); offset += 4;
+        data.wins = BitConverter.ToInt32(body, offset); offset += 4;
+        data.roundsPlayed = BitConverter.ToInt32(body, offset); offset += 4;
+        data.totalDamage = BitConverter.ToInt32(body, offset); offset += 4;
+        data.kills = BitConverter.ToInt32(body, offset); offset += 4;
+        data.deaths = BitConverter.ToInt32(body, offset); offset += 4;
+        data.assists = BitConverter.ToInt32(body, offset); offset += 4;
+        data.headshotKills = BitConverter.ToInt32(body, offset); offset += 4;
+        data.meleeKills = BitConverter.ToInt32(body, offset); offset += 4;
+        data.spikePlants = BitConverter.ToInt32(body, offset); offset += 4;
+        data.spikeDefuses = BitConverter.ToInt32(body, offset); offset += 4;
+        data.maxAssists = BitConverter.ToInt32(body, offset); offset += 4;
+        data.maxRoundDamageHundredths = BitConverter.ToInt32(body, offset); offset += 4;
+        data.maxRoundKillsHundredths = BitConverter.ToInt32(body, offset);
+
+        MyPageCareerDataController panel =
+            FindFirstObjectByType<MyPageCareerDataController>(FindObjectsInactive.Include);
+        panel?.ApplyData(data);
+    }
+
+    private void HandleChipCraft(byte[] body)
+    {
+        if (body == null || body.Length < 82 || body[0] != 0) return;
+        int offset = 1;
+        ChipCraftData data = new();
+        data.isSelf = body[offset++] != 0;
+        data.userId = Packet.ReadFixedString(body, offset, 20); offset += 20;
+        data.ownedCardMask = body[offset++];
+        data.ownedCaseMask = body[offset++];
+        data.ownedMedalMask = body[offset++];
+        data.preset = ReadChipCraftPreset(body, ref offset);
+        MyPagePanelController.Instance?.ApplyChipCraft(data);
+    }
+
+    private void HandleChipCraftSaveResult(byte[] body)
+    {
+        if (body == null || body.Length < 58) return;
+        int offset = 1;
+        ChipCraftPresetData preset = body[0] == 0 ? ReadChipCraftPreset(body, ref offset) : null;
+        MyPagePanelController.Instance?.ApplyChipCraftSaveResult(body[0] == 0, preset);
+    }
+
+    private void HandleLevelRewardState(byte[] body)
+    {
+        if (body == null || body.Length < 25) return;
+        MyPageLevelRewardController panel = FindFirstObjectByType<MyPageLevelRewardController>(FindObjectsInactive.Include);
+        panel?.ApplyState(body[0] == 0,
+            BitConverter.ToInt32(body, 1), BitConverter.ToInt32(body, 5),
+            BitConverter.ToInt32(body, 9), BitConverter.ToInt32(body, 13));
+        if (body[0] == 0)
+            MoneyManager.Instance?.SetServerBalances(BitConverter.ToInt32(body, 17), BitConverter.ToInt32(body, 21));
+    }
+
+    private void HandleLevelRewardClaimResult(byte[] body)
+    {
+        if (body == null || body.Length < 21) return;
+        MyPageLevelRewardController panel = FindFirstObjectByType<MyPageLevelRewardController>(FindObjectsInactive.Include);
+        panel?.ApplyClaim(body[0] == 0, BitConverter.ToInt32(body, 1),
+            BitConverter.ToInt32(body, 5), BitConverter.ToInt32(body, 9));
+        if (body[0] == 0)
+            MoneyManager.Instance?.SetServerBalances(BitConverter.ToInt32(body, 13), BitConverter.ToInt32(body, 17));
+    }
+
+    private void HandleHonorState(byte[] body)
+    {
+        if (body == null || body.Length < 20) return;
+        int offset = 0;
+        bool success = body[offset++] == 0;
+        int score = BitConverter.ToInt32(body, offset); offset += 4;
+        int claimed = BitConverter.ToInt32(body, offset); offset += 4;
+        int free = BitConverter.ToInt32(body, offset); offset += 4;
+        int victory = BitConverter.ToInt32(body, offset); offset += 4;
+        int page = body[offset++], pageCount = body[offset++], count = body[offset++];
+        if (count > 10 || body.Length < 20 + count * 13) return;
+        var changes = new System.Collections.Generic.List<HonorChangeData>(count);
+        for (int index = 0; index < count; ++index)
+        {
+            long time = BitConverter.ToInt64(body, offset); offset += 8;
+            int delta = BitConverter.ToInt32(body, offset); offset += 4;
+            byte reason = body[offset++];
+            changes.Add(new HonorChangeData(time, delta, reason));
+        }
+        FindFirstObjectByType<MyPageHonorController>(FindObjectsInactive.Include)
+            ?.ApplyState(success, score, claimed, page, pageCount, changes);
+        if (success) MoneyManager.Instance?.SetServerBalances(free, victory);
+    }
+
+    private void HandleHonorClaimResult(byte[] body)
+    {
+        if (body == null || body.Length < 21) return;
+        bool success = body[0] == 0;
+        int grade = BitConverter.ToInt32(body, 1);
+        int freeAward = BitConverter.ToInt32(body, 5);
+        int victoryAward = BitConverter.ToInt32(body, 9);
+        FindFirstObjectByType<MyPageHonorController>(FindObjectsInactive.Include)
+            ?.ApplyClaim(success, grade, freeAward, victoryAward);
+        if (success)
+            MoneyManager.Instance?.SetServerBalances(
+                BitConverter.ToInt32(body, 13), BitConverter.ToInt32(body, 17));
+    }
     private void HandleCareerRanking(byte[] body)
     {
         const int EntrySize = 100;
@@ -1927,6 +2477,10 @@ public class NetworkManager : MonoBehaviour
 
     void HandleTempGameRoomEnter(byte[] body)
     {
+        const int BaseSlotSize = 33;
+        const int PresetSize = 57;
+        if (body == null || body.Length < 2 + 3 * BaseSlotSize) return;
+        bool hasPresets = body.Length >= 2 + 3 * (BaseSlotSize + PresetSize);
         byte result = body[0];
         byte playerCount = body[1];
 
@@ -1956,6 +2510,9 @@ public class NetworkManager : MonoBehaviour
 
             data.rankImageId = BitConverter.ToInt32(body, offset);
             offset += 4;
+
+            if (hasPresets)
+                data.preset = ReadChipCraftPreset(body, ref offset);
 
             players.Add(data);
         }
@@ -2018,7 +2575,7 @@ public class NetworkManager : MonoBehaviour
             room.roomId = BitConverter.ToUInt32(body, offset);
             offset += 4;
 
-            // ¹®ÀÚ¿­ raw ¹ÙÀÌÆ® È®ÀÎ
+            // ë¬¸ìì—´ raw ë°”ì´íŠ¸ í™•ì¸
             Debug.Log($"[RAW roomName bytes] {BitConverter.ToString(body, offset, 32)}");
             room.roomName = Packet.ReadFixedString(body, offset, 32);
             offset += 32;
@@ -2881,7 +3438,7 @@ public class NetworkManager : MonoBehaviour
 
             if (remainingSeconds == 0)
             {
-                TopInfoUI.Instance.SetGameDescription("ÀüÅõ ´Ü°è");
+                TopInfoUI.Instance.SetGameDescription("ì „íˆ¬ ë‹¨ê³„");
             }
         }
 
@@ -3267,9 +3824,9 @@ public class NetworkManager : MonoBehaviour
         return null;
     }
 
-    public void SendHit(uint targetPlayerId)
+    public void SendHit(uint targetPlayerId, bool isHeadshot = false)
     {
-        ushort size = 4 + 4;
+        ushort size = 4 + 4 + 1;
         ushort type = (ushort)PacketType.PKT_CS_HIT;
 
         byte[] buffer = new byte[size];
@@ -3283,10 +3840,12 @@ public class NetworkManager : MonoBehaviour
         offset += 2;
 
         Buffer.BlockCopy(BitConverter.GetBytes(targetPlayerId), 0, buffer, offset, 4);
+        offset += 4;
+        buffer[offset] = isHeadshot ? (byte)1 : (byte)0;
 
         client.Send(buffer);
 
-        Debug.Log($"[SEND HIT] targetPlayerId={targetPlayerId}");
+        Debug.Log($"[SEND HIT] targetPlayerId={targetPlayerId} headshot={isHeadshot}");
     }
 
     public void SendWeaponSwitch(int weaponId)
@@ -3443,7 +4002,7 @@ public class NetworkManager : MonoBehaviour
         if (TopInfoUI.Instance != null)
         {
             TopInfoUI.Instance.SetScoreByTeam(scoreA, scoreB);
-            TopInfoUI.Instance.SetGameDescription("±¸¸Å ´Ü°è");
+            TopInfoUI.Instance.SetGameDescription("êµ¬ë§¤ ë‹¨ê³„");
         }
 
         if (RoundManager.Instance != null)
@@ -3821,7 +4380,7 @@ public class NetworkManager : MonoBehaviour
                 if (knifeWeaponId >= 0)
                     StorePanelUI.Instance.SetOwnedWeaponFromServer(knifeWeaponId);
 
-                // ¹æ¾î±¸¸¦ 0À¸·Î ÃÊ±âÈ­
+                // ë°©ì–´êµ¬ë¥¼ 0ìœ¼ë¡œ ì´ˆê¸°í™”
                 StorePanelUI.Instance.SetOwnedArmorFromServer(0);
             }
         }
@@ -4290,7 +4849,7 @@ public class NetworkManager : MonoBehaviour
 
         if (TopInfoUI.Instance != null)
         {
-            TopInfoUI.Instance.SetGameDescription("ÀüÅõ ´Ü°è");
+            TopInfoUI.Instance.SetGameDescription("ì „íˆ¬ ë‹¨ê³„");
             TopInfoUI.Instance.SetTimer(remainingSeconds);
         }
         else
@@ -4369,7 +4928,7 @@ public class NetworkManager : MonoBehaviour
             ps.SetHasSpikeFromServer(hasSpike);
         }
 
-        // ÇÙ½É: ¸ğµç Å¬¶ó¿¡¼­ ¹Ù´Ú ½ºÆÄÀÌÅ© Á¦°Å
+        // í•µì‹¬: ëª¨ë“  í´ë¼ì—ì„œ ë°”ë‹¥ ìŠ¤íŒŒì´í¬ ì œê±°
         DroppedSpikePickup[] droppedSpikes =
             FindObjectsByType<DroppedSpikePickup>(
                 FindObjectsInactive.Include,
@@ -4389,9 +4948,9 @@ public class NetworkManager : MonoBehaviour
         if (TopInfoUI.Instance != null)
         {
             if (showCarrierInfo != 0)
-                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} ½ºÆÄÀÌÅ© È¹µæ");
+                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} ìŠ¤íŒŒì´í¬ íšë“");
             else
-                TopInfoUI.Instance.SetGameDescription("½ºÆÄÀÌÅ© È¹µæµÊ");
+                TopInfoUI.Instance.SetGameDescription("ìŠ¤íŒŒì´í¬ íšë“ë¨");
         }
     }
     private void HandleSpikePlanted(byte[] body)
@@ -4415,7 +4974,7 @@ public class NetworkManager : MonoBehaviour
 
         if (TopInfoUI.Instance != null)
         {
-            TopInfoUI.Instance.SetGameDescription("½ºÆÄÀÌÅ© ¼³Ä¡µÊ");
+            TopInfoUI.Instance.SetGameDescription("ìŠ¤íŒŒì´í¬ ì„¤ì¹˜ë¨");
             TopInfoUI.Instance.SetUnknownTimer();
         }
 
@@ -4424,7 +4983,7 @@ public class NetworkManager : MonoBehaviour
             CombatFeedbackUI.Instance.HideSpikeProgress();
 
             CombatFeedbackUI.Instance.ShowObjectiveNotice(
-                "°ø°İÆÀÀÌ ½ºÆÄÀÌÅ©¸¦ ¼³Ä¡Çß½À´Ï´Ù.",
+                "ê³µê²©íŒ€ì´ ìŠ¤íŒŒì´í¬ë¥¼ ì„¤ì¹˜í–ˆìŠµë‹ˆë‹¤.",
                 true
             );
         }
@@ -4464,7 +5023,7 @@ public class NetworkManager : MonoBehaviour
         if (SpikeSpawner.Instance != null)
             SpikeSpawner.Instance.SpawnDroppedAt(pos, dir, dropperPlayerId);
 
-        // ÇÙ½É: ½ºÆÄÀÌÅ©¸¦ ¹ö¸° ÇÃ·¹ÀÌ¾î´Â ´õ ÀÌ»ó ½ºÆÄÀÌÅ© ¼ÒÀ¯ÀÚ°¡ ¾Æ´Ô
+        // í•µì‹¬: ìŠ¤íŒŒì´í¬ë¥¼ ë²„ë¦° í”Œë ˆì´ì–´ëŠ” ë” ì´ìƒ ìŠ¤íŒŒì´í¬ ì†Œìœ ìê°€ ì•„ë‹˜
         ApplySpikeDroppedToPlayer(dropperPlayerId);
     }
 
@@ -4514,18 +5073,18 @@ public class NetworkManager : MonoBehaviour
         }
 
         if (TopInfoUI.Instance != null)
-            TopInfoUI.Instance.SetGameDescription("½ºÆÄÀÌÅ© ÇØÃ¼µÊ");
+            TopInfoUI.Instance.SetGameDescription("ìŠ¤íŒŒì´í¬ í•´ì²´ë¨");
 
         if (CombatFeedbackUI.Instance != null)
         {
             CombatFeedbackUI.Instance.HideSpikeProgress();
 
-            // ±âÁ¸ ¼³Ä¡ »óÅÂ ¾ÆÀÌÄÜ Á¦°Å
+            // ê¸°ì¡´ ì„¤ì¹˜ ìƒíƒœ ì•„ì´ì½˜ ì œê±°
             CombatFeedbackUI.Instance.ClearObjectiveState();
 
-            // ÇØÃ¼ ¿Ï·á ¸Ş½ÃÁö¸¸ Àá±ñ Ç¥½Ã
+            // í•´ì²´ ì™„ë£Œ ë©”ì‹œì§€ë§Œ ì ê¹ í‘œì‹œ
             CombatFeedbackUI.Instance.ShowObjectiveNotice(
-                "¼öºñÆÀÀÌ ½ºÆÄÀÌÅ©¸¦ ÇØÃ¼Çß½À´Ï´Ù.",
+                "ìˆ˜ë¹„íŒ€ì´ ìŠ¤íŒŒì´í¬ë¥¼ í•´ì²´í–ˆìŠµë‹ˆë‹¤.",
                 false
             );
         }
@@ -4613,14 +5172,14 @@ public class NetworkManager : MonoBehaviour
             $"deadCharacter={deadCharacterId}"
         );
 
-        // Å³·¯°¡ Á¤»óÀûÀ¸·Î Á¸ÀçÇÏ´Â °æ¿ì¸¸ Å³·Î±× Ç¥½Ã
+        // í‚¬ëŸ¬ê°€ ì •ìƒì ìœ¼ë¡œ ì¡´ì¬í•˜ëŠ” ê²½ìš°ë§Œ í‚¬ë¡œê·¸ í‘œì‹œ
         if (killerPlayerId != 0 &&
             KillLogManager.Instance != null)
         {
             byte myTeam = GetMyTeamForKillLog();
 
-            // Å³·¯°¡ ³» ÆÀÀÌ¸é OurKillLogPrefab
-            // Å³·¯°¡ »ó´ë ÆÀÀÌ¸é EnemyKillLogPrefab
+            // í‚¬ëŸ¬ê°€ ë‚´ íŒ€ì´ë©´ OurKillLogPrefab
+            // í‚¬ëŸ¬ê°€ ìƒëŒ€ íŒ€ì´ë©´ EnemyKillLogPrefab
             bool isOurKill =
                 killerTeam == myTeam;
 
@@ -4873,7 +5432,7 @@ public class NetworkManager : MonoBehaviour
         snapshot.weaponId = weaponId;
         snapshot.isADS = false;
 
-        // ·ÎÄÃÀº ¹«±â Switch¿¡¼­ ÀÌ¹Ì Ã³¸®ÇÔ
+        // ë¡œì»¬ì€ ë¬´ê¸° Switchì—ì„œ ì´ë¯¸ ì²˜ë¦¬í•¨
         if (playerId == MyPlayerId)
         {
             Debug.Log(
@@ -4906,7 +5465,7 @@ public class NetworkManager : MonoBehaviour
                     weaponId
                 );
 
-                // ¹«±â º¯°æ ÈÄ ±âÁ¸ ADS »óÅÂ ÇØÁ¦
+                // ë¬´ê¸° ë³€ê²½ í›„ ê¸°ì¡´ ADS ìƒíƒœ í•´ì œ
                 item.SetADSVisualFromServer(false);
             }
             else
@@ -4943,7 +5502,7 @@ public class NetworkManager : MonoBehaviour
         if (isCurrentSpectatorTarget &&
             InGameUIManager.Instance != null)
         {
-            // ¹«±â¸¦ º¯°æÇÏ¸é ¼­¹ö ½º³À¼¦ÀÇ ADSµµ false·Î ÃÊ±âÈ­µÈ´Ù.
+            // ë¬´ê¸°ë¥¼ ë³€ê²½í•˜ë©´ ì„œë²„ ìŠ¤ëƒ…ìƒ·ì˜ ADSë„ falseë¡œ ì´ˆê¸°í™”ëœë‹¤.
             InGameUIManager.Instance.SetDisplayedPlayerADS(false);
         }
 
@@ -5049,7 +5608,7 @@ public class NetworkManager : MonoBehaviour
         if (isCurrentSpectatorTarget &&
             InGameUIManager.Instance != null)
         {
-            // °üÀü ÁßÀÎ ´ë»óÀÇ ADS »óÅÂ¸¦ Å©·Î½ºÇì¾î¿¡ Áï½Ã ¹İ¿µÇÑ´Ù.
+            // ê´€ì „ ì¤‘ì¸ ëŒ€ìƒì˜ ADS ìƒíƒœë¥¼ í¬ë¡œìŠ¤í—¤ì–´ì— ì¦‰ì‹œ ë°˜ì˜í•œë‹¤.
             InGameUIManager.Instance.SetDisplayedPlayerADS(isADS);
         }
 
@@ -5558,12 +6117,12 @@ public class NetworkManager : MonoBehaviour
         {
             if (itemType == 0)
             {
-                // ¹«±â ±¸¸Å ¼º°ø
+                // ë¬´ê¸° êµ¬ë§¤ ì„±ê³µ
                 StorePanelUI.Instance.SetOwnedWeaponFromServer(weaponId);
             }
             else if (itemType == 1)
             {
-                // ¹æ¾î±¸ ±¸¸Å ¼º°ø
+                // ë°©ì–´êµ¬ êµ¬ë§¤ ì„±ê³µ
                 StorePanelUI.Instance.SetOwnedArmorFromServer(maxBarrier);
             }
         }
@@ -5591,7 +6150,7 @@ public class NetworkManager : MonoBehaviour
 
     private byte GetMyTeamForKillLog()
     {
-        // Scoreboard¿¡¼­ ¹ŞÀº ³» ÆÀ Á¤º¸°¡ °¡Àå Á¤È®ÇÏ´Ù.
+        // Scoreboardì—ì„œ ë°›ì€ ë‚´ íŒ€ ì •ë³´ê°€ ê°€ì¥ ì •í™•í•˜ë‹¤.
         if (latestScoreboardData != null)
             return latestScoreboardData.myTeam;
 
@@ -5798,7 +6357,7 @@ public class NetworkManager : MonoBehaviour
             ) != 0;
         offset += 4;
 
-        // ³» È­¸éÀº ÀÌ¹Ì ·ÎÄÃ¿¡¼­ Ã³¸®Çß´Ù.
+        // ë‚´ í™”ë©´ì€ ì´ë¯¸ ë¡œì»¬ì—ì„œ ì²˜ë¦¬í–ˆë‹¤.
         if (playerId == MyPlayerId)
             return;
 
@@ -6251,8 +6810,8 @@ public class NetworkManager : MonoBehaviour
             hit != 0 &&
             targetPlayerId != 0;
 
-        // ÇÙ½É:
-        // ¼­¹ö ÆÇÁ¤ °á°ú¸¦ ³» µå·Ğ HUD¿¡ ¹İ¿µ
+        // í•µì‹¬:
+        // ì„œë²„ íŒì • ê²°ê³¼ë¥¼ ë‚´ ë“œë¡  HUDì— ë°˜ì˜
         if (isMyDroneTaser && DroneHUDUI.Instance != null)
         {
             if (successHit)
@@ -6265,7 +6824,7 @@ public class NetworkManager : MonoBehaviour
             }
         }
 
-        // ºø³ª°¨ÀÌ¸é HUD ÇÇµå¹é¸¸ ÁÖ°í Á¾·á
+        // ë¹—ë‚˜ê°ì´ë©´ HUD í”¼ë“œë°±ë§Œ ì£¼ê³  ì¢…ë£Œ
         if (!successHit)
             return;
 
@@ -6303,7 +6862,7 @@ public class NetworkManager : MonoBehaviour
             $"duration={duration}, stack={stack}, damage={damage}"
         );
 
-        // ³ªÁß¿¡ ElectricShock¿¡ ½ºÅÃ ÇÔ¼ö ¸¸µé¸é ÀÌ°É·Î ±³Ã¼
+        // ë‚˜ì¤‘ì— ElectricShockì— ìŠ¤íƒ í•¨ìˆ˜ ë§Œë“¤ë©´ ì´ê±¸ë¡œ êµì²´
         // shock.ApplyStack(stack, duration);
     }
 
@@ -9214,7 +9773,7 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    // È£°¨µµ ·¹º§ ¼Û¼ö½Å
+    // í˜¸ê°ë„ ë ˆë²¨ ì†¡ìˆ˜ì‹ 
 
     public void SendFavorLevelRequest()
     {
@@ -9250,7 +9809,7 @@ public class NetworkManager : MonoBehaviour
             Debug.Log($"[RECV] FavorLevel characterId={characterId}, level={favorLevel}");
         }
 
-        // DialogueManager¿¡ Àü´Ş
+        // DialogueManagerì— ì „ë‹¬
         DialogueManager.Instance?.OnRecvFavorLevels(favorDict);
     }
 }

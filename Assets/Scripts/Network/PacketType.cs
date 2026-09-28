@@ -1,10 +1,10 @@
 public enum PacketType : ushort
 {
-    // »∏ø¯∞°¿‘
+    // ÌöåÏõêÍ∞ÄÏûÖ
     PKT_CS_REGISTER = 0,
     PKT_SC_REGISTER_RESULT = 1,
 
-    // ∑Œ±◊¿Œ
+    // Î°úÍ∑∏Ïù∏
     PKT_CS_LOGIN = 2,
     PKT_SC_LOGIN_RESULT = 3,
     
@@ -20,7 +20,7 @@ public enum PacketType : ushort
     PKT_CS_LOBBY_CHARACTER_LIST = 12,
     PKT_SC_LOBBY_CHARACTER_LIST = 13,
 
-    //¿”Ω√ ∞‘¿” ¿‘¿Â
+    //ÏûÑÏãú Í≤åÏûÑ ÏûÖÏû•
     PKT_CS_TEMP_GAME_ROOM_ENTER = 14,
     PKT_SC_TEMP_GAME_ROOM_ENTER = 15,
     PKT_CS_TEMP_GAME_START = 16,
@@ -29,7 +29,7 @@ public enum PacketType : ushort
     PKT_CS_WEAPON_SKIN_LOADOUT_REQUEST = 18,
     PKT_SC_WEAPON_SKIN_LOADOUT = 19,
 
-    //∑Î ∏ÆΩ∫∆Æ
+    //Î£∏ Î¶¨Ïä§Ìä∏
     PKT_CS_ROOM_LIST = 20,
     PKT_SC_ROOM_LIST = 21,
 
@@ -106,6 +106,20 @@ public enum PacketType : ushort
     PKT_SC_FRIEND_MEMO_SET_RESULT = 81,
     PKT_CS_ROOM_MAP_SET = 82,
     PKT_SC_ROOM_MAP_SET_RESULT = 83,
+    PKT_CS_PROFILE_REQUEST = 84,
+    PKT_SC_PROFILE = 85,
+    PKT_CS_PROFILE_PRIVACY_SET = 86,
+    PKT_SC_PROFILE_PRIVACY_SET_RESULT = 87,
+    PKT_CS_PROFILE_LIKE = 88,
+    PKT_SC_PROFILE_LIKE_RESULT = 89,
+    PKT_CS_PROFILE_BATTLE_STATS_SET = 90,
+    PKT_SC_PROFILE_BATTLE_STATS_SET_RESULT = 91,
+    PKT_CS_CAREER_DETAIL_REQUEST = 92,
+    PKT_SC_CAREER_DETAIL = 93,
+    PKT_CS_CHIPCRAFT_REQUEST = 94,
+    PKT_SC_CHIPCRAFT = 95,
+    PKT_CS_CHIPCRAFT_SAVE = 96,
+    PKT_SC_CHIPCRAFT_SAVE_RESULT = 97,
 
     PKT_SC_HELLO = 100,
     PKT_SC_SPAWN_PLAYER = 101,
@@ -273,6 +287,14 @@ public enum PacketType : ushort
 
     PKT_CS_FAVOR_LEVEL_REQUEST = 324,
     PKT_SC_FAVOR_LEVEL_RESPONSE = 325,
+    PKT_CS_LEVEL_REWARD_REQUEST = 326,
+    PKT_SC_LEVEL_REWARD_STATE = 327,
+    PKT_CS_LEVEL_REWARD_CLAIM = 328,
+    PKT_SC_LEVEL_REWARD_CLAIM_RESULT = 329,
+    PKT_CS_HONOR_REQUEST = 330,
+    PKT_SC_HONOR_STATE = 331,
+    PKT_CS_HONOR_CLAIM = 332,
+    PKT_SC_HONOR_CLAIM_RESULT = 333,
 }
 
 public enum RegisterResult : byte
