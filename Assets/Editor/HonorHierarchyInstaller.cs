@@ -40,6 +40,14 @@ public static class HonorHierarchyInstaller
             panel = BuildPanel(root.transform);
             panel.transform.SetSiblingIndex(header.GetSiblingIndex());
         }
+        // Repair existing scene bindings as well as newly built, inactive panels.
+        var honorController = panel.GetComponent<MyPageHonorController>();
+        foreach (var hover in panel.GetComponentsInChildren<HonorGradeHover>(true))
+        {
+            if (int.TryParse(hover.name.Replace("HonorGrade", string.Empty), out int grade)
+                && grade >= 1 && grade <= 6)
+                hover.Configure(grade, honorController);
+        }
         foreach (Transform item in panel.GetComponentsInChildren<Transform>(true))
         {
             if (item == null) continue;
@@ -180,7 +188,7 @@ public static class HonorHierarchyInstaller
             new Color32(130, 138, 151, 172), 0, 0, 1210, 420);
         string[] names = { "위험", "주의 필요", "보통", "양호", "우수", "탁월" };
         int[] thresholds = { 0, 0, 301, 601, 901, 1201, 1601 };
-        var controller = section.GetComponentInParent<MyPageHonorController>();
+        var controller = section.GetComponentInParent<MyPageHonorController>(true);
         for (int grade = 1; grade <= 6; ++grade)
         {
             int x = (grade - 1) * 202;

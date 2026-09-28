@@ -14,7 +14,15 @@ public static class HonorPanelVerification
 {
     public static void Run()
     {
-        HonorHierarchyInstaller.Install();
+        Verify(true);
+    }
+
+    // Does not run the installer or save the user's Lobby scene.
+    public static void RunHover() => Verify(false);
+
+    private static void Verify(bool install)
+    {
+        if (install) HonorHierarchyInstaller.Install();
         var scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity", OpenSceneMode.Single);
         var source = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<MyPagePanelController>(true)).First();
         var canvasObject = new GameObject("HonorVerificationCanvas", typeof(Canvas), typeof(CanvasScaler));
@@ -23,6 +31,7 @@ public static class HonorPanelVerification
         var camera = new GameObject("HonorVerificationCamera", typeof(Camera)).GetComponent<Camera>();
         camera.orthographic = true;
         camera.orthographicSize = 540;
+        camera.aspect = 1920f / 1080f;
         camera.clearFlags = CameraClearFlags.SolidColor;
         camera.backgroundColor = Color.black;
         camera.cullingMask = 1 << 5;
@@ -42,24 +51,59 @@ public static class HonorPanelVerification
         if (visibility != null) { visibility.alpha = 1; visibility.interactable = true; visibility.blocksRaycasts = true; }
         foreach (var behaviour in clone.GetComponentsInChildren<MonoBehaviour>(true))
             if (behaviour != null && !(behaviour is Graphic) && !(behaviour is LayoutGroup) &&
-                !(behaviour is ContentSizeFitter) && !(behaviour is RectMask2D) && !(behaviour is Mask)) behaviour.enabled = false;
+                !(behaviour is ContentSizeFitter) && !(behaviour is RectMask2D) && !(behaviour is Mask) &&
+                !(behaviour is HonorGradeHover)) behaviour.enabled = false;
         var rootRect = clone.GetComponent<RectTransform>();
         rootRect.anchorMin = Vector2.zero; rootRect.anchorMax = Vector2.one;
         rootRect.offsetMin = rootRect.offsetMax = Vector2.zero;
         var honor = clone.GetComponentInChildren<MyPageHonorController>(true);
         var tabs = clone.GetComponent<MyPageTabController>();
         tabs.Select(MyPageTabController.Page.Honor);
+        var eventSystem = new GameObject("HonorVerificationEvents", typeof(EventSystem)).GetComponent<EventSystem>();
+        var raycaster = canvasObject.AddComponent<GraphicRaycaster>();
+        var input = eventSystem.gameObject.AddComponent<HonorVerificationPointerModule>();
+        var hoverPointer = new PointerEventData(eventSystem);
+        // Exercise existing null scene references through the actual raycast/event path.
+        foreach (var hover in honor.GetComponentsInChildren<HonorGradeHover>(true))
+            hover.Configure(int.Parse(hover.name.Substring("HonorGrade".Length)), null);
+        Capture(camera, clone, "honor-hover-pending.png");
+        MoveToGrade(clone, camera, raycaster, input, hoverPointer, 1);
+        Require(Text(clone, "HonorPerk3State").text == "잠김", "Hover while server response is pending");
+        input.Move(hoverPointer, null);
         honor.ApplyState(true, 601, 0, 1, 1, Array.Empty<HonorChangeData>());
         Require(Text(clone, "HonorCurrentGradeTitle").text == "3  보통", "Initial grade");
         Require(Text(clone, "HonorVoiceStatus").text == "보통", "Initial voice status");
         Capture(camera, clone, "honor-description.png");
-        honor.HoverGrade(1);
-        Require(Text(clone, "HonorPerk3State").text == "잠김", "Hover restriction");
-        honor.HoverGrade(6);
-        Require(Text(clone, "HonorPerk6State").text == "해제", "Hover unlock");
+        int[] requiredGrades = { 1, 2, 3, 3, 5, 6, 6 };
+        for (int grade = 1; grade <= 6; ++grade)
+        {
+            MoveToGrade(clone, camera, raycaster, input, hoverPointer, grade);
+            for (int perk = 0; perk < requiredGrades.Length; ++perk)
+                Require(Text(clone, $"HonorPerk{perk}State").text ==
+                    (grade >= requiredGrades[perk] ? "해제" : "잠김"), $"Grade {grade} perk {perk}");
+            for (int column = 1; column <= 6; ++column)
+            {
+                Require(Find<Transform>(clone, $"HonorGradeHighlight{column}").gameObject.activeSelf ==
+                    (column == grade), $"Grade {grade} highlight {column}");
+                Require(Find<Transform>(clone, $"HonorGradeCurrent{column}").gameObject.activeSelf ==
+                    (column == 3), "Actual grade marker must not follow preview");
+            }
+            Require(Text(clone, "HonorCurrentGradeTitle").text == "3  보통", "Hover must not change own grade");
+            Capture(camera, clone, $"honor-hover-{grade}.png");
+        }
         Capture(camera, clone, "honor-hover.png");
-        honor.LeaveGrade();
+        input.Move(hoverPointer, null);
         Require(Text(clone, "HonorViewedGrade").text == "3  보통", "Hover leave restores own grade");
+        MoveToGrade(clone, camera, raycaster, input, hoverPointer, 2);
+        honor.ApplyState(true, 1601, 0, 1, 1, Array.Empty<HonorChangeData>());
+        Require(Text(clone, "HonorViewedGrade").text == "2  주의 필요", "Response preserves active hover");
+        input.Move(hoverPointer, null);
+        Require(Text(clone, "HonorViewedGrade").text == "6  탁월", "Leave restores updated own grade");
+        if (!install)
+        {
+            Debug.Log("[HONOR HOVER VERIFY] PASS: six grades via GraphicRaycaster and pointer enter/exit, null binding recovery, all perk states, own-grade marker, pending response and hover restore. Lobby scene not saved.");
+            return;
+        }
         Button(clone, "HonorSectionButton1").onClick.Invoke();
         Require(!Button(clone, "HonorClaim5").interactable, "Locked claim");
         honor.ApplyState(true, 1601, 0, 1, 5, Enumerable.Range(0, 10)
@@ -81,8 +125,6 @@ public static class HonorPanelVerification
         var scroll = honor.GetComponentInChildren<HonorGuideScrollRect>(true);
         scroll.enabled = true;
         Canvas.ForceUpdateCanvases();
-        var eventSystem = new GameObject("HonorVerificationEvents", typeof(EventSystem)).GetComponent<EventSystem>();
-        var raycaster = canvasObject.AddComponent<GraphicRaycaster>();
         Vector2 start = RectTransformUtility.WorldToScreenPoint(camera, scroll.viewport.position);
         var pointer = new PointerEventData(eventSystem)
         {
@@ -110,6 +152,27 @@ public static class HonorPanelVerification
     private static TMP_Text Text(GameObject root, string name) => Find<TMP_Text>(root, name);
     private static Button Button(GameObject root, string name) => Find<Button>(root, name);
     private static void Require(bool condition, string message) { if (!condition) throw new Exception("Honor verification failed: " + message); }
+
+    private static void MoveToGrade(GameObject root, Camera camera, GraphicRaycaster raycaster,
+        HonorVerificationPointerModule input, PointerEventData pointer, int grade)
+    {
+        Canvas.ForceUpdateCanvases();
+        var rect = Find<RectTransform>(root, $"HonorGradeBadge{grade}");
+        pointer.position = RectTransformUtility.WorldToScreenPoint(camera, rect.TransformPoint(rect.rect.center));
+        var hits = new System.Collections.Generic.List<RaycastResult>();
+        raycaster.Raycast(pointer, hits);
+        if (hits.Count == 0)
+        {
+            var column = Find<Image>(root, $"HonorGrade{grade}");
+            Debug.Log($"[HONOR RAYCAST] screen={Screen.width}x{Screen.height} camera={camera.pixelRect} pointer={pointer.position} active={column.gameObject.activeInHierarchy} target={column.raycastTarget} cull={column.canvasRenderer.cull} depth={column.depth} canvas={column.canvas} valid={column.Raycast(pointer.position, camera)}");
+        }
+        Require(hits.Count > 0, $"Grade {grade} is reachable by GraphicRaycaster");
+        GameObject hit = hits[0].gameObject;
+        Require(hit.GetComponentInParent<HonorGradeHover>() != null &&
+            hit.GetComponentInParent<HonorGradeHover>().name == $"HonorGrade{grade}",
+            $"Grade {grade} raycast is not blocked by another graphic: {hit.name}");
+        input.Move(pointer, hit);
+    }
 
     private static void Capture(Camera camera, GameObject root, string file)
     {
@@ -155,5 +218,11 @@ public static class HonorPanelVerification
             UnityEngine.Object.DestroyImmediate(texture);
         }
     }
+}
+
+public sealed class HonorVerificationPointerModule : BaseInputModule
+{
+    public override void Process() { }
+    public void Move(PointerEventData pointer, GameObject target) => HandlePointerExitAndEnter(pointer, target);
 }
 #endif

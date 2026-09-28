@@ -38,6 +38,7 @@ public sealed class MyPageHonorController : MonoBehaviour
     private bool initialized;
     private int section;
     private int score = 601;
+    private int hoveredGrade;
     private int claimedGrade;
     private int page = 1;
     private int pageCount = 1;
@@ -81,6 +82,8 @@ public sealed class MyPageHonorController : MonoBehaviour
         gameObject.SetActive(true);
         loaded = false;
         claiming = false;
+        hoveredGrade = 0;
+        RefreshCurrentGrade();
         RefreshRewards();
         requestDeadline = Time.unscaledTime + 15f;
         SetText("HonorStatus", "명예 정보를 불러오는 중입니다.");
@@ -107,7 +110,7 @@ public sealed class MyPageHonorController : MonoBehaviour
         pageCount = Mathf.Clamp(updatedPageCount, 1, 5);
         SetText("HonorStatus", string.Empty);
         RefreshCurrentGrade();
-        RefreshGradeDescription(GradeForScore(score));
+        RefreshGradeDescription(hoveredGrade > 0 ? hoveredGrade : GradeForScore(score));
         RefreshRewards();
         RefreshHistory(history);
     }
@@ -133,13 +136,15 @@ public sealed class MyPageHonorController : MonoBehaviour
 
     public void HoverGrade(int grade)
     {
-        if (!loaded || section != 0) return;
-        RefreshGradeDescription(Mathf.Clamp(grade, 1, 6));
+        if (section != 0) return;
+        hoveredGrade = Mathf.Clamp(grade, 1, 6);
+        RefreshGradeDescription(hoveredGrade);
     }
 
     public void LeaveGrade()
     {
-        if (loaded && section == 0) RefreshGradeDescription(GradeForScore(score));
+        hoveredGrade = 0;
+        if (section == 0) RefreshGradeDescription(GradeForScore(score));
     }
 
     private void RefreshCurrentGrade()
@@ -245,7 +250,8 @@ public sealed class MyPageHonorController : MonoBehaviour
                 sectionButtons[i].image.color = i == index
                     ? new Color32(190, 43, 57, 255) : new Color32(61, 67, 77, 255);
         }
-        if (index == 0 && loaded) LeaveGrade();
+        hoveredGrade = 0;
+        if (index == 0) LeaveGrade();
     }
 
     private void Claim(int grade)
