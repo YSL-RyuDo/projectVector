@@ -497,6 +497,7 @@ public class MyPagePanelController : MonoBehaviour
         group.alpha = visible ? 1f : 0f;
         group.interactable = visible;
         group.blocksRaycasts = visible;
+        group.gameObject.SetActive(visible);
     }
 
     private void BindButton(string objectName, Action action)
