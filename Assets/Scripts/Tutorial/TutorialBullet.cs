@@ -1,24 +1,60 @@
 using UnityEngine;
 
-public class TutorialBullet : MonoBehaviour
+public class TutoEnemyBullet : MonoBehaviour
 {
     [SerializeField] private GameObject bulletHolePrefab;
     [SerializeField] private int damage = 10;
 
-    private Rigidbody rb;
+    private float maxDistance;
+    private float bulletSpeed;
+    private Vector3 startPos;
+    private Vector3 direction;
 
-    public void Init(float range, float speed, Vector3 direction)
+    private bool hit;
+
+    private Rigidbody rb;
+    private Collider bulletCollider;
+
+    public void Init(float range, float speed, Vector3 dir)
     {
+        maxDistance = range;
+        bulletSpeed = speed;
+        direction = dir.normalized;
+
+        startPos = transform.position;
+        hit = false;
+
         rb = GetComponent<Rigidbody>();
+        bulletCollider = GetComponent<Collider>();
+
+        if (bulletCollider == null)
+        {
+            Debug.LogError("[TUTO ENEMY BULLET] Collider missing.", this);
+            Destroy(gameObject);
+            return;
+        }
+
+        if (rb == null)
+        {
+            Debug.LogError("[TUTO ENEMY BULLET] Rigidbody missing.", this);
+            Destroy(gameObject);
+            return;
+        }
 
         rb.useGravity = false;
         rb.isKinematic = false;
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
 
-        rb.linearVelocity = direction.normalized * speed;
+        rb.linearVelocity = direction * bulletSpeed;
+    }
 
-        Destroy(gameObject, range / speed);
+    private void Update()
+    {
+        if (Vector3.Distance(startPos, transform.position) > maxDistance)
+        {
+            Destroy(gameObject);
+        }
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -26,21 +62,30 @@ public class TutorialBullet : MonoBehaviour
         if (collision == null || collision.collider == null)
             return;
 
-        TutoEnemyMove enemy =
-            collision.collider.GetComponentInParent<TutoEnemyMove>();
+        if (hit)
+            return;
 
-        if (enemy != null)
+        TESTPlayerHP playerHP =
+            collision.collider.GetComponentInParent<TESTPlayerHP>();
+
+        if (playerHP != null)
         {
-            enemy.Damage(damage);
+            hit = true;
+
+            playerHP.Damage(damage);
+
             Destroy(gameObject);
             return;
         }
 
-        //자국 생성
         if (collision.contacts.Length > 0)
         {
             ContactPoint contact = collision.contacts[0];
-            SpawnBulletHole(contact.point, contact.normal);
+
+            SpawnBulletHole(
+                contact.point,
+                contact.normal
+            );
         }
 
         Destroy(gameObject);
@@ -54,7 +99,8 @@ public class TutorialBullet : MonoBehaviour
         GameObject hole = Instantiate(
             bulletHolePrefab,
             point + normal * 0.001f,
-            Quaternion.LookRotation(normal) * Quaternion.Euler(0f, 180f, 0f)
+            Quaternion.LookRotation(normal) *
+            Quaternion.Euler(0f, 180f, 0f)
         );
 
         hole.transform.SetParent(null);

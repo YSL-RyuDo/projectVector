@@ -26,6 +26,9 @@ public class TESTWepon : MonoBehaviour
                 ammoText = ammoObj.GetComponent<TMP_Text>();
         }
 
+        if (weaponData != null)
+            currentAmmo = weaponData.magSize;
+
         UpdateAmmoUI();
     }
 
@@ -73,15 +76,16 @@ public class TESTWepon : MonoBehaviour
             Quaternion.LookRotation(direction)
         );
 
-        TutorialBullet bulletScript =
-            bullet.GetComponent<TutorialBullet>();
+        Bullet bulletScript = bullet.GetComponent<Bullet>();
 
         if (bulletScript != null)
         {
             bulletScript.Init(
+                null,
                 weaponData.range,
                 weaponData.muzzleVelocity,
-                direction
+                direction,
+                false
             );
         }
     }
@@ -103,7 +107,13 @@ public class TESTWepon : MonoBehaviour
     {
         weaponData = data;
 
-        currentAmmo = weaponData.magSize;
+        currentAmmo = magAmmo;
+
+        if (currentAmmo < 0)
+            currentAmmo = 0;
+
+        if (currentAmmo > weaponData.magSize)
+            currentAmmo = weaponData.magSize;
 
         UpdateAmmoUI();
     }
