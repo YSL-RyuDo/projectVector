@@ -79,7 +79,7 @@ public class WeaponRecoil : MonoBehaviour
             snappiness * Time.deltaTime
         );
 
-        transform.localRotation = Quaternion.Euler(currentRotation);
+        //transform.localRotation = Quaternion.Euler(currentRotation);
 
         currentCameraRecoil = Vector2.Lerp(
             currentCameraRecoil,
