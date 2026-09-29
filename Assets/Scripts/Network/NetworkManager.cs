@@ -933,6 +933,19 @@ public class NetworkManager : MonoBehaviour
         client.Send(buffer);
     }
 
+    public void SendShopRequest(byte operation, int currency, int count, int itemId, ulong requestId, int page)
+    {
+        byte[] buffer = new byte[24];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)340).CopyTo(buffer, 2);
+        buffer[4] = operation; buffer[5] = (byte)currency;
+        BitConverter.GetBytes((ushort)count).CopyTo(buffer, 6);
+        BitConverter.GetBytes(itemId).CopyTo(buffer, 8);
+        BitConverter.GetBytes(requestId).CopyTo(buffer, 12);
+        BitConverter.GetBytes(page).CopyTo(buffer, 20);
+        client?.Send(buffer);
+    }
+
     public void SendHonorClaim(int grade)
     {
         byte[] buffer = new byte[8];
@@ -1148,6 +1161,10 @@ public class NetworkManager : MonoBehaviour
 
             case (ushort)PacketType.PKT_SC_HONOR_STATE:
                 HandleHonorState(body);
+                break;
+
+            case 341: // Cosmetic shop response, handled by the main-thread packet queue.
+                VectorShopPanel.Receive(body);
                 break;
 
             case (ushort)PacketType.PKT_SC_HONOR_CLAIM_RESULT:
