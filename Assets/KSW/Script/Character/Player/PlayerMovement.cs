@@ -95,11 +95,15 @@ public class PlayerMovement : MonoBehaviour
         _cc = GetComponent<CharacterController>();
         _cam = GetComponentInChildren<FPSCameraLook>(true);
 
-        // 자식 중 "Model" 오브젝트를 찾아 해당 위치의 Animator를 가져옴
         Transform modelTransform = transform.Find("Model");
         if (modelTransform != null)
         {
-            _animator = modelTransform.GetComponentInChildren<Animator>(true);
+            _animator = modelTransform.GetComponent<Animator>();
+
+            if (_animator == null)
+            {
+                Debug.LogWarning("'Model' 오브젝트 자체에서 Animator 컴포넌트를 찾을 수 없습니다.");
+            }
         }
         else
         {
@@ -107,7 +111,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         if (firstPersonArmModel != null)
-            _armAnimator = firstPersonArmModel.GetComponentInChildren<Animator>(true);
+            _armAnimator = firstPersonArmModel.GetComponent<Animator>();
 
         _playerIdentity = GetComponent<PlayerIdentity>();
         _playerItem = GetComponent<PlayerItem>();
@@ -574,7 +578,8 @@ public class PlayerMovement : MonoBehaviour
             weaponTypeForAnimator
         );
 
-        _armAnimator?.SetInteger("WeaponType", weaponTypeForAnimator);
+        // 임시 주석 처리: 팔 모델까지 애니메이션이 변경되어 조준 시 위치가 맞지 않는 문제 발생.
+        //_armAnimator?.SetInteger("WeaponType", weaponTypeForAnimator);
 
         // 현재 구조에서 10번은 긴 총 조준 상태
         bool isAiming = animIndex == 10;

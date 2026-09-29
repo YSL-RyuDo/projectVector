@@ -13,7 +13,8 @@ public class PlayerItem : MonoBehaviour
     [SerializeField] private GameObject spike;
 
     [Header("others")]
-    [SerializeField] private Transform itemHolder;
+    [SerializeField] private Transform itemHolder;   // 1인칭 무기 홀더 (카메라 자식)
+    [SerializeField] private Transform tpItemHolder; // 3인칭 무기 홀더 (3인칭 캐릭터 손 Bone)
     [SerializeField] private Transform dropPoint;
     [SerializeField] private float pickupRange = 2.5f;
     [SerializeField] private LayerMask itemLayer;
@@ -22,7 +23,8 @@ public class PlayerItem : MonoBehaviour
     [SerializeField] private WeaponSkinDatabase skinDatabase;
     private PlayerSkinLoadout skinLoadout;
 
-    private Item[] items = new Item[5]; // 0~4 (5번 = Spike)
+    private Item[] items = new Item[5]; // 0~4 (5번 = Spike) - 1인칭
+    private GameObject[] tpWeaponObjects = new GameObject[5]; // 3인칭 무기 오브젝트 저장 배열
     private PlayerSpike playerSpike;
     [SerializeField] private int currentIndex = -1;
 
@@ -73,7 +75,6 @@ public class PlayerItem : MonoBehaviour
         defaultItemsInitialized = true;
         InitializeDefaultItems();
 
-        // 프리팹 Inspector에 이전 값이 남아 있어도 강제로 초기화
         currentIndex = -1;
 
         if (items[1] != null)
@@ -81,6 +82,7 @@ public class PlayerItem : MonoBehaviour
         else if (items[2] != null)
             Switch(2);
     }
+
     void Update()
     {
         if (InGameChatUI.BlocksGameplayInput)
@@ -89,29 +91,18 @@ public class PlayerItem : MonoBehaviour
         if (!gameObject.CompareTag("Player"))
             return;
 
-        if (GameController.Instance != null &&
-            GameController.Instance.IsPaused)
-        {
+        if (GameController.Instance != null && GameController.Instance.IsPaused)
             return;
-        }
 
-        if (_playerIdentity == null ||
-            NetworkManager.Instance == null)
-        {
+        if (_playerIdentity == null || NetworkManager.Instance == null)
             return;
-        }
 
-        if (_playerIdentity.PlayerId !=
-            NetworkManager.Instance.MyPlayerId)
-        {
+        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
             return;
-        }
 
         if (Keyboard.current == null)
             return;
 
-        // 장전 중에도 무기 슬롯 변경은 허용한다.
-        // 실제 취소 처리는 Switch() 안에서 수행한다.
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
         {
             Switch(0);
@@ -142,14 +133,12 @@ public class PlayerItem : MonoBehaviour
             return;
         }
 
-        // R키 장전
         if (Keyboard.current.rKey.wasPressedThisFrame)
         {
             TryStartReload();
             return;
         }
 
-        // 장전 중에는 드롭/픽업 같은 나머지 입력만 차단한다.
         if (isReloading)
             return;
 
@@ -162,28 +151,20 @@ public class PlayerItem : MonoBehaviour
 
     private void InitializeDefaultItems()
     {
-        // 0번 슬롯: 메인 무기
-        // 시작 시 메인 무기는 없음. 상점 구매 후에만 들어간다.
         items[0] = null;
 
-        // 1번 슬롯: 권총
         if (secondary != null)
             CreateStartingItem(secondary, 1);
         else
             items[1] = null;
 
-        // 2번 슬롯: 나이프
         if (melee != null)
             CreateStartingItem(melee, 2);
         else
             items[2] = null;
 
-        // 3번 슬롯: 투척무기
-        // 현재는 사용하지 않으므로 비워둔다.
-        // 여기에 AWM이 들어가면 4번 키로 스나이퍼가 나온다.
         items[3] = null;
 
-        // 4번 슬롯: 스파이크
         if (spike != null)
         {
             GameObject obj = Instantiate(spike, itemHolder);
@@ -192,8 +173,17 @@ public class PlayerItem : MonoBehaviour
 
             Item item = obj.GetComponent<Item>();
             items[4] = item;
-
             obj.SetActive(false);
+
+            if (tpItemHolder != null)
+            {
+                GameObject tpObj = Instantiate(spike, tpItemHolder);
+                tpObj.transform.localPosition = Vector3.zero;
+                tpObj.transform.localRotation = Quaternion.identity;
+                DisableHeldWeaponPhysics(tpObj);
+                tpWeaponObjects[4] = tpObj;
+                tpObj.SetActive(false);
+            }
         }
         else
         {
@@ -203,30 +193,11 @@ public class PlayerItem : MonoBehaviour
 
     private void CreateStartingItem(WeaponData data, int slot)
     {
-        /*
-        // 프리팹 생성 및 부모 설정
-        GameObject obj = Instantiate(data.weaponPrefab, itemHolder);
+        GameObject obj = SpawnWeaponObject(data, data.magSize, data.maxReserveAmmo, null, slot);
 
-        // 위치 및 회전 초기화
-        obj.transform.localPosition = Vector3.zero;
-        obj.transform.localRotation = Quaternion.identity;
-
-        // Weapon 컴포넌트 초기화 (기본 탄약 정보 등)
-        Weapon weapon = obj.GetComponent<Weapon>();
-        if (weapon != null)
-        {
-            // 초기 생성 시에는 최대 탄약으로 설정
-            weapon.Initialize(data, dropPoint, data.magSize, data.maxReserveAmmo);
-        }
-        */
-
-        GameObject obj = SpawnWeaponObject(data, data.magSize, data.maxReserveAmmo);
-
-        // Item 컴포넌트 할당
         Item item = obj.GetComponent<Item>();
         items[slot] = item;
 
-        // 일단 모두 비활성화 (나중에 Switch에서 활성화됨)
         obj.SetActive(false);
     }
 
@@ -281,109 +252,49 @@ public class PlayerItem : MonoBehaviour
 
     private void DropCurrentItem()
     {
-        if (currentIndex < 0 ||
-            currentIndex >= items.Length)
-        {
-            Debug.LogWarning(
-                $"[PLAYER ITEM DROP] invalid currentIndex={currentIndex}"
-            );
-
+        if (currentIndex < 0 || currentIndex >= items.Length)
             return;
-        }
 
         if (items[currentIndex] == null)
-        {
-            Debug.LogWarning(
-                $"[PLAYER ITEM DROP] current item is null. index={currentIndex}"
-            );
-
             return;
-        }
 
-        // 4번 인덱스는 5번 슬롯 스파이크
         if (currentIndex == 4)
         {
             if (playerSpike == null)
-            {
-                playerSpike =
-                    GetComponent<PlayerSpike>();
-            }
+                playerSpike = GetComponent<PlayerSpike>();
 
             if (playerSpike == null)
-            {
-                Debug.LogError(
-                    "[PLAYER ITEM DROP] PlayerSpike component not found"
-                );
-
                 return;
-            }
 
             if (!playerSpike.hasSpike)
-            {
-                Debug.LogWarning(
-                    "[PLAYER ITEM DROP] player does not have spike"
-                );
-
                 return;
-            }
 
-            // 실제 스파이크 드랍 패킷 전송
             playerSpike.RequestDrop();
-
-            Debug.Log(
-                "[PLAYER ITEM DROP] spike drop requested"
-            );
-
             return;
         }
 
-        Weapon weapon =
-            items[currentIndex].GetComponent<Weapon>();
+        Weapon weapon = items[currentIndex].GetComponent<Weapon>();
 
         if (weapon == null)
-        {
-            Debug.LogWarning(
-                $"[PLAYER ITEM DROP] Weapon component missing. " +
-                $"index={currentIndex}"
-            );
-
             return;
-        }
 
         if (NetworkManager.Instance == null)
-        {
-            Debug.LogError(
-                "[PLAYER ITEM DROP] NetworkManager.Instance is null"
-            );
-
             return;
-        }
 
-        Vector3 dropPosition =
-            dropPoint != null
-                ? dropPoint.position
-                : transform.position +
-                  transform.forward * 0.8f +
-                  Vector3.up * 0.5f;
+        Vector3 dropPosition = dropPoint != null
+            ? dropPoint.position
+            : transform.position + transform.forward * 0.8f + Vector3.up * 0.5f;
 
-        Vector3 dropDirection =
-            dropPoint != null
-                ? dropPoint.forward
-                : transform.forward;
+        Vector3 dropDirection = dropPoint != null
+            ? dropPoint.forward
+            : transform.forward;
 
         NetworkManager.Instance.SendWeaponDropRequest(
             weapon.GetWeaponId(),
             dropPosition,
             dropDirection
         );
-
-        Debug.Log(
-            $"[PLAYER ITEM DROP] weapon drop requested. " +
-            $"weaponId={weapon.GetWeaponId()}, " +
-            $"pos={dropPosition}, dir={dropDirection}"
-        );
     }
-
 
     void Switch(int index)
     {
@@ -398,7 +309,6 @@ public class PlayerItem : MonoBehaviour
 
         if (currentIndex == index)
         {
-            // 숨겨진 상태에서 같은 슬롯을 다시 장착하는 경우도 확실히 표시한다.
             items[index].OnEquip();
             return;
         }
@@ -409,18 +319,10 @@ public class PlayerItem : MonoBehaviour
             return;
         }
 
-        // 장전 중 다른 슬롯으로 바꾸면 기존 장전을 즉시 취소한다.
-        // CancelReload()가 코루틴 정지, 애니메이션 정지,
-        // 서버 장전 상태 취소 패킷 전송까지 처리한다.
         if (isReloading)
         {
             int canceledWeaponId = reloadingWeaponId;
             CancelReload(false);
-
-            Debug.Log(
-                $"[PLAYER ITEM] reload canceled by weapon switch. " +
-                $"weaponId={canceledWeaponId}, targetSlot={index}"
-            );
         }
 
         if (currentIndex >= 0 && currentIndex < items.Length)
@@ -430,17 +332,17 @@ public class PlayerItem : MonoBehaviour
 
         currentIndex = index;
 
+        // 1인칭 및 3인칭 무기들의 활성화 상태를 한 번에 동기화
+        SwitchWeaponVisualOnlyBySlot(currentIndex);
+
         items[currentIndex]?.OnEquip();
 
         Weapon weapon = items[currentIndex].GetComponent<Weapon>();
-
         PlayerMovement playerMovement = GetComponent<PlayerMovement>();
 
         if (weapon != null && playerMovement != null)
         {
-            playerMovement.SetWeaponWeight(
-                weapon.GetWeight()
-            );
+            playerMovement.SetWeaponWeight(weapon.GetWeight());
         }
 
         if (weapon != null &&
@@ -460,9 +362,9 @@ public class PlayerItem : MonoBehaviour
         {
             case WeaponData.WeaponType.Pistol:
                 return 1;
-            case WeaponData.WeaponType.Knife: // Knife 대용으로 사용 중인 경우
+            case WeaponData.WeaponType.Knife:
                 return 2;
-            default: // AR, SMG, SR 등은 모두 0번 슬롯
+            default:
                 return 0;
         }
     }
@@ -490,6 +392,8 @@ public class PlayerItem : MonoBehaviour
         }
 
         items[currentIndex].gameObject.SetActive(visibility);
+        if (tpWeaponObjects[currentIndex] != null)
+            tpWeaponObjects[currentIndex].SetActive(visibility);
     }
 
     private int FindFirstAvailableWeaponSlotExceptSpike()
@@ -511,13 +415,18 @@ public class PlayerItem : MonoBehaviour
         if (slot < 0 || slot >= items.Length)
             return;
 
-        if (items[slot] == null)
-            return;
-
+        // 1인칭 무기 켜기/끄기
         for (int i = 0; i < items.Length; i++)
         {
             if (items[i] != null)
                 items[i].gameObject.SetActive(i == slot);
+        }
+
+        // 3인칭 무기 켜기/끄기
+        for (int i = 0; i < tpWeaponObjects.Length; i++)
+        {
+            if (tpWeaponObjects[i] != null)
+                tpWeaponObjects[i].SetActive(i == slot);
         }
 
         currentIndex = slot;
@@ -538,7 +447,6 @@ public class PlayerItem : MonoBehaviour
             weapon.ReloadFull();
         }
 
-        // 라운드 시작 기본 장착은 권총
         if (items[1] != null)
             Switch(1);
         else if (items[2] != null)
@@ -554,29 +462,25 @@ public class PlayerItem : MonoBehaviour
                 Destroy(items[i].gameObject);
                 items[i] = null;
             }
+
+            if (tpWeaponObjects[i] != null)
+            {
+                Destroy(tpWeaponObjects[i]);
+                tpWeaponObjects[i] = null;
+            }
         }
 
         currentIndex = -1;
-
-        // 라운드 리셋 후에도 메인 무기는 없음
         items[0] = null;
 
-        // 권총 재생성
         if (secondary != null)
             CreateStartingItem(secondary, 1);
-        else
-            items[1] = null;
 
-        // 나이프 재생성
         if (melee != null)
             CreateStartingItem(melee, 2);
-        else
-            items[2] = null;
 
-        // 투척무기는 현재 없음
         items[3] = null;
 
-        // 스파이크 재생성
         if (spike != null)
         {
             GameObject obj = Instantiate(spike, itemHolder);
@@ -585,21 +489,25 @@ public class PlayerItem : MonoBehaviour
 
             Item item = obj.GetComponent<Item>();
             items[4] = item;
-
             obj.SetActive(false);
-        }
-        else
-        {
-            items[4] = null;
+
+            if (tpItemHolder != null)
+            {
+                GameObject tpObj = Instantiate(spike, tpItemHolder);
+                tpObj.transform.localPosition = Vector3.zero;
+                tpObj.transform.localRotation = Quaternion.identity;
+                DisableHeldWeaponPhysics(tpObj);
+                tpWeaponObjects[4] = tpObj;
+                tpObj.SetActive(false);
+            }
         }
 
-        // 기본 장착은 권총
         if (items[1] != null)
             Switch(1);
         else if (items[2] != null)
             Switch(2);
     }
-    // 사격 조건
+
     bool IsAttackRestricted()
     {
         if (currentIndex < 0 || currentIndex >= items.Length)
@@ -620,10 +528,7 @@ public class PlayerItem : MonoBehaviour
             return;
 
         if (GetSlotIndex(weaponData) != 0)
-        {
-            Debug.LogWarning($"[PLAYER ITEM] EquipPrimaryWeapon failed. weaponType={weaponData.weaponType}");
             return;
-        }
 
         if (items[0] != null)
         {
@@ -632,18 +537,13 @@ public class PlayerItem : MonoBehaviour
             items[0] = null;
         }
 
-        /*
-        GameObject obj = Instantiate(weaponData.weaponPrefab, itemHolder);
+        if (tpWeaponObjects[0] != null)
+        {
+            Destroy(tpWeaponObjects[0]);
+            tpWeaponObjects[0] = null;
+        }
 
-        obj.transform.localPosition = Vector3.zero;
-        obj.transform.localRotation = Quaternion.identity;
-
-        Weapon weapon = obj.GetComponent<Weapon>();
-        if (weapon != null)
-            weapon.Initialize(weaponData, dropPoint, weaponData.magSize, weaponData.maxReserveAmmo);
-        */
-
-        GameObject obj = SpawnWeaponObject(weaponData, weaponData.magSize, weaponData.maxReserveAmmo);
+        GameObject obj = SpawnWeaponObject(weaponData, weaponData.magSize, weaponData.maxReserveAmmo, null, 0);
 
         Item item = obj.GetComponent<Item>();
         items[0] = item;
@@ -667,18 +567,14 @@ public class PlayerItem : MonoBehaviour
         return items[currentIndex].GetComponent<Weapon>();
     }
 
-    public void SetWeaponAmmoFromServer(
-    int weaponId,
-    int magAmmo,
-    int reserveAmmo)
+    public void SetWeaponAmmoFromServer(int weaponId, int magAmmo, int reserveAmmo)
     {
         for (int i = 0; i < items.Length; i++)
         {
             if (items[i] == null)
                 continue;
 
-            Weapon weapon =
-                items[i].GetComponent<Weapon>();
+            Weapon weapon = items[i].GetComponent<Weapon>();
 
             if (weapon == null)
                 continue;
@@ -686,31 +582,14 @@ public class PlayerItem : MonoBehaviour
             if (weapon.GetWeaponId() != weaponId)
                 continue;
 
-            weapon.SetAmmo(
-                magAmmo,
-                reserveAmmo
-            );
-
-            Debug.Log(
-                $"[PLAYER ITEM AMMO APPLY] " +
-                $"weaponId={weaponId}, " +
-                $"ammo={magAmmo}/{reserveAmmo}"
-            );
-
+            weapon.SetAmmo(magAmmo, reserveAmmo);
             return;
         }
-
-        Debug.LogWarning(
-            $"[PLAYER ITEM AMMO APPLY] " +
-            $"weapon not found. weaponId={weaponId}"
-        );
     }
 
-    public void PlayFireVisualFromServer(
-    int weaponId)
+    public void PlayFireVisualFromServer(int weaponId)
     {
-        Weapon currentWeapon =
-            GetCurrentWeapon();
+        Weapon currentWeapon = GetCurrentWeapon();
 
         if (currentWeapon == null)
             return;
@@ -723,101 +602,36 @@ public class PlayerItem : MonoBehaviour
 
     public void PlayKnifeAttackVisualFromServer()
     {
-        if (currentIndex < 0 ||
-            currentIndex >= items.Length)
-        {
-            Debug.LogWarning(
-                $"[REMOTE KNIFE] invalid currentIndex={currentIndex}"
-            );
-
+        if (currentIndex < 0 || currentIndex >= items.Length)
             return;
-        }
 
-        Item currentItem =
-            items[currentIndex];
+        Item currentItem = items[currentIndex];
 
         if (currentItem == null)
-        {
-            Debug.LogWarning(
-                "[REMOTE KNIFE] current item is null"
-            );
-
             return;
-        }
 
-        Weapon currentWeapon =
-            currentItem.GetComponent<Weapon>();
+        Weapon currentWeapon = currentItem.GetComponent<Weapon>() ?? currentItem.GetComponentInChildren<Weapon>(true);
 
-        if (currentWeapon == null)
-        {
-            currentWeapon =
-                currentItem.GetComponentInChildren<Weapon>(true);
-        }
-
-        if (currentWeapon == null)
-        {
-            Debug.LogWarning(
-                "[REMOTE KNIFE] Weapon component not found"
-            );
-
+        if (currentWeapon == null || currentWeapon.GetWeaponType() != WeaponData.WeaponType.Knife)
             return;
-        }
 
-        if (currentWeapon.GetWeaponType() !=
-            WeaponData.WeaponType.Knife)
-        {
-            Debug.LogWarning(
-                $"[REMOTE KNIFE] current weapon is not knife. " +
-                $"weaponId={currentWeapon.GetWeaponId()}"
-            );
+        KnifeMotion knifeMotion = currentItem.GetComponent<KnifeMotion>() ?? currentItem.GetComponentInChildren<KnifeMotion>(true);
 
-            return;
-        }
-
-        KnifeMotion knifeMotion =
-            currentItem.GetComponent<KnifeMotion>();
-
-        if (knifeMotion == null)
-        {
-            knifeMotion =
-                currentItem.GetComponentInChildren<KnifeMotion>(
-                    true
-                );
-        }
-
-        if (knifeMotion == null)
-        {
-            Debug.LogWarning(
-                $"[REMOTE KNIFE] KnifeMotion not found. " +
-                $"weaponId={currentWeapon.GetWeaponId()}"
-            );
-
-            return;
-        }
-
-        knifeMotion.PlayAttackFromServer();
-
-        Debug.Log(
-            $"[REMOTE KNIFE VISUAL] played. " +
-            $"playerId={_playerIdentity?.PlayerId}, " +
-            $"weaponId={currentWeapon.GetWeaponId()}"
-        );
+        if (knifeMotion != null)
+            knifeMotion.PlayAttackFromServer();
     }
 
     public void SetSpikeItemActive(bool value)
     {
         if (items[4] == null)
-        {
-            Debug.Log("[PLAYER ITEM] Spike slot is empty.");
             return;
-        }
 
         if (!value && currentIndex == 4)
-        {
             Switch(1);
-        }
 
         items[4].gameObject.SetActive(false);
+        if (tpWeaponObjects[4] != null)
+            tpWeaponObjects[4].SetActive(false);
     }
 
     public void GiveSpike(GameObject spikePrefab)
@@ -825,16 +639,26 @@ public class PlayerItem : MonoBehaviour
         if (items[4] != null)
             Destroy(items[4].gameObject);
 
+        if (tpWeaponObjects[4] != null)
+            Destroy(tpWeaponObjects[4]);
+
         GameObject obj = Instantiate(spikePrefab, itemHolder);
         obj.transform.localPosition = new Vector3(0.75f, -0.2f, 1f);
         obj.transform.localRotation = Quaternion.identity;
 
         Item item = obj.GetComponent<Item>();
         items[4] = item;
-
         obj.SetActive(false);
 
-        Debug.Log("[PLAYER ITEM] Spike added to slot 5");
+        if (tpItemHolder != null)
+        {
+            GameObject tpObj = Instantiate(spikePrefab, tpItemHolder);
+            tpObj.transform.localPosition = Vector3.zero;
+            tpObj.transform.localRotation = Quaternion.identity;
+            DisableHeldWeaponPhysics(tpObj);
+            tpWeaponObjects[4] = tpObj;
+            tpObj.SetActive(false);
+        }
     }
 
     public void RemoveSpike()
@@ -853,7 +677,11 @@ public class PlayerItem : MonoBehaviour
             items[4] = null;
         }
 
-        Debug.Log("[PLAYER ITEM] Spike removed from slot 5");
+        if (tpWeaponObjects[4] != null)
+        {
+            Destroy(tpWeaponObjects[4]);
+            tpWeaponObjects[4] = null;
+        }
     }
 
     public void DisableOnDeath()
@@ -871,18 +699,18 @@ public class PlayerItem : MonoBehaviour
     {
         enabled = true;
 
-        if (currentIndex >= 0 && currentIndex < items.Length && items[currentIndex] != null)
-            items[currentIndex].gameObject.SetActive(true);
+        if (currentIndex >= 0 && currentIndex < items.Length)
+        {
+            if (items[currentIndex] != null)
+                items[currentIndex].gameObject.SetActive(true);
+            if (tpWeaponObjects[currentIndex] != null)
+                tpWeaponObjects[currentIndex].SetActive(true);
+        }
     }
 
     public void ApplyWeaponSwitchFromServer(int weaponId)
     {
-        // 서버 통지로 받은 무기 변경이다.
-        // 여기서는 다시 NetworkManager.SendWeaponSwitch() 보내면 안 된다.
-
         SwitchWeaponVisualOnly(weaponId);
-
-        Debug.Log($"[PLAYER ITEM] remote weapon switch weaponId={weaponId}");
     }
 
     private void SwitchWeaponVisualOnly(int weaponId)
@@ -902,18 +730,15 @@ public class PlayerItem : MonoBehaviour
             bool active = weapon.GetWeaponId() == weaponId;
             items[i].gameObject.SetActive(active);
 
+            if (tpWeaponObjects[i] != null)
+                tpWeaponObjects[i].SetActive(active);
+
             if (active)
                 foundSlot = i;
         }
 
         if (foundSlot != -1)
-        {
             currentIndex = foundSlot;
-        }
-        else
-        {
-            Debug.LogWarning($"[PLAYER ITEM] weaponId not found. weaponId={weaponId}");
-        }
     }
 
     public void SetADSVisualFromServer(bool isADS)
@@ -921,14 +746,9 @@ public class PlayerItem : MonoBehaviour
         Weapon currentWeapon = GetCurrentWeapon();
 
         if (currentWeapon == null)
-        {
-            Debug.LogWarning("[PLAYER ITEM] ADS visual failed. currentWeapon is null");
             return;
-        }
 
         WeaponADS weaponADS = currentWeapon.GetComponent<WeaponADS>();
-
-        Debug.Log($"[PLAYER ITEM] ADS visual from server isADS={isADS}");
     }
 
     public void RemoveWeaponFromServer(int weaponId)
@@ -936,10 +756,7 @@ public class PlayerItem : MonoBehaviour
         int slot = FindSlotByWeaponId(weaponId);
 
         if (slot == -1)
-        {
-            Debug.LogWarning($"[PLAYER ITEM] RemoveWeaponFromServer failed. weaponId={weaponId}");
             return;
-        }
 
         bool wasCurrent = currentIndex == slot;
 
@@ -947,6 +764,12 @@ public class PlayerItem : MonoBehaviour
         {
             Destroy(items[slot].gameObject);
             items[slot] = null;
+        }
+
+        if (tpWeaponObjects[slot] != null)
+        {
+            Destroy(tpWeaponObjects[slot]);
+            tpWeaponObjects[slot] = null;
         }
 
         if (wasCurrent)
@@ -958,8 +781,6 @@ public class PlayerItem : MonoBehaviour
             if (fallbackSlot != -1)
                 SwitchWeaponVisualOnlyBySlot(fallbackSlot);
         }
-
-        Debug.Log($"[PLAYER ITEM] weapon removed by server. weaponId={weaponId}, slot={slot}");
     }
 
     private int FindSlotByWeaponId(int weaponId)
@@ -981,32 +802,20 @@ public class PlayerItem : MonoBehaviour
         return -1;
     }
 
-    public void ApplyWeaponPickupFromServer(
-    int weaponId,
-    int magAmmo,
-    int reserveAmmo)
+    public void ApplyWeaponPickupFromServer(int weaponId, int magAmmo, int reserveAmmo)
     {
         if (WeaponDropSpawner.Instance == null)
-        {
-            Debug.LogError("[PLAYER ITEM] WeaponDropSpawner.Instance is null");
             return;
-        }
 
         WeaponData data = WeaponDropSpawner.Instance.GetWeaponData(weaponId);
 
         if (data == null)
-        {
-            Debug.LogError($"[PLAYER ITEM] WeaponData not found. weaponId={weaponId}");
             return;
-        }
 
         int slot = GetSlotIndex(data);
 
         if (slot < 0 || slot >= items.Length)
-        {
-            Debug.LogError($"[PLAYER ITEM] invalid slot. weaponId={weaponId}, slot={slot}");
             return;
-        }
 
         if (items[slot] != null)
         {
@@ -1014,20 +823,13 @@ public class PlayerItem : MonoBehaviour
             items[slot] = null;
         }
 
-        /*
-        GameObject obj = Instantiate(data.weaponPrefab, itemHolder);
-
-        obj.transform.localPosition = Vector3.zero;
-        obj.transform.localRotation = Quaternion.identity;
-
-        Weapon weapon = obj.GetComponent<Weapon>();
-        if (weapon != null)
+        if (tpWeaponObjects[slot] != null)
         {
-            weapon.Initialize(data, dropPoint, magAmmo, reserveAmmo);
+            Destroy(tpWeaponObjects[slot]);
+            tpWeaponObjects[slot] = null;
         }
-        */
 
-        GameObject obj = SpawnWeaponObject(data, magAmmo, reserveAmmo);
+        GameObject obj = SpawnWeaponObject(data, magAmmo, reserveAmmo, null, slot);
 
         DisableHeldWeaponPhysics(obj);
 
@@ -1035,7 +837,6 @@ public class PlayerItem : MonoBehaviour
 
         if (item == null)
         {
-            Debug.LogError($"[PLAYER ITEM] Item component missing. weaponId={weaponId}");
             Destroy(obj);
             return;
         }
@@ -1048,11 +849,6 @@ public class PlayerItem : MonoBehaviour
 
         if (InGameUIManager.Instance != null)
             InGameUIManager.Instance.SetBulletText(magAmmo, reserveAmmo);
-
-        Debug.Log(
-            $"[PLAYER ITEM] weapon pickup applied by server. " +
-            $"weaponId={weaponId}, slot={slot}, ammo={magAmmo}/{reserveAmmo}"
-        );
     }
 
     private void DisableHeldWeaponPhysics(GameObject obj)
@@ -1089,19 +885,19 @@ public class PlayerItem : MonoBehaviour
     }
 
     public void ApplyRoundResetInventoryFromServer(
-    int currentWeaponId,
-    int primaryWeaponId,
-    int primaryMagAmmo,
-    int primaryReserveAmmo,
-    int primarySkinId,
-    int pistolWeaponId,
-    int pistolMagAmmo,
-    int pistolReserveAmmo,
-    int pistolSkinId,
-    int knifeWeaponId,
-    int knifeMagAmmo,
-    int knifeReserveAmmo,
-    int knifeSkinId)
+        int currentWeaponId,
+        int primaryWeaponId,
+        int primaryMagAmmo,
+        int primaryReserveAmmo,
+        int primarySkinId,
+        int pistolWeaponId,
+        int pistolMagAmmo,
+        int pistolReserveAmmo,
+        int pistolSkinId,
+        int knifeWeaponId,
+        int knifeMagAmmo,
+        int knifeReserveAmmo,
+        int knifeSkinId)
     {
         CancelReload(false);
 
@@ -1114,55 +910,26 @@ public class PlayerItem : MonoBehaviour
         ClearWeaponSlotsForRoundReset();
 
         if (primaryWeaponId >= 0)
-        {
-            CreateWeaponFromServerForRoundReset(
-                primaryWeaponId,
-                primaryMagAmmo,
-                primaryReserveAmmo,
-                primarySkinId
-            );
-        }
+            CreateWeaponFromServerForRoundReset(primaryWeaponId, primaryMagAmmo, primaryReserveAmmo, primarySkinId);
 
         if (pistolWeaponId >= 0)
-        {
-            CreateWeaponFromServerForRoundReset(
-                pistolWeaponId,
-                pistolMagAmmo,
-                pistolReserveAmmo,
-                pistolSkinId
-            );
-        }
+            CreateWeaponFromServerForRoundReset(pistolWeaponId, pistolMagAmmo, pistolReserveAmmo, pistolSkinId);
 
         if (knifeWeaponId >= 0)
-        {
-            CreateWeaponFromServerForRoundReset(
-                knifeWeaponId,
-                knifeMagAmmo,
-                knifeReserveAmmo,
-                knifeSkinId
-            );
-        }
+            CreateWeaponFromServerForRoundReset(knifeWeaponId, knifeMagAmmo, knifeReserveAmmo, knifeSkinId);
 
         int currentSlot = FindSlotByWeaponId(currentWeaponId);
 
-        bool isLocal =
-            _playerIdentity != null &&
-            NetworkManager.Instance != null &&
-            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+        bool isLocal = _playerIdentity != null &&
+                      NetworkManager.Instance != null &&
+                      _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
 
         if (currentSlot != -1)
         {
             if (isLocal)
-            {
-                // 로컬 플레이어는 실제 Switch를 호출해서
-                // OnEquip 처리 + 서버에 SendWeaponSwitch까지 보낸다.
                 Switch(currentSlot);
-            }
             else
-            {
-                // 원격 플레이어는 서버에 패킷을 보내면 안 되므로 비주얼만 변경
                 SwitchWeaponVisualOnlyBySlot(currentSlot);
-            }
         }
         else
         {
@@ -1183,27 +950,14 @@ public class PlayerItem : MonoBehaviour
 
         UpdateBulletTextFromRoundResetData(
             currentWeaponId,
-            primaryWeaponId,
-            primaryMagAmmo,
-            primaryReserveAmmo,
-            pistolWeaponId,
-            pistolMagAmmo,
-            pistolReserveAmmo,
-            knifeWeaponId,
-            knifeMagAmmo,
-            knifeReserveAmmo
-        );
-
-        Debug.Log(
-            $"[PLAYER ITEM] round reset inventory applied. " +
-            $"current={currentWeaponId}, primary={primaryWeaponId}, pistol={pistolWeaponId}, knife={knifeWeaponId}"
+            primaryWeaponId, primaryMagAmmo, primaryReserveAmmo,
+            pistolWeaponId, pistolMagAmmo, pistolReserveAmmo,
+            knifeWeaponId, knifeMagAmmo, knifeReserveAmmo
         );
     }
 
     private void ClearWeaponSlotsForRoundReset()
     {
-        // 0 = 주무기, 1 = 보조무기, 2 = 칼, 3 = 투척무기
-        // 4 = 스파이크는 여기서 건드리지 않는다.
         for (int i = 0; i <= 3; i++)
         {
             if (items[i] != null)
@@ -1211,14 +965,19 @@ public class PlayerItem : MonoBehaviour
                 Destroy(items[i].gameObject);
                 items[i] = null;
             }
+
+            if (tpWeaponObjects[i] != null)
+            {
+                Destroy(tpWeaponObjects[i]);
+                tpWeaponObjects[i] = null;
+            }
         }
 
         currentIndex = -1;
 
-        bool isLocal =
-            _playerIdentity != null &&
-            NetworkManager.Instance != null &&
-            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+        bool isLocal = _playerIdentity != null &&
+                      NetworkManager.Instance != null &&
+                      _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
 
         if (isLocal && InGameUIManager.Instance != null)
         {
@@ -1229,39 +988,20 @@ public class PlayerItem : MonoBehaviour
         }
     }
 
-    private void CreateWeaponFromServerForRoundReset(
-        int weaponId,
-        int magAmmo,
-        int reserveAmmo,
-        int skinId)
+    private void CreateWeaponFromServerForRoundReset(int weaponId, int magAmmo, int reserveAmmo, int skinId)
     {
         if (WeaponDropSpawner.Instance == null)
-        {
-            Debug.LogError("[PLAYER ITEM] WeaponDropSpawner.Instance is null");
             return;
-        }
 
         WeaponData data = WeaponDropSpawner.Instance.GetWeaponData(weaponId);
 
         if (data == null)
-        {
-            Debug.LogError($"[PLAYER ITEM] WeaponData not found. weaponId={weaponId}");
             return;
-        }
 
         int slot = GetSlotIndex(data);
 
-        if (slot < 0 || slot >= items.Length)
-        {
-            Debug.LogError($"[PLAYER ITEM] invalid slot. weaponId={weaponId}, slot={slot}");
+        if (slot < 0 || slot >= items.Length || slot == 4)
             return;
-        }
-
-        if (slot == 4)
-        {
-            Debug.LogWarning($"[PLAYER ITEM] weapon cannot use spike slot. weaponId={weaponId}");
-            return;
-        }
 
         if (items[slot] != null)
         {
@@ -1269,20 +1009,13 @@ public class PlayerItem : MonoBehaviour
             items[slot] = null;
         }
 
-        /*
-        GameObject obj = Instantiate(data.weaponPrefab, itemHolder);
-
-        obj.transform.localPosition = Vector3.zero;
-        obj.transform.localRotation = Quaternion.identity;
-
-        Weapon weapon = obj.GetComponent<Weapon>();
-        if (weapon != null)
+        if (tpWeaponObjects[slot] != null)
         {
-            weapon.Initialize(data, dropPoint, magAmmo, reserveAmmo);
+            Destroy(tpWeaponObjects[slot]);
+            tpWeaponObjects[slot] = null;
         }
-        */
 
-        GameObject obj = SpawnWeaponObject(data, magAmmo, reserveAmmo, skinId);
+        GameObject obj = SpawnWeaponObject(data, magAmmo, reserveAmmo, skinId, slot);
 
         DisableHeldWeaponPhysics(obj);
 
@@ -1290,7 +1023,6 @@ public class PlayerItem : MonoBehaviour
 
         if (item == null)
         {
-            Debug.LogError($"[PLAYER ITEM] Item component missing. weaponId={weaponId}");
             Destroy(obj);
             return;
         }
@@ -1299,53 +1031,32 @@ public class PlayerItem : MonoBehaviour
 
         obj.SetActive(false);
 
-        bool isLocal =
-            _playerIdentity != null &&
-            NetworkManager.Instance != null &&
-            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+        bool isLocal = _playerIdentity != null &&
+                      NetworkManager.Instance != null &&
+                      _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
 
         if (isLocal && InGameUIManager.Instance != null)
         {
             if (slot == 0)
-            {
                 InGameUIManager.Instance.SetMainWeapon(data);
-            }
             else if (slot == 1)
-            {
                 InGameUIManager.Instance.SetSubWeapon(data.weaponIcon);
-            }
             else if (slot == 2)
-            {
                 InGameUIManager.Instance.SetKnife(data.weaponIcon);
-            }
         }
-
-        Debug.Log(
-            $"[PLAYER ITEM] round reset weapon created. weaponId={weaponId}, slot={slot}, ammo={magAmmo}/{reserveAmmo}"
-        );
     }
 
     private void UpdateBulletTextFromRoundResetData(
         int currentWeaponId,
-        int primaryWeaponId,
-        int primaryMagAmmo,
-        int primaryReserveAmmo,
-        int pistolWeaponId,
-        int pistolMagAmmo,
-        int pistolReserveAmmo,
-        int knifeWeaponId,
-        int knifeMagAmmo,
-        int knifeReserveAmmo)
+        int primaryWeaponId, int primaryMagAmmo, int primaryReserveAmmo,
+        int pistolWeaponId, int pistolMagAmmo, int pistolReserveAmmo,
+        int knifeWeaponId, int knifeMagAmmo, int knifeReserveAmmo)
     {
-        bool isLocal =
-            _playerIdentity != null &&
-            NetworkManager.Instance != null &&
-            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+        bool isLocal = _playerIdentity != null &&
+                      NetworkManager.Instance != null &&
+                      _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
 
-        if (!isLocal)
-            return;
-
-        if (InGameUIManager.Instance == null)
+        if (!isLocal || InGameUIManager.Instance == null)
             return;
 
         if (currentWeaponId == primaryWeaponId)
@@ -1369,40 +1080,20 @@ public class PlayerItem : MonoBehaviour
         InGameUIManager.Instance.SetBulletText(0, 0);
     }
 
-    public void ApplyPickedWeaponFromServer(
-    WeaponData weaponData,
-    int magAmmo,
-    int reserveAmmo,
-    int skinId = 0)
+    public void ApplyPickedWeaponFromServer(WeaponData weaponData, int magAmmo, int reserveAmmo, int skinId = 0)
     {
         if (weaponData == null)
-        {
-            Debug.LogError("[PLAYER ITEM] ApplyPickedWeaponFromServer failed. weaponData is null");
             return;
-        }
 
         EquipWeaponByServerData(weaponData, magAmmo, reserveAmmo, skinId);
     }
 
-    private void EquipWeaponByServerData(
-    WeaponData weaponData,
-    int magAmmo,
-    int reserveAmmo,
-    int skinId = 0)
+    private void EquipWeaponByServerData(WeaponData weaponData, int magAmmo, int reserveAmmo, int skinId = 0)
     {
         int slot = GetSlotIndex(weaponData);
 
-        if (slot < 0 || slot >= items.Length)
-        {
-            Debug.LogError($"[PLAYER ITEM] invalid slot. weaponId={weaponData.weaponId}, slot={slot}");
+        if (slot < 0 || slot >= items.Length || slot == 4)
             return;
-        }
-
-        if (slot == 4)
-        {
-            Debug.LogWarning($"[PLAYER ITEM] spike slot cannot equip weapon. weaponId={weaponData.weaponId}");
-            return;
-        }
 
         if (items[slot] != null)
         {
@@ -1410,28 +1101,19 @@ public class PlayerItem : MonoBehaviour
             items[slot] = null;
         }
 
-        /*
-        GameObject obj = Instantiate(weaponData.weaponPrefab, itemHolder);
-
-        obj.transform.localPosition = Vector3.zero;
-        obj.transform.localRotation = Quaternion.identity;
-
-        Weapon weapon = obj.GetComponent<Weapon>();
-        if (weapon != null)
+        if (tpWeaponObjects[slot] != null)
         {
-            weapon.Initialize(weaponData, dropPoint, magAmmo, reserveAmmo);
+            Destroy(tpWeaponObjects[slot]);
+            tpWeaponObjects[slot] = null;
         }
-        */
 
-        // A picked weapon keeps the dropped instance skin, including default skin 0.
-        GameObject obj = SpawnWeaponObject(weaponData, magAmmo, reserveAmmo, skinId);
+        GameObject obj = SpawnWeaponObject(weaponData, magAmmo, reserveAmmo, skinId, slot);
 
         DisableHeldWeaponPhysics(obj);
 
         Item item = obj.GetComponent<Item>();
         if (item == null)
         {
-            Debug.LogError($"[PLAYER ITEM] Item component missing. weaponId={weaponData.weaponId}");
             Destroy(obj);
             return;
         }
@@ -1440,10 +1122,9 @@ public class PlayerItem : MonoBehaviour
 
         obj.SetActive(false);
 
-        bool isLocal =
-            _playerIdentity != null &&
-            NetworkManager.Instance != null &&
-            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+        bool isLocal = _playerIdentity != null &&
+                      NetworkManager.Instance != null &&
+                      _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
 
         if (isLocal)
         {
@@ -1465,11 +1146,6 @@ public class PlayerItem : MonoBehaviour
         {
             SwitchWeaponVisualOnlyBySlot(slot);
         }
-
-        Debug.Log(
-            $"[PLAYER ITEM] weapon pickup equipped by server. " +
-            $"weaponId={weaponData.weaponId}, slot={slot}, ammo={magAmmo}/{reserveAmmo}"
-        );
     }
 
     public void RefreshCurrentWeaponAmmoFromServer()
@@ -1477,51 +1153,18 @@ public class PlayerItem : MonoBehaviour
         if (_playerIdentity == null)
             _playerIdentity = GetComponent<PlayerIdentity>();
 
-        if (_playerIdentity == null)
-        {
-            Debug.LogError(
-                "[PLAYER ITEM AMMO REFRESH] PlayerIdentity is null"
-            );
-
+        if (_playerIdentity == null || NetworkManager.Instance == null)
             return;
-        }
 
-        if (NetworkManager.Instance == null)
-        {
-            Debug.LogError(
-                "[PLAYER ITEM AMMO REFRESH] NetworkManager.Instance is null"
-            );
-
+        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
             return;
-        }
 
-        if (_playerIdentity.PlayerId !=
-            NetworkManager.Instance.MyPlayerId)
-        {
-            return;
-        }
-
-        Weapon currentWeapon =
-            GetCurrentWeapon();
+        Weapon currentWeapon = GetCurrentWeapon();
 
         if (currentWeapon == null)
-        {
-            Debug.LogWarning(
-                $"[PLAYER ITEM AMMO REFRESH] current weapon is null. " +
-                $"currentIndex={currentIndex}"
-            );
-
             return;
-        }
 
-        NetworkManager.Instance.SendWeaponSwitch(
-            currentWeapon.GetWeaponId()
-        );
-
-        Debug.Log(
-            $"[PLAYER ITEM AMMO REFRESH] requested. " +
-            $"weaponId={currentWeapon.GetWeaponId()}"
-        );
+        NetworkManager.Instance.SendWeaponSwitch(currentWeapon.GetWeaponId());
     }
 
     private void TryStartReload()
@@ -1529,139 +1172,66 @@ public class PlayerItem : MonoBehaviour
         if (isReloading)
             return;
 
-        if (currentIndex < 0 ||
-            currentIndex >= items.Length)
-        {
+        if (currentIndex < 0 || currentIndex >= items.Length)
             return;
-        }
 
-        Item currentItem =
-            items[currentIndex];
+        Item currentItem = items[currentIndex];
 
         if (currentItem == null)
             return;
 
-        Weapon currentWeapon =
-            currentItem.GetComponent<Weapon>();
+        Weapon currentWeapon = currentItem.GetComponent<Weapon>();
 
         if (currentWeapon == null)
             return;
 
-        // 칼은 장전 불가능
-        if (currentWeapon.GetWeaponType() ==
-            WeaponData.WeaponType.Knife)
-        {
+        if (currentWeapon.GetWeaponType() == WeaponData.WeaponType.Knife)
             return;
-        }
 
         if (!currentWeapon.CanReloadNow())
-        {
-            Debug.Log(
-                $"[RELOAD BLOCK] cannot reload. " +
-                $"weaponId={currentWeapon.GetWeaponId()}"
-            );
-
             return;
-        }
 
         if (WeaponDropSpawner.Instance == null)
-        {
-            Debug.LogError(
-                "[RELOAD] WeaponDropSpawner.Instance is null"
-            );
-
             return;
-        }
 
-        int weaponId =
-            currentWeapon.GetWeaponId();
+        int weaponId = currentWeapon.GetWeaponId();
 
-        WeaponData weaponData =
-            WeaponDropSpawner.Instance.GetWeaponData(
-                weaponId
-            );
+        WeaponData weaponData = WeaponDropSpawner.Instance.GetWeaponData(weaponId);
 
-        if (weaponData == null)
-        {
-            Debug.LogError(
-                $"[RELOAD] WeaponData not found. " +
-                $"weaponId={weaponId}"
-            );
-
+        if (weaponData == null || weaponData.reloadTime <= 0f)
             return;
-        }
 
-        if (weaponData.reloadTime <= 0f)
-        {
-            Debug.LogWarning(
-                $"[RELOAD] invalid reloadTime. " +
-                $"weaponId={weaponId}, " +
-                $"reloadTime={weaponData.reloadTime}"
-            );
-
-            return;
-        }
-
-        // 장전 시작 시 줌 해제
-        FPSCameraLook cameraLook =
-            GetComponentInChildren<FPSCameraLook>(true);
+        FPSCameraLook cameraLook = GetComponentInChildren<FPSCameraLook>(true);
 
         if (cameraLook != null)
-        {
             cameraLook.ForceExitADS();
-        }
 
-        reloadCoroutine =
-            StartCoroutine(
-                ReloadRoutine(
-                    currentItem,
-                    weaponId,
-                    currentIndex,
-                    weaponData.reloadTime
-                )
-            );
+        reloadCoroutine = StartCoroutine(
+            ReloadRoutine(currentItem, weaponId, currentIndex, weaponData.reloadTime)
+        );
     }
 
-    private IEnumerator ReloadRoutine(
-        Item reloadItem,
-        int reloadWeaponId,
-        int reloadSlot,
-        float reloadTime)
+    private IEnumerator ReloadRoutine(Item reloadItem, int reloadWeaponId, int reloadSlot, float reloadTime)
     {
         isReloading = true;
         reloadingWeaponId = reloadWeaponId;
-        reloadingWeaponObject =
-            reloadItem != null
-                ? reloadItem.gameObject
-                : null;
+        reloadingWeaponObject = reloadItem != null ? reloadItem.gameObject : null;
 
-        // 기존처럼 총기를 숨기지 않고 장전 애니메이션을 재생한다.
         PlayReloadAnimation(reloadItem, reloadTime);
 
         if (NetworkManager.Instance != null)
-        {
-            NetworkManager.Instance.SendReloadVisual(
-                reloadWeaponId,
-                true
-            );
-        }
-
-        Debug.Log(
-            $"[RELOAD START] weaponId={reloadWeaponId}, " +
-            $"reloadTime={reloadTime}"
-        );
+            NetworkManager.Instance.SendReloadVisual(reloadWeaponId, true);
 
         yield return new WaitForSeconds(reloadTime);
 
         if (!isReloading)
             yield break;
 
-        bool sameWeapon =
-            reloadSlot >= 0 &&
-            reloadSlot < items.Length &&
-            currentIndex == reloadSlot &&
-            items[reloadSlot] != null &&
-            items[reloadSlot] == reloadItem;
+        bool sameWeapon = reloadSlot >= 0 &&
+                          reloadSlot < items.Length &&
+                          currentIndex == reloadSlot &&
+                          items[reloadSlot] != null &&
+                          items[reloadSlot] == reloadItem;
 
         if (!sameWeapon)
         {
@@ -1672,10 +1242,6 @@ public class PlayerItem : MonoBehaviour
         if (NetworkManager.Instance != null)
             NetworkManager.Instance.SendReload();
 
-        Debug.Log(
-            $"[RELOAD COMPLETE] weaponId={reloadWeaponId}"
-        );
-
         FinishReloadState(false);
     }
 
@@ -1685,18 +1251,13 @@ public class PlayerItem : MonoBehaviour
         {
             StopReloadAnimation(reloadingWeaponObject);
 
-            // 예전 장전 구현에서 비활성화된 상태가 남아 있을 때만 복구한다.
             if (restoreWeapon && !reloadingWeaponObject.activeSelf)
                 reloadingWeaponObject.SetActive(true);
         }
 
-        if (reloadingWeaponId >= 0 &&
-            NetworkManager.Instance != null)
+        if (reloadingWeaponId >= 0 && NetworkManager.Instance != null)
         {
-            NetworkManager.Instance.SendReloadVisual(
-                reloadingWeaponId,
-                false
-            );
+            NetworkManager.Instance.SendReloadVisual(reloadingWeaponId, false);
         }
 
         isReloading = false;
@@ -1726,72 +1287,38 @@ public class PlayerItem : MonoBehaviour
             reloadingWeaponObject = null;
             reloadingWeaponId = -1;
         }
-
-        Debug.Log("[RELOAD CANCEL]");
     }
 
-    public void SetReloadVisualFromServer(
-        int weaponId,
-        bool isReloadingValue)
+    public void SetReloadVisualFromServer(int weaponId, bool isReloadingValue)
     {
         int slot = FindSlotByWeaponId(weaponId);
 
         if (slot == -1)
-        {
-            Debug.LogWarning(
-                $"[REMOTE RELOAD] weapon not found. " +
-                $"weaponId={weaponId}"
-            );
-
             return;
-        }
 
         remoteIsReloading = isReloadingValue;
-        remoteReloadWeaponId =
-            isReloadingValue
-                ? weaponId
-                : -1;
+        remoteReloadWeaponId = isReloadingValue ? weaponId : -1;
 
-        // 1인칭 장전 애니메이션은 현재 이 플레이어를 관전 중일 때만 표시한다.
         if (!IsCurrentlySpectated())
             return;
 
         if (slot != currentIndex || items[slot] == null)
             return;
 
-        PlayerDeathController death =
-            GetComponent<PlayerDeathController>();
-
-        if (death == null)
-        {
-            death =
-                GetComponentInChildren<PlayerDeathController>(true);
-        }
+        PlayerDeathController death = GetComponent<PlayerDeathController>() ?? GetComponentInChildren<PlayerDeathController>(true);
 
         if (death != null && death.IsDead)
             return;
 
         Item reloadItem = items[slot];
 
-        // 장전 중 총기를 사라지게 하지 않는다.
         if (!reloadItem.gameObject.activeSelf)
             reloadItem.gameObject.SetActive(true);
 
         if (isReloadingValue)
-        {
             PlayReloadAnimation(reloadItem);
-        }
         else
-        {
             StopReloadAnimation(reloadItem);
-        }
-
-        Debug.Log(
-            $"[REMOTE RELOAD] " +
-            $"playerId={_playerIdentity?.PlayerId}, " +
-            $"weaponId={weaponId}, " +
-            $"isReloading={isReloadingValue}"
-        );
     }
 
     public void RefreshRemoteReloadAnimation()
@@ -1799,103 +1326,54 @@ public class PlayerItem : MonoBehaviour
         if (!IsCurrentlySpectated())
             return;
 
-        if (currentIndex < 0 ||
-            currentIndex >= items.Length)
-        {
+        if (currentIndex < 0 || currentIndex >= items.Length)
             return;
-        }
 
         Item currentItem = items[currentIndex];
 
         if (currentItem == null)
             return;
 
-        // 관전 카메라 전환이나 상태 갱신 때문에 숨겨졌다면 다시 표시한다.
         if (!currentItem.gameObject.activeSelf)
             currentItem.gameObject.SetActive(true);
 
-        Weapon currentWeapon =
-            currentItem.GetComponent<Weapon>();
+        Weapon currentWeapon = currentItem.GetComponent<Weapon>() ?? currentItem.GetComponentInChildren<Weapon>(true);
 
-        if (currentWeapon == null)
-        {
-            currentWeapon =
-                currentItem.GetComponentInChildren<Weapon>(true);
-        }
-
-        bool shouldPlayReload =
-            remoteIsReloading &&
-            remoteReloadWeaponId >= 0 &&
-            currentWeapon != null &&
-            currentWeapon.GetWeaponId() ==
-                remoteReloadWeaponId;
+        bool shouldPlayReload = remoteIsReloading &&
+                                remoteReloadWeaponId >= 0 &&
+                                currentWeapon != null &&
+                                currentWeapon.GetWeaponId() == remoteReloadWeaponId;
 
         if (shouldPlayReload)
-        {
             PlayReloadAnimation(currentItem);
-        }
         else
-        {
             StopReloadAnimation(currentItem);
-        }
     }
 
-    // 기존 호출부와의 호환성을 유지한다.
     public void RefreshRemoteReloadVisual()
     {
         RefreshRemoteReloadAnimation();
     }
 
-    private void PlayReloadAnimation(
-        Item item,
-        float reloadTime = -1f)
+    private void PlayReloadAnimation(Item item, float reloadTime = -1f)
     {
         if (item == null)
             return;
 
-        ARMotion motion =
-            item.GetComponent<ARMotion>();
+        ARMotion motion = item.GetComponent<ARMotion>() ?? item.GetComponentInChildren<ARMotion>(true);
 
         if (motion == null)
-        {
-            motion =
-                item.GetComponentInChildren<ARMotion>(true);
-        }
-
-        if (motion == null)
-        {
-            Debug.LogWarning(
-                $"[RELOAD ANIMATION] ARMotion not found. " +
-                $"item={item.name}"
-            );
-
             return;
-        }
 
         if (reloadTime <= 0f)
         {
-            Weapon weapon =
-                item.GetComponent<Weapon>();
-
-            if (weapon == null)
-            {
-                weapon =
-                    item.GetComponentInChildren<Weapon>(true);
-            }
-
+            Weapon weapon = item.GetComponent<Weapon>() ?? item.GetComponentInChildren<Weapon>(true);
             if (weapon != null)
                 reloadTime = weapon.GetWeaponReLoadTime();
         }
 
         if (reloadTime <= 0f)
-        {
-            Debug.LogWarning(
-                $"[RELOAD ANIMATION] invalid reloadTime. " +
-                $"item={item.name}, reloadTime={reloadTime}"
-            );
-
             return;
-        }
 
         motion.PlayReload(reloadTime);
     }
@@ -1908,21 +1386,12 @@ public class PlayerItem : MonoBehaviour
         StopReloadAnimation(item.gameObject);
     }
 
-    private void StopReloadAnimation(
-        GameObject weaponObject)
+    private void StopReloadAnimation(GameObject weaponObject)
     {
         if (weaponObject == null)
             return;
 
-        ARMotion motion =
-            weaponObject.GetComponent<ARMotion>();
-
-        if (motion == null)
-        {
-            motion =
-                weaponObject.GetComponentInChildren<ARMotion>(true);
-        }
-
+        ARMotion motion = weaponObject.GetComponent<ARMotion>() ?? weaponObject.GetComponentInChildren<ARMotion>(true);
         motion?.StopReload();
     }
 
@@ -1961,74 +1430,68 @@ public class PlayerItem : MonoBehaviour
         if (interactionCamera == null)
             return null;
 
-        Ray ray = new Ray(
-            interactionCamera.transform.position,
-            interactionCamera.transform.forward
-        );
+        Ray ray = new Ray(interactionCamera.transform.position, interactionCamera.transform.forward);
 
-        if (!Physics.Raycast(
-                ray,
-                out RaycastHit hit,
-                pickupRange,
-                itemLayer,
-                QueryTriggerInteraction.Ignore))
-        {
+        if (!Physics.Raycast(ray, out RaycastHit hit, pickupRange, itemLayer, QueryTriggerInteraction.Ignore))
             return null;
-        }
 
-        DroppedItem droppedItem = hit.collider.GetComponent<DroppedItem>();
-
-        if (droppedItem == null)
-            droppedItem = hit.collider.GetComponentInParent<DroppedItem>();
+        DroppedItem droppedItem = hit.collider.GetComponent<DroppedItem>() ?? hit.collider.GetComponentInParent<DroppedItem>();
 
         return droppedItem;
     }
 
     private Camera GetInteractionCamera()
     {
-        PlayerCameraController cameraController =
-            GetComponent<PlayerCameraController>();
+        PlayerCameraController cameraController = GetComponent<PlayerCameraController>() ?? GetComponentInChildren<PlayerCameraController>(true);
 
-        if (cameraController == null)
-            cameraController =
-                GetComponentInChildren<PlayerCameraController>(true);
-
-        if (cameraController != null &&
-            cameraController.PlayerCamera != null)
-        {
+        if (cameraController != null && cameraController.PlayerCamera != null)
             return cameraController.PlayerCamera;
-        }
 
         return Camera.main;
     }
 
-    private GameObject SpawnWeaponObject(WeaponData data, int magAmmo, int reserveAmmo, int? forcedSkinId = null)
+    // 1인칭 및 3인칭 무기를 생성하는 핵심 메서드
+    private GameObject SpawnWeaponObject(WeaponData data, int magAmmo, int reserveAmmo, int? forcedSkinId = null, int slot = -1)
     {
-        GameObject obj = Instantiate(data.weaponPrefab, itemHolder);
-        obj.transform.localPosition = Vector3.zero;
-        obj.transform.localRotation = Quaternion.identity;
+        // 1. 1인칭 무기 생성
+        GameObject fpObj = Instantiate(data.weaponPrefab, itemHolder);
+        fpObj.transform.localPosition = Vector3.zero;
+        fpObj.transform.localRotation = Quaternion.identity;
 
-        Weapon weapon = obj.GetComponent<Weapon>();
+        Weapon weapon = fpObj.GetComponent<Weapon>();
         if (weapon != null)
         {
             weapon.Initialize(data, dropPoint, magAmmo, reserveAmmo);
 
             int skinId = forcedSkinId ?? (skinLoadout != null ? skinLoadout.GetSkinId(data.weaponId) : 0);
 
-            WeaponSkinDatabase database = skinDatabase != null
-                ? skinDatabase
-                : WeaponSkinDatabase.Instance;
-
-            WeaponSkinData skin = (skinId > 0 && database != null)
-                ? database.GetById(data.weaponId, skinId)
-                : null;
-            weapon.ApplySkin(skin, data); // data를 넘겨서 baseWeapon 검증 가능하게 함 (아래 3번 항목 참고)
+            WeaponSkinDatabase database = skinDatabase != null ? skinDatabase : WeaponSkinDatabase.Instance;
+            WeaponSkinData skin = (skinId > 0 && database != null) ? database.GetById(data.weaponId, skinId) : null;
+            weapon.ApplySkin(skin, data);
         }
 
-        return obj;
+        // 2. 3인칭 무기 생성 (tpItemHolder 및 slot 정보가 있을 시)
+        if (tpItemHolder != null && slot >= 0 && slot < tpWeaponObjects.Length)
+        {
+            if (tpWeaponObjects[slot] != null)
+            {
+                Destroy(tpWeaponObjects[slot]);
+                tpWeaponObjects[slot] = null;
+            }
+
+            GameObject tpObj = Instantiate(data.weaponPrefab, tpItemHolder);
+            tpObj.transform.localPosition = Vector3.zero;
+            tpObj.transform.localRotation = Quaternion.identity;
+
+            DisableHeldWeaponPhysics(tpObj);
+
+            tpWeaponObjects[slot] = tpObj;
+            tpObj.SetActive(false);
+        }
+
+        return fpObj;
     }
 
-    // KSW : 에디터 무기 변경 테스트용 추가
 #if UNITY_EDITOR
     private void OnValidate()
     {
@@ -2041,6 +1504,5 @@ public class PlayerItem : MonoBehaviour
             Debug.Log($"[EDITOR DEBUG] Inspector forced switch to Slot {targetIndex}");
         }
     }
-
 #endif
 }
