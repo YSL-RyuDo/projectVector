@@ -151,6 +151,9 @@ public class PlayerItem : MonoBehaviour
 
     private void InitializeDefaultItems()
     {
+        // 중복 생성을 방지하기 위해 기존 tpItemHolder의 자식들을 한번 비워줍니다.
+        ClearAllTpWeaponObjects();
+
         items[0] = null;
 
         if (secondary != null)
@@ -188,6 +191,22 @@ public class PlayerItem : MonoBehaviour
         else
         {
             items[4] = null;
+        }
+    }
+
+    private void ClearAllTpWeaponObjects()
+    {
+        for (int i = 0; i < tpWeaponObjects.Length; i++)
+        {
+            if (tpWeaponObjects[i] != null)
+            {
+                if (Application.isPlaying)
+                    Destroy(tpWeaponObjects[i]);
+                else
+                    DestroyImmediate(tpWeaponObjects[i]);
+
+                tpWeaponObjects[i] = null;
+            }
         }
     }
 
@@ -415,21 +434,36 @@ public class PlayerItem : MonoBehaviour
         if (slot < 0 || slot >= items.Length)
             return;
 
-        // 1인칭 무기 켜기/끄기
+        // 현재 슬롯 갱신
+        currentIndex = slot;
+
+        // 1인칭 무기
         for (int i = 0; i < items.Length; i++)
         {
             if (items[i] != null)
                 items[i].gameObject.SetActive(i == slot);
         }
 
-        // 3인칭 무기 켜기/끄기
+        // 기존 tpWeaponObjects는 스파이크 등 레거시용
         for (int i = 0; i < tpWeaponObjects.Length; i++)
         {
             if (tpWeaponObjects[i] != null)
                 tpWeaponObjects[i].SetActive(i == slot);
         }
 
-        currentIndex = slot;
+        // ★ 실제 3인칭 WeaponHolder 갱신
+        RefreshWeaponHolderModel();
+    }
+
+    private void RefreshWeaponHolderModel()
+    {
+        WeaponHolderModel holder =
+            GetComponentInChildren<WeaponHolderModel>(true);
+
+        if (holder == null)
+            return;
+
+        holder.RefreshNow();
     }
 
     public void ResetAllAmmo()
@@ -728,6 +762,7 @@ public class PlayerItem : MonoBehaviour
                 continue;
 
             bool active = weapon.GetWeaponId() == weaponId;
+
             items[i].gameObject.SetActive(active);
 
             if (tpWeaponObjects[i] != null)
@@ -738,7 +773,10 @@ public class PlayerItem : MonoBehaviour
         }
 
         if (foundSlot != -1)
+        {
             currentIndex = foundSlot;
+            RefreshWeaponHolderModel();
+        }
     }
 
     public void SetADSVisualFromServer(bool isADS)
@@ -954,6 +992,8 @@ public class PlayerItem : MonoBehaviour
             pistolWeaponId, pistolMagAmmo, pistolReserveAmmo,
             knifeWeaponId, knifeMagAmmo, knifeReserveAmmo
         );
+
+        RefreshWeaponHolderModel();
     }
 
     private void ClearWeaponSlotsForRoundReset()
@@ -1121,6 +1161,8 @@ public class PlayerItem : MonoBehaviour
         items[slot] = item;
 
         obj.SetActive(false);
+
+        RefreshWeaponHolderModel();
 
         bool isLocal = _playerIdentity != null &&
                       NetworkManager.Instance != null &&
@@ -1450,43 +1492,47 @@ public class PlayerItem : MonoBehaviour
         return Camera.main;
     }
 
-    // 1인칭 및 3인칭 무기를 생성하는 핵심 메서드
     private GameObject SpawnWeaponObject(WeaponData data, int magAmmo, int reserveAmmo, int? forcedSkinId = null, int slot = -1)
     {
-        // 1. 1인칭 무기 생성
-        GameObject fpObj = Instantiate(data.weaponPrefab, itemHolder);
+        // 1인칭 무기만 생성
+        GameObject fpObj =
+            Instantiate(data.weaponPrefab, itemHolder);
+
         fpObj.transform.localPosition = Vector3.zero;
         fpObj.transform.localRotation = Quaternion.identity;
 
-        Weapon weapon = fpObj.GetComponent<Weapon>();
+        Weapon weapon =
+            fpObj.GetComponent<Weapon>();
+
         if (weapon != null)
         {
-            weapon.Initialize(data, dropPoint, magAmmo, reserveAmmo);
+            weapon.Initialize(
+                data,
+                dropPoint,
+                magAmmo,
+                reserveAmmo
+            );
 
-            int skinId = forcedSkinId ?? (skinLoadout != null ? skinLoadout.GetSkinId(data.weaponId) : 0);
+            int skinId =
+                forcedSkinId ??
+                (skinLoadout != null
+                    ? skinLoadout.GetSkinId(data.weaponId)
+                    : 0);
 
-            WeaponSkinDatabase database = skinDatabase != null ? skinDatabase : WeaponSkinDatabase.Instance;
-            WeaponSkinData skin = (skinId > 0 && database != null) ? database.GetById(data.weaponId, skinId) : null;
+            WeaponSkinDatabase database =
+                skinDatabase != null
+                    ? skinDatabase
+                    : WeaponSkinDatabase.Instance;
+
+            WeaponSkinData skin =
+                (skinId > 0 && database != null)
+                    ? database.GetById(
+                        data.weaponId,
+                        skinId
+                    )
+                    : null;
+
             weapon.ApplySkin(skin, data);
-        }
-
-        // 2. 3인칭 무기 생성 (tpItemHolder 및 slot 정보가 있을 시)
-        if (tpItemHolder != null && slot >= 0 && slot < tpWeaponObjects.Length)
-        {
-            if (tpWeaponObjects[slot] != null)
-            {
-                Destroy(tpWeaponObjects[slot]);
-                tpWeaponObjects[slot] = null;
-            }
-
-            GameObject tpObj = Instantiate(data.weaponPrefab, tpItemHolder);
-            tpObj.transform.localPosition = Vector3.zero;
-            tpObj.transform.localRotation = Quaternion.identity;
-
-            DisableHeldWeaponPhysics(tpObj);
-
-            tpWeaponObjects[slot] = tpObj;
-            tpObj.SetActive(false);
         }
 
         return fpObj;

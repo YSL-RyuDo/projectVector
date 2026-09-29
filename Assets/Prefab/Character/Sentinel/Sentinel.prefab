@@ -71,7 +71,7 @@ MonoBehaviour:
     localRotation: {x: -125, y: 185, z: -215}
   _riflePreset:
     localPosition: {x: -0.05, y: 0.25, z: -0.05}
-    localRotation: {x: -100, y: 75, z: -50}
+    localRotation: {x: -72, y: 280, z: -260}
   _knifePreset:
     localPosition: {x: 0.003, y: 0.3, z: 0.001}
     localRotation: {x: -125, y: 185, z: -215}
@@ -115,8 +115,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5845481878991695680}
-  - component: {fileID: 49302087298725709}
   - component: {fileID: 8758306651110709811}
+  - component: {fileID: 8636208503521605327}
   m_Layer: 0
   m_Name: WeaponHolder
   m_TagString: Untagged
@@ -140,7 +140,20 @@ Transform:
   - {fileID: 5565248629657153407}
   m_Father: {fileID: 8384833556434894740}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &49302087298725709
+--- !u!114 &8758306651110709811
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4003038213765283715}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fc668e989eaca242a5d9566201d333a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterType
+  role: 4
+--- !u!114 &8636208503521605327
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -161,19 +174,6 @@ MonoBehaviour:
   adsWeaponRecoilMultiplier: 0.15
   adsCameraRecoilMultiplier: 0.75
   adsShakeMultiplier: 0.2
---- !u!114 &8758306651110709811
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4003038213765283715}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6fc668e989eaca242a5d9566201d333a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterType
-  role: 4
 --- !u!1 &4306604504251513255
 GameObject:
   m_ObjectHideFlags: 0
