@@ -7,11 +7,11 @@ public class CoreInjector : MonoBehaviour
 {
     [Header("플레이어 및 설치 범위")]
     [SerializeField] private Transform playerTransform;
-    [SerializeField] private float plantRadius = 3.0f;  
+    [SerializeField] private float plantRadius = 3.0f;
 
     [Header("설치 설정")]
     [SerializeField] private float plantDuration = 3.0f;
-    [SerializeField] private KeyCode plantKey = KeyCode.G; 
+    [SerializeField] private KeyCode plantKey = KeyCode.G;
 
     [Header("UI 연결")]
     [SerializeField] private GameObject plantCanvasGroup;
@@ -23,11 +23,8 @@ public class CoreInjector : MonoBehaviour
     [SerializeField] private TutorialManager tutorialManager;
 
     [Header("15초 방어")]
-    [SerializeField] private GameObject enemyPrefab;
-    [SerializeField] private Transform[] enemySpawnPoints;
+    [SerializeField] private GameObject enemy;
     [SerializeField] private float defenseDuration = 15f;
-    [SerializeField] private float spawnInterval = 1f;
-
 
     private float currentPlantTime = 0f;
     private bool isInPlantZone = false;
@@ -44,11 +41,15 @@ public class CoreInjector : MonoBehaviour
 
         if (breachText != null)
             breachText.gameObject.SetActive(false);
+
+        if (enemy != null)
+            enemy.SetActive(false);
     }
 
     private void Update()
     {
-        if (isPlantComplete) return;
+        if (isPlantComplete)
+            return;
 
         CheckPlayerDistance();
 
@@ -60,13 +61,17 @@ public class CoreInjector : MonoBehaviour
 
     private void CheckPlayerDistance()
     {
-        if (playerTransform == null) return;
+        if (playerTransform == null)
+            return;
 
-        float distance = Vector3.Distance(transform.position, playerTransform.position);
+        float distance = Vector3.Distance(
+            transform.position,
+            playerTransform.position
+        );
+
         bool wasInZone = isInPlantZone;
         isInPlantZone = distance <= plantRadius;
 
-      
         if (wasInZone && !isInPlantZone && isPlanting)
         {
             CancelPlanting();
@@ -83,13 +88,18 @@ public class CoreInjector : MonoBehaviour
             }
 
             currentPlantTime += Time.deltaTime;
-            float progress = Mathf.Clamp01(currentPlantTime / plantDuration);
+            float progress = Mathf.Clamp01(
+                currentPlantTime / plantDuration
+            );
 
             if (progressSlider != null)
                 progressSlider.value = progress;
 
             if (statusText != null)
-                statusText.text = $"CONNECTING CORE INJECTOR\n[ {Mathf.FloorToInt(progress * 100)}% ]";
+            {
+                statusText.text =
+                    $"CONNECTING CORE INJECTOR\n[ {Mathf.FloorToInt(progress * 100)}% ]";
+            }
 
             if (currentPlantTime >= plantDuration)
             {
@@ -105,6 +115,7 @@ public class CoreInjector : MonoBehaviour
     private void StartPlanting()
     {
         isPlanting = true;
+
         if (plantCanvasGroup != null)
             plantCanvasGroup.SetActive(true);
     }
@@ -127,7 +138,10 @@ public class CoreInjector : MonoBehaviour
         isPlantComplete = true;
 
         if (statusText != null)
-            statusText.text = "CORE INJECTOR INSTALLED\n관리자 권한 침투 시작";
+        {
+            statusText.text =
+                "CORE INJECTOR INSTALLED\n관리자 권한 침투 시작";
+        }
 
         if (breachText != null)
         {
@@ -137,45 +151,24 @@ public class CoreInjector : MonoBehaviour
 
         StartCoroutine(PostPlantSequence());
         StartCoroutine(DefenseSequence());
-
-
     }
 
     private IEnumerator DefenseSequence()
     {
-        float defenseTime = 0f;
-        float spawnTime = 0f;
+        // 설치 완료 후 적 활성화
+        if (enemy != null)
+            enemy.SetActive(true);
 
-        while (defenseTime < defenseDuration)
-        {
-            defenseTime += Time.deltaTime;
-            spawnTime += Time.deltaTime;
+        // 15초 동안 방어
+        yield return new WaitForSeconds(defenseDuration);
 
-            if (spawnTime >= spawnInterval)
-            {
-                SpawnEnemy();
-                spawnTime = 0f;
-            }
+        // 15초 후 적 비활성화
+        if (enemy != null)
+            enemy.SetActive(false);
 
-            yield return null;
-        }
-
+        // EP5 시작
         tutorialManager.StartSection(
             TutorialManager.TutorialSection.EP5
-        );
-    }
-    private void SpawnEnemy()
-    {
-        if (enemyPrefab == null || enemySpawnPoints.Length == 0)
-            return;
-
-        Transform spawnPoint =
-            enemySpawnPoints[Random.Range(0, enemySpawnPoints.Length)];
-
-        Instantiate(
-            enemyPrefab,
-            spawnPoint.position,
-            spawnPoint.rotation
         );
     }
 
@@ -187,12 +180,12 @@ public class CoreInjector : MonoBehaviour
             plantCanvasGroup.SetActive(false);
     }
 
-    
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, plantRadius);
+        Gizmos.DrawWireSphere(
+            transform.position,
+            plantRadius
+        );
     }
-
-
 }

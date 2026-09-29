@@ -8,7 +8,7 @@ public class TutoEnemyMove : MonoBehaviour
 
 
     [Header("Move")]
-    public bool canMove = true;
+    public bool canMove = false;
 
     public Transform leftPoint;
     public Transform rightPoint;
