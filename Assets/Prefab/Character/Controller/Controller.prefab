@@ -1270,10 +1270,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b97f1fa5e2c6a942981ed7af830dd7d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArmADS
-  adsPosition: {x: -0.025, y: -2.55, z: 0}
-  adsRotation: {x: 0, y: 0, z: 0}
+  arTransform:
+    defaultPosition: {x: 0.25, y: -2.5, z: 0.15}
+    defaultRotation: {x: 0, y: 0, z: 0}
+    adsPosition: {x: -0.1, y: -2.5, z: 0.2}
+    adsRotation: {x: 0, y: 0, z: 0}
+    weaponPositionOffset: {x: 0, y: 0, z: 0}
+    weaponRotationOffset: {x: 0, y: 0, z: 0}
+  pistolTransform:
+    defaultPosition: {x: 0.3, y: -2.55, z: 0.02}
+    defaultRotation: {x: 0, y: 0, z: 0}
+    adsPosition: {x: 0, y: 0, z: 0}
+    adsRotation: {x: 0, y: 0, z: 0}
+    weaponPositionOffset: {x: 0, y: 0, z: 0}
+    weaponRotationOffset: {x: 0, y: 0, z: 0}
+  knifeTransform:
+    defaultPosition: {x: 0.3, y: -2.55, z: 0.02}
+    defaultRotation: {x: 0, y: 0, z: 0}
+    adsPosition: {x: 0, y: 0, z: 0}
+    adsRotation: {x: 0, y: 0, z: 0}
+    weaponPositionOffset: {x: 0, y: 0, z: 0}
+    weaponRotationOffset: {x: 0, y: 0, z: 0}
   adsSpeed: 7
-  fovZoomSpeed: 15
+  armAnimator: {fileID: 847563305274741197}
+  weaponTypeParam: WeaponType
+  reloadBoolParam: IsReloading
+  knifeAttackCooldown: 0.7
 --- !u!1001 &4715315066891147653
 PrefabInstance:
   m_ObjectHideFlags: 0
