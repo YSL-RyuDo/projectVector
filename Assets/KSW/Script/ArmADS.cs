@@ -123,14 +123,15 @@ public class ArmADS : MonoBehaviour
         if (Mouse.current != null)
         {
             // Ä® °ø°Ý
-            if (Mouse.current.leftButton.wasPressedThisFrame &&
-                currentWeaponType == WeaponData.WeaponType.Knife &&
-                knifeAttackTimer <= 0f)
+            if (Mouse.current.leftButton.wasPressedThisFrame)
             {
-                if (armAnimator != null)
+                if (currentWeaponType == WeaponData.WeaponType.Knife && knifeAttackTimer <= 0f)
                 {
-                    armAnimator.SetTrigger("Knife_Attack");
-                    knifeAttackTimer = knifeAttackCooldown;
+                    if (armAnimator != null)
+                    {
+                        armAnimator.SetTrigger("Knife_Attack");
+                        knifeAttackTimer = knifeAttackCooldown;
+                    }
                 }
             }
 
@@ -210,7 +211,7 @@ public class ArmADS : MonoBehaviour
 
             case WeaponData.WeaponType.Knife:
                 currentSetting = knifeTransform;
-                animWeaponTypeValue = 1;
+                animWeaponTypeValue = 2;
                 break;
 
             case WeaponData.WeaponType.AR:
