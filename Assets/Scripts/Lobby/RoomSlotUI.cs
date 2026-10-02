@@ -15,6 +15,6 @@ public class RoomSlotUI : MonoBehaviour
         mapNameText.text = room.mapName;
         hostNameText.text = room.hostName;
         playerCountText.text = room.currentPlayerCount + " / " + room.maxPlayerCount;
-        stateText.text = room.state == 0 ? "´ë±âÁß" : "°ÔÀÓÁß";
+        stateText.text = room.state == 0 ? "ëŒ€ê¸°ì¤‘" : "ê²Œìž„ì¤‘";
     }
 }

@@ -67,7 +67,8 @@ public sealed class VectorShopPreview : MonoBehaviour, IDragHandler
         previewCamera.targetTexture = texture;
         GetComponent<RawImage>().texture = texture;
         bool character = model.GetComponentInChildren<Animator>(true) != null;
-        float facing = character ? (prefab.name.StartsWith("Casual1", System.StringComparison.Ordinal) ? 180 : 0) : 160;
+        // The preview camera looks along +Z; imported characters face +Z by default.
+        float facing = character ? 180 : 160;
         pivot.transform.localRotation = Quaternion.Euler(0, facing, 0);
     }
     private Bounds VisibleBounds()

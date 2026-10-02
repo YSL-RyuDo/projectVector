@@ -837,57 +837,15 @@ public class GamePanelController : MonoBehaviour
 
     public void OnRecvRoomList(List<RoomListData> rooms)
     {
+        if(currentGameMode != GameMode.Custom || IsInCustomRoom()) return;
         Debug.Log($"[ROOM LIST UI] count={rooms.Count}");
 
         ShowRoomListPanel();
 
-        for (int i = 0; i < roomSlotObjects.Count; i++)
-            Destroy(roomSlotObjects[i]);
+        var browser = roomListPanel.GetComponent<VectorRoomBrowser>();
+        if (browser != null) { browser.Receive(rooms); return; }
 
-        roomSlotObjects.Clear();
-
-        for (int i = 0; i < rooms.Count; i++)
-        {
-            RoomListData room = rooms[i];
-
-            Debug.Log(
-                $"[ROOM RAW] " +
-                $"index={i} " +
-                $"roomId={room.roomId} " +
-                $"roomName={room.roomName} " +
-                $"mapName={room.mapName} " +
-                $"hostName={room.hostName} " +
-                $"players={room.currentPlayerCount}/{room.maxPlayerCount} " +
-                $"state={room.state}"
-            );
-
-            GameObject slotObj = Instantiate(roomSlotPrefab, roomListContent);
-            roomSlotObjects.Add(slotObj);
-
-            RoomSlotUI slotUI = slotObj.GetComponent<RoomSlotUI>();
-            if (slotUI != null)
-                slotUI.SetData(room);
-
-            Button button = slotObj.GetComponent<Button>();
-            if (button == null)
-                button = slotObj.GetComponentInChildren<Button>(true);
-
-            if (button != null)
-            {
-                uint roomId = room.roomId;
-
-                button.onClick.RemoveAllListeners();
-                button.onClick.AddListener(() =>
-                {
-                    Debug.Log($"[ROOM SLOT CLICK] roomId={roomId}");
-                    NetworkManager.Instance.SendRoomEnter(roomId);
-                });
-            }
-            else
-            {
-                Debug.LogWarning("[ROOM LIST UI] RoomSlot prefab has no Button component");
-            }
-        }
+        Debug.LogError("[ROOM LIST] Saved VectorRoomBrowser is not assigned in this scene.");
     }
 
     public void OnRecvRoomEnterResult(byte result, uint roomId)
@@ -1102,11 +1060,11 @@ public class GamePanelController : MonoBehaviour
             image.color = targetColor;
 
         ColorBlock colors = button.colors;
-        colors.normalColor = targetColor;
-        colors.highlightedColor = targetColor;
-        colors.pressedColor = targetColor;
-        colors.selectedColor = targetColor;
-        colors.disabledColor = targetColor;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = Color.white;
+        colors.pressedColor = new Color(.85f,.85f,.85f,1);
+        colors.selectedColor = Color.white;
+        colors.disabledColor = Color.white;
         button.colors = colors;
 
         button.interactable = !selected;

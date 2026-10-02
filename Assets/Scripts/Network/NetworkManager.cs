@@ -914,6 +914,16 @@ public class NetworkManager : MonoBehaviour
     }
 
     public void SendLevelRewardRequest() => SendHeaderOnly(PacketType.PKT_CS_LEVEL_REWARD_REQUEST);
+    public void SendEventPass(int operation, int index, long week)
+    {
+        byte[] buffer = new byte[20];
+        BitConverter.GetBytes((ushort)20).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)334).CopyTo(buffer, 2);
+        BitConverter.GetBytes(operation).CopyTo(buffer, 4);
+        BitConverter.GetBytes(index).CopyTo(buffer, 8);
+        BitConverter.GetBytes(week).CopyTo(buffer, 12);
+        client.Send(buffer);
+    }
 
     public void SendLevelRewardClaim(int targetLevel)
     {
@@ -1163,6 +1173,9 @@ public class NetworkManager : MonoBehaviour
                 HandleHonorState(body);
                 break;
 
+            case 335:
+                FindFirstObjectByType<VectorEventPass>(FindObjectsInactive.Include)?.ApplyState(body);
+                break;
             case 341: // Cosmetic shop response, handled by the main-thread packet queue.
                 VectorShopPanel.Receive(body);
                 break;

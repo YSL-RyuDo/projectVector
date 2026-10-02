@@ -11,16 +11,9 @@ public sealed class VectorGachaChamber : MonoBehaviour
         var shader=Resources.Load<Shader>("Shop/VectorChamberMetal");
         metal=new Material(shader); metal.SetColor("_BaseColor",new Color(.67f,.73f,.83f));
         dark=new Material(shader); dark.SetColor("_BaseColor",new Color(.12f,.17f,.26f));
-        // Six solid wall planes, segmented frames and narrow inset rails.
-        for(int side=0;side<6;++side)
-        {
-            float angle=side*60*Mathf.Deg2Rad;
-            var radial=new Vector3(Mathf.Cos(angle),Mathf.Sin(angle),0);
-            Box("ChamberWall",radial*7+Vector3.forward*56,new Vector3(.4f,8.2f,120),side*60,metal);
-            Box("InsetRail",radial*6.76f+Vector3.forward*56,new Vector3(.08f,.18f,120),side*60,dark);
-            for(int z=6;z<110;z+=12)
-                Box("Frame",radial*6.72f+Vector3.forward*z,new Vector3(.25f,8.0f,.24f),side*60,dark);
-        }
+        var authored = Resources.Load<GameObject>("Shop/GachaCorridor");
+        if (authored != null) Instantiate(authored, transform, false);
+        else Debug.LogError("Saved GachaCorridor prefab is missing.");
         Torus("OuterGate",5.55f,.40f,44,metal);
         Torus("Recess",5.05f,.32f,43.9f,dark);
         Torus("InnerGate",4.68f,.16f,43.75f,metal);

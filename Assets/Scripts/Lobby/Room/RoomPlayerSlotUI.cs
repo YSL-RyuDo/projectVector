@@ -11,6 +11,7 @@ public class RoomPlayerSlotUI : MonoBehaviour, IPointerClickHandler
     [SerializeField] private TMP_Text levelText;
     [SerializeField] private GameObject leaderImage;
     [SerializeField] private Button slotButton;
+    public GameObject emptyLabel;
 
     private RoomSlotTeam slotTeam;
     private byte slotIndex;
@@ -57,6 +58,7 @@ public class RoomPlayerSlotUI : MonoBehaviour, IPointerClickHandler
 
     public void Clear()
     {
+        if(emptyLabel!=null)emptyLabel.SetActive(true);
         gameObject.SetActive(true);
 
         if (image != null)
@@ -83,6 +85,7 @@ public class RoomPlayerSlotUI : MonoBehaviour, IPointerClickHandler
 
     public void SetData(RoomMemberData data)
     {
+        if(emptyLabel!=null)emptyLabel.SetActive(false);
         gameObject.SetActive(true);
 
         if (image != null)

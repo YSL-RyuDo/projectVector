@@ -28,9 +28,12 @@ public sealed class GachaManager : MonoBehaviour
     private Action onComplete;
     private Camera output;
     private CinemachineCamera virtualCamera;
-    private LineRenderer hitRing;
+    private readonly List<LineRenderer> rewardCells = new();
+    private readonly HashSet<int> litCells = new();
+    public int ActivatedCellCount => litCells.Count;
     private ParticleSystem speedParticles;
     private VolumeProfile postProfile;
+    private bool savedFog, fogOverridden;
     private readonly List<LineRenderer> tunnel = new();
     private bool completionInvoked;
     private bool skipIntro, advanceRequested;
@@ -96,14 +99,17 @@ public sealed class GachaManager : MonoBehaviour
             var properties = new MaterialPropertyBlock(); properties.SetColor("_BaseColor", color * 2);
             orb.GetComponent<Renderer>().SetPropertyBlock(properties);
             var from = new Vector3(0, 0, 95);
-            var target = GradeHitPoint(item.grade, revealIndex);
+            int cell = NextCell(item.grade);
+            var target = CellHitPoint(cell);
             var trail=orb.AddComponent<TrailRenderer>(); trail.sharedMaterial=lineMaterial;trail.time=.22f;trail.startWidth=.09f;trail.endWidth=0;trail.startColor=color;trail.endColor=new Color(color.r,color.g,color.b,0);
             yield return Animate(.52f, t => { orb.transform.localPosition = Vector3.Lerp(from, target, t * t); orb.transform.localScale = Vector3.one * Mathf.Lerp(.12f, .28f, t); });
             Burst(target, color);
+            litCells.Add(cell);
+            var hitCell = rewardCells[cell];
+            hitCell.startColor = hitCell.endColor = color;
             Destroy(orb);
             if (item.grade == 0) yield return Flash(color);
-            hitRing.startColor = hitRing.endColor = color;
-            yield return Animate(.18f, t => hitRing.widthMultiplier = Mathf.Lerp(.15f, .035f, t));
+            yield return Animate(.18f, t => hitCell.widthMultiplier = Mathf.Lerp(.54f, .42f, t));
         }
         var myths = rewards.Select(r => items.FirstOrDefault(i => i.id == r.item)).Where(i => i != null && i.grade == 0).ToArray();
         foreach (var myth in myths)
@@ -161,6 +167,8 @@ public sealed class GachaManager : MonoBehaviour
         stage.AddComponent<VectorGachaChamber>().Build();
         var cameraObject = new GameObject("GachaCamera", typeof(Camera)); cameraObject.transform.SetParent(stage.transform, false);
         output = cameraObject.GetComponent<Camera>(); output.clearFlags = CameraClearFlags.SolidColor; output.backgroundColor = new Color(.55f, .61f, .70f); output.cullingMask = 1 << 31; output.farClipPlane = 160;
+        RenderPipelineManager.beginCameraRendering += BeginPresentationCamera;
+        RenderPipelineManager.endCameraRendering += EndPresentationCamera;
         texture = new RenderTexture(1920, 1080, 24, RenderTextureFormat.DefaultHDR); output.allowHDR=true; output.targetTexture = texture; overlay.GetComponent<RawImage>().texture = texture;
         var cameraData=output.GetUniversalAdditionalCameraData();cameraData.renderPostProcessing=true;cameraData.volumeLayerMask=1<<31;cameraData.volumeTrigger=output.transform;cameraData.antialiasing=AntialiasingMode.FastApproximateAntialiasing;
         var volumeObject=new GameObject("LocalChamberPost");volumeObject.layer=31;volumeObject.transform.SetParent(stage.transform,false);
@@ -174,21 +182,25 @@ public sealed class GachaManager : MonoBehaviour
         virtualCamera.Lens.FieldOfView = 45; vcamObject.SetActive(true);
         var shader = Resources.Load<Shader>("Shop/VectorEffects");
         lineMaterial = new Material(shader);
-        for (int i = 0; i < 12; ++i) tunnel.Add(Ring(6.65f, i * 10 + 5, 6, new Color(.6f, .75f, .9f), .035f));
-        hitRing = Ring(4.96f, 43.45f, 128, new Color(.5f, .8f, 1), .035f);
-        Arc(5.02f,43.55f, 34,106,VectorShopPanel.GradeColors[0]*.85f,.24f);
-        Arc(5.02f,43.55f,146,226,VectorShopPanel.GradeColors[1]*.80f,.22f);
-        Arc(5.02f,43.55f,258,338,VectorShopPanel.GradeColors[2]*.75f,.20f);
-        Arc(5.42f,43.40f, 28,112,VectorShopPanel.GradeColors[0]*.35f,.08f,18);
-        Arc(5.42f,43.40f,140,232,VectorShopPanel.GradeColors[1]*.35f,.08f,18);
-        Arc(5.42f,43.40f,252,344,VectorShopPanel.GradeColors[2]*.35f,.08f,18);
+        rewardCells.Clear(); litCells.Clear();
+        for (int i = 0; i < 30; ++i)
+        {
+            var color = VectorShopPanel.GradeColors[i % 3] * .16f; color.a = 1;
+            var cell = Arc(5.02f,43.50f,i*12+1.5f,i*12+10.5f,color,.42f,8);
+            cell.name = $"RewardCell_{i:00}_Grade{i % 3}";
+            rewardCells.Add(cell);
+        }
         SpeedLines();
     }
-    private Vector3 GradeHitPoint(int grade, int index)
+    private int NextCell(int grade)
     {
-        float center = grade == 0 ? 70f : grade == 1 ? 186f : 298f;
-        float angle = (center + ((index % 3) - 1) * 9f) * Mathf.Deg2Rad;
-        return new Vector3(Mathf.Cos(angle) * 4.96f, Mathf.Sin(angle) * 4.96f, 43.5f);
+        for (int i = grade; i < rewardCells.Count; i += 3) if (!litCells.Contains(i)) return i;
+        return grade;
+    }
+    private Vector3 CellHitPoint(int cell)
+    {
+        float angle = (cell * 12 + 6) * Mathf.Deg2Rad;
+        return new Vector3(Mathf.Cos(angle) * 5.02f, Mathf.Sin(angle) * 5.02f, 43.5f);
     }
     private LineRenderer Ring(float radius, float z, int segments, Color color, float width)
     {
@@ -224,10 +236,10 @@ public sealed class GachaManager : MonoBehaviour
     {
         var go = new GameObject("GradeImpact", typeof(ParticleSystem)); go.transform.SetParent(stage.transform, false); go.transform.localPosition = position; go.layer = 31;
         var ps = go.GetComponent<ParticleSystem>(); ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        var main = ps.main; main.loop = false; main.startLifetime = .5f; main.startSpeed = 8; main.startSize = .10f; main.startColor = color; main.useUnscaledTime = true;
+        var main = ps.main; main.loop = false; main.startLifetime = .32f; main.startSpeed = 3; main.startSize = .025f; main.startColor = color; main.useUnscaledTime = true;
         var emission = ps.emission; emission.rateOverTime = 0;
         var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Sphere;
-        ps.GetComponent<ParticleSystemRenderer>().sharedMaterial = lineMaterial; ps.Play(); ps.Emit(60);
+        ps.GetComponent<ParticleSystemRenderer>().sharedMaterial = lineMaterial; ps.Play(); ps.Emit(18);
         var sparkRenderer=ps.GetComponent<ParticleSystemRenderer>();sparkRenderer.renderMode=ParticleSystemRenderMode.Stretch;sparkRenderer.velocityScale=.04f;sparkRenderer.lengthScale=1.8f;
     }
     private void Finish()
@@ -247,12 +259,26 @@ public sealed class GachaManager : MonoBehaviour
     }
     private void Cleanup()
     {
+        RenderPipelineManager.beginCameraRendering -= BeginPresentationCamera;
+        RenderPipelineManager.endCameraRendering -= EndPresentationCamera;
+        if (fogOverridden) { RenderSettings.fog = savedFog; fogOverridden = false; }
         tunnel.Clear();
+        rewardCells.Clear(); litCells.Clear();
         if (overlay != null) { overlay.GetComponent<RawImage>().texture = null; overlay.SetActive(false); }
         if (stage != null) { stage.SetActive(false); Destroy(stage); }
         if (texture != null) { texture.Release(); Destroy(texture); }
         if (lineMaterial != null) Destroy(lineMaterial);
         if(postProfile!=null) {foreach(var component in postProfile.components) Destroy(component);Destroy(postProfile);postProfile=null;}
         stage = null; texture = null; lineMaterial = null;
+    }
+    private void BeginPresentationCamera(ScriptableRenderContext context, Camera camera)
+    {
+        if (camera != output) return;
+        savedFog = RenderSettings.fog; fogOverridden = true; RenderSettings.fog = false;
+    }
+    private void EndPresentationCamera(ScriptableRenderContext context, Camera camera)
+    {
+        if (camera != output || !fogOverridden) return;
+        RenderSettings.fog = savedFog; fogOverridden = false;
     }
 }

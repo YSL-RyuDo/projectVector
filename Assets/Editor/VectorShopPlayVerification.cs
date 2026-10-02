@@ -23,6 +23,9 @@ public static class VectorShopPlayVerification
     private static bool completed, sawWarp, sawHits, sawReveal;
     private static int advanced;
     private static double holdUntil;
+    private static bool capturedCells;
+    private static int characterCapture;
+    private static readonly string[] characterPrefabs = { "Casual1", "PicoChan", "unitychan", "UnityChanSSU" };
     static VectorShopPlayVerification() { EditorApplication.update += Update; }
     public static void RunBatch()
     {
@@ -73,8 +76,17 @@ public static class VectorShopPlayVerification
             else if (step == -1 && EditorApplication.timeSinceStartup >= captureAt)
             {
                 CaptureSavedUI();
+                preview.Show(Resources.Load<GameObject>("LobbyCharacter/"+characterPrefabs[0]));
+                step = -3;
                 captureAt = EditorApplication.timeSinceStartup + 1;
-                step = -2;
+            }
+            else if (step == -3 && EditorApplication.timeSinceStartup >= captureAt)
+            {
+                CaptureSavedUI("GachaFacing_"+characterPrefabs[characterCapture]+".png");
+                ++characterCapture;
+                captureAt = EditorApplication.timeSinceStartup + 1;
+                if(characterCapture==characterPrefabs.Length) step=-2;
+                else preview.Show(Resources.Load<GameObject>("LobbyCharacter/"+characterPrefabs[characterCapture]));
             }
             else if (step == -2 && EditorApplication.timeSinceStartup >= captureAt)
             {
@@ -91,10 +103,17 @@ public static class VectorShopPlayVerification
             else if (step == 1)
             {
                 if(!sawWarp && manager.CurrentPhase == GachaManager.Phase.Warp) {CaptureSavedUI("VectorShopWarp.png");sawWarp=true;}
-                if(!sawHits && manager.CurrentPhase == GachaManager.Phase.RingHits) {CaptureSavedUI("VectorShopRing.png");sawHits=true;}
+                if(!sawHits && manager.CurrentPhase == GachaManager.Phase.RingHits)
+                {
+                    if (manager.ActivatedCellCount != 0) throw new Exception("Ring cells lit before impact");
+                    CaptureSavedUI("VectorShopRing.png");sawHits=true;
+                }
+                if (!capturedCells && manager.ActivatedCellCount >= 4)
+                { CaptureSavedUI("VectorShopRingHits.png"); capturedCells=true; }
                 if(!sawReveal && manager.CurrentPhase == GachaManager.Phase.Materialize) {CaptureSavedUI("VectorShopReveal.png");sawReveal=true;}
                 if (manager.AwaitingAdvance)
                 {
+                    if (manager.ActivatedCellCount != 10) throw new Exception("Each result must light one separate cell");
                     if (holdUntil == 0) holdUntil = EditorApplication.timeSinceStartup + 3;
                     if (completed || manager.RevealedMythCount != advanced + 1) throw new Exception("Myth advanced without input");
                     if (EditorApplication.timeSinceStartup >= holdUntil)
