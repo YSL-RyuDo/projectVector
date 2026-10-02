@@ -132,13 +132,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4003038213765283715}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.005, y: -0.05, z: 0.033}
-  m_LocalScale: {x: 1.8, y: 1.8, z: 1.8}
+  m_LocalRotation: {x: 0.07844622, y: 0.0015226178, z: 0.026113795, w: 0.9965752}
+  m_LocalPosition: {x: 0.004464296, y: 0.20680895, z: 0.034908406}
+  m_LocalScale: {x: 1.7999996, y: 1.8000001, z: 1.7999998}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5565248629657153407}
-  m_Father: {fileID: 8384833556434894740}
+  m_Father: {fileID: 3325988498228228964}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &8758306651110709811
 MonoBehaviour:
@@ -1231,7 +1231,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
-    - targetCorrespondingSourceObject: {fileID: -356603916424199976, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 2412161367050800168, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5845481878991695680}
     m_AddedComponents:
@@ -1281,18 +1281,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b97f1fa5e2c6a942981ed7af830dd7d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArmADS
-  adsPosition: {x: -0.015, y: -1.33, z: 0}
-  adsRotation: {x: 0, y: 0, z: 0}
+  arTransform:
+    defaultPosition: {x: 0.09, y: -1.27, z: 0.01}
+    defaultRotation: {x: 0, y: 0, z: 0}
+    adsPosition: {x: -0.09, y: -1.26, z: 0}
+    adsRotation: {x: 0, y: 0, z: 0}
+    weaponPositionOffset: {x: 0, y: 0, z: 0}
+    weaponRotationOffset: {x: 0, y: 0, z: 0}
+  pistolTransform:
+    defaultPosition: {x: 0.09, y: -1.27, z: 0.01}
+    defaultRotation: {x: 0, y: 0, z: 0}
+    adsPosition: {x: 0, y: 0, z: 0}
+    adsRotation: {x: 0, y: 0, z: 0}
+    weaponPositionOffset: {x: 0, y: 0, z: 0}
+    weaponRotationOffset: {x: 0, y: 0, z: 0}
+  knifeTransform:
+    defaultPosition: {x: 0.15, y: -1.31, z: -0.05}
+    defaultRotation: {x: 0, y: 0, z: 0}
+    adsPosition: {x: 0, y: 0, z: 0}
+    adsRotation: {x: 0, y: 0, z: 0}
+    weaponPositionOffset: {x: 0, y: 0, z: 0}
+    weaponRotationOffset: {x: 0, y: 0, z: 0}
   adsSpeed: 7
-  fovZoomSpeed: 15
+  armAnimator: {fileID: 4409772685139043234}
+  weaponTypeParam: WeaponType
+  reloadBoolParam: IsReloading
+  knifeAttackCooldown: 0.7
 --- !u!4 &638181201918236839 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
   m_PrefabInstance: {fileID: 1103943834243858252}
   m_PrefabAsset: {fileID: 0}
---- !u!4 &8384833556434894740 stripped
+--- !u!4 &3325988498228228964 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: -356603916424199976, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
+  m_CorrespondingSourceObject: {fileID: 2412161367050800168, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
   m_PrefabInstance: {fileID: 1103943834243858252}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &3192618145593658492
