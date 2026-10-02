@@ -8,6 +8,7 @@ using UnityEngine.UI;
 
 public class MyPagePanelController : MonoBehaviour
 {
+    [SerializeField] private Sprite[] statIcons;
     public static MyPagePanelController Instance { get; private set; }
 
     private static readonly string[] StatKeys =
@@ -88,11 +89,14 @@ public class MyPagePanelController : MonoBehaviour
 
     private void Update()
     {
-        if (isOpen && Input.GetKeyDown(KeyCode.Escape)) Back();
+        if (isOpen && Input.GetKeyDown(KeyCode.Escape) && !(LobbySocialController.Instance != null && LobbySocialController.Instance.BlocksProfileBack)) Back();
     }
 
     private void Back()
     {
+        foreach (var layer in new[] { visitorCanvasGroup, skinCustomCanvasGroup, battleCustomCanvasGroup })
+            if (layer != null && layer.gameObject.activeSelf && layer.blocksRaycasts)
+            { ShowLayer(layer, false); return; }
         if (tabs == null || !tabs.HandleBack()) Close();
     }
 
@@ -326,6 +330,13 @@ public class MyPagePanelController : MonoBehaviour
         {
             SetText($"BattleSlot{i}ValueText", GetStatValue(displayedStats[i]));
             SetText($"BattleSlot{i}LabelText", StatLabels[displayedStats[i]]);
+            var icon = Find($"BattleSlot{i}Icon")?.GetComponent<Image>();
+            int iconIndex = Array.IndexOf(StatKeys, displayedStats[i]);
+            if (icon != null && statIcons != null)
+            {
+                icon.sprite = iconIndex >= 0 && iconIndex < statIcons.Length ? statIcons[iconIndex] : null;
+                icon.color = icon.sprite != null ? Color.white : new Color32(29, 36, 46, 255);
+            }
         }
     }
 
@@ -488,6 +499,9 @@ public class MyPagePanelController : MonoBehaviour
         panelCanvasGroup.alpha = visible ? 1f : 0f;
         panelCanvasGroup.interactable = visible;
         panelCanvasGroup.blocksRaycasts = visible;
+        var motion = GetComponent<AuthoredPanelMotion>();
+        if (visible) motion?.Play(); else motion?.ResetMotion();
+        GetComponent<ProfileRevealSequence>()?.Show(visible);
     }
 
     private static void ShowLayer(CanvasGroup group, bool visible)

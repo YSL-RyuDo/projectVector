@@ -1,5 +1,7 @@
 # Project Vector editing constraints
 
+- Every new system must preserve existing behavior, UI, serialized references, network contracts, and saved account data. Limit changes to required integration points and verify regression-sensitive flows before declaring completion.
+- All new UI layouts must be authored and saved in scene/prefab Hierarchy before Play, without exception. Runtime code may update data, visibility and presentation animation, but must not create or lay out replacement screens, buttons or popup structures.
 - Preserve existing gameplay, profile, honor, store sections and serialized button references when changing an unrelated feature. Do not replace whole screens or blanket-disable existing children to mount a new UI.
 - Author UI as saved scene/prefab objects, visible and editable in Unity Hierarchy before Play. Do not create the shop UI in Awake/Start/OnEnable or rebuild it every launch. Runtime instances are appropriate for temporary 3D preview models/effects, not a replacement for authored screen layout.
 - Shop visual target is the user's supplied reference screenshots: grouped rewards on the left, rotatable 3D preview in the center, description on the right; retain the project's existing UI assets and styling.

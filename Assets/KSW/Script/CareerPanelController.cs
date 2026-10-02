@@ -9,9 +9,9 @@ public class CareerPanelController : MonoBehaviour
     private const int OverallRankingMode = 0;
     private const int CharacterRankingMode = 1;
     private const int CharacterCount = 4;
-    private const string RankingRowResourcePath = "Career/CareerRankingRow";
-    private const string CharacterSelectorResourcePath =
-        "Career/CareerRankingCharacterSelector";
+    [SerializeField] private CareerRankPresentation _rankPresentation;
+    [SerializeField] private CareerTabsPresentation _tabsPresentation;
+    private int _inventorySort;
 
     private enum TabState
     {
@@ -167,6 +167,7 @@ public class CareerPanelController : MonoBehaviour
         }
 
         CacheDynamicViews();
+        _tabsPresentation?.Bind(this);
     }
 
     private void Start()
@@ -197,6 +198,7 @@ public class CareerPanelController : MonoBehaviour
 
     private void ChangeTab(TabState newState)
     {
+        _rankPresentation?.CloseOverlays();
         _currentTabState = newState;
         int targetIndex = (int)newState;
 
@@ -218,6 +220,7 @@ public class CareerPanelController : MonoBehaviour
 
     public void StatisticsGroupAnimation()
     {
+        if (_rankPresentation != null) { _rankPresentation.PlayIntro(); return; }
         if (_statisticsGroup == null)
             return;
 
@@ -255,6 +258,8 @@ public class CareerPanelController : MonoBehaviour
         _remainingSeasonDays = Math.Max(0, data.remainingSeasonDays);
 
         UpdateRankPanelData();
+        _rankPresentation?.Apply(data);
+        _tabsPresentation?.ApplyOverview(data);
     }
 
     public void UpdateRankPanelData()
@@ -337,7 +342,7 @@ public class CareerPanelController : MonoBehaviour
                     : entry.tierName
             );
             SetDirectChildText(row, "Text (TMP) (3)", entry.wins.ToString());
-            SetSuperstringVisible(row, _rankingMode == OverallRankingMode);
+            SetSuperstringVisible(row, _tabsPresentation != null || _rankingMode == OverallRankingMode);
         }
 
         if (_rankingRows.Count > 0 &&
@@ -347,6 +352,7 @@ public class CareerPanelController : MonoBehaviour
         }
 
         UpdateRankingPageControls();
+        _tabsPresentation?.ApplyRanking(pageData, NetworkManager.Instance?.MyUserId);
     }
 
     public void ApplyMatchHistory(int filterType, List<CareerMatchData> matches)
@@ -355,10 +361,12 @@ public class CareerPanelController : MonoBehaviour
             return;
 
         SetMatchHistory(matches);
+        _rankPresentation?.ApplyHistory(matches, NetworkManager.Instance?.MyUserId, filterType);
     }
 
     private void SetMatchHistory(List<CareerMatchData> matches)
     {
+        _tabsPresentation?.ApplyHistory(matches);
         _matchHistory.Clear();
         if (matches != null)
             _matchHistory.AddRange(matches);
@@ -376,7 +384,7 @@ public class CareerPanelController : MonoBehaviour
                 _matchMapRows[i].GetComponentInChildren<TextMeshProUGUI>(true);
             if (label != null)
             {
-                string result = match.myTeam == match.winnerTeam ? "승리" : "패배";
+                string result = CareerTabsPresentation.Outcome(match);
                 label.text = $"{match.mapName} ({result})";
             }
         }
@@ -392,6 +400,25 @@ public class CareerPanelController : MonoBehaviour
         _inventory.Clear();
         if (entries != null)
             _inventory.AddRange(entries);
+
+        SortCareerInventory(_inventorySort);
+    }
+
+    public void SortCareerInventory(int sort)
+    {
+        _inventorySort = Mathf.Clamp(sort, 0, 3);
+        _inventory.Sort((a, b) =>
+        {
+            int comparison = _inventorySort switch
+            {
+                1 => b.acquiredAtUnix.CompareTo(a.acquiredAtUnix),
+                2 => b.quantity.CompareTo(a.quantity),
+                3 => string.Compare(a.itemName, b.itemName, StringComparison.Ordinal),
+                _ => a.itemId.CompareTo(b.itemId)
+            };
+            return comparison != 0 ? comparison : a.itemId.CompareTo(b.itemId);
+        });
+        _tabsPresentation?.ApplyInventory(_inventory, _inventorySort);
 
         for (int i = 0; i < _inventorySlots.Count; ++i)
             _inventorySlots[i].gameObject.SetActive(i < _inventory.Count);
@@ -438,9 +465,8 @@ public class CareerPanelController : MonoBehaviour
     private void CacheDynamicViews()
     {
         CacheRankingRows();
-        BuildRankingRowsFromPrefab();
         CacheRankingControls();
-        BuildCharacterSelector();
+        CacheCharacterSelector();
         UpdateRankingModeVisuals();
         CacheMatchViews();
         CacheInventoryViews();
@@ -477,53 +503,6 @@ public class CareerPanelController : MonoBehaviour
 
             return lhs.GetSiblingIndex().CompareTo(rhs.GetSiblingIndex());
         });
-    }
-
-    private void BuildRankingRowsFromPrefab()
-    {
-        if (_rankingRows.Count == 0)
-            return;
-
-        Transform parent = _rankingRows[0].parent;
-        VerticalLayoutGroup layoutGroup = parent.GetComponent<VerticalLayoutGroup>();
-        if (layoutGroup != null)
-        {
-            layoutGroup.childAlignment = TextAnchor.UpperCenter;
-            layoutGroup.childForceExpandHeight = false;
-        }
-
-        GameObject rowPrefab = Resources.Load<GameObject>(
-            RankingRowResourcePath
-        );
-        if (rowPrefab == null)
-        {
-            Debug.LogWarning(
-                $"[CAREER RANKING] Resources/{RankingRowResourcePath}.prefab not found"
-            );
-            return;
-        }
-
-        List<RankingRowLayout> layouts = new(_rankingRows.Count);
-        foreach (Transform row in _rankingRows)
-        {
-            RectTransform rect = row as RectTransform;
-            if (rect == null)
-                continue;
-
-            layouts.Add(new RankingRowLayout(rect));
-            row.gameObject.SetActive(false);
-            Destroy(row.gameObject);
-        }
-
-        _rankingRows.Clear();
-        for (int i = 0; i < layouts.Count; ++i)
-        {
-            GameObject instance = Instantiate(rowPrefab, parent, false);
-            instance.name = i == 0 ? "Rank Item" : $"Rank Item ({i})";
-            layouts[i].Apply(instance.GetComponent<RectTransform>());
-            instance.transform.SetSiblingIndex(layouts[i].siblingIndex);
-            _rankingRows.Add(instance.transform);
-        }
     }
 
     private void CacheRankingControls()
@@ -588,35 +567,14 @@ public class CareerPanelController : MonoBehaviour
         }
     }
 
-    private void BuildCharacterSelector()
+    private void CacheCharacterSelector()
     {
         if (_rankingPanel == null)
             return;
 
-        GameObject selectorPrefab = Resources.Load<GameObject>(
-            CharacterSelectorResourcePath
-        );
-        if (selectorPrefab == null)
-        {
-            Debug.LogWarning(
-                $"[CAREER RANKING] Resources/{CharacterSelectorResourcePath}.prefab not found"
-            );
-            return;
-        }
-
-        Transform rankingList = FindDescendant(
-            _rankingPanel.transform,
-            "Ranking List"
-        );
-        Transform parent = rankingList != null
-            ? rankingList
-            : _rankingPanel.transform;
-        _rankingCharacterSelector = Instantiate(
-            selectorPrefab,
-            parent,
-            false
-        );
-        _rankingCharacterSelector.name = "Career Ranking Character Selector";
+        _rankingCharacterSelector = FindDescendant(
+            _rankingPanel.transform, "Career Ranking Character Selector")?.gameObject;
+        if (_rankingCharacterSelector == null) return;
 
         Transform selected = FindDescendant(
             _rankingCharacterSelector.transform,
@@ -727,7 +685,8 @@ public class CareerPanelController : MonoBehaviour
         if (_selectedCharacterIcon != null)
             _selectedCharacterIcon.sprite = _characterSprites[characterId];
         if (_selectedCharacterLabel != null)
-            _selectedCharacterLabel.text = $"캐릭터 {characterId}";
+            _selectedCharacterLabel.text = _tabsPresentation == null ? $"캐릭터 {characterId}" :
+                characterId switch { 0 => "이니시에이터", 1 => "컨트롤러", 2 => "센티널", _ => "듀얼리스트" };
 
         for (int i = 0; i < _characterButtons.Length; ++i)
         {
@@ -766,11 +725,11 @@ public class CareerPanelController : MonoBehaviour
         SetDirectChildText(
             _rankingHeader,
             "Text (TMP) (4)",
-            isCharacterRanking ? string.Empty : "슈퍼스트링"
+            _tabsPresentation != null ? "승률" : isCharacterRanking ? string.Empty : "슈퍼스트링"
         );
 
         foreach (Transform row in _rankingRows)
-            SetSuperstringVisible(row, !isCharacterRanking);
+            SetSuperstringVisible(row, _tabsPresentation != null || !isCharacterRanking);
         UpdateRankingPageControls();
     }
 
@@ -876,7 +835,7 @@ public class CareerPanelController : MonoBehaviour
             int index = i;
             Button button = _matchMapRows[i].GetComponent<Button>();
             if (button == null)
-                button = _matchMapRows[i].gameObject.AddComponent<Button>();
+                continue; // Authored by VectorCareerPresentationEditor before Play.
             button.targetGraphic = _matchMapRows[i].GetComponent<Image>();
             button.onClick.AddListener(() => ShowMatch(index));
         }
@@ -922,8 +881,8 @@ public class CareerPanelController : MonoBehaviour
         if (_inventoryPanel == null)
             return;
 
-        Transform grid = null;
-        foreach (Transform transform in
+        Transform grid = _tabsPresentation != null ? _tabsPresentation.inventoryGrid : null;
+        if (grid == null) foreach (Transform transform in
                  _inventoryPanel.GetComponentsInChildren<Transform>(true))
         {
             if (grid == null || transform.childCount > grid.childCount)
@@ -943,7 +902,7 @@ public class CareerPanelController : MonoBehaviour
                 int index = i;
                 Button button = _inventorySlots[i].GetComponent<Button>();
                 if (button == null)
-                    button = _inventorySlots[i].gameObject.AddComponent<Button>();
+                    continue; // Authored by VectorCareerPresentationEditor before Play.
                 button.targetGraphic = _inventorySlots[i].GetComponent<Image>();
                 button.onClick.AddListener(() => ShowInventoryItem(index));
             }
@@ -977,10 +936,12 @@ public class CareerPanelController : MonoBehaviour
         _mvp = "MVP\n0";
         _remainingSeasonDays = 0;
         UpdateRankPanelData();
+        _rankPresentation?.Clear();
         ClearRankingRows();
         UpdateRankingPageControls();
         SetMatchHistory(new List<CareerMatchData>());
         ApplyInventory(new List<CareerInventoryEntryData>());
+        _tabsPresentation?.Clear();
     }
 
     private void ClearRankingRows()
@@ -1014,7 +975,7 @@ public class CareerPanelController : MonoBehaviour
         List<CareerMatchPlayerData> friendly = new();
         List<CareerMatchPlayerData> opponent = new();
 
-        foreach (CareerMatchPlayerData player in match.players)
+        foreach (CareerMatchPlayerData player in match.players ?? new List<CareerMatchPlayerData>())
         {
             if (player.team == match.myTeam)
                 friendly.Add(player);
@@ -1024,6 +985,7 @@ public class CareerPanelController : MonoBehaviour
 
         BindPlayerRows(_friendlyPlayerRows, friendly);
         BindPlayerRows(_opponentPlayerRows, opponent);
+        _tabsPresentation?.SelectMatch(match, index, _friendlyPlayerRows, _opponentPlayerRows);
     }
 
     private void ClearMatchDetails()
@@ -1053,7 +1015,7 @@ public class CareerPanelController : MonoBehaviour
             SetDirectChildText(
                 rows[i],
                 "Text (TMP) (3)",
-                $"{player.kills}/{player.assists}"
+                $"{player.kills}/{player.deaths}/{player.assists}"
             );
             SetDirectChildText(rows[i], "Text (TMP) (4)", player.damage.ToString());
             SetDirectChildText(rows[i], "Text (TMP) (5)", player.skillScore.ToString());
@@ -1068,10 +1030,13 @@ public class CareerPanelController : MonoBehaviour
             return;
 
         CareerInventoryEntryData entry = _inventory[index];
+        bool starter = entry.itemId == 1 && entry.itemName == "Career Starter Badge";
         if (_inventoryNameText != null)
-            _inventoryNameText.text = $"{entry.itemName} x{entry.quantity}";
+            _inventoryNameText.text = $"{(starter ? "커리어 시작 배지" : entry.itemName)} x{entry.quantity}";
         if (_inventoryDescriptionText != null)
-            _inventoryDescriptionText.text = entry.description;
+            _inventoryDescriptionText.text = starter && entry.description == "Default career inventory catalog item"
+                ? "커리어의 시작을 기념하는 배지입니다." : entry.description;
+        _tabsPresentation?.SelectInventory(entry, index);
     }
 
     private static void CacheNamedDirectChildren(
@@ -1210,41 +1175,4 @@ public class CareerPanelController : MonoBehaviour
         iconImage.enabled = icon != null;
     }
 
-    private readonly struct RankingRowLayout
-    {
-        public readonly Vector2 anchorMin;
-        public readonly Vector2 anchorMax;
-        public readonly Vector2 pivot;
-        public readonly Vector2 anchoredPosition;
-        public readonly Vector2 sizeDelta;
-        public readonly Vector3 localScale;
-        public readonly Quaternion localRotation;
-        public readonly int siblingIndex;
-
-        public RankingRowLayout(RectTransform rect)
-        {
-            anchorMin = rect.anchorMin;
-            anchorMax = rect.anchorMax;
-            pivot = rect.pivot;
-            anchoredPosition = rect.anchoredPosition;
-            sizeDelta = rect.sizeDelta;
-            localScale = rect.localScale;
-            localRotation = rect.localRotation;
-            siblingIndex = rect.GetSiblingIndex();
-        }
-
-        public void Apply(RectTransform rect)
-        {
-            if (rect == null)
-                return;
-
-            rect.anchorMin = anchorMin;
-            rect.anchorMax = anchorMax;
-            rect.pivot = pivot;
-            rect.anchoredPosition = anchoredPosition;
-            rect.sizeDelta = sizeDelta;
-            rect.localScale = localScale;
-            rect.localRotation = localRotation;
-        }
-    }
 }

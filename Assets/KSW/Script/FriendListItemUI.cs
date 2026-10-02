@@ -38,6 +38,7 @@ public class FriendListItemUI : MonoBehaviour
     [SerializeField] private Button careerButton;
     [SerializeField] private Button deleteButton;
     [SerializeField] private Button blockButton;
+    [SerializeField] private Button inviteButton;
     [SerializeField] private Button contextCloseButton;
     [SerializeField] private GameObject memoPopup;
     [SerializeField] private TMP_InputField memoInput;
@@ -129,7 +130,8 @@ public class FriendListItemUI : MonoBehaviour
         BindSimpleButton(memoButton, OpenMemoPopup);
         BindSimpleButton(messageButton, SendMessage);
         BindSimpleButton(profileButton, OpenProfile);
-        BindSimpleButton(careerButton, () => ShowPlaceholder("\uCD5C\uADFC \uC804\uC801 \uBCF4\uAE30"));
+        BindSimpleButton(careerButton, OpenCareer);
+        BindSimpleButton(inviteButton, () => { CloseContextMenu(); LobbySocialController.Instance?.Invite(currentUser); });
         BindSimpleButton(deleteButton, DeleteFriend);
         BindSimpleButton(blockButton, BlockFriend);
         BindSimpleButton(memoConfirmButton, ConfirmMemo);
@@ -365,13 +367,19 @@ public class FriendListItemUI : MonoBehaviour
     private void DeleteFriend()
     {
         CloseContextMenu();
-        deleteAction?.Invoke(currentUser);
+        var user = currentUser; var action = deleteAction;
+        if (LobbySocialController.Instance != null)
+            LobbySocialController.Instance.Confirm($"{user.nickname} 님을 친구 목록에서 삭제하시겠습니까?", () => action?.Invoke(user));
+        else action?.Invoke(user);
     }
 
     private void BlockFriend()
     {
         CloseContextMenu();
-        blockAction?.Invoke(currentUser);
+        var user = currentUser; var action = blockAction;
+        if (LobbySocialController.Instance != null)
+            LobbySocialController.Instance.Confirm($"{user.nickname} 님을 차단하시겠습니까?", () => action?.Invoke(user));
+        else action?.Invoke(user);
     }
 
     private void OpenProfile()
@@ -387,6 +395,12 @@ public class FriendListItemUI : MonoBehaviour
         SetText(placeholderTitleText, title);
         SetText(placeholderBodyText, "\uAE30\uB2A5 \uC5F0\uACB0 \uC900\uBE44 \uC911\uC785\uB2C8\uB2E4.");
         placeholderPopup?.SetActive(true);
+    }
+
+    private void OpenCareer()
+    {
+        OpenProfile();
+        MyPagePanelController.Instance?.GetComponent<MyPageTabController>()?.Open(MyPageTabController.Page.Career);
     }
 
     private static void BindSimpleButton(Button button, Action action)

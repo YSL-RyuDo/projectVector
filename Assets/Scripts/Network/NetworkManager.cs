@@ -392,7 +392,7 @@ public class PlayerCombatSnapshot
     public bool isADS;
 }
 
-public class NetworkManager : MonoBehaviour
+public partial class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance;
 
@@ -643,6 +643,7 @@ public class NetworkManager : MonoBehaviour
     public void SendLogin(string id, string pw)
     {
         IsAuthenticated = false;
+        ResetSocialState();
         myUserId = id.Trim();
         equippedWeaponSkinsByCharacter.Clear();
         ClearLobbyRoomChatContext();
@@ -1225,6 +1226,18 @@ public class NetworkManager : MonoBehaviour
 
             case (ushort)PacketType.PKT_SC_TEMP_GAME_ROOM_ENTER:
                 HandleTempGameRoomEnter(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_MATCH_APPEARANCE:
+                HandleMatchAppearance(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_PARTY_INVITE:
+            case (ushort)PacketType.PKT_SC_SOCIAL_RESULT:
+            case (ushort)PacketType.PKT_SC_PARTY_STATE:
+            case (ushort)PacketType.PKT_SC_PARTY_AVAILABILITY:
+            case (ushort)PacketType.PKT_SC_MATCH_READY:
+                HandleSocialPacket((PacketType)type, body);
                 break;
 
             case (ushort)PacketType.PKT_SC_TEMP_GAME_START_RESULT:
@@ -3225,6 +3238,8 @@ public class NetworkManager : MonoBehaviour
 
     private void HandleMatchLoadingInfo(byte[] body)
     {
+        resultMapName = null; // New match must never reuse the previous result's map.
+        if (body != null && body.Length >= 4) BeginResultAppearance(BitConverter.ToUInt32(body, 0));
         if (GameController.Instance != null)
         {
             GameController.Instance.EnterLoadingPhase();
@@ -3343,6 +3358,7 @@ public class NetworkManager : MonoBehaviour
         offset += 4;
 
         data.mapName = Packet.ReadFixedString(body, offset, 32);
+        resultMapName = data.mapName;
         offset += 32;
 
         data.prepareSeconds = BitConverter.ToUInt16(body, offset);
@@ -4598,6 +4614,7 @@ public class NetworkManager : MonoBehaviour
         Debug.Log("[SEND KNIFE ATTACK]");
     }
 
+    private string resultMapName;
     private void HandleMatchResultDetail(byte[] body)
     {
         const int HeaderSize = 5;
@@ -4620,7 +4637,9 @@ public class NetworkManager : MonoBehaviour
 
         int offset = 0;
 
+        var appearances = ConsumeResultAppearance();
         MatchResultCache.Clear();
+        MatchResultCache.mapName = resultMapName;
 
         MatchResultCache.winnerTeam = body[offset];
         offset += 1;
@@ -4719,6 +4738,7 @@ public class NetworkManager : MonoBehaviour
             member.totalVictoryCurrency = BitConverter.ToInt32(body, offset);
             offset += 4;
 
+            if (appearances.TryGetValue(member.playerId, out var appearance)) member.appearance = appearance;
             MatchResultCache.members.Add(member);
 
             if (member.playerId == MyPlayerId)
@@ -4749,10 +4769,9 @@ public class NetworkManager : MonoBehaviour
             $"members={MatchResultCache.members.Count}"
         );
 
-        SceneManager.LoadScene(
-            MatchResultCache.matchType == 1
-                ? "RankResult"
-                : "Result");
+        // The authored Result scene now owns character -> rank -> rewards -> table.
+        // Settlement/cache/wallet updates above remain authoritative and unchanged.
+        SceneManager.LoadScene("Result");
     }
 
     public void SendResultLeave()
@@ -4777,6 +4796,7 @@ public class NetworkManager : MonoBehaviour
         Debug.Log($"[RESULT LEAVE DONE] roomId={roomId}");
 
         pendingReturnRoomId = roomId;
+        ReturningToParty = roomId == 0;
 
         SceneManager.LoadScene("Lobby");
     }

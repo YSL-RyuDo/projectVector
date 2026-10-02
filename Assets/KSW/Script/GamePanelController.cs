@@ -227,6 +227,12 @@ public class GamePanelController : MonoBehaviour
                 $"request room state. roomId={roomId}"
             );
         }
+        else if (NetworkManager.Instance.ReturningToParty)
+        {
+            NetworkManager.Instance.ReturningToParty = false;
+            SelectGameMode(NetworkManager.Instance.LastMatchmakingMode == 1 ? GameMode.Rank : GameMode.Normal);
+            OpenPartyLobby();
+        }
         else
         {
             SelectGameMode(GameMode.Normal);
@@ -450,6 +456,16 @@ public class GamePanelController : MonoBehaviour
         ShowCurrentGamePanelView();
     }
 
+    public void OpenPartyLobby()
+    {
+        if (IsInCustomRoom()) return;
+        if (currentGameMode != GameMode.Normal && currentGameMode != GameMode.Rank)
+            SelectGameMode(GameMode.Normal);
+        GetComponent<NavigationPanelController>().SelectLobbyMainMenu(LobbyMainMenu.Game);
+        ShowTempGameRoomPanel();
+        NetworkManager.Instance?.SendTempGameRoomEnter();
+    }
+
     public void OnClickRankGameButton()
     {
         Debug.Log("[GAME MODE] RankButton Click");
@@ -589,6 +605,10 @@ public class GamePanelController : MonoBehaviour
         }
 
         int mode = currentGameMode == GameMode.Rank ? 1 : 0;
+        if (!NetworkManager.Instance.IsPartyLeader)
+        { LobbySocialController.Instance?.ReceiveResult(9); return; }
+        if (!NetworkManager.Instance.PartyReadyToQueue)
+        { LobbySocialController.Instance?.Toast("모든 파티원이 로비로 돌아와야 매칭을 시작할 수 있습니다."); return; }
         NetworkManager.Instance.SendTempGameStart(mode);
     }
 
@@ -647,6 +667,8 @@ public class GamePanelController : MonoBehaviour
         // state 0: queued, 1: found, 2: cancelled, 3: rejected
         if (result == 0 && state == 0)
         {
+            NetworkManager.Instance.LastMatchmakingMode = mode;
+            SelectGameMode(mode == 1 ? GameMode.Rank : GameMode.Normal);
             isMatchmakingQueued = true;
             IsMatchmakingActive = true;
             matchmakingStartedRealtime = Time.realtimeSinceStartup - elapsedSeconds;
@@ -697,11 +719,17 @@ public class GamePanelController : MonoBehaviour
 
         if (!isMatchmakingQueued)
         {
-            if (force || matchmakingStartButtonText.text != "시작")
-                matchmakingStartButtonText.text = "시작";
+            var net = NetworkManager.Instance;
+            bool leader = net == null || net.IsPartyLeader;
+            bool allReturned = net == null || net.PartyReadyToQueue;
+            if (matchmakingStartButton != null) matchmakingStartButton.interactable = leader && allReturned;
+            string idleText = !allReturned ? "파티원 복귀 대기" : !leader ? "리더 시작 대기" : "매칭 시작";
+            if (force || matchmakingStartButtonText.text != idleText) matchmakingStartButtonText.text = idleText;
 
             return;
         }
+
+        if (matchmakingStartButton != null) matchmakingStartButton.interactable = true;
 
         bool isPointerOverButton = false;
         if (matchmakingStartButton != null && matchmakingStartButton.gameObject.activeInHierarchy)
