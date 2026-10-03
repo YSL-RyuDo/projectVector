@@ -88,15 +88,16 @@ public class TutorialEnemyAttack : MonoBehaviour
             Quaternion.LookRotation(direction)
         );
 
-        TutoEnemyBullet enemyBullet =
-            bullet.GetComponent<TutoEnemyBullet>();
+        TutorialBullet enemyBullet =
+            bullet.GetComponent<TutorialBullet>();
 
         if (enemyBullet != null)
         {
             enemyBullet.Init(
-                attackRange,
-                bulletSpeed,
-                direction
+             attackRange,
+             bulletSpeed,
+             direction,
+            TutorialBullet.ShooterType.Enemy
             );
         }
 
