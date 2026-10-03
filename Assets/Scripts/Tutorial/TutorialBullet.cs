@@ -1,60 +1,37 @@
 using UnityEngine;
 
-public class TutoEnemyBullet : MonoBehaviour
+public class TutorialBullet : MonoBehaviour
 {
+    public enum ShooterType
+    {
+        Player,
+        Enemy
+    }
+
     [SerializeField] private GameObject bulletHolePrefab;
     [SerializeField] private int damage = 10;
 
-    private float maxDistance;
-    private float bulletSpeed;
-    private Vector3 startPos;
-    private Vector3 direction;
-
-    private bool hit;
-
     private Rigidbody rb;
-    private Collider bulletCollider;
+    private ShooterType shooterType;
 
-    public void Init(float range, float speed, Vector3 dir)
+    public void Init(
+        float range,
+        float speed,
+        Vector3 direction,
+        ShooterType shooter)
     {
-        maxDistance = range;
-        bulletSpeed = speed;
-        direction = dir.normalized;
-
-        startPos = transform.position;
-        hit = false;
+        shooterType = shooter;
 
         rb = GetComponent<Rigidbody>();
-        bulletCollider = GetComponent<Collider>();
-
-        if (bulletCollider == null)
-        {
-            Debug.LogError("[TUTO ENEMY BULLET] Collider missing.", this);
-            Destroy(gameObject);
-            return;
-        }
-
-        if (rb == null)
-        {
-            Debug.LogError("[TUTO ENEMY BULLET] Rigidbody missing.", this);
-            Destroy(gameObject);
-            return;
-        }
 
         rb.useGravity = false;
         rb.isKinematic = false;
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
 
-        rb.linearVelocity = direction * bulletSpeed;
-    }
+        rb.linearVelocity = direction.normalized * speed;
 
-    private void Update()
-    {
-        if (Vector3.Distance(startPos, transform.position) > maxDistance)
-        {
-            Destroy(gameObject);
-        }
+        Destroy(gameObject, range / speed);
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -62,30 +39,39 @@ public class TutoEnemyBullet : MonoBehaviour
         if (collision == null || collision.collider == null)
             return;
 
-        if (hit)
-            return;
-
-        TESTPlayerHP playerHP =
-            collision.collider.GetComponentInParent<TESTPlayerHP>();
-
-        if (playerHP != null)
+        // 플레이어가 쏜 총알 -> 적만 데미지
+        if (shooterType == ShooterType.Player)
         {
-            hit = true;
+            TutoEnemyMove enemy =
+                collision.collider.GetComponentInParent<TutoEnemyMove>();
 
-            playerHP.Damage(damage);
-
-            Destroy(gameObject);
-            return;
+            if (enemy != null)
+            {
+                enemy.Damage(damage);
+                Destroy(gameObject);
+                return;
+            }
         }
 
+        // 적이 쏜 총알 -> 플레이어만 데미지
+        else if (shooterType == ShooterType.Enemy)
+        {
+            TESTPlayerHP playerHP =
+                collision.collider.GetComponentInParent<TESTPlayerHP>();
+
+            if (playerHP != null)
+            {
+                playerHP.Damage(damage);
+                Destroy(gameObject);
+                return;
+            }
+        }
+
+        // 벽이나 일반 오브젝트에 맞은 경우
         if (collision.contacts.Length > 0)
         {
             ContactPoint contact = collision.contacts[0];
-
-            SpawnBulletHole(
-                contact.point,
-                contact.normal
-            );
+            SpawnBulletHole(contact.point, contact.normal);
         }
 
         Destroy(gameObject);

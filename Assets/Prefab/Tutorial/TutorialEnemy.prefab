@@ -360,13 +360,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TutorialEnemyAttack
   player: {fileID: 0}
+  playerCollider: {fileID: 0}
   attackRange: 2
   attackInterval: 3
   rotationSpeed: 5
   bulletPrefab: {fileID: 1467919751768251238, guid: 5a99244394ba123419aca8fc63125ae5, type: 3}
   firePoint: {fileID: 7329626852555951611}
   bulletSpeed: 15
-  aimHeight: 1.2
 --- !u!1 &3849558734546767266
 GameObject:
   m_ObjectHideFlags: 0
@@ -406,6 +406,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4100966682372140383}
     m_Modifications:
+    - target: {fileID: 5214989494870284198, guid: 306f3bb78dad17a46881882715bdfc1c, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6113660660161768508, guid: 306f3bb78dad17a46881882715bdfc1c, type: 3}
       propertyPath: m_LocalScale.x
       value: 1.8955
