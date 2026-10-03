@@ -46,6 +46,7 @@ public class PickManager : MonoBehaviour
     [Header("Character Preview Model")]
     [SerializeField] private Transform previewSpawnPoint;
     [SerializeField] private GameObject[] characterModelPrefabs;
+    [SerializeField] private GameObject[] authoredPreviewModels;
     [SerializeField] private Vector3 previewLocalPosition = Vector3.zero;
     [SerializeField] private Vector3 previewLocalEulerAngles = Vector3.zero;
     [SerializeField] private Vector3 previewLocalScale = Vector3.one;
@@ -668,6 +669,20 @@ public class PickManager : MonoBehaviour
 
     private void ShowPreviewModel(int characterId)
     {
+        if (authoredPreviewModels != null && characterId >= 0 && characterId < authoredPreviewModels.Length && authoredPreviewModels[characterId] != null)
+        {
+            if (currentPreviewModel == authoredPreviewModels[characterId]) return;
+            ClearPreviewModel();
+            currentPreviewModel = authoredPreviewModels[characterId];
+            currentPreviewCharacterId = characterId;
+            currentPreviewModel.SetActive(true);
+            var animator = currentPreviewModel.GetComponentInChildren<Animator>(true);
+            if (animator != null)
+            {
+                animator.Rebind(); animator.Play("Idle", 0, 0); animator.Update(0);
+            }
+            return;
+        }
         if (previewSpawnPoint == null)
         {
             Debug.LogError("[PICK PREVIEW] previewSpawnPoint is null");
@@ -768,7 +783,10 @@ public class PickManager : MonoBehaviour
     {
         if (currentPreviewModel != null)
         {
-            Destroy(currentPreviewModel);
+            if (authoredPreviewModels != null && System.Array.IndexOf(authoredPreviewModels, currentPreviewModel) >= 0)
+                currentPreviewModel.SetActive(false);
+            else
+                Destroy(currentPreviewModel);
             currentPreviewModel = null;
         }
 

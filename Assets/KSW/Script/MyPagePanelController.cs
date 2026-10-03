@@ -265,10 +265,6 @@ public class MyPagePanelController : MonoBehaviour
                 current.playerIconId = preset.cardId;
                 ApplySprite("ProfileIconImage", Resources.Load<Sprite>($"PlayerIcon/{preset.cardId}"));
             }
-            ProfilePanelController profile = FindObjectOfType<ProfilePanelController>(true);
-            profile?.ApplyPlayerIcon(preset.cardId);
-            GamePanelController gamePanel = FindObjectOfType<GamePanelController>(true);
-            gamePanel?.RefreshLocalChipCraft(preset);
         }
     }
 

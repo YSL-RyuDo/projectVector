@@ -306,6 +306,8 @@ public enum PacketType : ushort
     PKT_CS_PARTY_STATE = 358,
     PKT_SC_PARTY_AVAILABILITY = 359,
     PKT_SC_MATCH_APPEARANCE = 360,
+    PKT_CS_PARTY_MODE = 361,
+    PKT_SC_PARTY_MODE = 362,
 }
 
 public enum RegisterResult : byte

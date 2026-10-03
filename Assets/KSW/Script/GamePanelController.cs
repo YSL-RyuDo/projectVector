@@ -102,6 +102,8 @@ public class GamePanelController : MonoBehaviour
 
     private GamePanelView currentGamePanelView = GamePanelView.None;
     private GameMode currentGameMode = GameMode.Normal;
+    private GameMode pendingPartyModeAfterLeave = GameMode.None;
+    private bool waitingForPartyQueueCancel;
     private GameMode previousModeBeforeCustom = GameMode.Normal;
 
     public static bool IsMatchmakingActive { get; private set; }
@@ -380,6 +382,7 @@ public class GamePanelController : MonoBehaviour
     public void OnClickNormalGameButton()
     {
         Debug.Log("[GAME MODE] NormalButton Click");
+        if (RequestPartyLeaveBeforeModeChange(GameMode.Normal)) return;
 
         if (RequestMatchmakingCancelBeforeModeChange(GameMode.Normal))
             return;
@@ -396,8 +399,7 @@ public class GamePanelController : MonoBehaviour
             return;
         }
 
-        SelectGameMode(GameMode.Normal);
-        EnterTempGameRoom();
+        EnterSelectedGameMode(GameMode.Normal);
     }
 
     private void EnterTempGameRoom()
@@ -459,8 +461,7 @@ public class GamePanelController : MonoBehaviour
     public void OpenPartyLobby()
     {
         if (IsInCustomRoom()) return;
-        if (currentGameMode != GameMode.Normal && currentGameMode != GameMode.Rank)
-            SelectGameMode(GameMode.Normal);
+        SelectGameMode(NetworkManager.Instance != null && NetworkManager.Instance.PartyMode == 1 ? GameMode.Rank : GameMode.Normal);
         GetComponent<NavigationPanelController>().SelectLobbyMainMenu(LobbyMainMenu.Game);
         ShowTempGameRoomPanel();
         NetworkManager.Instance?.SendTempGameRoomEnter();
@@ -469,6 +470,7 @@ public class GamePanelController : MonoBehaviour
     public void OnClickRankGameButton()
     {
         Debug.Log("[GAME MODE] RankButton Click");
+        if (RequestPartyLeaveBeforeModeChange(GameMode.Rank)) return;
 
         if (RequestMatchmakingCancelBeforeModeChange(GameMode.Rank))
             return;
@@ -485,8 +487,7 @@ public class GamePanelController : MonoBehaviour
             return;
         }
 
-        SelectGameMode(GameMode.Rank);
-        EnterTempGameRoom();
+        EnterSelectedGameMode(GameMode.Rank);
     }
 
     public void OnClickRefreshRoomList()
@@ -541,6 +542,7 @@ public class GamePanelController : MonoBehaviour
     public void OnClickUserRoomButton()
     {
         Debug.Log("[ROOM LIST] UserRoomButton Click");
+        if (RequestPartyLeaveBeforeModeChange(GameMode.Custom)) return;
 
         if (RequestMatchmakingCancelBeforeModeChange(GameMode.Custom))
             return;
@@ -630,7 +632,8 @@ public class GamePanelController : MonoBehaviour
         ShowTempGameRoomPanel();
         HideAllTempGameSlots();
 
-        for (int i = 0; i < players.Count; i++)
+        var occupiedSlots = new HashSet<int>();
+        for (int i = 0; i < Mathf.Min(playerCount, players.Count); i++)
         {
             TempGamePlayerData p = players[i];
 
@@ -642,6 +645,7 @@ public class GamePanelController : MonoBehaviour
 
             if (p.slotIndex >= playerCount)
                 continue;
+            if (!occupiedSlots.Add(p.slotIndex)) continue;
 
             Sprite icon = GetTempRoomCardSprite(p.playerIconId);
             Sprite border = GetSafeSprite(tempRoomBorderSprites, p.logoBorderId);
@@ -678,6 +682,7 @@ public class GamePanelController : MonoBehaviour
 
         if (result == 0 && state == 1)
         {
+            CancelPendingPartyNavigation();
             ClearMatchmakingState();
             ClearPendingMatchmakingModeChange();
             SceneManager.LoadScene("Game_TestVersion");
@@ -687,6 +692,12 @@ public class GamePanelController : MonoBehaviour
         if (result == 0 && state == 2)
         {
             ClearMatchmakingState();
+            if (waitingForPartyQueueCancel && pendingPartyModeAfterLeave != GameMode.None)
+            {
+                waitingForPartyQueueCancel = false;
+                NetworkManager.Instance?.SendSocial(PacketType.PKT_CS_PARTY_LEAVE);
+                return;
+            }
 
             if (hasPendingModeAfterMatchmakingCancel)
             {
@@ -700,6 +711,7 @@ public class GamePanelController : MonoBehaviour
 
         // result 2는 취소 요청이 이미 성립할 수 없는 상태다. 매칭 완료 응답을
         // 기다려야 할 수 있으므로 여기서 로컬 큐 상태를 임의로 해제하지 않는다.
+        CancelPendingPartyNavigation();
         if (result != 2)
         {
             ClearMatchmakingState();
@@ -804,7 +816,53 @@ public class GamePanelController : MonoBehaviour
         }
 
         SelectGameMode(mode);
+        NetworkManager.Instance?.SendPartyMode(mode == GameMode.Rank ? (byte)1 : (byte)0);
         EnterTempGameRoom();
+    }
+
+    private bool RequestPartyLeaveBeforeModeChange(GameMode nextMode)
+    {
+        var net = NetworkManager.Instance;
+        if (pendingPartyModeAfterLeave != GameMode.None) return true;
+        if (net == null || net.PartyPlayers.Count < 2 || currentGameMode == nextMode) return false;
+        // Only the leader can change the shared normal/ranked selection.
+        // Custom rooms are not a party matchmaking mode, so anyone must leave first.
+        if (net.IsPartyLeader && nextMode != GameMode.Custom) return false;
+        string modeName = nextMode == GameMode.Normal ? "일반" : nextMode == GameMode.Rank ? "랭크" : "사용자 지정";
+        LobbySocialController.Instance?.Confirm($"파티에서 나가고 {modeName} 모드로 이동하시겠습니까?", () =>
+        {
+            pendingPartyModeAfterLeave = nextMode;
+            waitingForPartyQueueCancel = isMatchmakingQueued;
+            if (waitingForPartyQueueCancel) net.SendMatchmakingCancel();
+            else net.SendSocial(PacketType.PKT_CS_PARTY_LEAVE);
+        });
+        return true;
+    }
+
+    public void CancelPendingPartyNavigation()
+    {
+        pendingPartyModeAfterLeave = GameMode.None;
+        waitingForPartyQueueCancel = false;
+    }
+
+    public void OnPartyModeReceived(byte mode)
+    {
+        var net = NetworkManager.Instance;
+        if (net == null || IsInCustomRoom()) return;
+        // This packet follows the membership and player-card snapshot. Wait for
+        // that authoritative leave response before opening another mode's panel.
+        if (net.PartyPlayers.Count == 1 && pendingPartyModeAfterLeave != GameMode.None)
+        {
+            var next = pendingPartyModeAfterLeave;
+            CancelPendingPartyNavigation();
+            EnterSelectedGameMode(next);
+            return;
+        }
+        if (net.PartyPlayers.Count > 1)
+        {
+            SelectGameMode(mode == 1 ? GameMode.Rank : GameMode.Normal);
+            UpdateMatchmakingButtonText(true);
+        }
     }
 
     private void ClearPendingMatchmakingModeChange()

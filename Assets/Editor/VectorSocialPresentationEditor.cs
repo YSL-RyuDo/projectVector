@@ -138,6 +138,8 @@ public static class VectorSocialPresentationEditor
         for (int i = 0; i < 2; ++i)
         {
             var dock = ready.transform.Find("TeamPosition" + (i + 1));
+            var waiting = dock.Find("Waiting");
+            if (waiting != null) waiting.gameObject.SetActive(false);
             ui.inviteSlots[i] = Button(dock, "InviteFriend", "+  친구 초대", 0, 0, 298, 56, dark);
         }
         ui.partyText = Label(ready.transform, "PartyStatus", "친구와 함께 작전을 시작하세요", -625, 240, 590, 60, 24, dark);
@@ -225,6 +227,7 @@ public static class VectorSocialPresentationEditor
             if (existing == null) rect.sizeDelta += new Vector2(0, 52);
             var button = Button(menu.transform, "InviteFriend", "파티 초대", 0, -rect.rect.height / 2 + 28, rect.rect.width - 16, 46, red);
             var serialized = new SerializedObject(item); serialized.FindProperty("inviteButton").objectReferenceValue = button; serialized.ApplyModifiedPropertiesWithoutUndo();
+            VectorLobbyRegressionFixEditor.LayoutFriendMenu(item);
             PrefabUtility.SaveAsPrefabAsset(root, path);
         }
         finally { PrefabUtility.UnloadPrefabContents(root); }

@@ -46,6 +46,7 @@ public sealed class LobbySocialController : MonoBehaviour
         bool online = network != null && network.IsConnected && network.IsAuthenticated;
         if (!online && connected)
         {
+            game.CancelPendingPartyNavigation();
             invitePanel.SetActive(false); readyPanel.SetActive(false); CloseConfirmation();
             inviteToken = readyToken = 0;
             Toast("서버 연결이 끊어졌습니다. 다시 로그인해 주세요.");

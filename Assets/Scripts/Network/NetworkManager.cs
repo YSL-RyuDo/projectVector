@@ -1236,6 +1236,7 @@ public partial class NetworkManager : MonoBehaviour
             case (ushort)PacketType.PKT_SC_SOCIAL_RESULT:
             case (ushort)PacketType.PKT_SC_PARTY_STATE:
             case (ushort)PacketType.PKT_SC_PARTY_AVAILABILITY:
+            case (ushort)PacketType.PKT_SC_PARTY_MODE:
             case (ushort)PacketType.PKT_SC_MATCH_READY:
                 HandleSocialPacket((PacketType)type, body);
                 break;
@@ -1675,6 +1676,8 @@ public partial class NetworkManager : MonoBehaviour
         int lobbyBackgroundId = BitConverter.ToInt32(body, 40);
         int freeCurrency = BitConverter.ToInt32(body, 44);
         int victoryCurrency = BitConverter.ToInt32(body, 48);
+        if (body.Length >= 56)
+            myPlayerId = BitConverter.ToUInt32(body, 52);
 
         Debug.Log($"[CLIENT LOBBY ENTER] nickname={nickname}, level={level}, exp={currentExp}/{requiredExp}, icon={playerIconId}, char={lobbyCharacterModelId}, bg={lobbyBackgroundId}, coin0={freeCurrency}, coin1={victoryCurrency}");
 
@@ -1997,6 +2000,13 @@ public partial class NetworkManager : MonoBehaviour
         if (body == null || body.Length < 58) return;
         int offset = 1;
         ChipCraftPresetData preset = body[0] == 0 ? ReadChipCraftPreset(body, ref offset) : null;
+        // Apply the authoritative appearance even if the profile page was closed
+        // or switched to another user while the save response was in flight.
+        if (preset != null)
+        {
+            FindFirstObjectByType<ProfilePanelController>(FindObjectsInactive.Include)?.ApplyPlayerIcon(preset.cardId);
+            FindFirstObjectByType<GamePanelController>(FindObjectsInactive.Include)?.RefreshLocalChipCraft(preset);
+        }
         MyPagePanelController.Instance?.ApplyChipCraftSaveResult(body[0] == 0, preset);
     }
 
@@ -2526,6 +2536,7 @@ public partial class NetworkManager : MonoBehaviour
         bool hasPresets = body.Length >= 2 + 3 * (BaseSlotSize + PresetSize);
         byte result = body[0];
         byte playerCount = body[1];
+        if (playerCount > 3) return;
 
         if (result != 0)
         {
@@ -2536,7 +2547,9 @@ public partial class NetworkManager : MonoBehaviour
         List<TempGamePlayerData> players = new List<TempGamePlayerData>();
 
         int offset = 2;
-        for (int i = 0; i < 3; i++)
+        // Unused fixed-capacity slots are zero-filled (including slotIndex = 0).
+        // They must never overwrite the occupied leader card with an empty player.
+        for (int i = 0; i < playerCount; i++)
         {
             TempGamePlayerData data = new TempGamePlayerData();
             data.slotIndex = body[offset];

@@ -417,7 +417,7 @@ public static class MyPageHierarchyInstaller
         Text("BattleCustomTitle",panel.transform,"전투 데이터 커스텀",25,TextAlignmentOptions.Left,Color.white,new Vector2(0,0),new Vector2(390,55),new Vector2(.5f,1),new Vector2(.5f,1),new Vector2(0,-30));
         Button("BattleCustomCloseButton",panel.transform,"X",new Vector2(190,-30),new Vector2(46,42),Red,new Vector2(.5f,1));
         Text("BattleCustomHelp",panel.transform,"항목을 왼쪽 슬롯으로 드래그하여 교체하세요.\n이미 표시 중인 항목은 선택할 수 없습니다.",14,TextAlignmentOptions.Left,Dark,new Vector2(0,0),new Vector2(390,60),new Vector2(.5f,1),new Vector2(.5f,1),new Vector2(0,-90));
-        GameObject scroll=UI("BattleCustomScroll",panel.transform,new Color(0,0,0,0)); Anchor(scroll,0,0,1,1,15,20,-20,-165); ScrollRect sr=scroll.AddComponent<ScrollRect>();sr.horizontal=false;sr.vertical=true;sr.scrollSensitivity=35;
+        GameObject scroll=UI("BattleCustomScroll",panel.transform,new Color(0,0,0,0)); Anchor(scroll,0,0,1,1,15,20,-20,-165); ScrollRect sr=scroll.AddComponent<ScrollRect>();sr.horizontal=false;sr.vertical=true;sr.scrollSensitivity=35;sr.movementType=ScrollRect.MovementType.Clamped;
         GameObject vp=UI("Viewport",scroll.transform,new Color(0,0,0,0));Anchor(vp,0,0,1,1,0,0,-16,0);vp.AddComponent<RectMask2D>();
         GameObject content=UI("Content",vp.transform,new Color(0,0,0,0));RectTransform cr=content.GetComponent<RectTransform>();cr.anchorMin=new Vector2(0,1);cr.anchorMax=new Vector2(1,1);cr.pivot=new Vector2(.5f,1);cr.sizeDelta=new Vector2(0,1050);cr.anchoredPosition=Vector2.zero;sr.viewport=vp.GetComponent<RectTransform>();sr.content=cr;
         string[] keys={"totalKills","playCount","avgDamage","winRate","mvpRate","headshotRate","avgKills","totalAssists","totalDamage","headshotKills","skinCount","weaponSkinCount","spikePlants","spikeDefuses","mvpCount"};
@@ -437,7 +437,7 @@ public static class MyPageHierarchyInstaller
         Text("SkinCustomTitle",panel.transform,"스킨 선택",25,TextAlignmentOptions.Left,Color.white,new Vector2(0,0),new Vector2(440,55),new Vector2(.5f,1),new Vector2(.5f,1),new Vector2(0,-30));
         Button("SkinCustomCloseButton",panel.transform,"X",new Vector2(215,-30),new Vector2(46,42),Red,new Vector2(.5f,1));
         GameObject dropdown=UI("SkinCharacterDropdown",panel.transform,Dark2);RectTransform dr=dropdown.GetComponent<RectTransform>();dr.anchorMin=dr.anchorMax=new Vector2(.5f,1);dr.sizeDelta=new Vector2(430,48);dr.anchoredPosition=new Vector2(0,-90);BuildDropdown(dropdown);
-        GameObject scroll=UI("SkinCustomScroll",panel.transform,new Color(0,0,0,0));Anchor(scroll,0,0,1,1,15,20,-20,-135);ScrollRect sr=scroll.AddComponent<ScrollRect>();sr.horizontal=false;sr.vertical=true;sr.scrollSensitivity=35;
+        GameObject scroll=UI("SkinCustomScroll",panel.transform,new Color(0,0,0,0));Anchor(scroll,0,0,1,1,15,20,-20,-135);ScrollRect sr=scroll.AddComponent<ScrollRect>();sr.horizontal=false;sr.vertical=true;sr.scrollSensitivity=35;sr.movementType=ScrollRect.MovementType.Clamped;
         GameObject vp=UI("Viewport",scroll.transform,new Color(0,0,0,0));Anchor(vp,0,0,1,1,0,0,-16,0);vp.AddComponent<RectMask2D>();
         GameObject content=UI("Content",vp.transform,new Color(0,0,0,0));RectTransform cr=content.GetComponent<RectTransform>();cr.anchorMin=new Vector2(0,1);cr.anchorMax=new Vector2(1,1);cr.pivot=new Vector2(.5f,1);cr.sizeDelta=new Vector2(0,920);cr.anchoredPosition=Vector2.zero;sr.viewport=vp.GetComponent<RectTransform>();sr.content=cr;
         string[] characters={"Casual1","PicoChan","UnityChan","UnityChanSSU"};

@@ -106,7 +106,7 @@ public class MyPageChipCraftController : MonoBehaviour
             NetworkManager.Instance?.SendChipCraftRequest(targetUserId);
             return;
         }
-        if (data == null) return;
+        if (data == null || !data.isSelf) return;
         data.preset = applied.Clone();
         draft = applied.Clone();
         SetText("ChipCraftStatus", "프리셋이 저장되고 적용되었습니다.");
@@ -159,7 +159,10 @@ public class MyPageChipCraftController : MonoBehaviour
     {
         if (data == null || !data.isSelf) return;
         editing = true;
+        // Keep the owned card chosen in browse mode when entering the editor.
+        int selectedCard = draft != null ? draft.cardId : data.preset.cardId;
         draft = data.preset.Clone();
+        if (Owned(data.ownedCardMask, selectedCard)) draft.cardId = selectedCard;
         selectedPlaced = -1;
         SetText("ChipCraftStatus", "");
         Refresh();
@@ -292,7 +295,9 @@ public class MyPageChipCraftController : MonoBehaviour
         SetText("ChipCraftItemTitle", item);
         SetText("ChipCraftItemDescription", tab == 1
             ? $"장착 가능한 훈장 수: {Mathf.Min(3, draft.caseId + 1)}개"
-            : tab == 2 ? "훈장을 카드에 놓고 위치·크기·회전을 조절할 수 있습니다." : "플레이어 카드 그림을 선택하세요.");
+            : tab == 2 ? "훈장을 카드에 놓고 위치·크기·회전을 조절할 수 있습니다."
+            : draft.cardId == data.preset.cardId ? "현재 적용 중인 카드입니다."
+            : "미리보기 · 편집 후 저장하면 카드와 프로필 아이콘이 함께 적용됩니다.");
         RefreshPreview();
     }
 
