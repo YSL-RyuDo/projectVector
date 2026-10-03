@@ -45,13 +45,6 @@ public class PickCharacterButtonUI : MonoBehaviour
             {
                 onClick?.Invoke(characterId);
 
-                // KSW : Pick 했을 때 인사 or 동작 실행
-                LobbyCharacterAnimation spawnedAni = FindFirstObjectByType<LobbyCharacterAnimation>();
-
-                if (spawnedAni != null)
-                {
-                    spawnedAni.PlayGreeting();
-                }
             });
         }
 

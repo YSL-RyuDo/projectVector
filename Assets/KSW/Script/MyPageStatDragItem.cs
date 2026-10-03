@@ -15,6 +15,7 @@ public class MyPageStatDragItem : MonoBehaviour, IBeginDragHandler, IDragHandler
     private int originalSiblingIndex;
     private bool available = true;
     private bool dropCompleted;
+    private bool dragging;
 
     private void Awake()
     {
@@ -35,13 +36,14 @@ public class MyPageStatDragItem : MonoBehaviour, IBeginDragHandler, IDragHandler
     }
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (!available) return;
+        if (!available || eventData.button != PointerEventData.InputButton.Left) return;
         if (rect == null) rect = transform as RectTransform;
         if (canvas == null) canvas = GetComponentInParent<Canvas>();
         if (group == null) group = GetComponent<CanvasGroup>();
         if (group == null) group = gameObject.AddComponent<CanvasGroup>();
         if (rect == null || canvas == null || group == null) return;
         dropCompleted = false;
+        dragging = true;
         originalParent = transform.parent;
         originalSiblingIndex = transform.GetSiblingIndex();
         originalPosition = rect.anchoredPosition;
@@ -54,11 +56,13 @@ public class MyPageStatDragItem : MonoBehaviour, IBeginDragHandler, IDragHandler
     }
     public void OnDrag(PointerEventData eventData)
     {
-        if (!available || rect == null || canvas == null) return;
+        if (!dragging || rect == null || canvas == null) return;
         rect.anchoredPosition += eventData.delta / canvas.scaleFactor;
     }
     public void OnEndDrag(PointerEventData eventData)
     {
+        if (!dragging) return;
+        dragging = false;
         if (available && !dropCompleted && MyPagePanelController.Instance != null)
             dropCompleted = MyPagePanelController.Instance.TryDropStatAtScreenPosition(
                 eventData.position, statKey, eventData.pressEventCamera);
@@ -74,7 +78,7 @@ public class MyPageStatDragItem : MonoBehaviour, IBeginDragHandler, IDragHandler
 
     public bool CompleteDrop(int slotIndex)
     {
-        if (!available || MyPagePanelController.Instance == null) return false;
+        if (!dragging || !available || MyPagePanelController.Instance == null) return false;
         dropCompleted = MyPagePanelController.Instance.TryReplaceStat(slotIndex, statKey);
         return dropCompleted;
     }

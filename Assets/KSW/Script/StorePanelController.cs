@@ -93,6 +93,9 @@ public class StorePanelController : MonoBehaviour
 
     private void OnWeaponSkinGachaButton()
     {
+        var navigation = GetComponent<NavigationPanelController>();
+        var shop = navigation != null && navigation.StoreRoot != null ? navigation.StoreRoot.GetComponent<VectorShopPanel>() : null;
+        if (shop != null) { shop.DrawOne(); return; }
         if (_weaponRenderTextures == null || _weaponRenderTextures.Length == 0)
             return;
 

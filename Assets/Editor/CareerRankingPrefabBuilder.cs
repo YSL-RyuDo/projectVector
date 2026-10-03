@@ -296,11 +296,14 @@ public static class CareerRankingPrefabBuilder
         return textObject;
     }
 
-    private static Sprite LoadCharacterSprite(int characterId)
+    public static Sprite LoadCharacterSprite(int characterId)
     {
-        return AssetDatabase.LoadAssetAtPath<Sprite>(
-            $"Assets/Sprites/Character/Image/Char{characterId}.png"
-        );
+        // Same ID order and authored portraits as character selection, never the full-body sprites.
+        string[] names = { "Initiator", "Controller", "Sentinel", "Duelist" };
+        if (characterId < 0 || characterId >= names.Length) return null;
+        var data = AssetDatabase.LoadAssetAtPath<CharacterPickSO>(
+            "Assets/CharacterPickData/" + names[characterId] + ".asset");
+        return data != null ? data.characterIcon : null;
     }
 
     private static void Stretch(RectTransform rect)

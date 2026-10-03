@@ -18,6 +18,7 @@ public class NavigationPanelController : MonoBehaviour
     [SerializeField] private GameObject gamePanel;
     [SerializeField] private GameObject careerPanel;
     [SerializeField] private GameObject storePanel;
+    public GameObject StoreRoot => storePanel;
 
     [Header("Main Navigation Buttons")]
     [SerializeField] private Button lobbyMainButton;

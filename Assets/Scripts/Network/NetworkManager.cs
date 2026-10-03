@@ -392,7 +392,7 @@ public class PlayerCombatSnapshot
     public bool isADS;
 }
 
-public class NetworkManager : MonoBehaviour
+public partial class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance;
 
@@ -643,6 +643,7 @@ public class NetworkManager : MonoBehaviour
     public void SendLogin(string id, string pw)
     {
         IsAuthenticated = false;
+        ResetSocialState();
         myUserId = id.Trim();
         equippedWeaponSkinsByCharacter.Clear();
         ClearLobbyRoomChatContext();
@@ -914,6 +915,16 @@ public class NetworkManager : MonoBehaviour
     }
 
     public void SendLevelRewardRequest() => SendHeaderOnly(PacketType.PKT_CS_LEVEL_REWARD_REQUEST);
+    public void SendEventPass(int operation, int index, long week)
+    {
+        byte[] buffer = new byte[20];
+        BitConverter.GetBytes((ushort)20).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)334).CopyTo(buffer, 2);
+        BitConverter.GetBytes(operation).CopyTo(buffer, 4);
+        BitConverter.GetBytes(index).CopyTo(buffer, 8);
+        BitConverter.GetBytes(week).CopyTo(buffer, 12);
+        client.Send(buffer);
+    }
 
     public void SendLevelRewardClaim(int targetLevel)
     {
@@ -931,6 +942,19 @@ public class NetworkManager : MonoBehaviour
         BitConverter.GetBytes((ushort)PacketType.PKT_CS_HONOR_REQUEST).CopyTo(buffer, 2);
         buffer[4] = (byte)Mathf.Clamp(page, 1, 5);
         client.Send(buffer);
+    }
+
+    public void SendShopRequest(byte operation, int currency, int count, int itemId, ulong requestId, int page)
+    {
+        byte[] buffer = new byte[24];
+        BitConverter.GetBytes((ushort)buffer.Length).CopyTo(buffer, 0);
+        BitConverter.GetBytes((ushort)340).CopyTo(buffer, 2);
+        buffer[4] = operation; buffer[5] = (byte)currency;
+        BitConverter.GetBytes((ushort)count).CopyTo(buffer, 6);
+        BitConverter.GetBytes(itemId).CopyTo(buffer, 8);
+        BitConverter.GetBytes(requestId).CopyTo(buffer, 12);
+        BitConverter.GetBytes(page).CopyTo(buffer, 20);
+        client?.Send(buffer);
     }
 
     public void SendHonorClaim(int grade)
@@ -1150,6 +1174,13 @@ public class NetworkManager : MonoBehaviour
                 HandleHonorState(body);
                 break;
 
+            case 335:
+                FindFirstObjectByType<VectorEventPass>(FindObjectsInactive.Include)?.ApplyState(body);
+                break;
+            case 341: // Cosmetic shop response, handled by the main-thread packet queue.
+                VectorShopPanel.Receive(body);
+                break;
+
             case (ushort)PacketType.PKT_SC_HONOR_CLAIM_RESULT:
                 HandleHonorClaimResult(body);
                 break;
@@ -1195,6 +1226,19 @@ public class NetworkManager : MonoBehaviour
 
             case (ushort)PacketType.PKT_SC_TEMP_GAME_ROOM_ENTER:
                 HandleTempGameRoomEnter(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_MATCH_APPEARANCE:
+                HandleMatchAppearance(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_PARTY_INVITE:
+            case (ushort)PacketType.PKT_SC_SOCIAL_RESULT:
+            case (ushort)PacketType.PKT_SC_PARTY_STATE:
+            case (ushort)PacketType.PKT_SC_PARTY_AVAILABILITY:
+            case (ushort)PacketType.PKT_SC_PARTY_MODE:
+            case (ushort)PacketType.PKT_SC_MATCH_READY:
+                HandleSocialPacket((PacketType)type, body);
                 break;
 
             case (ushort)PacketType.PKT_SC_TEMP_GAME_START_RESULT:
@@ -1632,6 +1676,8 @@ public class NetworkManager : MonoBehaviour
         int lobbyBackgroundId = BitConverter.ToInt32(body, 40);
         int freeCurrency = BitConverter.ToInt32(body, 44);
         int victoryCurrency = BitConverter.ToInt32(body, 48);
+        if (body.Length >= 56)
+            myPlayerId = BitConverter.ToUInt32(body, 52);
 
         Debug.Log($"[CLIENT LOBBY ENTER] nickname={nickname}, level={level}, exp={currentExp}/{requiredExp}, icon={playerIconId}, char={lobbyCharacterModelId}, bg={lobbyBackgroundId}, coin0={freeCurrency}, coin1={victoryCurrency}");
 
@@ -1954,6 +2000,13 @@ public class NetworkManager : MonoBehaviour
         if (body == null || body.Length < 58) return;
         int offset = 1;
         ChipCraftPresetData preset = body[0] == 0 ? ReadChipCraftPreset(body, ref offset) : null;
+        // Apply the authoritative appearance even if the profile page was closed
+        // or switched to another user while the save response was in flight.
+        if (preset != null)
+        {
+            FindFirstObjectByType<ProfilePanelController>(FindObjectsInactive.Include)?.ApplyPlayerIcon(preset.cardId);
+            FindFirstObjectByType<GamePanelController>(FindObjectsInactive.Include)?.RefreshLocalChipCraft(preset);
+        }
         MyPagePanelController.Instance?.ApplyChipCraftSaveResult(body[0] == 0, preset);
     }
 
@@ -2483,6 +2536,7 @@ public class NetworkManager : MonoBehaviour
         bool hasPresets = body.Length >= 2 + 3 * (BaseSlotSize + PresetSize);
         byte result = body[0];
         byte playerCount = body[1];
+        if (playerCount > 3) return;
 
         if (result != 0)
         {
@@ -2493,7 +2547,9 @@ public class NetworkManager : MonoBehaviour
         List<TempGamePlayerData> players = new List<TempGamePlayerData>();
 
         int offset = 2;
-        for (int i = 0; i < 3; i++)
+        // Unused fixed-capacity slots are zero-filled (including slotIndex = 0).
+        // They must never overwrite the occupied leader card with an empty player.
+        for (int i = 0; i < playerCount; i++)
         {
             TempGamePlayerData data = new TempGamePlayerData();
             data.slotIndex = body[offset];
@@ -3195,6 +3251,8 @@ public class NetworkManager : MonoBehaviour
 
     private void HandleMatchLoadingInfo(byte[] body)
     {
+        resultMapName = null; // New match must never reuse the previous result's map.
+        if (body != null && body.Length >= 4) BeginResultAppearance(BitConverter.ToUInt32(body, 0));
         if (GameController.Instance != null)
         {
             GameController.Instance.EnterLoadingPhase();
@@ -3313,6 +3371,7 @@ public class NetworkManager : MonoBehaviour
         offset += 4;
 
         data.mapName = Packet.ReadFixedString(body, offset, 32);
+        resultMapName = data.mapName;
         offset += 32;
 
         data.prepareSeconds = BitConverter.ToUInt16(body, offset);
@@ -4568,6 +4627,7 @@ public class NetworkManager : MonoBehaviour
         Debug.Log("[SEND KNIFE ATTACK]");
     }
 
+    private string resultMapName;
     private void HandleMatchResultDetail(byte[] body)
     {
         const int HeaderSize = 5;
@@ -4590,7 +4650,9 @@ public class NetworkManager : MonoBehaviour
 
         int offset = 0;
 
+        var appearances = ConsumeResultAppearance();
         MatchResultCache.Clear();
+        MatchResultCache.mapName = resultMapName;
 
         MatchResultCache.winnerTeam = body[offset];
         offset += 1;
@@ -4689,6 +4751,7 @@ public class NetworkManager : MonoBehaviour
             member.totalVictoryCurrency = BitConverter.ToInt32(body, offset);
             offset += 4;
 
+            if (appearances.TryGetValue(member.playerId, out var appearance)) member.appearance = appearance;
             MatchResultCache.members.Add(member);
 
             if (member.playerId == MyPlayerId)
@@ -4719,10 +4782,9 @@ public class NetworkManager : MonoBehaviour
             $"members={MatchResultCache.members.Count}"
         );
 
-        SceneManager.LoadScene(
-            MatchResultCache.matchType == 1
-                ? "RankResult"
-                : "Result");
+        // The authored Result scene now owns character -> rank -> rewards -> table.
+        // Settlement/cache/wallet updates above remain authoritative and unchanged.
+        SceneManager.LoadScene("Result");
     }
 
     public void SendResultLeave()
@@ -4747,6 +4809,7 @@ public class NetworkManager : MonoBehaviour
         Debug.Log($"[RESULT LEAVE DONE] roomId={roomId}");
 
         pendingReturnRoomId = roomId;
+        ReturningToParty = roomId == 0;
 
         SceneManager.LoadScene("Lobby");
     }

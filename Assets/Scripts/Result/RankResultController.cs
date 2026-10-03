@@ -37,15 +37,26 @@ public class RankResultController : MonoBehaviour
     [SerializeField] private Color neutralColor = Color.white;
 
     private bool canContinue;
+    [Header("Embedded result sequence (authored in Result scene)")]
+    public bool embedded;
+    public event System.Action Completed;
 
     private void Start()
     {
+        if (embedded) return;
+        BeginPresentation();
+    }
+
+    public void BeginPresentation()
+    {
+        StopAllCoroutines();
+        canContinue = false;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
         if (MatchResultCache.matchType != 1)
         {
-            SceneManager.LoadScene("Result");
+            if (!embedded) SceneManager.LoadScene("Result");
             return;
         }
 
@@ -71,7 +82,7 @@ public class RankResultController : MonoBehaviour
 
     private void Update()
     {
-        if (canContinue &&
+        if (!embedded && canContinue &&
             (Input.GetKeyDown(KeyCode.Return) ||
              Input.GetKeyDown(KeyCode.Space)))
         {
@@ -110,7 +121,7 @@ public class RankResultController : MonoBehaviour
         ApplyRankPresentation(afterPoints, afterTier);
         canContinue = true;
 
-        if (continueButton != null)
+        if (continueButton != null && !embedded)
         {
             continueButton.gameObject.SetActive(true);
             continueButton.Select();
@@ -123,7 +134,17 @@ public class RankResultController : MonoBehaviour
             return;
 
         canContinue = false;
-        SceneManager.LoadScene("Result");
+        if (embedded) Completed?.Invoke();
+        else SceneManager.LoadScene("Result");
+    }
+
+    // First press completes the score animation; a second advances the page.
+    public void AdvanceEmbedded()
+    {
+        if (canContinue) { OnClickContinue(); return; }
+        StopAllCoroutines();
+        ApplyRankPresentation(Mathf.Max(0, MatchResultCache.rankPointsAfter), Mathf.Clamp(MatchResultCache.rankTierIdAfter, 0, 25));
+        canContinue = true;
     }
 
     private void ApplyRankPresentation(int totalPoints, int tierId)
@@ -188,7 +209,7 @@ public class RankResultController : MonoBehaviour
 
         rankChangeText.text = modifiers.Count == 0
             ? headline
-            : $"{headline}\n<size=45%><color=#8DE8FF>" +
+            : $"{headline}\n<size=45%><color=#4B4B50>" +
                 string.Join("  ·  ", modifiers) +
                 "</color></size>";
     }

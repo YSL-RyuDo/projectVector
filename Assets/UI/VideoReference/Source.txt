@@ -1,0 +1,30 @@
+User-authorized UI extraction, 2026-10-02.
+Reference: KakaoTalk_20261002_201836341.mp4 (1280x720, 24 fps).
+ReadyCard.png: 474 seconds, crop x=78 y=209 width=90 height=224.
+CardFoot.png: 232 seconds, crop x=544 y=580 width=198 height=16.
+CardCrown.png: 88 seconds, crop x=930 y=54 width=254 height=38.
+CardBase.png: 88 seconds, crop x=930 y=596 width=254 height=52.
+NeutralBackground.png: 5.500 seconds, crop x=0 y=64 width=1168 height=656.
+  This transition frame precedes the profile panels. Crop excludes navigation,
+  cursor and bottom-right controls; the original background is not synthesized.
+CardRailLeft.png: 88 seconds, crop x=930 y=92 width=18 height=504.
+CardRailRight.png: 88 seconds, crop x=1166 y=92 width=18 height=504.
+EmptySeat.png: 256 seconds, crop x=152 y=290 width=62 height=62.
+RoomRowSurface.png: 256 seconds, crop x=220 y=290 width=210 height=66.
+RoomHeaderSurface.png: 256 seconds, crop x=510 y=110 width=190 height=38.
+StatWin/Kills/Damage: 88 seconds, 50x50 crops x=270, y=310/370/432.
+StatMatches: 88 seconds, 110x110 crop x=400 y=315.
+StatMvp/Headshot/Average: 88 seconds, 50x50 crops x=590, y=310/370/432.
+Match transition inspected at 24 fps from 470.000 to 472.000 seconds:
+bottom-up reveal begins near 470.375s; staggered cards settle near 471.5s.
+Additional 24 fps inspection: 621.000-626.000 seconds (120 frames).
+Transition begins about 621.375; cards fall with staggered offsets, settle near
+622.25. Confirmation flashes begin near 622.79. Card art starts revealing around
+624.8, with other cards following through 625.9. Applied as presentation timing,
+not copied confirmation state or a fabricated result recording.
+The reference ends at character selection; the result/MVP scene is an adaptation
+of its card styling, not a claim that an identical result screen appears in it.
+
+Only decorative image fragments are extracted. Buttons, names, status, timers
+and six-player confirmation are saved Unity UI objects backed by game data.
+Project Vector retains its existing three-player party / six-player match size.

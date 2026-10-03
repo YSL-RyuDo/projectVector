@@ -9,6 +9,10 @@ public class PickManager : MonoBehaviour
     [Header("Top Info")]
     [SerializeField] private TopInfoUI topInfoUI;
 
+    [Header("Authored Match Map Background")]
+    [SerializeField] private PickMapBackdrop mapBackdrop;
+    [SerializeField] private PickSelectionPresentation presentation;
+
     [Header("Team Pick")]
     [SerializeField] private TeamPickSlotUI[] teamPickSlots;
 
@@ -42,6 +46,7 @@ public class PickManager : MonoBehaviour
     [Header("Character Preview Model")]
     [SerializeField] private Transform previewSpawnPoint;
     [SerializeField] private GameObject[] characterModelPrefabs;
+    [SerializeField] private GameObject[] authoredPreviewModels;
     [SerializeField] private Vector3 previewLocalPosition = Vector3.zero;
     [SerializeField] private Vector3 previewLocalEulerAngles = Vector3.zero;
     [SerializeField] private Vector3 previewLocalScale = Vector3.one;
@@ -51,6 +56,8 @@ public class PickManager : MonoBehaviour
 
     private PickStateData currentState;
     private int currentInfoCharacterId = -1;
+    private int displayedInfoCharacterId = -1;
+    private int selectedSkillIndex;
 
     private bool isInputLockedByPhase = true;
     private PickPhase currentPhase = PickPhase.PICKING;
@@ -115,25 +122,25 @@ public class PickManager : MonoBehaviour
         if (cButton != null)
         {
             cButton.onClick.RemoveAllListeners();
-            cButton.onClick.AddListener(() => ShowSkillInfo(GetCurrentCharacterData()?.cSkill));
+            cButton.onClick.AddListener(() => SelectSkill(0));
         }
 
         if (qButton != null)
         {
             qButton.onClick.RemoveAllListeners();
-            qButton.onClick.AddListener(() => ShowSkillInfo(GetCurrentCharacterData()?.qSkill));
+            qButton.onClick.AddListener(() => SelectSkill(1));
         }
 
         if (eButton != null)
         {
             eButton.onClick.RemoveAllListeners();
-            eButton.onClick.AddListener(() => ShowSkillInfo(GetCurrentCharacterData()?.eSkill));
+            eButton.onClick.AddListener(() => SelectSkill(2));
         }
 
         if (xButton != null)
         {
             xButton.onClick.RemoveAllListeners();
-            xButton.onClick.AddListener(() => ShowSkillInfo(GetCurrentCharacterData()?.xSkill));
+            xButton.onClick.AddListener(() => SelectSkill(3));
         }
     }
 
@@ -188,6 +195,8 @@ public class PickManager : MonoBehaviour
     public void OnRecvPickState(PickStateData state)
     {
         currentState = state;
+        if (mapBackdrop != null) mapBackdrop.ApplyMap(state != null ? state.mapName : null);
+        if (presentation != null) presentation.SetState(state);
 
         ApplyTopInfo();
         ApplyTeamPickSlots();
@@ -366,7 +375,7 @@ public class PickManager : MonoBehaviour
         if (me == null)
         {
             selectButton.interactable = false;
-            SetSelectButtonText("Select");
+            SetSelectButtonText("선택 확정");
             return;
         }
 
@@ -377,7 +386,7 @@ public class PickManager : MonoBehaviour
             return;
         }
 
-        SetSelectButtonText("Select");
+        SetSelectButtonText("선택 확정");
 
         int candidateCharacterId = me.hoverCharacterId;
 
@@ -446,6 +455,11 @@ public class PickManager : MonoBehaviour
         if (data == null)
             return;
 
+        // Team hover/lock snapshots must never reset the skill the local player is reading.
+        bool characterChanged = displayedInfoCharacterId != characterId;
+        if (characterChanged) selectedSkillIndex = 0;
+        displayedInfoCharacterId = characterId;
+
         if (characterInfoPanel != null)
             characterInfoPanel.SetActive(true);
 
@@ -474,7 +488,29 @@ public class PickManager : MonoBehaviour
         ApplySkillButtonVisual(eImage, data.eSkill);
         ApplySkillButtonVisual(xImage, data.xSkill);
 
-        ShowSkillInfo(data.cSkill);
+        ShowSkillInfo(GetSkill(data, selectedSkillIndex));
+        if (presentation != null)
+        {
+            presentation.SetCharacter(data);
+            presentation.SetSkill(selectedSkillIndex, characterChanged);
+        }
+    }
+
+    private static PickSkillData GetSkill(PickCharacterData data, int index)
+    {
+        if (data == null) return null;
+        return index == 1 ? data.qSkill : index == 2 ? data.eSkill : index == 3 ? data.xSkill : data.cSkill;
+    }
+
+    private void SelectSkill(int index)
+    {
+        if (index < 0 || index > 3) return;
+        var data = GetCurrentCharacterData();
+        if (data == null) return;
+        bool changed = selectedSkillIndex != index;
+        selectedSkillIndex = index;
+        ShowSkillInfo(GetSkill(data, index));
+        if (presentation != null) presentation.SetSkill(index, changed);
     }
 
     private void ApplySkillButtonVisual(Image image, PickSkillData skill)
@@ -496,14 +532,11 @@ public class PickManager : MonoBehaviour
 
     private void ShowSkillInfo(PickSkillData skill)
     {
-        if (skill == null)
-            return;
-
         if (skillNameText != null)
-            skillNameText.text = skill.skillName;
+            skillNameText.text = skill != null ? skill.skillName : "스킬 정보 없음";
 
         if (skillInfoText != null)
-            skillInfoText.text = skill.skillDescription;
+            skillInfoText.text = skill != null ? skill.skillDescription : "";
     }
 
     private PickTeamMemberData GetMe()
@@ -636,6 +669,20 @@ public class PickManager : MonoBehaviour
 
     private void ShowPreviewModel(int characterId)
     {
+        if (authoredPreviewModels != null && characterId >= 0 && characterId < authoredPreviewModels.Length && authoredPreviewModels[characterId] != null)
+        {
+            if (currentPreviewModel == authoredPreviewModels[characterId]) return;
+            ClearPreviewModel();
+            currentPreviewModel = authoredPreviewModels[characterId];
+            currentPreviewCharacterId = characterId;
+            currentPreviewModel.SetActive(true);
+            var animator = currentPreviewModel.GetComponentInChildren<Animator>(true);
+            if (animator != null)
+            {
+                animator.Rebind(); animator.Play("Idle", 0, 0); animator.Update(0);
+            }
+            return;
+        }
         if (previewSpawnPoint == null)
         {
             Debug.LogError("[PICK PREVIEW] previewSpawnPoint is null");
@@ -736,7 +783,10 @@ public class PickManager : MonoBehaviour
     {
         if (currentPreviewModel != null)
         {
-            Destroy(currentPreviewModel);
+            if (authoredPreviewModels != null && System.Array.IndexOf(authoredPreviewModels, currentPreviewModel) >= 0)
+                currentPreviewModel.SetActive(false);
+            else
+                Destroy(currentPreviewModel);
             currentPreviewModel = null;
         }
 

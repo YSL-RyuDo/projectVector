@@ -276,9 +276,9 @@ public class FriendPanelController : MonoBehaviour
         }
     }
 
-    private void RefreshMyProfile()
+    public void RefreshMyProfile()
     {
-        ProfilePanelController profile = FindFirstObjectByType<ProfilePanelController>();
+        ProfilePanelController profile = FindFirstObjectByType<ProfilePanelController>(FindObjectsInactive.Include);
         if (profile != null)
         {
             SetText(myNicknameText, profile.currentNickname);

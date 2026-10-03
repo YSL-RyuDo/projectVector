@@ -28,6 +28,7 @@ public class RoomPanelUI : MonoBehaviour
     [SerializeField] private GameObject leaveConfirmPanel;
     [SerializeField] private Button leaveConfirmButton;
     [SerializeField] private Button leaveCancelButton;
+    public TMP_Text readinessText, roomCodeText;
 
     public Action OnConfirmLeave;
     public Action<RoomSlotTeam, byte> OnSlotClicked;
@@ -98,6 +99,7 @@ public class RoomPanelUI : MonoBehaviour
 
     public void ApplyRoomState(RoomStateData data)
     {
+        if(roomCodeText!=null)roomCodeText.text=$"방 번호  {data.roomId}";
         ClearSlots();
 
         if (roomNameText != null)
@@ -154,10 +156,11 @@ public class RoomPanelUI : MonoBehaviour
 
     private void ApplyGameStartButton(RoomStateData data)
     {
+        if(readinessText!=null)readinessText.text=data.canStart?(data.isLeader?"모든 팀원이 모였습니다. 경기를 시작하세요.":"방장이 경기를 시작하기를 기다리고 있습니다."):"A팀 3명 · B팀 3명이 모이면 시작할 수 있습니다.";
         if (gameStartButton == null)
             return;
 
-        gameStartButton.gameObject.SetActive(data.isLeader);
+        gameStartButton.gameObject.SetActive(true);
         gameStartButton.interactable = data.isLeader && data.canStart;
     }
 

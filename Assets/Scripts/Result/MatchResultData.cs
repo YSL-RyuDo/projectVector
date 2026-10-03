@@ -2,6 +2,7 @@ using System.Collections.Generic;
 
 public class MatchResultMemberData
 {
+    public MatchAppearanceData appearance;
     public uint playerId;
     public byte team;
     public byte slotIndex;
@@ -38,8 +39,18 @@ public class MatchResultMemberData
     public int totalVictoryCurrency;
 }
 
+public class MatchAppearanceData
+{
+    public int playerIconId; // One selected ID: PlayerIcon/N and IconCard/iconN_card.
+    public int logoBorderId;
+    public int rankImageId;
+    public int level;
+    public ChipCraftPresetData preset;
+}
+
 public static class MatchResultCache
 {
+    public static string mapName;
     public static byte winnerTeam;
     public static byte scoreA;
     public static byte scoreB;
@@ -60,6 +71,7 @@ public static class MatchResultCache
 
     public static void Clear()
     {
+        mapName = null;
         winnerTeam = 0;
         scoreA = 0;
         scoreB = 0;
