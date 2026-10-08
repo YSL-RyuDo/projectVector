@@ -28,6 +28,7 @@ public partial class NetworkManager
         PartyLeader = 0; PartyPlayers.Clear(); PartyLobbyCount = 0;
         PartyAvailabilityKnown = false; ReturningToParty = false; LastMatchmakingMode = 0;
         BeginResultAppearance(0);
+        ReadyCardAppearances.Clear();
     }
 
     public void SendSocial(PacketType type, uint value = 0, bool accept = false)

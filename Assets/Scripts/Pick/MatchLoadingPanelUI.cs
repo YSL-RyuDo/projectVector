@@ -22,6 +22,7 @@ public class MatchLoadingPanelUI : MonoBehaviour
     [SerializeField] private Sprite[] rankSprites;
 
     private MatchLoadingInfoData cachedData;
+    public MatchLoadingPresentation presentation;
 
     private void Awake()
     {
@@ -40,6 +41,7 @@ public class MatchLoadingPanelUI : MonoBehaviour
 
         rootPanel.SetActive(true);
         gameObject.SetActive(true);
+        if (presentation != null) presentation.Present(data);
 
         ClearAll();
 

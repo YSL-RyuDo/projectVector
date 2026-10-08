@@ -28,6 +28,10 @@ public class LoadingSlider : MonoBehaviour
 
     private Coroutine loadingCoroutine;
     private bool readySent;
+    [Header("Authored Match Briefing")]
+    public bool useMatchBriefing;
+    public TMP_Text briefingStatus;
+    public float briefingSeconds = 3f;
 
     private void OnEnable()
     {
@@ -41,7 +45,7 @@ public class LoadingSlider : MonoBehaviour
         if (loadingCoroutine != null)
             StopCoroutine(loadingCoroutine);
 
-        loadingCoroutine = StartCoroutine(StartLoadingProcess());
+        loadingCoroutine = StartCoroutine(useMatchBriefing ? MatchBriefing() : StartLoadingProcess());
     }
 
     private void OnDisable()
@@ -134,6 +138,17 @@ public class LoadingSlider : MonoBehaviour
         SendReadyOnce();
 
         Debug.Log("[LOADING] 100% complete. Wait for server all ready.");
+    }
+
+    private IEnumerator MatchBriefing()
+    {
+        if (GameController.Instance != null) GameController.Instance.isLoading = true;
+        if (briefingStatus != null) briefingStatus.text = "전투 정보 확인 중";
+        yield return new WaitForSecondsRealtime(briefingSeconds);
+        if (briefingStatus != null) briefingStatus.text = "다른 플레이어를 기다리는 중";
+        SendReadyOnce();
+        // The server's GAME_ALL_READY, not a fake percentage, starts gameplay.
+        loadingCoroutine = null;
     }
 
     private void ApplyProgress(float progress)

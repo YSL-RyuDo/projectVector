@@ -3,11 +3,11 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Reference video #2: banner -> local 3D performance -> rank -> rewards -> table.
+// Reference video #2: banner -> server-awarded MVP -> local rank -> rewards -> table.
 // Read-only cache presentation. Does not grant rewards, queue or leave a room.
 public sealed class ResultVictorySequence : MonoBehaviour
 {
-    public enum Page { Banner, Character, Rank, Rewards, Details }
+    public enum Page { Banner, Character, Rank, Rewards, Details, Mvp }
     public GameObject overlay, rankPage, rewardPage, header, identityRoot;
     public CanvasGroup banner, curtain, pageFade;
     public TMP_Text bannerTitle, outcome, scoreA, scoreB, localName, mvpName, nextLabel;
@@ -18,9 +18,14 @@ public sealed class ResultVictorySequence : MonoBehaviour
     public ResultCharacterStage characterStage;
     public RankResultController rank;
     public MatchResultPresentation identityBinder;
+    public GameObject mvpSpotlight;
+    public TMP_Text mvpSpotlightName, mvpSpotlightKda, mvpSpotlightCaption;
+    public CanvasGroup mvpReveal;
+    public float mvpSeconds = 4.8f;
     public Page CurrentPage { get; private set; }
     public uint FeaturedPlayerId { get; private set; }
     private MatchResultMemberData me;
+    private MatchResultMemberData matchMvp;
     private uint localId;
     private float elapsed;
     private bool ranked;
@@ -48,6 +53,7 @@ public sealed class ResultVictorySequence : MonoBehaviour
         localId = playerId;
         me = MatchResultCache.members.FirstOrDefault(m => m.playerId == playerId && m.team < 2);
         var mvp = MatchResultCache.members.FirstOrDefault(m => m.isMvp && m.team < 2);
+        matchMvp = mvp;
         // Spectators may watch the server's MVP; participants always see their own model first.
         var featured = me ?? mvp;
         FeaturedPlayerId = featured?.playerId ?? 0;
@@ -96,7 +102,13 @@ public sealed class ResultVictorySequence : MonoBehaviour
         {
             banner.alpha = Mathf.Clamp01(elapsed / .18f) * (1 - Mathf.Clamp01((elapsed - 1.25f) / .3f));
             curtain.alpha = Mathf.Clamp01((elapsed - 1.25f) / .3f);
-            if (elapsed >= 1.6f) SetPage(Page.Character);
+            if (elapsed >= 1.6f) BeginSpotlight();
+        }
+        else if (CurrentPage == Page.Mvp)
+        {
+            if(mvpReveal!=null) mvpReveal.alpha=Mathf.Clamp01(elapsed/.4f);
+            characterStage.SetFraming(Mathf.Lerp(.55f,1,Mathf.Clamp01((elapsed-.5f)/3.6f)));
+            if(elapsed>=mvpSeconds) ShowProgress();
         }
         else if (CurrentPage == Page.Character)
         {
@@ -109,6 +121,7 @@ public sealed class ResultVictorySequence : MonoBehaviour
     private void SetPage(Page page)
     {
         CurrentPage = page; elapsed = 0;
+        if(mvpSpotlight!=null) mvpSpotlight.SetActive(page==Page.Mvp);
         pageFade.gameObject.SetActive(page == Page.Rank || page == Page.Rewards);
         if (page == Page.Character) characterStage.Select(characterStage.SelectedCharacter, celebrate);
         banner.gameObject.SetActive(page == Page.Banner);
@@ -122,10 +135,31 @@ public sealed class ResultVictorySequence : MonoBehaviour
     }
     private void ShowProgress()
     {
+        if(CurrentPage==Page.Mvp) RestoreLocalCharacter();
         characterStage.SetFraming(1);
         if (!ranked) { ShowRewards(); return; }
         SetPage(Page.Rank);
         if (Application.isPlaying) rank.BeginPresentation();
+    }
+    private void BeginSpotlight()
+    {
+        if(matchMvp==null || mvpSpotlight==null) { SetPage(Page.Character); return; }
+        SetPage(Page.Mvp);
+        FeaturedPlayerId=matchMvp.playerId;
+        characterStage.Select(matchMvp.characterId,true);
+        characterStage.SetFraming(.55f);
+        featuredName.text="MVP  "+matchMvp.nickname;
+        mvpSpotlightName.text=matchMvp.nickname;
+        mvpSpotlightKda.text=$"{matchMvp.kills}  /  {matchMvp.deaths}  /  {matchMvp.assists}";
+        mvpSpotlightCaption.text=matchMvp.playerId==localId?"당신이 이번 경기의 MVP입니다":"이번 경기 최고의 플레이어";
+        if(mvpReveal!=null) mvpReveal.alpha=0;
+    }
+    private void RestoreLocalCharacter()
+    {
+        var player=me??matchMvp;
+        FeaturedPlayerId=player?.playerId??0;
+        featuredName.text=player?.nickname??"";
+        characterStage.Select(player?.characterId??-1,false);
     }
     public void ShowRewards() { characterStage.SetFraming(1); SetPage(Page.Rewards); }
     public void ToggleMvp()
@@ -145,7 +179,8 @@ public sealed class ResultVictorySequence : MonoBehaviour
     {
         switch (CurrentPage)
         {
-            case Page.Banner: SetPage(Page.Character); break;
+            case Page.Banner: BeginSpotlight(); break;
+            case Page.Mvp: ShowProgress(); break;
             case Page.Character: ShowProgress(); break;
             case Page.Rank: rank.AdvanceEmbedded(); break;
             case Page.Rewards: ShowDetails(); break;

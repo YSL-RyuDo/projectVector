@@ -685,7 +685,9 @@ public class GamePanelController : MonoBehaviour
             CancelPendingPartyNavigation();
             ClearMatchmakingState();
             ClearPendingMatchmakingModeChange();
-            SceneManager.LoadScene("Game_TestVersion");
+            var readyView = LobbySocialController.Instance?.readyPresentation;
+            if (readyView == null || !readyView.EnterMatchScene())
+                SceneManager.LoadScene("Game_TestVersion");
             return;
         }
 

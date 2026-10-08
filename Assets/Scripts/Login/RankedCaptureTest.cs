@@ -131,6 +131,9 @@ public sealed class RankedCaptureTest : MonoBehaviour
         yield return Wait(() => PickManager.Instance != null && Field<PickStateData>(PickManager.Instance, "currentState") != null, "loading character selection");
         if (finished) yield break;
         var pick = PickManager.Instance;
+        if (net.ReadyCardAppearances.Count != 6 || !Field<MapIntroPresentation>(pick, "mapIntro").IsPlaying)
+        { Finish("FAILED: six accepted card identities or pre-pick map introduction missing"); yield break; }
+        Stage("verified six accepted card identities and actual map introduction");
         yield return Wait(() => !Field<bool>(pick, "isInputLockedByPhase") &&
             Field<PickStateData>(pick, "currentState").members.Any(m => m.isMe), "waiting for character input to unlock", 15);
         if (finished) yield break;

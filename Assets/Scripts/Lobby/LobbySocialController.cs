@@ -13,6 +13,8 @@ public sealed class LobbySocialController : MonoBehaviour
     public Button[] inviteSlots;
     public Image[] readyCards;
     public TMP_Text[] readyCardLabels;
+    public ReadyMatchPresentation readyPresentation;
+    public uint ReadyToken => readyToken;
     public FriendPanelController friends;
     public GamePanelController game;
     private uint inviteToken, readyToken;
@@ -123,11 +125,21 @@ public sealed class LobbySocialController : MonoBehaviour
         if (phase != 0)
         {
             if (readyToken != 0 && readyToken != token) return;
+            readyPresentation?.SetState(token, phase);
+            if (phase == 1 && readyPresentation != null && readyPanel.activeSelf)
+            {
+                readyAnswered = true; readyDeadline = Time.unscaledTime;
+                acceptReady.interactable = declineReady.interactable = false;
+                readyButtonText.text = "전원 수락 완료";
+                readyProgress.text = "6 / 6 준비 완료 · 전장으로 이동합니다";
+                return;
+            }
             readyPanel.SetActive(false); readyToken = 0;
             if (phase == 2) Toast("준비 확인이 완료되지 않아 매칭이 취소되었습니다.");
             return;
         }
-        if (readyToken != token) { readyAnswered = false; declineReady.interactable = true; }
+        if (readyToken != token) { readyAnswered = false; declineReady.interactable = true; NetworkManager.Instance?.ReadyCardAppearances.Clear(); }
+        readyPresentation?.SetState(token, phase);
         readyToken = token; readyDeadline = Time.unscaledTime + seconds;
         readyAnswered |= selfAccepted;
         readyButtonText.text = readyAnswered ? "확인 완료 · 팀원 대기" : "Space   준비 확인";
