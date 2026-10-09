@@ -59,6 +59,8 @@ public class Weapon : Item
     public WeaponData Data => weaponData;
     public WeaponSkinData AppliedSkin { get; private set; }
 
+    private bool isTestMode = true; // 테스트 모드
+
     void Awake()
     {
         audioSource = GetComponent<AudioSource>();
@@ -159,14 +161,18 @@ public class Weapon : Item
         if (Keyboard.current == null)
             return;
 
-        if (_playerIdentity == null)
-            return;
 
-        if (NetworkManager.Instance == null)
-            return;
+        if (!isTestMode)
+        {
+            if (_playerIdentity == null)
+                return;
 
-        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
-            return;
+            if (NetworkManager.Instance == null)
+                return;
+
+            if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
+                return;
+        }
 
         if (ShouldBlockWeaponInput())
             return;
