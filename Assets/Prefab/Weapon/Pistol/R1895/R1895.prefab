@@ -43,9 +43,7 @@ GameObject:
   - component: {fileID: 2633485180446301907}
   - component: {fileID: 6366122668325504444}
   - component: {fileID: -7525482520255050930}
-  - component: {fileID: 3313916495994742375}
   - component: {fileID: 8108465684301912626}
-  - component: {fileID: 6986848992947761025}
   m_Layer: 0
   m_Name: R1895
   m_TagString: Untagged
@@ -121,6 +119,7 @@ MonoBehaviour:
   gunVolume: 1
   gunMinDistance: 3
   gunMaxDistance: 80
+  adsSmoothTime: 0.05
 --- !u!82 &-7525482520255050930
 AudioSource:
   m_ObjectHideFlags: 0
@@ -218,18 +217,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &3313916495994742375
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6835306123116817868}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0df1671eec929634b984439e6446b85f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ARMotion
 --- !u!114 &8108465684301912626
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -244,28 +231,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponSkinSlot
   visualModelSocket: {fileID: 1872835987668012817}
   defaultVisualModel: {fileID: 7773501502469311740, guid: a5f2f76d1c5312b43a9868acae07d7ae, type: 3}
---- !u!95 &6986848992947761025
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6835306123116817868}
-  m_Enabled: 0
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 752db88e680c8f44eb83ec8c235e1343, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &2026353612899054310
 PrefabInstance:
   m_ObjectHideFlags: 0

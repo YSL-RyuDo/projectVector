@@ -62,7 +62,7 @@ public class Weapon : Item
     [SerializeField] private float adsSmoothTime = 0.05f;
     private float fovVelocity;
 
-    private bool isTestMode = true; // 테스트 모드
+    private bool isTestMode = false; // 테스트 모드
 
     void Awake()
     {

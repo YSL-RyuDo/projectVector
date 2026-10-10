@@ -43,9 +43,7 @@ GameObject:
   - component: {fileID: 5142916534835705359}
   - component: {fileID: 7953533930041452775}
   - component: {fileID: 748699028075602698}
-  - component: {fileID: 7583621231628739681}
   - component: {fileID: -7988695917236991264}
-  - component: {fileID: 4713187991280623136}
   m_Layer: 10
   m_Name: AWM
   m_TagString: Untagged
@@ -122,6 +120,7 @@ MonoBehaviour:
   gunVolume: 1
   gunMinDistance: 3
   gunMaxDistance: 80
+  adsSmoothTime: 0.05
 --- !u!82 &748699028075602698
 AudioSource:
   m_ObjectHideFlags: 0
@@ -219,18 +218,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &7583621231628739681
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5437337082956864727}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0df1671eec929634b984439e6446b85f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ARMotion
 --- !u!114 &-7988695917236991264
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -245,28 +232,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponSkinSlot
   visualModelSocket: {fileID: 2070617802215074218}
   defaultVisualModel: {fileID: 1586788010785903774, guid: 24d19ec021566924db7bff49b64b45c0, type: 3}
---- !u!95 &4713187991280623136
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5437337082956864727}
-  m_Enabled: 0
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 108750f96063a164fa640482381a1841, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &2665906811894265092
 PrefabInstance:
   m_ObjectHideFlags: 0
