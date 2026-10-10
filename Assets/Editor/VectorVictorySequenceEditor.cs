@@ -325,7 +325,8 @@ public static class VectorVictorySequenceEditor
         if(ui.FeaturedPlayerId!=1 || ui.characterStage.SelectedCharacter!=0) throw new Exception("Local character replaced by MVP");
         Capture(ui,"VectorVictory-Banner.png");
         ui.Tick(1.7f); ui.Tick(1.5f); Sample(ui.characterStage,1.5f); Capture(ui,"VectorVictory-Character.png");
-        ui.Tick(3); if(ui.CurrentPage!=ResultVictorySequence.Page.Rewards) throw new Exception("Normal match showed rank page");
+        if(ui.CurrentPage!=ResultVictorySequence.Page.Mvp || ui.FeaturedPlayerId!=2) throw new Exception("MVP spotlight missing");
+        ui.Tick(4); if(ui.CurrentPage!=ResultVictorySequence.Page.Rewards) throw new Exception("Normal match showed rank page");
         ui.Tick(.3f); Capture(ui,"VectorVictory-Rewards.png");
         ui.viewMvp.onClick.Invoke(); if(ui.FeaturedPlayerId!=2||ui.characterStage.SelectedCharacter!=1) throw new Exception("MVP model selection failed");
         ui.viewMvp.onClick.Invoke(); if(ui.FeaturedPlayerId!=1) throw new Exception("Return to local model failed");

@@ -62,6 +62,7 @@ public class PickManager : MonoBehaviour
     private bool isInputLockedByPhase = true;
     private PickPhase currentPhase = PickPhase.PICKING;
     [SerializeField] private MatchLoadingPanelUI matchLoadingPanelUI;
+    [SerializeField] private MapIntroPresentation mapIntro;
 
     private void Awake()
     {
@@ -70,6 +71,7 @@ public class PickManager : MonoBehaviour
 
     private void Start()
     {
+        isInputLockedByPhase = true;
         NetworkManager.Instance.SetPickManager(this);
 
         InitTeamPickSlotsAsWaiting();
@@ -196,6 +198,7 @@ public class PickManager : MonoBehaviour
     {
         currentState = state;
         if (mapBackdrop != null) mapBackdrop.ApplyMap(state != null ? state.mapName : null);
+        if (mapIntro != null) mapIntro.Begin(state);
         if (presentation != null) presentation.SetState(state);
 
         ApplyTopInfo();
@@ -653,6 +656,7 @@ public class PickManager : MonoBehaviour
 
     public void OnRecvMatchLoadingInfo(MatchLoadingInfoData data)
     {
+        if (mapIntro != null) mapIntro.Finish();
         Debug.Log("[PICK MANAGER] Match loading info received");
 
         if (matchLoadingPanelUI != null)

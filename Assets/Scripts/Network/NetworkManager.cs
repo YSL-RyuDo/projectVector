@@ -1234,6 +1234,9 @@ public partial class NetworkManager : MonoBehaviour
             case (ushort)PacketType.PKT_SC_MATCH_APPEARANCE:
                 HandleMatchAppearance(body);
                 break;
+            case (ushort)PacketType.PKT_SC_MATCH_READY_CARDS:
+                HandleReadyCards(body);
+                break;
 
             case (ushort)PacketType.PKT_SC_PARTY_INVITE:
             case (ushort)PacketType.PKT_SC_SOCIAL_RESULT:
