@@ -45,11 +45,7 @@ public class FPSCameraLook : MonoBehaviour
         }
 
         enabled = false;
-
-        
     }
-
-    
 
     public void SetLocalPlayer(
         bool isLocal,
@@ -290,12 +286,6 @@ public class FPSCameraLook : MonoBehaviour
     {
         SetADSLocal(false);
 
-        Camera cam =
-            GetComponentInChildren<Camera>();
-
-        if (cam != null)
-            cam.fieldOfView = 60f;
-
         PlayerMovement movement =
             GetComponentInParent<PlayerMovement>();
 
@@ -339,39 +329,20 @@ public class FPSCameraLook : MonoBehaviour
         );
     }
 
-    private void SetADSLocal(
-        bool value)
+
+    private void SetADSLocal(bool value)
     {
         if (_isADS == value)
             return;
 
         _isADS = value;
 
-        Camera cam =
-            GetComponent<Camera>();
-
-        if (cam == null)
-        {
-            cam =
-                GetComponentInChildren<Camera>(
-                    true
-                );
-        }
-
-        if (cam != null)
-        {
-            cam.fieldOfView =
-                _isADS ? 40f : 60f;
-        }
-
         if (NetworkManager.Instance != null &&
             lastSentADS != _isADS)
         {
             lastSentADS = _isADS;
 
-            NetworkManager.Instance.SendADSState(
-                _isADS
-            );
+            NetworkManager.Instance.SendADSState(_isADS);
         }
     }
 }
