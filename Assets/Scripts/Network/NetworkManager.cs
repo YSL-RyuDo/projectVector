@@ -1141,6 +1141,9 @@ public partial class NetworkManager : MonoBehaviour
             case (ushort)PacketType.PKT_SC_PROFILE:
                 HandleProfile(body);
                 break;
+            case (ushort)PacketType.PKT_SC_PROFILE_BIRTHDAY_SET_RESULT:
+                HandleProfileBirthdayResult(body);
+                break;
 
             case (ushort)PacketType.PKT_SC_PROFILE_PRIVACY_SET_RESULT:
                 HandleProfilePrivacySetResult(body);

@@ -47,6 +47,7 @@ public sealed class MyPageTabController : MonoBehaviour
 
     public void Select(Page page)
     {
+        GetComponent<MyPageBirthdayController>()?.Close();
         CurrentPage = page;
         for (int i = 0; i < pages.Length; ++i)
         {

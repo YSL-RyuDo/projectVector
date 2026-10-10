@@ -454,7 +454,7 @@ public static class VectorExperiencePolishEditor
         Find(profile.transform,"MainScrollView").GetComponent<ScrollRect>().verticalNormalizedPosition=0;
         CaptureCanvas(profile.GetComponentInParent<Canvas>(),"VectorProfileStats.png",profile.gameObject,0);
     }
-    public static void CaptureCanvas(Canvas source,string file,GameObject focus=null,float scrollPosition=1)
+    public static void CaptureCanvas(Canvas source,string file,GameObject focus=null,float scrollPosition=1,Action<Transform,Camera> verify=null)
     {
         var host=new GameObject("DiagnosticCanvas",typeof(Canvas)).GetComponent<Canvas>(); host.gameObject.layer=5;
         host.renderMode=RenderMode.WorldSpace; ((RectTransform)host.transform).sizeDelta=new Vector2(1920,1080);
@@ -478,6 +478,7 @@ public static class VectorExperiencePolishEditor
             foreach(var text in clone.GetComponentsInChildren<TMP_Text>()) text.ForceMeshUpdate();
             Canvas.ForceUpdateCanvases(); camera.Render(); RenderTexture.active=target; texture.ReadPixels(new UnityEngine.Rect(0,0,1920,1080),0,0); texture.Apply();
             File.WriteAllBytes(Path.Combine(Path.GetTempPath(),file),texture.EncodeToPNG());
+            verify?.Invoke(clone.transform,camera);
         }
         finally
         {

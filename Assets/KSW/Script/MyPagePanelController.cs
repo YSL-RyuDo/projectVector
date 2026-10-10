@@ -94,6 +94,7 @@ public class MyPagePanelController : MonoBehaviour
 
     private void Back()
     {
+        if (GetComponent<MyPageBirthdayController>()?.HandleBack() == true) return;
         foreach (var layer in new[] { visitorCanvasGroup, skinCustomCanvasGroup, battleCustomCanvasGroup })
             if (layer != null && layer.gameObject.activeSelf && layer.blocksRaycasts)
             { ShowLayer(layer, false); return; }
@@ -104,6 +105,7 @@ public class MyPagePanelController : MonoBehaviour
 
     public void OpenForUser(string userId)
     {
+        GetComponent<MyPageBirthdayController>()?.ResetContext();
         gameObject.SetActive(true);
         EnsureViewportMasks();
         RefreshCharacterRoles();
@@ -131,6 +133,7 @@ public class MyPagePanelController : MonoBehaviour
 
     public void Close()
     {
+        GetComponent<MyPageBirthdayController>()?.ResetContext();
         ShowLayer(battleCustomCanvasGroup, false);
         ShowLayer(skinCustomCanvasGroup, false);
         ShowLayer(visitorCanvasGroup, false);
@@ -154,6 +157,7 @@ public class MyPagePanelController : MonoBehaviour
         SetText("GuildText", "길드: 미가입");
         SetText("RegionText", masked ? "지역: 비공개" : $"지역: {data.region}");
         SetText("BirthdayText", masked ? "생일: 비공개" : $"생일: {data.birthday}");
+        GetComponent<MyPageBirthdayController>()?.ApplyProfile(data);
         SetText("JoinDateText", $"가입일: {data.joinDate}");
         SetText("LikeCountText", data.likeCount.ToString("N0"));
         SetText("PrivacyStateText", data.privacyEnabled ? "ON" : "OFF");
