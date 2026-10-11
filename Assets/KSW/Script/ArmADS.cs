@@ -292,7 +292,7 @@ public class ArmADS : MonoBehaviour
         {
             case WeaponData.WeaponType.Pistol:
                 currentSetting = pistolTransform;
-                animWeaponTypeValue = 1;
+                animWeaponTypeValue = 0;
                 break;
 
             case WeaponData.WeaponType.Knife:
@@ -303,7 +303,7 @@ public class ArmADS : MonoBehaviour
             case WeaponData.WeaponType.AR:
             default:
                 currentSetting = arTransform;
-                animWeaponTypeValue = 0;
+                animWeaponTypeValue = 1;
                 break;
         }
 

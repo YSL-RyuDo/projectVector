@@ -10,7 +10,7 @@ AnimatorStateTransition:
   m_Conditions:
   - m_ConditionMode: 6
     m_ConditionEvent: WeaponType
-    m_EventTreshold: 0
+    m_EventTreshold: 1
   - m_ConditionMode: 2
     m_ConditionEvent: IsReloading
     m_EventTreshold: 0
@@ -38,7 +38,7 @@ AnimatorStateTransition:
   m_Conditions:
   - m_ConditionMode: 6
     m_ConditionEvent: WeaponType
-    m_EventTreshold: 0
+    m_EventTreshold: 1
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: -3461640783660886672}
   m_Solo: 0
@@ -63,7 +63,7 @@ AnimatorStateTransition:
   m_Conditions:
   - m_ConditionMode: 6
     m_ConditionEvent: WeaponType
-    m_EventTreshold: 1
+    m_EventTreshold: 0
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: 9006875669607492881}
   m_Solo: 0
@@ -89,7 +89,7 @@ AnimatorStateMachine:
   m_ChildStates:
   - serializedVersion: 1
     m_State: {fileID: 9006875669607492881}
-    m_Position: {x: 320, y: 50, z: 0}
+    m_Position: {x: 330, y: 50, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -3461640783660886672}
     m_Position: {x: 330, y: 160, z: 0}
@@ -355,7 +355,7 @@ AnimatorStateTransition:
   m_Conditions:
   - m_ConditionMode: 6
     m_ConditionEvent: WeaponType
-    m_EventTreshold: 1
+    m_EventTreshold: 0
   - m_ConditionMode: 2
     m_ConditionEvent: IsReloading
     m_EventTreshold: 0
