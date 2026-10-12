@@ -55,6 +55,9 @@ public class PlayerMovement : MonoBehaviour
     [Header("1인칭 팔 모델")]
     [SerializeField] private GameObject firstPersonArmModel;
 
+    [Header("3인칭 모델")]
+    [SerializeField] private GameObject modelTransform;
+
     private int _currentAnimIndex = -1;
 
     private byte _targetAnimIndex = 0;
@@ -95,21 +98,8 @@ public class PlayerMovement : MonoBehaviour
         _cc = GetComponent<CharacterController>();
         _cam = GetComponentInChildren<FPSCameraLook>(true);
 
-        Transform modelTransform = transform.Find("Model");
         if (modelTransform != null)
-        {
             _animator = modelTransform.GetComponent<Animator>();
-
-            if (_animator == null)
-            {
-                Debug.LogWarning("'Model' 오브젝트 자체에서 Animator 컴포넌트를 찾을 수 없습니다.");
-            }
-        }
-        else
-        {
-            Debug.LogWarning("자식 오브젝트 중 'Model'을 찾을 수 없습니다.");
-        }
-
         if (firstPersonArmModel != null)
             _armAnimator = firstPersonArmModel.GetComponent<Animator>();
 
@@ -811,14 +801,12 @@ public class PlayerMovement : MonoBehaviour
 
         if (_playerItem != null)
         {
-            currentWeapon =
-                _playerItem.GetCurrentWeapon();
+            currentWeapon = _playerItem.GetCurrentWeapon();
         }
 
         if (currentWeapon != null)
         {
-            WeaponData.WeaponType wType =
-                currentWeapon.GetWeaponType();
+            WeaponData.WeaponType wType = currentWeapon.GetWeaponType();
 
             if (wType == WeaponData.WeaponType.AR ||
                 wType == WeaponData.WeaponType.SMG ||

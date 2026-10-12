@@ -75,7 +75,6 @@ GameObject:
   - component: {fileID: 8044693833096927622}
   - component: {fileID: -5566545943812595601}
   - component: {fileID: 5308058555485128889}
-  - component: {fileID: 3524913074183120505}
   m_Layer: 0
   m_Name: M249
   m_TagString: Untagged
@@ -117,17 +116,17 @@ MonoBehaviour:
   defaultHipPosition: {x: 0, y: 0, z: 0}
   defaultHipRotation: {x: 0, y: 0, z: 0}
   initiatorHip:
-    position: {x: 0, y: 0, z: -0.03}
-    rotation: {x: -5, y: 92, z: 96}
+    position: {x: -0.005, y: 0.007, z: -0.043}
+    rotation: {x: -4.65, y: 95.676, z: 95.412}
   controllerHip:
-    position: {x: 0.04, y: 0.007, z: 0.018}
-    rotation: {x: -98.644, y: -38.741, z: 137.922}
+    position: {x: 0.048, y: 0.006, z: 0.026}
+    rotation: {x: -83.608, y: 135.505, z: -36.414}
   entryHip:
-    position: {x: 0.05371533, y: 0.00959993, z: 0.03088849}
-    rotation: {x: -74, y: -204.497, z: -56.595}
+    position: {x: 0.053, y: 0.012, z: 0.047}
+    rotation: {x: -104.309, y: -31.50702, z: 129.136}
   sentinelHip:
-    position: {x: 0.072, y: -0.013, z: -0.014}
-    rotation: {x: -74.987, y: 157.269, z: -58.631}
+    position: {x: 0.07602555, y: -0.01297165, z: -0.0010086}
+    rotation: {x: -104.307, y: -29.59198, z: 127.046}
   hipMoveSpeed: 15
 --- !u!114 &8044693833096927622
 MonoBehaviour:
@@ -153,6 +152,7 @@ MonoBehaviour:
   gunVolume: 1
   gunMinDistance: 3
   gunMaxDistance: 80
+  adsSmoothTime: 0.05
 --- !u!82 &-5566545943812595601
 AudioSource:
   m_ObjectHideFlags: 0
@@ -264,28 +264,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponSkinSlot
   visualModelSocket: {fileID: 5238456193209199587}
   defaultVisualModel: {fileID: 3701955206326442895}
---- !u!95 &3524913074183120505
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8733275794484330133}
-  m_Enabled: 0
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 284789a2039262e4cb25c7916514a742, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &2644835266197152587
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -74,9 +74,7 @@ GameObject:
   - component: {fileID: 3957938217655110231}
   - component: {fileID: 4348654529324275793}
   - component: {fileID: 8043644013893301921}
-  - component: {fileID: 8229909268549239434}
   - component: {fileID: 827296716395491547}
-  - component: {fileID: -5218495038956340013}
   m_Layer: 0
   m_Name: Kar98
   m_TagString: Untagged
@@ -92,8 +90,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8972964714624411195}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.52307886, y: 0.5110128, z: 0.5276872, w: 0.43220443}
-  m_LocalPosition: {x: -0.06, y: -0.01, z: 0.04}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -102,7 +100,7 @@ Transform:
   - {fileID: 8018942475250981648}
   - {fileID: 3178004372673759132}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: -5, y: 94, z: 96}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3957938217655110231
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -118,17 +116,17 @@ MonoBehaviour:
   defaultHipPosition: {x: 0, y: 0, z: 0}
   defaultHipRotation: {x: 0, y: 0, z: 0}
   initiatorHip:
-    position: {x: -0.005, y: -0.013, z: 0.049}
-    rotation: {x: -4.152, y: 95.723, z: 95.7}
+    position: {x: -0.005, y: 0.002, z: 0.058}
+    rotation: {x: -3.004, y: 95.829, z: 95.709}
   controllerHip:
-    position: {x: -0.035, y: 0.038, z: 0.02}
-    rotation: {x: -97.849, y: -30.418, z: 131.746}
+    position: {x: -0.0509998, y: 0.0390005, z: 0.045001015}
+    rotation: {x: -95.937, y: -58.04102, z: 157.627}
   entryHip:
-    position: {x: -0.05, y: -0.092, z: 0.068}
-    rotation: {x: -72.895, y: 152.055, z: -51.983}
+    position: {x: -0.0573401, y: -0.0874832, z: 0.07982225}
+    rotation: {x: -104.615, y: -35.659, z: 133.972}
   sentinelHip:
-    position: {x: -0.025, y: -0.098, z: 0.022}
-    rotation: {x: -76.522, y: 158.73, z: -59.575}
+    position: {x: -0.029, y: -0.095, z: 0.028}
+    rotation: {x: -103.873, y: -31.867, z: 130.765}
   hipMoveSpeed: 15
 --- !u!114 &4348654529324275793
 MonoBehaviour:
@@ -154,6 +152,7 @@ MonoBehaviour:
   gunVolume: 1
   gunMinDistance: 3
   gunMaxDistance: 80
+  adsSmoothTime: 0.05
 --- !u!82 &8043644013893301921
 AudioSource:
   m_ObjectHideFlags: 0
@@ -251,18 +250,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &8229909268549239434
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8972964714624411195}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0df1671eec929634b984439e6446b85f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ARMotion
 --- !u!114 &827296716395491547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -277,28 +264,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponSkinSlot
   visualModelSocket: {fileID: 2250285492081799519}
   defaultVisualModel: {fileID: 3201469586250438236, guid: 3af1b731515ddcd40b3fb1739dabf7ee, type: 3}
---- !u!95 &-5218495038956340013
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8972964714624411195}
-  m_Enabled: 0
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 25a23126a15bb5b4fa517baae8255af1, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &2554899458195649643
 PrefabInstance:
   m_ObjectHideFlags: 0

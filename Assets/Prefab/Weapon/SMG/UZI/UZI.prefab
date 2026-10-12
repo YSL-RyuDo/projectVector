@@ -45,7 +45,6 @@ GameObject:
   - component: {fileID: -7224012690040157644}
   - component: {fileID: 6093365369205104878}
   - component: {fileID: 8846285824857166633}
-  - component: {fileID: 4002102912213034507}
   m_Layer: 0
   m_Name: UZI
   m_TagString: Untagged
@@ -87,17 +86,17 @@ MonoBehaviour:
   defaultHipPosition: {x: 0, y: 0, z: 0}
   defaultHipRotation: {x: 0, y: 0, z: 0}
   initiatorHip:
-    position: {x: 0.07, y: 0, z: 0.02}
-    rotation: {x: -4, y: 92, z: 96}
+    position: {x: 0.07093376, y: 0.01957126, z: 0.02062198}
+    rotation: {x: -4.512, y: 93.491, z: 96.08}
   controllerHip:
-    position: {x: -0.007, y: 0.097, z: 0.016}
-    rotation: {x: -95.591, y: -11.51898, z: 111.354}
+    position: {x: -0.0209997, y: 0.09800147, z: 0.02599917}
+    rotation: {x: -95.473, y: -23.73901, z: 122.884}
   entryHip:
-    position: {x: -0.017, y: 0.012, z: 0.047}
-    rotation: {x: -75.629, y: 151.658, z: -53.878}
+    position: {x: -0.016, y: 0.013, z: 0.051}
+    rotation: {x: -104.371, y: -28.34198, z: 126.122}
   sentinelHip:
-    position: {x: 0.001, y: -0.025, z: 0.006}
-    rotation: {x: -76.716, y: 151.238, z: -53.605}
+    position: {x: 0.00505525, y: -0.0249423, z: 0.006384}
+    rotation: {x: -103.983, y: -26.642, z: 124.361}
   hipMoveSpeed: 15
 --- !u!114 &-1292729858081386826
 MonoBehaviour:
@@ -123,6 +122,7 @@ MonoBehaviour:
   gunVolume: 1
   gunMinDistance: 3
   gunMaxDistance: 80
+  adsSmoothTime: 0.05
 --- !u!82 &-7224012690040157644
 AudioSource:
   m_ObjectHideFlags: 0
@@ -246,28 +246,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponSkinSlot
   visualModelSocket: {fileID: 1346637069310670599}
   defaultVisualModel: {fileID: 2080265346669579090, guid: f4822e86aa622ef4a83f8ec624b3d0e9, type: 3}
---- !u!95 &4002102912213034507
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4733502594701801237}
-  m_Enabled: 0
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: fd4404a1379443142b8cc96351700617, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &5387888255568862656
 GameObject:
   m_ObjectHideFlags: 0

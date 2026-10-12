@@ -12,9 +12,7 @@ GameObject:
   - component: {fileID: 7991346560593711154}
   - component: {fileID: 479913203436587391}
   - component: {fileID: -4526259013401920665}
-  - component: {fileID: 7179332133226150461}
   - component: {fileID: -3122716696976932320}
-  - component: {fileID: 5985890324637219042}
   m_Layer: 10
   m_Name: AK47
   m_TagString: Untagged
@@ -56,17 +54,17 @@ MonoBehaviour:
   defaultHipPosition: {x: 0, y: 0, z: 0}
   defaultHipRotation: {x: 0, y: 0, z: 0}
   initiatorHip:
-    position: {x: 0, y: -0.01, z: 0.03}
-    rotation: {x: -4, y: 90, z: 96}
+    position: {x: -0.0039963, y: 0.00292372, z: 0.01278894}
+    rotation: {x: -2.678, y: 94.548, z: 95.86}
   controllerHip:
-    position: {x: -0.019, y: -0.01, z: 0.03}
-    rotation: {x: -95.528, y: -22.86301, z: 122.387}
+    position: {x: -0.009163, y: -0.0099579, z: 0.03456799}
+    rotation: {x: -95.752, y: -31.10498, z: 130.63}
   entryHip:
-    position: {x: -0.021, y: -0.068, z: 0.063}
-    rotation: {x: -71.378, y: 149.025, z: -50.763}
+    position: {x: -0.014, y: -0.07, z: 0.069}
+    rotation: {x: -105.101, y: -27.01501, z: 125.293}
   sentinelHip:
-    position: {x: 0.009, y: -0.002, z: -0.003}
-    rotation: {x: -104.784, y: -20.30902, z: 127.895}
+    position: {x: 0.016, y: -0.045, z: 0.013}
+    rotation: {x: -104.813, y: -29.073, z: 127.057}
   hipMoveSpeed: 15
 --- !u!114 &479913203436587391
 MonoBehaviour:
@@ -92,6 +90,7 @@ MonoBehaviour:
   gunVolume: 1
   gunMinDistance: 3
   gunMaxDistance: 80
+  adsSmoothTime: 0.05
 --- !u!82 &-4526259013401920665
 AudioSource:
   m_ObjectHideFlags: 0
@@ -189,18 +188,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &7179332133226150461
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4528968629229385109}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0df1671eec929634b984439e6446b85f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
 --- !u!114 &-3122716696976932320
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -215,28 +202,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponSkinSlot
   visualModelSocket: {fileID: 2954790840626403481}
   defaultVisualModel: {fileID: 5362854182964797641}
---- !u!95 &5985890324637219042
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4528968629229385109}
-  m_Enabled: 0
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 230594bd74eb663409ee674735abec44, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &4879225639995239465
 GameObject:
   m_ObjectHideFlags: 0

@@ -12,9 +12,7 @@ GameObject:
   - component: {fileID: 7630252597367615934}
   - component: {fileID: 4157939438760006271}
   - component: {fileID: 5487492041322749773}
-  - component: {fileID: 5433703315519725802}
   - component: {fileID: -4189208217469055249}
-  - component: {fileID: 1661996715178195978}
   m_Layer: 0
   m_Name: S1897
   m_TagString: Untagged
@@ -91,6 +89,7 @@ MonoBehaviour:
   gunVolume: 1
   gunMinDistance: 3
   gunMaxDistance: 80
+  adsSmoothTime: 0.05
 --- !u!82 &5487492041322749773
 AudioSource:
   m_ObjectHideFlags: 0
@@ -188,18 +187,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &5433703315519725802
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 802288677806465232}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0df1671eec929634b984439e6446b85f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ARMotion
 --- !u!114 &-4189208217469055249
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -214,28 +201,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponSkinSlot
   visualModelSocket: {fileID: 201110440119533023}
   defaultVisualModel: {fileID: 1301063154260036985, guid: 70677b85d18e190469025c72ff4df481, type: 3}
---- !u!95 &1661996715178195978
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 802288677806465232}
-  m_Enabled: 0
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: dce3dd8579814ef42b9791022fad6f24, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &2447930007450724494
 GameObject:
   m_ObjectHideFlags: 0

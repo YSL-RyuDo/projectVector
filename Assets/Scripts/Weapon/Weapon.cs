@@ -59,6 +59,11 @@ public class Weapon : Item
     public WeaponData Data => weaponData;
     public WeaponSkinData AppliedSkin { get; private set; }
 
+    [SerializeField] private float adsSmoothTime = 0.05f;
+    private float fovVelocity;
+
+    private bool isTestMode = false; // 테스트 모드
+
     void Awake()
     {
         audioSource = GetComponent<AudioSource>();
@@ -159,14 +164,18 @@ public class Weapon : Item
         if (Keyboard.current == null)
             return;
 
-        if (_playerIdentity == null)
-            return;
 
-        if (NetworkManager.Instance == null)
-            return;
+        if (!isTestMode)
+        {
+            if (_playerIdentity == null)
+                return;
 
-        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
-            return;
+            if (NetworkManager.Instance == null)
+                return;
+
+            if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
+                return;
+        }
 
         if (ShouldBlockWeaponInput())
             return;
@@ -372,19 +381,20 @@ public class Weapon : Item
             SetCrosshairActive(!isADS);
         }
 
-        float targetFOV =
-            isADS
-                ? weaponData.adsFOV
-                : weaponData.normalFOV;
 
-        float nextFOV =
-            Mathf.Lerp(
-                cameraController.PlayerCamera.fieldOfView,
-                targetFOV,
-                weaponData.adsSpeed * Time.deltaTime
-            );
+        float targetFOV = isADS ? weaponData.adsFOV : weaponData.normalFOV;
 
-        cameraController.SetFOV(nextFOV);
+        Camera playerCamera = cameraController.PlayerCamera;
+
+        if (playerCamera == null)
+            return;
+
+        playerCamera.fieldOfView = Mathf.SmoothDamp(
+            playerCamera.fieldOfView,
+            targetFOV,
+            ref fovVelocity,
+            adsSmoothTime
+        );
     }
 
     private void SetCrosshairActive(bool active)

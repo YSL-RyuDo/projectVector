@@ -292,7 +292,7 @@ public class ArmADS : MonoBehaviour
         {
             case WeaponData.WeaponType.Pistol:
                 currentSetting = pistolTransform;
-                animWeaponTypeValue = 1;
+                animWeaponTypeValue = 0;
                 break;
 
             case WeaponData.WeaponType.Knife:
@@ -303,7 +303,7 @@ public class ArmADS : MonoBehaviour
             case WeaponData.WeaponType.AR:
             default:
                 currentSetting = arTransform;
-                animWeaponTypeValue = 0;
+                animWeaponTypeValue = 1;
                 break;
         }
 
@@ -382,9 +382,10 @@ public class ArmADS : MonoBehaviour
         WeaponData.WeaponType weaponType =
             currentWeapon.GetWeaponType();
 
-        // Pistol / Knife는 ADS 불가능
+        // Pistol / Knife / ShotGun는 ADS 불가능
         if (weaponType == WeaponData.WeaponType.Pistol ||
-            weaponType == WeaponData.WeaponType.Knife)
+            weaponType == WeaponData.WeaponType.Knife ||
+            weaponType == WeaponData.WeaponType.Shotgun)
         {
             return false;
         }
