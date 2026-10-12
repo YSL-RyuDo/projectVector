@@ -1242,6 +1242,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2248724486545963514}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3706476863617450386}
   m_SourcePrefab: {fileID: 100100000, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
 --- !u!1 &256870932689928733 stripped
 GameObject:
@@ -1309,6 +1312,22 @@ MonoBehaviour:
   weaponTypeParam: WeaponType
   reloadBoolParam: IsReloading
   knifeAttackCooldown: 0.7
+--- !u!114 &3706476863617450386
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 256870932689928733}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88aa9d11516cef3469e8c89021baf5a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FirstPersonAimAlignment
+  aimCamera: {fileID: 3746713758413285215}
+  inventory: {fileID: 8919230973912769970}
+  movement: {fileID: 4794858652514534123}
+  blendSpeed: 18
 --- !u!4 &638181201918236839 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}

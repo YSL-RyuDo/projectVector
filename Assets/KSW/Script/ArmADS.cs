@@ -84,6 +84,15 @@ public class ArmADS : MonoBehaviour
 
     private float knifeAttackTimer = 0f;
 
+    private void OnEnable()
+    {
+        // Animator resets its parameters when the rig is re-enabled (character/round switches).
+        // Do not retain a cached AR value while the actual rig has returned to its pistol default.
+        lastWeaponTypeValue = -1;
+        lastWeapon = null;
+        isADS = false;
+    }
+
     private void Awake()
     {
         if (armAnimator == null)
@@ -309,7 +318,8 @@ public class ArmADS : MonoBehaviour
 
         // Animator WeaponType º¯°æ
         if (armAnimator != null &&
-            lastWeaponTypeValue != animWeaponTypeValue)
+            (lastWeaponTypeValue != animWeaponTypeValue ||
+             armAnimator.GetInteger(weaponTypeParam) != animWeaponTypeValue))
         {
             lastWeaponTypeValue = animWeaponTypeValue;
 

@@ -20,6 +20,7 @@ public sealed class VectorShopReward
 
 public sealed class VectorShopState
 {
+    public const int HistoryPageLimit = 2;
     public ulong request;
     public int status, coin0, coin1, page, pages;
     public readonly List<VectorShopItem> items = new();
@@ -47,6 +48,10 @@ public sealed class VectorShopState
             var reward = new VectorShopReward { time = reader.ReadInt64(), item = reader.ReadInt32(), duplicate = reader.ReadByte() != 0, refund = reader.ReadInt32() };
             (i < rewards ? state.rewards : state.history).Add(reward);
         }
+        // Keep the two-page UI limit even while talking to an older server.
+        state.pages = Math.Clamp(state.pages, 1, HistoryPageLimit);
+        if (state.page < 0 || state.page >= state.pages) state.history.Clear();
+        state.page = Math.Clamp(state.page, 0, state.pages - 1);
         return state;
     }
 }

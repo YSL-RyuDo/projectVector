@@ -56,7 +56,8 @@ public sealed class VectorShopPanel : MonoBehaviour
         if (pending != 0 && Time.unscaledTime - pendingSince > 10)
         { status.text = "연결이 지연되고 있습니다. 다시 확인해 주세요."; if(retryButton != null) retryButton.gameObject.SetActive(true); }
     }
-    private void RequestState(int page = 0) => NetworkManager.Instance?.SendShopRequest(0, 0, 1, 0, 0, page);
+    private void RequestState(int page = 0) => NetworkManager.Instance?.SendShopRequest(0, 0, 1, 0, 0,
+        Mathf.Clamp(page, 0, VectorShopState.HistoryPageLimit - 1));
     public static void Receive(byte[] bytes)
     {
         if (instance == null) return;
@@ -176,8 +177,8 @@ public sealed class VectorShopPanel : MonoBehaviour
         probabilityText.text = "신화 5% · 희귀 24% · 고급 71%\n등급 내 균등 확률 / 매 회 독립 추첨 / 천장 없음\n1회: 재화0 300 또는 재화1 1 / 10회: 재화0 3,000 또는 재화1 10\n중복 환급(재화0): 신화150 · 희귀75 · 고급30\n\n" + string.Join("\n", state.items.OrderBy(i => i.grade).Select(i => $"[{i.GradeName}] {i.name}   {state.Chance(i):0.######}%"));
     }
     public void ShowHistory() { CloseDialogs(); historyPanel.SetActive(true); FillHistory(); RequestState(); }
-    public void PreviousHistory() { if (state != null) RequestState(Mathf.Max(0,state.page-1)); }
-    public void NextHistory() { if (state != null) RequestState(Mathf.Min(state.pages-1,state.page+1)); }
+    public void PreviousHistory() { if (state != null && state.page > 0) RequestState(state.page - 1); }
+    public void NextHistory() { if (state != null && state.page + 1 < Mathf.Min(state.pages, VectorShopState.HistoryPageLimit)) RequestState(state.page + 1); }
     private void FillHistory()
     {
         if (state == null) return;
@@ -202,6 +203,6 @@ public sealed class VectorShopPanel : MonoBehaviour
         icons.TryGetValue(item.kind == 0 ? "character_"+item.model : $"weapon_{item.model}_{item.skin}", out var icon); return icon;
     }
     private GameObject ResolveModel(VectorShopItem item) => item.kind == 0
-        ? Resources.Load<GameObject>("LobbyCharacter/" + new[] { "Casual1","PicoChan","unitychan","UnityChanSSU" }[Mathf.Clamp(item.model,0,3)])
+        ? Resources.Load<GameObject>("LobbyCharacter/" + new[] { "Casual1","PicoChan","unitychan","Controller" }[Mathf.Clamp(item.model,0,3)])
         : skins?.GetById(item.model,item.skin)?.visualModelPrefab;
 }

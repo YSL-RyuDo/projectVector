@@ -25,7 +25,7 @@ public static class VectorShopPlayVerification
     private static double holdUntil;
     private static bool capturedCells;
     private static int characterCapture;
-    private static readonly string[] characterPrefabs = { "Casual1", "PicoChan", "unitychan", "UnityChanSSU" };
+    private static readonly string[] characterPrefabs = { "Casual1", "PicoChan", "unitychan", "Controller" };
     static VectorShopPlayVerification() { EditorApplication.update += Update; }
     public static void RunBatch()
     {

@@ -99,6 +99,7 @@ Transform:
   - {fileID: 968755443681806815}
   - {fileID: 849643716918818902}
   - {fileID: 634871762976676430}
+  - {fileID: 8855351062995320790}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &8259486279570009549
@@ -113,6 +114,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8633c2b64b906848bd06add36e6a574, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponADS
+  sightReference: {fileID: 8855351062995320790}
   defaultHipPosition: {x: 0, y: 0, z: 0}
   defaultHipRotation: {x: 0, y: 0, z: 0}
   initiatorHip:
@@ -264,6 +266,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponSkinSlot
   visualModelSocket: {fileID: 4371815658152998940}
   defaultVisualModel: {fileID: 7435398503639927681, guid: 020ea4b200930a446979b323d3e3bdc2, type: 3}
+--- !u!1 &7927594768456401868
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8855351062995320790}
+  m_Layer: 0
+  m_Name: AimSight
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8855351062995320790
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7927594768456401868}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.000000033527613, y: 0.14614917, z: 0.035367075}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4371815658152998940}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &7971387711917791514
 PrefabInstance:
   m_ObjectHideFlags: 0

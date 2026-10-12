@@ -10,7 +10,7 @@ public class Spawner : MonoBehaviour
     void Update()
     {
         // 예시: 't' 키를 누르면 소환 체크 시작
-        if (Keyboard.current.tKey.wasPressedThisFrame)
+        if (Keyboard.current?.tKey.wasPressedThisFrame == true)
         {
             CheckAndSpawn();
         }

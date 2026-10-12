@@ -98,6 +98,9 @@ public class PlayerMovement : MonoBehaviour
         _cc = GetComponent<CharacterController>();
         _cam = GetComponentInChildren<FPSCameraLook>(true);
 
+        // Older authored/test prefabs may not yet serialize the new model reference.
+        if (modelTransform == null)
+            modelTransform = transform.Find("Model")?.gameObject;
         if (modelTransform != null)
             _animator = modelTransform.GetComponent<Animator>();
         if (firstPersonArmModel != null)
@@ -260,6 +263,8 @@ public class PlayerMovement : MonoBehaviour
     // 로컬 플레이어(나)의 직접적인 조종 로직
     private void movement()
     {
+        var practice = PracticePlayerContext.For(this);
+        if (practice != null && practice.range.MenuOpen) return;
         if (!CanMove)
             return;
 
@@ -323,7 +328,7 @@ public class PlayerMovement : MonoBehaviour
                 {
                     PlayKnifeAttackAnimation();
 
-                    if (NetworkManager.Instance != null)
+                    if (practice == null && NetworkManager.Instance != null)
                     {
                         NetworkManager.Instance
                             .SendKnifeAttack();
@@ -920,6 +925,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void TrySendMoveState()
     {
+        if (PracticePlayerContext.For(this) != null) return;
         if (!_isMine)
             return;
 

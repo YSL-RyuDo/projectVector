@@ -289,8 +289,9 @@ public sealed class MyPageHonorController : MonoBehaviour
 
     private static string ReasonName(byte reason) => reason switch
     {
-        1 => "게임 완료", 2 => "경기 중 이탈", 3 => "입장 확인 거절",
-        4 => "플레이 방해", 5 => "채팅 위반", 6 => "매치 조작", _ => "명예 변경"
+        1 => "정상 경기 완료", 2 => "경기 중 이탈", 3 => "입장 확인 거절·이탈",
+        4 => "플레이 방해", 5 => "채팅 위반", 6 => "매치 조작", 7 => "입장 확인 시간 초과",
+        8 => "장시간 미참여", _ => "명예 변경"
     };
 
     private void Bind(string name, UnityEngine.Events.UnityAction action)

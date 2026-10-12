@@ -15,6 +15,7 @@ public class Bullet : MonoBehaviour
 
     private bool canSendHit;
     private bool hitSent;
+    private int practiceDamage, practiceShot, practiceGeneration;
 
     private Rigidbody rb;
     private Collider bulletCollider;
@@ -30,6 +31,14 @@ public class Bullet : MonoBehaviour
         direction = dir.normalized;
 
         canSendHit = sendHitFromThisBullet;
+        var practice=PracticePlayerContext.For(owner);
+        if(practice!=null)
+        {
+            var weapon=practice.GetComponent<PlayerItem>()?.GetCurrentWeapon()?.Data;
+            practiceDamage=practice.range.loadout?.DamageFor(weapon) ?? weapon?.damage ?? 0;
+            practiceShot=practice.GetComponent<PracticeWeaponInput>()?.Fired ?? -1;
+            practiceGeneration=practice.range.spawner.Generation;
+        }
         hitSent = false;
         startPos = transform.position;
 
@@ -70,6 +79,12 @@ public class Bullet : MonoBehaviour
     {
         if (collision == null || collision.collider == null)
             return;
+
+        if (PracticePlayerContext.For(ownerIdentity) != null && collision.collider.TryGetComponent<PracticeTargetZone>(out var practiceTarget))
+        {
+            if(canSendHit && !hitSent){hitSent=true;practiceTarget.Hit(practiceDamage,practiceShot,practiceGeneration);}
+            Destroy(gameObject); return;
+        }
 
         PlayerIdentity targetIdentity = collision.collider.GetComponentInParent<PlayerIdentity>();
 

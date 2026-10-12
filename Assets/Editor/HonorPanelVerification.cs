@@ -101,6 +101,19 @@ public static class HonorPanelVerification
         Require(Text(clone, "HonorViewedGrade").text == "6  탁월", "Leave restores updated own grade");
         if (!install)
         {
+            honor.ApplyState(true, 551, 0, 1, 1, new[]
+            {
+                new HonorChangeData(1791590400L, -50, 8),
+                new HonorChangeData(1791589800L, 0, 1),
+                new HonorChangeData(1791589200L, -50, 7)
+            });
+            Button(clone, "HonorSectionButton2").onClick.Invoke();
+            Require(Text(clone, "HonorHistoryReason0").text == "장시간 미참여", "Inactivity reason");
+            Require(Text(clone, "HonorHistoryDelta0").text == "-50", "Inactivity penalty");
+            Require(Text(clone, "HonorHistoryDelta1").text == "0", "Capped completion history");
+            Require(Text(clone, "HonorHistoryReason2").text == "입장 확인 시간 초과", "Confirmation timeout reason");
+            Capture(camera, clone, "honor-activity-history.png");
+            Debug.Log("[HONOR ACTIVITY UI VERIFY] PASS: reasons 1/7/8 and actual deltas in existing saved history rows. Scene not saved.");
             Debug.Log("[HONOR HOVER VERIFY] PASS: six grades via GraphicRaycaster and pointer enter/exit, null binding recovery, all perk states, own-grade marker, pending response and hover restore. Lobby scene not saved.");
             return;
         }
@@ -204,7 +217,7 @@ public static class HonorPanelVerification
             RenderTexture.active = texture;
             image.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0);
             image.Apply();
-            string directory = Path.GetFullPath("../ProjectVectorServer/.test-output");
+            string directory = Path.Combine(Path.GetTempPath(), "VectorHonorActivityVerification");
             Directory.CreateDirectory(directory);
             File.WriteAllBytes(Path.Combine(directory, file), image.EncodeToPNG());
         }

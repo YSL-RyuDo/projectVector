@@ -19,7 +19,7 @@ public static class VectorShopVerification
             try { ShaderUtil.CompilePass(material, 0, true); Require(!ShaderUtil.ShaderHasError(shader), "Shader failed: " + name); }
             finally { UnityEngine.Object.DestroyImmediate(material); }
         }
-        foreach (string name in new[] { "Casual1", "PicoChan", "unitychan", "UnityChanSSU" })
+        foreach (string name in new[] { "Casual1", "PicoChan", "unitychan", "Controller" })
         {
             var prefab = Resources.Load<GameObject>("LobbyCharacter/" + name);
             Require(prefab != null && prefab.GetComponentsInChildren<Renderer>(true).Length > 0, "Missing character model " + name);
@@ -51,10 +51,20 @@ public static class VectorShopVerification
         var bytes = stream.ToArray(); var parsed = VectorShopState.Parse(bytes);
         Require(parsed.request == 42 && parsed.rewards.Count == 1 && parsed.history.Count == 1, "Packet roundtrip");
         Require(Math.Abs(parsed.items.Sum(parsed.Chance) - 100) < .00001, "Probability sum");
+        // Legacy servers may advertise unlimited pages; the UI must still stop at two.
+        BitConverter.GetBytes(500).CopyTo(bytes, 29);
+        parsed = VectorShopState.Parse(bytes);
+        Require(parsed.pages == 2 && parsed.page == 0 && parsed.history.Count == 1, "Two-page limit");
+        BitConverter.GetBytes(1).CopyTo(bytes, 25);
+        parsed = VectorShopState.Parse(bytes);
+        Require(parsed.page == 1 && parsed.pages == 2 && parsed.history.Count == 1, "Second page retained");
+        BitConverter.GetBytes(2).CopyTo(bytes, 25);
+        parsed = VectorShopState.Parse(bytes);
+        Require(parsed.page == 1 && parsed.history.Count == 0 && parsed.rewards.Count == 1, "Out-of-window history hidden without losing rewards");
         bool rejected = false;
         try { VectorShopState.Parse(bytes.Take(bytes.Length - 1).ToArray()); } catch (InvalidDataException) { rejected = true; }
         Require(rejected, "Truncated packet accepted");
-        Debug.Log($"[SHOP VERIFY] PASS: shaders, 4 character models, {models} weapon models/icons, packet layout, probabilities, malformed packet rejection.");
+        Debug.Log($"[SHOP VERIFY] PASS: shaders, 4 character models, {models} weapon models/icons, packet layout, probabilities, two-page history limit, malformed packet rejection.");
     }
     public static void RunBatch()
     {

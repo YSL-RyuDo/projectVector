@@ -76,7 +76,7 @@ public static class VectorStageReadabilityEditor
         var properties=new SerializedObject(pick);
         var models=properties.FindProperty("authoredPreviewModels"); models.arraySize=4;
         var root=Child(backdrop.stageRoot.transform,"AuthoredPickCharacters").transform;
-        string[] names={"unitychan","UnityChanSSU","Casual1","PicoChan"};
+        string[] names={"unitychan","Controller","Casual1","PicoChan"};
         string[] roles={"Initiator","Controller","Sentinel","Entry"};
         for(int i=0;i<4;i++)
         {

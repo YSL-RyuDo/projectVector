@@ -337,7 +337,7 @@ public class FPSCameraLook : MonoBehaviour
 
         _isADS = value;
 
-        if (NetworkManager.Instance != null &&
+        if (PracticePlayerContext.For(this) == null && NetworkManager.Instance != null &&
             lastSentADS != _isADS)
         {
             lastSentADS = _isADS;

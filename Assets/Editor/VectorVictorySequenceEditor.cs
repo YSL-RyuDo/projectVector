@@ -227,7 +227,7 @@ public static class VectorVictorySequenceEditor
         root.transform.position=new Vector3(10000,10000,10000);
         var modelRoot=Child(root.transform,"AuthoredCharacters").transform;
         stage.models=new GameObject[4]; stage.animators=new Animator[4];
-        string[] names={"unitychan","UnityChanSSU","Casual1","PicoChan"};
+        string[] names={"unitychan","Controller","Casual1","PicoChan"};
         string[] roles={"Initiator","Controller","Sentinel","Entry"};
         for(int i=0;i<4;i++)
         {
@@ -248,6 +248,7 @@ public static class VectorVictorySequenceEditor
                 if(controller==null) controller=AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
                 if(controller.layers.Length==0) controller.AddLayer("Base Layer");
                 string prefix="Assets/Character Animation/"+roles[i]+"/Lobby/"+roles[i]+(i==2?"_Lobby":"");
+                if(i==1) prefix="Assets/Resources/LobbyCharacter/Animation/Controller/Lobby/Controller";
                 var idle=controller.layers[0].stateMachine.AddState("Idle"); idle.motion=AssetDatabase.LoadAssetAtPath<AnimationClip>(prefix+"_Idle.anim");
                 var celebrate=controller.layers[0].stateMachine.AddState("Celebrate");
                 celebrate.motion=AssetDatabase.LoadAssetAtPath<AnimationClip>(prefix+"_Greeting.anim");

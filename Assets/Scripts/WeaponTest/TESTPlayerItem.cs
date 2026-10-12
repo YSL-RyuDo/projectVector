@@ -55,6 +55,7 @@ public class TESTPlayerItem : MonoBehaviour
 
     void Update()
     {
+        if (GetComponent<PracticeWeaponInput>() is PracticeWeaponInput practice && practice.range.MenuOpen) return;
         if (Keyboard.current == null) return;
 
         if (Keyboard.current.digit1Key.wasPressedThisFrame) { Switch(0); return; }
@@ -118,6 +119,7 @@ public class TESTPlayerItem : MonoBehaviour
     private void CreateStartingItem(WeaponData data, int slot)
     {
         GameObject obj = Instantiate(data.weaponPrefab, itemHolder);
+        if (GetComponent<PracticeWeaponInput>() != null) DisableHeldWeaponPhysics(obj);
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
 
@@ -346,6 +348,11 @@ public class TESTPlayerItem : MonoBehaviour
         }
 
         GameObject obj = Instantiate(weaponData.weaponPrefab, itemHolder);
+        if (GetComponent<PracticeWeaponInput>() != null)
+        {
+            DisableHeldWeaponPhysics(obj);
+            if (currentIndex == 0) currentIndex = -1;
+        }
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
 
@@ -434,7 +441,9 @@ public class TESTPlayerItem : MonoBehaviour
 
         // 장전 시작 시 ADS 해제
         FPSCameraLook cameraLook = GetComponentInChildren<FPSCameraLook>(true);
-        cameraLook?.ForceExitADS();
+        var practice = GetComponent<PracticeWeaponInput>();
+        if (practice != null) practice.SetADS(false);
+        else cameraLook?.ForceExitADS();
 
         reloadCoroutine = StartCoroutine(
             ReloadRoutine(currentItem, currentWeapon.GetWeaponId(), currentIndex, reloadTime)
@@ -586,6 +595,10 @@ public class TESTPlayerItem : MonoBehaviour
         int slot = GetSlotIndex(weaponData);
         if (slot < 0 || slot >= items.Length || slot == 4) return;
 
+        bool practiceWeapon = GetComponent<PracticeWeaponInput>() != null;
+        if (practiceWeapon && currentIndex >= 0 && currentIndex < items.Length)
+            items[currentIndex]?.OnUnequip();
+
         if (items[slot] != null)
         {
             Destroy(items[slot].gameObject);
@@ -593,7 +606,7 @@ public class TESTPlayerItem : MonoBehaviour
         }
 
         GameObject obj = Instantiate(
-        tutorialP92Prefab,
+        practiceWeapon ? weaponData.weaponPrefab : tutorialP92Prefab,
         itemHolder
         );
         /*
@@ -618,6 +631,11 @@ public class TESTPlayerItem : MonoBehaviour
         obj.SetActive(false);
 
         currentIndex = -1;//튜토리얼용 추가
+        if (practiceWeapon)
+        {
+            DisableHeldWeaponPhysics(obj);
+            obj.GetComponent<Weapon>()?.Initialize(weaponData, dropPoint, magAmmo, reserveAmmo);
+        }
 
 
         Switch(slot);

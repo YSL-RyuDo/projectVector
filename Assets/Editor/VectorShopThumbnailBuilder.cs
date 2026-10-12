@@ -7,6 +7,39 @@ using UnityEngine;
 public static class VectorShopThumbnailBuilder
 {
     private const string AtlasPath = "Assets/Resources/Shop/ShopRewardAtlas.png";
+    // Update only the replaced model's tile; preserve all sprite IDs, rewards and other artwork.
+    public static void UpdateControllerThumbnail()
+    {
+        var sprite = System.Linq.Enumerable.Single(Resources.LoadAll<Sprite>("Shop/ShopRewardAtlas"), s=>s.name=="character_3");
+        var rect = sprite.rect;
+        var atlas = new Texture2D(2,2,TextureFormat.RGBA32,false);
+        atlas.LoadImage(File.ReadAllBytes(AtlasPath));
+        var utility = new PreviewRenderUtility();
+        try
+        {
+            utility.BeginStaticPreview(new Rect(0,0,rect.width,rect.height));
+            var root=new GameObject("ControllerThumbnail");root.hideFlags=HideFlags.HideAndDontSave;root.SetActive(false);utility.AddSingleGO(root);
+            var model=UnityEngine.Object.Instantiate(Resources.Load<GameObject>("LobbyCharacter/Controller"),root.transform,false);
+            foreach(var script in model.GetComponentsInChildren<MonoBehaviour>(true))script.enabled=false;
+            model.transform.localRotation=Quaternion.Euler(0,180,0);root.SetActive(true);
+            var animator=model.GetComponentInChildren<Animator>();animator.Rebind();animator.Update(0);
+            var points=System.Linq.Enumerable.ToArray(System.Linq.Enumerable.SelectMany(model.GetComponentsInChildren<SkinnedMeshRenderer>(),r=>r.bones));
+            var bounds=new Bounds(points[0].position,Vector3.zero);foreach(var bone in points)if(bone!=null)bounds.Encapsulate(bone.position);
+            utility.camera.fieldOfView=35;
+            float distance=bounds.extents.magnitude/Mathf.Sin(17.5f*Mathf.Deg2Rad)*1.25f;
+            utility.camera.transform.position=bounds.center+Vector3.back*distance;utility.camera.transform.rotation=Quaternion.identity;
+            utility.camera.nearClipPlane=distance*.01f;utility.camera.farClipPlane=distance*4;
+            utility.camera.clearFlags=CameraClearFlags.SolidColor;utility.camera.backgroundColor=new Color(.10f,.13f,.18f,1);
+            utility.lights[0].intensity=1.5f;utility.lights[0].transform.rotation=Quaternion.Euler(40,30,0);
+            utility.lights[1].intensity=1;utility.lights[1].transform.rotation=Quaternion.Euler(340,218,177);utility.ambientColor=new Color(.55f,.55f,.55f);
+            utility.Render(true);var thumb=utility.EndStaticPreview();
+            atlas.SetPixels((int)rect.x,(int)rect.y,(int)rect.width,(int)rect.height,thumb.GetPixels());atlas.Apply();
+            File.WriteAllBytes(AtlasPath,atlas.EncodeToPNG());UnityEngine.Object.DestroyImmediate(thumb);
+        }
+        finally {utility.Cleanup();UnityEngine.Object.DestroyImmediate(atlas);}
+        AssetDatabase.ImportAsset(AtlasPath,ImportAssetOptions.ForceSynchronousImport);
+        Debug.Log("CONTROLLER_SHOP_THUMBNAIL_UPDATED: character_3 only; sprite IDs retained");
+    }
     [MenuItem("Tools/Project Vector/Rebuild Shop Thumbnails")]
     public static void Build()
     {
@@ -15,7 +48,7 @@ public static class VectorShopThumbnailBuilder
         foreach (var skin in database.skins)
             if (skin != null && skin.skinId > 0 && skin.baseWeapon != null && skin.visualModelPrefab != null)
                 entries.Add(($"weapon_{skin.baseWeapon.weaponId}_{skin.skinId}", skin.visualModelPrefab));
-        string[] characters = { "Casual1", "PicoChan", "unitychan", "UnityChanSSU" };
+        string[] characters = { "Casual1", "PicoChan", "unitychan", "Controller" };
         for (int i = 0; i < characters.Length; ++i) entries.Add(("character_" + i, Resources.Load<GameObject>("LobbyCharacter/" + characters[i])));
         const int size = 256, columns = 8;
         var atlas = new Texture2D(columns * size, Mathf.CeilToInt(entries.Count / (float)columns) * size, TextureFormat.RGBA32, false);

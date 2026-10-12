@@ -18,6 +18,16 @@ public class MeleeFire : IFireStrategy
         if (ownerIdentity == null)
             return;
 
+        var practice=PracticePlayerContext.For(ownerIdentity);
+        if(practice!=null)
+        {
+            if(practice.range.MenuOpen)return;
+            var camera=practice.GetComponent<PracticeWeaponInput>()?.aimCamera;
+            if(camera!=null && Physics.Raycast(camera.transform.position,camera.transform.forward,out var hit,range,~0,QueryTriggerInteraction.Ignore)
+                && hit.collider.TryGetComponent<PracticeTargetZone>(out var target)) target.Hit();
+            return;
+        }
+
         if (NetworkManager.Instance == null)
             return;
 

@@ -85,6 +85,8 @@ public class PlayerItem : MonoBehaviour
 
     void Update()
     {
+        var practice = PracticePlayerContext.For(this);
+        if (practice != null && practice.range.MenuOpen) return;
         if (InGameChatUI.BlocksGameplayInput)
             return;
 
@@ -94,10 +96,10 @@ public class PlayerItem : MonoBehaviour
         if (GameController.Instance != null && GameController.Instance.IsPaused)
             return;
 
-        if (_playerIdentity == null || NetworkManager.Instance == null)
+        if (_playerIdentity == null || (practice == null && NetworkManager.Instance == null))
             return;
 
-        if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
+        if (practice == null && _playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
             return;
 
         if (Keyboard.current == null)
@@ -142,6 +144,7 @@ public class PlayerItem : MonoBehaviour
         if (isReloading)
             return;
 
+        if (practice != null) return; // Practice weapon changes use the authored armory, not server drop requests.
         if (Keyboard.current.gKey.wasPressedThisFrame)
         {
             DropCurrentItem();
@@ -1233,12 +1236,9 @@ public class PlayerItem : MonoBehaviour
         if (!currentWeapon.CanReloadNow())
             return;
 
-        if (WeaponDropSpawner.Instance == null)
-            return;
-
         int weaponId = currentWeapon.GetWeaponId();
 
-        WeaponData weaponData = WeaponDropSpawner.Instance.GetWeaponData(weaponId);
+        WeaponData weaponData = PracticePlayerContext.For(this) != null ? currentWeapon.Data : WeaponDropSpawner.Instance?.GetWeaponData(weaponId);
 
         if (weaponData == null || weaponData.reloadTime <= 0f)
             return;
@@ -1261,7 +1261,7 @@ public class PlayerItem : MonoBehaviour
 
         PlayReloadAnimation(reloadItem, reloadTime);
 
-        if (NetworkManager.Instance != null)
+        if (PracticePlayerContext.For(this) == null && NetworkManager.Instance != null)
             NetworkManager.Instance.SendReloadVisual(reloadWeaponId, true);
 
         yield return new WaitForSeconds(reloadTime);
@@ -1281,7 +1281,17 @@ public class PlayerItem : MonoBehaviour
             yield break;
         }
 
-        if (NetworkManager.Instance != null)
+        if (PracticePlayerContext.For(this) != null)
+        {
+            var trainingWeapon=reloadItem.GetComponent<Weapon>();
+            if(trainingWeapon!=null)
+            {
+                // Real reload transfers reserve into the magazine; F5 is explicit resupply.
+                int transfer=Mathf.Min(trainingWeapon.ReserveAmmo,Mathf.Max(0,trainingWeapon.MagazineCapacity-trainingWeapon.CurrentAmmo));
+                trainingWeapon.SetAmmo(trainingWeapon.CurrentAmmo+transfer,trainingWeapon.ReserveAmmo-transfer);
+            }
+        }
+        else if (NetworkManager.Instance != null)
             NetworkManager.Instance.SendReload();
 
         FinishReloadState(false);
@@ -1297,7 +1307,7 @@ public class PlayerItem : MonoBehaviour
                 reloadingWeaponObject.SetActive(true);
         }
 
-        if (reloadingWeaponId >= 0 && NetworkManager.Instance != null)
+        if (PracticePlayerContext.For(this) == null && reloadingWeaponId >= 0 && NetworkManager.Instance != null)
         {
             NetworkManager.Instance.SendReloadVisual(reloadingWeaponId, false);
         }

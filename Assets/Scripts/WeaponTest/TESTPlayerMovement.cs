@@ -48,6 +48,7 @@ public class TESTPlayerMovement : MonoBehaviour
 
     private void Update()
     {
+        if (Keyboard.current == null) return;
         if (Cursor.lockState == CursorLockMode.None)
             return;
 
@@ -59,7 +60,7 @@ public class TESTPlayerMovement : MonoBehaviour
         HandleJump();
         HandleMovement();
 
-        if (Mouse.current != null && cameraLook != null)
+        if (Mouse.current != null && cameraLook != null && GetComponent<PracticeWeaponInput>() == null)
         {
             cameraLook.SetADS(Mouse.current.rightButton.isPressed);
         }

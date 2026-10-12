@@ -2,6 +2,10 @@ using UnityEngine;
 
 public class WeaponADS : MonoBehaviour
 {
+    [Header("Authored optical reticle (first-person alignment)")]
+    [SerializeField] private Transform sightReference;
+    public Transform SightReference => sightReference;
+
     [System.Serializable]
     public struct RoleHipTransform
     {

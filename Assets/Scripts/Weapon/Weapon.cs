@@ -57,6 +57,10 @@ public class Weapon : Item
     private WeaponSkinSlot skinSlot;
 
     public WeaponData Data => weaponData;
+    public bool IsAiming => isADS;
+    public int CurrentAmmo => currentAmmo;
+    public int ReserveAmmo => reserveAmmo;
+    public int MagazineCapacity => GetMagazineCapacity();
     public WeaponSkinData AppliedSkin { get; private set; }
 
     [SerializeField] private float adsSmoothTime = 0.05f;
@@ -164,16 +168,17 @@ public class Weapon : Item
         if (Keyboard.current == null)
             return;
 
-
+        var practice = PracticePlayerContext.For(this);
+        if (practice != null && practice.range.MenuOpen) return;
         if (!isTestMode)
         {
             if (_playerIdentity == null)
                 return;
 
-            if (NetworkManager.Instance == null)
+            if (practice == null && NetworkManager.Instance == null)
                 return;
 
-            if (_playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
+            if (practice == null && _playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId)
                 return;
         }
 
@@ -256,6 +261,8 @@ public class Weapon : Item
 
     private bool ShouldBlockWeaponInput()
     {
+        var practice = PracticePlayerContext.For(this);
+        if (practice != null && practice.range.MenuOpen) return true;
         if (StorePanelUI.IsBlockingGameplayInput)
         {
             ForceCancelADS();
@@ -429,7 +436,8 @@ public class Weapon : Item
         if (Time.time < nextFireTime)
             return;
 
-        if (UsesAmmo() && currentAmmo <= 0)
+        var practice = PracticePlayerContext.For(this);
+        if (UsesAmmo() && currentAmmo <= 0 && !(practice != null && practice.range.infiniteAmmo))
             return;
 
         if (ownerHP != null && ownerHP.IsDead)
@@ -440,13 +448,15 @@ public class Weapon : Item
 
         if (UsesAmmo())
         {
-            currentAmmo--;
+            if (practice == null || !practice.range.infiniteAmmo) currentAmmo--;
 
             UpdateAmmoUI();
 
-            if (NetworkManager.Instance != null)
+            if (practice == null && NetworkManager.Instance != null)
                 NetworkManager.Instance.SendFire();
         }
+
+        if (practice != null) practice.GetComponent<PracticeWeaponInput>()?.RecordShot();
 
         PlayAttackRecoilVisual();
         FireCurrentWeapon();
@@ -710,6 +720,11 @@ public class Weapon : Item
         {
             visualTargetPoint =
                 hit.point;
+
+            if (PracticePlayerContext.For(this) != null && hit.collider.TryGetComponent<PracticeTargetZone>(out var practiceTarget))
+            {
+                practiceTarget.Hit(); SpawnBulletVisual(shootDir, visualTargetPoint); return;
+            }
 
             Debug.Log(
                 $"[HITSCAN HIT] object={hit.collider.name}, root={hit.collider.transform.root.name}, point={hit.point}"
@@ -1009,10 +1024,10 @@ public class Weapon : Item
         if (bulletScript != null)
         {
             bool isOwnerBullet =
-                NetworkManager.Instance != null &&
+                PracticePlayerContext.For(this) != null || (NetworkManager.Instance != null &&
                 _playerIdentity != null &&
                 _playerIdentity.PlayerId ==
-                NetworkManager.Instance.MyPlayerId;
+                NetworkManager.Instance.MyPlayerId);
 
             bulletScript.Init(
                 _playerIdentity,
