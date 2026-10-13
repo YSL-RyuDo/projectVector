@@ -46,6 +46,12 @@ public class PlayerSpike : MonoBehaviour
 
     private void Update()
     {
+        if (VectorVoicePanel.BlocksGameplayInput && IsLocalPlayer())
+        {
+            CancelPlant();
+            if (spikeInRange != null) spikeInRange.CancelDefuse();
+            return;
+        }
         if (GameController.Instance != null && GameController.Instance.IsPaused)
             return;
 

@@ -497,6 +497,7 @@ public partial class NetworkManager : MonoBehaviour
 
     void Update()
     {
+        UpdateReconnect();
         while (true)
         {
             (ushort, byte[]) packet;
@@ -642,6 +643,8 @@ public partial class NetworkManager : MonoBehaviour
 
     public void SendLogin(string id, string pw)
     {
+        reconnectAccount = id.Trim();
+        reconnectPassword = pw; // Process memory only; never PlayerPrefs, files or logs.
         IsAuthenticated = false;
         ResetSocialState();
         myUserId = id.Trim();
@@ -1076,6 +1079,7 @@ public partial class NetworkManager : MonoBehaviour
 
     void HandlePacket(ushort type, byte[] body)
     {
+        if (HandleReconnectPacket(type, body)) return;
         switch (type)
         {
             case (ushort)PacketType.PKT_SC_REGISTER_RESULT:
@@ -1236,6 +1240,10 @@ public partial class NetworkManager : MonoBehaviour
                 break;
             case (ushort)PacketType.PKT_SC_MATCH_READY_CARDS:
                 HandleReadyCards(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_VOICE_RESPONSE:
+                HandleVoiceResponse(body);
                 break;
 
             case (ushort)PacketType.PKT_SC_PARTY_INVITE:
@@ -1642,6 +1650,8 @@ public partial class NetworkManager : MonoBehaviour
 
         bool success = (result == (byte)LoginResult.SUCCESS);
         IsAuthenticated = success;
+
+        if (ReconnectBusy) return; // Automatic reauthentication must not show Login UI.
 
         Debug.Log($"[LOGIN RESULT] success={success}");
 
@@ -2576,6 +2586,7 @@ public partial class NetworkManager : MonoBehaviour
             if (hasPresets)
                 data.preset = ReadChipCraftPreset(body, ref offset);
 
+            VectorVoiceChat.Instance?.ObserveProfile(data.nickname, data.playerIconId);
             players.Add(data);
         }
 
@@ -3349,6 +3360,7 @@ public partial class NetworkManager : MonoBehaviour
 
     public void SendGameLoadReady()
     {
+        if (ReconnectBusy) return; // Reconnect has its own two-stage ready handshake.
         byte[] buffer = new byte[4];
 
         ushort size = 4;
@@ -3454,6 +3466,7 @@ public partial class NetworkManager : MonoBehaviour
         matchManager.OnRecvGameAllReady(
             data
         );
+        reconnectRoster = data;
 
         foreach (GameReadyMemberData member in data.members)
         {

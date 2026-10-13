@@ -160,6 +160,11 @@ public sealed class RankedCaptureTest : MonoBehaviour
         yield return Wait(() => RoundManager.Instance != null && RoundManager.Instance.currentState == RoundManager.RoundState.MainRound && net.MyPlayer != null,
             "waiting for combat round", 40);
         if (finished) yield break;
+        if (Environment.GetEnvironmentVariable("VECTOR_CAPTURE_RECONNECT") == "1")
+        {
+            yield return ReconnectEncounter();
+            if (finished) yield break;
+        }
         yield return StageCombat();
         if (finished) yield break;
         yield return Wait(() => SceneManager.GetActiveScene().name == "Result" && MatchResultCache.members.Count == 6,
@@ -180,6 +185,39 @@ public sealed class RankedCaptureTest : MonoBehaviour
         sequence.next.onClick.Invoke();
         yield return new WaitForSecondsRealtime(7);
         Finish("PASS: ranked duos/solos, selection, combat, server MVP, rank and rewards");
+    }
+
+    IEnumerator ReconnectEncounter()
+    {
+        var net=NetworkManager.Instance;
+        yield return Wait(()=>All(".playing"),"six clients ready for reconnect test");
+        yield return new WaitForSecondsRealtime(4);
+        if(account=="qwer")
+        {
+            uint id=net.MyPlayerId;
+            var hp=net.MyPlayer.GetComponent<PlayerHP>(); int health=hp.CurrentHP;
+            var position=net.MyPlayer.transform.position;
+            Stage("disconnecting TCP transport for six seconds");
+            Field<NetworkClient>(net,"client").Close();
+            yield return Wait(()=>net.ReconnectBusy,"connection loss detected",10);
+            yield return Wait(()=>net.CompletedReconnects==1 && !net.ReconnectBusy,"restoring same player through loading screen",55);
+            if(finished) yield break;
+            if(net.MyPlayerId!=id || net.MyPlayer==null || net.MyPlayer.GetComponent<PlayerHP>().CurrentHP!=health ||
+                Vector3.Distance(net.MyPlayer.transform.position,position)>2 ||
+                FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None).Length!=6 ||
+                RoundManager.Instance.currentState!=RoundManager.RoundState.MainRound)
+            {Finish("FAILED: reconnect identity/health/pose/roster/phase mismatch");yield break;}
+            File.WriteAllText(Path.Combine(root,"reconnect.pass"),"PASS: same player ID, health, pose, six actors, main round; connection unavailable for six seconds");
+        }
+        else
+        {
+            yield return Wait(()=>File.Exists(Path.Combine(root,"reconnect.pass")),"match continues while qwer reconnects",65);
+            if(finished) yield break;
+            if(FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None).Length!=6 || net.ReconnectBusy)
+            {Finish("FAILED: other player lost during peer reconnect");yield break;}
+        }
+        yield return new WaitForSecondsRealtime(5);
+        Stage("reconnect verified; continuing ranked combat");
     }
 
     [Serializable] sealed class CombatPlan { public uint hero; public byte team; public Vector3[] positions; }

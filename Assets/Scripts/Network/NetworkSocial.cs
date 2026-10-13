@@ -50,6 +50,8 @@ public partial class NetworkManager
         if (size >= 8) BitConverter.GetBytes(value).CopyTo(buffer, 4);
         if (size == 9) buffer[8] = accept ? (byte)1 : (byte)0;
         client.Send(buffer);
+        if (type == PacketType.PKT_CS_PARTY_LEAVE || (type == PacketType.PKT_CS_PARTY_INVITE_REPLY && accept))
+            VectorVoiceChat.Instance?.RefreshMembership();
     }
 
     private void HandleSocialPacket(PacketType type, byte[] body)
@@ -71,6 +73,10 @@ public partial class NetworkManager
         }
         else if (type == PacketType.PKT_SC_PARTY_STATE && body.Length == 17 && body[4] <= 3)
         {
+            bool voiceMembershipChanged = PartyPlayers.Count != body[4] || PartyLeader != BitConverter.ToUInt32(body, 0);
+            for (int i = 0; !voiceMembershipChanged && i < PartyPlayers.Count; ++i)
+                voiceMembershipChanged = PartyPlayers[i] != BitConverter.ToUInt32(body, 5 + i * 4);
+            if (voiceMembershipChanged) VectorVoiceChat.Instance?.RefreshMembership();
             PartyAvailabilityKnown = false;
             PartyLeader = BitConverter.ToUInt32(body, 0);
             PartyPlayers.Clear();
@@ -82,9 +88,11 @@ public partial class NetworkManager
         }
         else if (type == PacketType.PKT_SC_PARTY_AVAILABILITY && body.Length == 2 && body[0] == PartyPlayers.Count)
         {
+            int previousLobbyCount = PartyLobbyCount;
             PartyLobbyCount = 0;
             for (int i = 0; i < body[0]; ++i) if ((body[1] & (1 << i)) != 0) PartyLobbyCount++;
             PartyAvailabilityKnown = true;
+            if (previousLobbyCount != PartyLobbyCount) VectorVoiceChat.Instance?.RefreshMembership();
             ui?.RefreshParty();
         }
         else if (type == PacketType.PKT_SC_MATCH_READY && body.Length == 10)

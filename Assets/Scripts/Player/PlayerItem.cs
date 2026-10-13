@@ -87,7 +87,7 @@ public class PlayerItem : MonoBehaviour
     {
         var practice = PracticePlayerContext.For(this);
         if (practice != null && practice.range.MenuOpen) return;
-        if (InGameChatUI.BlocksGameplayInput)
+        if (VectorVoicePanel.BlocksGameplayInput || InGameChatUI.BlocksGameplayInput)
             return;
 
         if (!gameObject.CompareTag("Player"))

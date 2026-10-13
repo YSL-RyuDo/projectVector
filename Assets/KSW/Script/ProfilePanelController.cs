@@ -67,6 +67,7 @@ public class ProfilePanelController : MonoBehaviour
     public void ApplyPlayerIcon(int iconId)
     {
         currentplayerIconId = Mathf.Clamp(iconId, 0, 2);
+        VectorVoiceChat.Instance?.ObserveProfile(currentNickname, currentplayerIconId);
         FindFirstObjectByType<FriendPanelController>(FindObjectsInactive.Include)?.RefreshMyProfile();
         if (playerIcon == null) return;
         Sprite sprite = Resources.Load<Sprite>($"PlayerIcon/{currentplayerIconId}");

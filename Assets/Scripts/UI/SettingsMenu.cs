@@ -101,6 +101,7 @@ public class SettingsMenu : MonoBehaviour
 
     private void Update()
     {
+        if (VectorVoicePanel.BlocksGameplayInput) return;
         if (!CanUseSettingsMenu())
             return;
 

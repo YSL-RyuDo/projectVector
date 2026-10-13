@@ -284,7 +284,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         bool chatOpen =
-            InGameChatUI.IsChatOpen;
+            InGameChatUI.IsChatOpen || VectorVoicePanel.BlocksGameplayInput;
 
         Vector2 input =
             chatOpen
@@ -766,7 +766,7 @@ public class PlayerMovement : MonoBehaviour
             bool isJumping =
                 !_cc.isGrounded;
 
-            if (!InGameChatUI.IsChatOpen &&
+            if (!InGameChatUI.IsChatOpen && !VectorVoicePanel.BlocksGameplayInput &&
                 weaponOffset == 6 &&
                 Mouse.current != null &&
                 Mouse.current.rightButton.isPressed)
@@ -838,7 +838,7 @@ public class PlayerMovement : MonoBehaviour
 
     private Vector2 getInput()
     {
-        if (InGameChatUI.IsChatOpen)
+        if (InGameChatUI.IsChatOpen || VectorVoicePanel.BlocksGameplayInput)
             return Vector2.zero;
 
         if (IsStunned())

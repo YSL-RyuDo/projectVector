@@ -23,6 +23,9 @@ public partial class NetworkManager
         if (!TryReadResultAppearance(appearanceBody, token, out var parsed)) return;
         ReadyCardAppearances.Clear();
         foreach (var pair in parsed) ReadyCardAppearances.Add(pair.Key, pair.Value);
+        for (int i = 0; i < ids.Length; i++)
+            if ((body[5] & (1 << i)) != 0 && parsed.TryGetValue(ids[i], out var identity))
+                VectorVoiceChat.Instance?.ObserveProfile(names[i], identity.playerIconId);
         ui.readyPresentation?.Present(token, names, ids, parsed, body[5], MyPlayerId);
     }
 }

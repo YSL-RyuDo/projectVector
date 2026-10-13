@@ -11,6 +11,8 @@ public class StorePanelUI : MonoBehaviour
     private static int blockGameplayInputThroughFrame = -1;
 
     public static bool IsBlockingGameplayInput =>
+        (NetworkManager.Instance != null && NetworkManager.Instance.ReconnectBusy) ||
+        VectorVoicePanel.BlocksGameplayInput ||
         (Instance != null && Instance.IsOpen()) ||
         Time.frameCount <= blockGameplayInputThroughFrame;
 

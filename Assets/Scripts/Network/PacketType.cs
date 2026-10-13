@@ -311,6 +311,8 @@ public enum PacketType : ushort
     PKT_CS_PROFILE_BIRTHDAY_SET = 363,
     PKT_SC_PROFILE_BIRTHDAY_SET_RESULT = 364,
     PKT_SC_MATCH_READY_CARDS = 365,
+    PKT_CS_VOICE_REQUEST = 380,
+    PKT_SC_VOICE_RESPONSE = 381,
 }
 
 public enum RegisterResult : byte

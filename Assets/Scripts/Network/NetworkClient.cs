@@ -20,16 +20,25 @@ public class NetworkClient
     private volatile bool isRunning = false;
     private readonly object sendLock = new object();
 
-    public bool IsConnected => client != null && client.Connected;
+    public bool IsConnected => isRunning && client != null && client.Connected;
+    public string LastHost { get; private set; }
+    public int LastPort { get; private set; }
 
     public void Connect(string ip, int port)
     {
         Close();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (Environment.GetEnvironmentVariable("VECTOR_CAPTURE_OPT_IN") == "local-ranked-qa" &&
+            int.TryParse(Environment.GetEnvironmentVariable("VECTOR_QA_PORT"), out int qaPort) && qaPort >= 1024 && qaPort <= 65535)
+            port = qaPort;
+#endif
+        LastHost = ip; LastPort = port;
 
         try
         {
             client = new TcpClient();
-            client.Connect(ip, port);
+            var connect = client.ConnectAsync(ip, port);
+            if (!connect.Wait(5000)) throw new TimeoutException("Connection timed out");
 
             stream = client.GetStream();
 
