@@ -130,4 +130,5 @@ public class EntrySkill_C : CharacterSkill
     {
         _isCasting = false;
     }
+    private void OnDisable() { CancelInvoke(nameof(ResetCast)); ResetCast(); }
 }

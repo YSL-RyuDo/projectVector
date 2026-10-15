@@ -244,4 +244,13 @@ public class MiniMapCamera : MonoBehaviour
             $"overlayYaw={(spawnTeam == 0 ? attackerOverlayYaw : defenderOverlayYaw)}"
         );
     }
+
+    public void SetMapFraming(float hudSize, float fullSize, float hudHeight, float fullHeight)
+    {
+        hudOrthographicSize = Mathf.Max(1f, hudSize);
+        overlayOrthographicSize = Mathf.Max(1f, fullSize);
+        cameraHeight = Mathf.Max(1f, hudHeight);
+        overlayCameraHeight = Mathf.Max(1f, fullHeight);
+        ApplyCameraTransform();
+    }
 }

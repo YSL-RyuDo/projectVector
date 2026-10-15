@@ -8,6 +8,12 @@ public class MiniMapWorldReferences : MonoBehaviour
     [SerializeField] private Transform zoneBPosition;
     [SerializeField] private Transform fullMapCenter;
 
+    [Header("Per-map camera framing")]
+    [SerializeField, Min(1f)] private float hudSize = 30f;
+    [SerializeField, Min(1f)] private float fullMapSize = 70f;
+    [SerializeField, Min(1f)] private float hudHeight = 50f;
+    [SerializeField, Min(1f)] private float fullMapHeight = 100f;
+
     private IEnumerator Start()
     {
         while (MiniMapManager.Instance == null ||
@@ -24,6 +30,7 @@ public class MiniMapWorldReferences : MonoBehaviour
         MiniMapCamera.Instance.SetOverlayMapCenter(
             fullMapCenter
         );
+        MiniMapCamera.Instance.SetMapFraming(hudSize, fullMapSize, hudHeight, fullMapHeight);
 
         Debug.Log(
             $"[MINIMAP WORLD REGISTER] " +

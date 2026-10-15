@@ -91,6 +91,9 @@ public class StorePanelUI : MonoBehaviour
 
     private bool CanOpenStore()
     {
+        if (SettingsMenu.Instance != null && SettingsMenu.Instance.IsOpen)
+            return false;
+
         if (RoundManager.Instance == null)
             return false;
 
@@ -112,6 +115,9 @@ public class StorePanelUI : MonoBehaviour
 
     public void Open()
     {
+        if (SettingsMenu.Instance != null && SettingsMenu.Instance.IsOpen)
+            return;
+
         if (storePanelRoot == null)
             return;
 
@@ -141,8 +147,11 @@ public class StorePanelUI : MonoBehaviour
 
         storePanelRoot.SetActive(false);
 
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
+        if (!SettingsMenu.PreserveOpenMenuCursor())
+        {
+            Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.Locked;
+        }
 
         Debug.Log("[STORE] close");
     }

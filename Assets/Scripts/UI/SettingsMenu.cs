@@ -53,6 +53,17 @@ public class SettingsMenu : MonoBehaviour
         }
     }
 
+    // Respawn/view/skill resets restore gameplay, not the user's menu ownership.
+    public static bool PreserveOpenMenuCursor()
+    {
+        if (Instance == null || !Instance.IsOpen)
+            return false;
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        return true;
+    }
+
     private void Awake()
     {
         if (Instance != null &&
@@ -170,7 +181,8 @@ public class SettingsMenu : MonoBehaviour
         if (GameController.Instance == null)
             return false;
 
-        return GameController.Instance.CanOpenSettings;
+        // An already-open menu must remain dismissible during state restoration.
+        return IsOpen || GameController.Instance.CanOpenSettings;
     }
 
     public void ToggleSettingsMenu()

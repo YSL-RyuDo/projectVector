@@ -29,6 +29,14 @@ public class Spike : Item
 
     private bool halfSentToServer;
     private bool defuseStartRequested;
+    public bool IsLocalInteraction => IsLocalDefuser() && (isDefusing || defuseStartRequested);
+    private bool CanDefuse => isPlanted && !isExploded && isPlayerInside && playerSpike != null && playerSpike.CanInteract;
+    private float requestTime;
+
+    private void Update()
+    {
+        if (IsLocalInteraction && (!CanDefuse || (defuseStartRequested && Time.unscaledTime - requestTime > 3f))) CancelDefuse();
+    }
 
     public static Spike PlantedSpike { get; private set; }
 
@@ -45,6 +53,7 @@ public class Spike : Item
 
     private void OnDestroy()
     {
+        if (Application.isPlaying && IsLocalInteraction) ForceCancelInteraction();
         if (IsLocalDefuser())
             CombatFeedbackUI.Instance?.HideSpikeProgress();
 
@@ -150,6 +159,7 @@ public class Spike : Item
 
     public void TryStartDefuse()
     {
+        if (!CanDefuse) return;
         if (!isPlayerInside)
             return;
 
@@ -163,6 +173,7 @@ public class Spike : Item
             return;
 
         defuseStartRequested = true;
+        requestTime = Time.unscaledTime;
 
         if (NetworkManager.Instance != null)
             NetworkManager.Instance.SendSpikeDefuseStart();
@@ -172,6 +183,7 @@ public class Spike : Item
 
     public void Defusing()
     {
+        if (!CanDefuse) { CancelDefuse(); return; }
         if (!isDefusing || !IsLocalDefuser())
             return;
 
@@ -236,6 +248,7 @@ public class Spike : Item
 
     private void CompleteDefuse()
     {
+        if (!CanDefuse || !isDefusing) { CancelDefuse(); return; }
         if (isExploded || !IsLocalDefuser())
             return;
 
@@ -284,6 +297,12 @@ public class Spike : Item
 
     public void StartDefuseFromServer(bool halfDefused)
     {
+        if (!defuseStartRequested || !CanDefuse || UnityEngine.InputSystem.Keyboard.current?.fKey.isPressed != true)
+        {
+            NetworkManager.Instance?.SendSpikeDefuseCancel();
+            CancelDefuseFromServer(halfDefused);
+            return;
+        }
         defuseStartRequested = false;
 
         isDefusing = true;
@@ -318,6 +337,7 @@ public class Spike : Item
 
     public void CancelDefuseFromServer(bool halfDefused)
     {
+        bool wasInteracting = isDefusing || defuseStartRequested;
         defuseStartRequested = false;
 
         isDefusing = false;
@@ -328,7 +348,7 @@ public class Spike : Item
             ? defuseTime * 0.5f
             : 0f;
 
-        if (!IsLocalDefuser())
+        if (!wasInteracting || !IsLocalDefuser())
             return;
 
         if (playerSpike != null)

@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using static UnityEngine.Rendering.DebugUI;
 
 [RequireComponent(typeof(CharacterController))]
+[DefaultExecutionOrder(-100)]
 public class PlayerMovement : MonoBehaviour
 {
     #region 변수, 프로퍼티
@@ -18,6 +19,7 @@ public class PlayerMovement : MonoBehaviour
 
     // Network (Receive - 원격 플레이어 동기화용 변수)
     private Vector3 _targetPosition;
+    private readonly RemoteMotionBuffer remoteMotion = new RemoteMotionBuffer();
     private float _targetYaw;
     private float _targetPitch;
     private float lastSentPitch;
@@ -45,6 +47,12 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float yawSendThreshold = 1.0f;
 
     private bool _isCrouching = false;
+    [SerializeField, Range(0.1f, 1f)] private float crouchMoveMultiplier = 0.5f;
+    private float standingCapsuleHeight;
+    private Vector3 standingCapsuleCenter;
+    private float standingStepOffset;
+    private readonly Collider[] standObstructions = new Collider[32];
+    public float PlanarSpeed { get; private set; }
     private Vector3 _standingPos;
     private Vector3 _crouchingPos;
 
@@ -96,6 +104,9 @@ public class PlayerMovement : MonoBehaviour
     void Awake()
     {
         _cc = GetComponent<CharacterController>();
+        standingCapsuleHeight = _cc.height;
+        standingCapsuleCenter = _cc.center;
+        standingStepOffset = _cc.stepOffset;
         _cam = GetComponentInChildren<FPSCameraLook>(true);
 
         // Older authored/test prefabs may not yet serialize the new model reference.
@@ -145,7 +156,7 @@ public class PlayerMovement : MonoBehaviour
                 _standingPos -
                 new Vector3(
                     0f,
-                    _crouchHeightOffset,
+                    _crouchHeightOffset / Mathf.Max(0.01f, Mathf.Abs(_cam.transform.parent.lossyScale.y)),
                     0f
                 );
         }
@@ -168,8 +179,7 @@ public class PlayerMovement : MonoBehaviour
     
     void Update()
     {
-        if (GameController.Instance != null && GameController.Instance.IsPaused) return;
-
+        // Menus block local input, never remote simulation or state replication.
         if (_isMine)
         {
             // "내 캐릭터"라면 직접 조종하고 서버로 패킷 전송
@@ -210,7 +220,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleStunnedMovement()
     {
-        _isCrouching = false;
+        TrySetCrouching(false);
 
         if (_cc != null && _cc.enabled)
         {
@@ -226,7 +236,7 @@ public class PlayerMovement : MonoBehaviour
             }
 
             // 수평 이동은 막고, 공중이면 중력만 적용
-            _cc.Move(
+            MoveAndResolveCeiling(
                 Vector3.up *
                 _verticalVelocity *
                 Time.deltaTime
@@ -238,7 +248,7 @@ public class PlayerMovement : MonoBehaviour
             _cam.transform.localPosition =
                 Vector3.Lerp(
                     _cam.transform.localPosition,
-                    _standingPos,
+                    _isCrouching ? _crouchingPos : _standingPos,
                     Time.deltaTime *
                     _crouchSpeed
                 );
@@ -263,6 +273,7 @@ public class PlayerMovement : MonoBehaviour
     // 로컬 플레이어(나)의 직접적인 조종 로직
     private void movement()
     {
+        PlanarSpeed = 0f;
         var practice = PracticePlayerContext.For(this);
         if (practice != null && practice.range.MenuOpen) return;
         if (!CanMove)
@@ -283,8 +294,7 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        bool chatOpen =
-            InGameChatUI.IsChatOpen || VectorVoicePanel.BlocksGameplayInput;
+        bool chatOpen = IsLocalInputBlocked;
 
         Vector2 input =
             chatOpen
@@ -298,17 +308,12 @@ public class PlayerMovement : MonoBehaviour
         bool isGrounded =
             _cc.isGrounded;
 
-        if (!isGrounded)
-        {
-            _isCrouching = false;
-        }
-        else if (!chatOpen &&
+        if (isGrounded && !chatOpen &&
                  Keyboard.current != null &&
                  Keyboard.current.leftCtrlKey
                      .wasPressedThisFrame)
         {
-            _isCrouching =
-                !_isCrouching;
+            TrySetCrouching(!_isCrouching);
         }
 
         if (!chatOpen &&
@@ -350,12 +355,10 @@ public class PlayerMovement : MonoBehaviour
             if (!chatOpen &&
                 Keyboard.current != null &&
                 Keyboard.current.spaceKey
-                    .wasPressedThisFrame)
+                    .wasPressedThisFrame && TrySetCrouching(false))
             {
                 _verticalVelocity =
                     CalculateJumpSpeed();
-
-                _isCrouching = false;
 
                 OnJumpEvent?.Invoke();
             }
@@ -384,14 +387,15 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3 velocity =
             move.normalized *
-            currentMoveSpeed +
+            GetPlanarMoveSpeed() +
             Vector3.up *
             _verticalVelocity;
 
-        _cc.Move(
+        MoveAndResolveCeiling(
             velocity *
             Time.deltaTime
         );
+        isMoving = PlanarSpeed > 0.1f;
 
         if (_animator != null)
         {
@@ -415,6 +419,61 @@ public class PlayerMovement : MonoBehaviour
                 _footstepManager.PlayFootstep();
             }
         }
+    }
+
+    private float GetPlanarMoveSpeed()
+    {
+        return currentMoveSpeed * (_isCrouching ? crouchMoveMultiplier : 1f);
+    }
+
+    private void MoveAndResolveCeiling(Vector3 displacement)
+    {
+        Vector3 before = transform.position;
+        CollisionFlags flags = _cc.Move(displacement);
+        Vector3 actual = transform.position - before;
+        PlanarSpeed = new Vector2(actual.x, actual.z).magnitude / Mathf.Max(Time.deltaTime, 0.0001f);
+        if ((flags & CollisionFlags.Above) != 0 && _verticalVelocity > 0f)
+            _verticalVelocity = 0f;
+    }
+
+    private bool TrySetCrouching(bool crouching)
+    {
+        if (_isCrouching == crouching) return true;
+        if (!crouching && !HasStandingClearance()) return false;
+        _isCrouching = crouching;
+        ApplyCapsulePosture();
+        return true;
+    }
+
+    private bool HasStandingClearance()
+    {
+        float scaleY = Mathf.Abs(transform.lossyScale.y);
+        float radius = _cc.radius * Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.z));
+        float clearanceRadius = Mathf.Max(0.01f, radius - _cc.skinWidth * scaleY);
+        Vector3 center = transform.TransformPoint(standingCapsuleCenter);
+        float halfSegment = Mathf.Max(0f, standingCapsuleHeight * scaleY * 0.5f - radius);
+        int count = Physics.OverlapCapsuleNonAlloc(center - transform.up * halfSegment,
+            center + transform.up * halfSegment, clearanceRadius, standObstructions,
+            ~0, QueryTriggerInteraction.Ignore);
+        if (count == standObstructions.Length) return false;
+        for (int i = 0; i < count; i++)
+        {
+            Collider obstruction = standObstructions[i];
+            if (obstruction != null && !obstruction.transform.IsChildOf(transform) &&
+                !Physics.GetIgnoreLayerCollision(gameObject.layer, obstruction.gameObject.layer) &&
+                !Physics.GetIgnoreCollision(_cc, obstruction)) return false;
+        }
+        return true;
+    }
+
+    private void ApplyCapsulePosture()
+    {
+        float drop = _crouchHeightOffset / Mathf.Max(0.01f, Mathf.Abs(transform.lossyScale.y));
+        float height = _isCrouching ? Mathf.Max(_cc.radius * 2f, standingCapsuleHeight - drop) : standingCapsuleHeight;
+        // Keep the capsule's feet fixed, including half-scale character prefabs.
+        _cc.stepOffset = Mathf.Min(standingStepOffset, height * 0.5f);
+        _cc.height = height;
+        _cc.center = standingCapsuleCenter - Vector3.up * ((standingCapsuleHeight - height) * 0.5f);
     }
 
     public void PlayKnifeAttackAnimation()
@@ -464,10 +523,18 @@ public class PlayerMovement : MonoBehaviour
     float serverYaw,
     float serverPitch,
     byte serverAnimIndex,
-    bool serverIsCrouching)
+    bool serverIsCrouching,
+    double sampleTime = -1)
     {
         if (_isMine)
             return;
+
+        if (GetComponent<PlayerHP>()?.IsDead == true) return;
+        if (!remoteMotion.Push(new RemoteMotionBuffer.Pose {
+            time=sampleTime<0 ? Time.realtimeSinceStartupAsDouble : sampleTime,
+            position=serverPos, yaw=serverYaw, pitch=serverPitch,
+            animation=(byte)Mathf.Min(serverAnimIndex,17), crouching=serverIsCrouching
+        },Time.realtimeSinceStartupAsDouble)) return;
 
         if (serverAnimIndex > 17)
         {
@@ -485,9 +552,10 @@ public class PlayerMovement : MonoBehaviour
 
         if (distanceFromServerPosition > 5f)
         {
+            bool controllerWasEnabled = _cc.enabled;
             _cc.enabled = false;
             transform.position = serverPos;
-            _cc.enabled = true;
+            _cc.enabled = controllerWasEnabled;
 
             _targetPosition = serverPos;
             _remoteIsMoving = false;
@@ -676,12 +744,17 @@ public class PlayerMovement : MonoBehaviour
 
     private void SyncRemotePlayerMovement()
     {
+        if (!remoteMotion.Sample(Time.realtimeSinceStartupAsDouble, out var pose)) return;
+        _targetPosition=pose.position; _targetYaw=pose.yaw; _targetPitch=pose.pitch;
+        _targetAnimIndex=pose.animation; _isCrouching=pose.crouching;
+        ApplyCapsulePosture();
         Vector3 prevPosition = transform.position;
 
+        bool controllerWasEnabled = _cc.enabled;
         _cc.enabled = false;
-        transform.position = Vector3.Lerp(transform.position, _targetPosition, Time.deltaTime * _lerpSpeed);
-        transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, _targetYaw, 0), Time.deltaTime * _lerpSpeed);
-        _cc.enabled = true;
+        transform.position = _targetPosition;
+        transform.rotation = Quaternion.Euler(0, _targetYaw, 0);
+        _cc.enabled = controllerWasEnabled;
 
         if (_cam != null)
         {
@@ -757,19 +830,15 @@ public class PlayerMovement : MonoBehaviour
             if (IsStunned())
                 return weaponOffset + 0;
 
-            Vector2 input =
-                getInput();
-
             bool isMoving =
-                input.sqrMagnitude > 0f;
+                PlanarSpeed > 0.1f;
 
             bool isJumping =
                 !_cc.isGrounded;
 
-            if (!InGameChatUI.IsChatOpen && !VectorVoicePanel.BlocksGameplayInput &&
+            if (!IsLocalInputBlocked &&
                 weaponOffset == 6 &&
-                Mouse.current != null &&
-                Mouse.current.rightButton.isPressed)
+                isADS)
             {
                 if (!isJumping)
                 {
@@ -836,9 +905,11 @@ public class PlayerMovement : MonoBehaviour
         _verticalVelocity = force;
     }
 
+    private bool IsLocalInputBlocked => !GameplayActionPolicy.CanAct(this, GameplayAction.Move);
+
     private Vector2 getInput()
     {
-        if (InGameChatUI.IsChatOpen || VectorVoicePanel.BlocksGameplayInput)
+        if (IsLocalInputBlocked)
             return Vector2.zero;
 
         if (IsStunned())
@@ -870,11 +941,10 @@ public class PlayerMovement : MonoBehaviour
 
     public void ApplyJumpForce(float force)
     {
-        if (!_cc.isGrounded)
+        if (!_cc.isGrounded || !TrySetCrouching(false))
             return;
 
         _verticalVelocity = force;
-        _isCrouching = false;
     }
 
     public void SetLocalPlayer(bool isMine)
@@ -932,7 +1002,8 @@ public class PlayerMovement : MonoBehaviour
         if (NetworkManager.Instance == null)
             return;
 
-        if (Time.time - lastSendTime < sendInterval)
+        float now = Time.unscaledTime;
+        if (now - lastSendTime < sendInterval)
             return;
 
         Vector3 currentPos = transform.position;
@@ -961,12 +1032,12 @@ public class PlayerMovement : MonoBehaviour
 
         bool crouchingChanged =_isCrouching !=lastSentCrouching;
 
-        if (!positionChanged &&!yawChanged &&!pitchChanged &&!animChanged &&!crouchingChanged)
+        if (!positionChanged &&!yawChanged &&!pitchChanged &&!animChanged &&!crouchingChanged && now-lastSendTime<0.20f)
         {
             return;
         }
 
-        lastSendTime = Time.time;
+        lastSendTime = now;
         lastSentPos = currentPos;
         lastSentYaw = currentYaw;
         lastSentPitch = currentPitch;
@@ -1024,10 +1095,18 @@ public class PlayerMovement : MonoBehaviour
         return currentJumpPower;
     }
 
+    public void ResetNetworkInterpolation()
+    {
+        remoteMotion.Clear();
+    }
+
     public void ResetAfterRespawn(float spawnYaw)
     {
+        remoteMotion.Clear();
         _verticalVelocity = -2f;
         _isCrouching = false;
+        PlanarSpeed = 0f;
+        ApplyCapsulePosture();
 
         _targetPosition =
             transform.position;
@@ -1047,7 +1126,7 @@ public class PlayerMovement : MonoBehaviour
         lastSentPitch =
             0f;
 
-        lastSendTime = 0f;
+        lastSendTime = float.NegativeInfinity;
         lastSentAnimIndex = 255;
 
         _remoteIsMoving = false;
@@ -1121,7 +1200,7 @@ public class PlayerMovement : MonoBehaviour
         _isServerStunned = true;
 
         _verticalVelocity = -2f;
-        _isCrouching = false;
+        TrySetCrouching(false);
 
         yield return new WaitForSeconds(duration);
 

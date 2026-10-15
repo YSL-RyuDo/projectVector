@@ -620,11 +620,17 @@ public class MatchManager : MonoBehaviour
             if (movement != null)
             {
                 movement.SetLocalPlayer(isMine);
+                movement.ResetNetworkInterpolation();
             }
             else
             {
                 Debug.LogError($"[SPAWN FAIL] PlayerMovement not found. object={characterObj.name}");
             }
+
+            // Same authored spawn orientation as the round-reset path, including
+            // remote actors whose pitch/yaw will be used by their Start method.
+            characterObj.GetComponentInChildren<FPSCameraLook>(true)
+                ?.ResetLookRotation(spawnPoint.eulerAngles.y);
 
             if (isMine)
             {

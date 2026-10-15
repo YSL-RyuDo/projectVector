@@ -1334,9 +1334,16 @@ public partial class NetworkManager : MonoBehaviour
             case (ushort)PacketType.PKT_SC_MOVE_STATE:
                 HandleMoveState(body);
                 break;
+            case 397:
+                HandleMovementCorrection(body);
+                break;
 
             case (ushort)PacketType.PKT_SC_HP_UPDATE:
                 HandleHPUpdate(body);
+                break;
+
+            case (ushort)PacketType.PKT_SC_SHOT_CONFIRMED:
+                HandleShotConfirmed(body);
                 break;
 
             case (ushort)PacketType.PKT_SC_ROUND_RESULT:
@@ -3376,6 +3383,7 @@ public partial class NetworkManager : MonoBehaviour
 
     private void HandleGameAllReady(byte[] body)
     {
+        movementRound=1;
         Debug.Log("[RECV] GAME ALL READY");
 
         SkillInventoryState.Reset();
@@ -3539,7 +3547,7 @@ public partial class NetworkManager : MonoBehaviour
     byte animIndex,
     bool isCrouching)
     {
-        ushort size = 4 + 4 + 4 + 4 + 4 + 4 + 1 + 1;
+        ushort size = 4 + 4 + 4 + 4 + 4 + 4 + 1 + 1 + 8;
         ushort type = (ushort)PacketType.PKT_CS_MOVE_STATE;
 
         byte[] buffer = new byte[size];
@@ -3573,11 +3581,14 @@ public partial class NetworkManager : MonoBehaviour
         buffer[offset] = isCrouching ? (byte)1 : (byte)0;
         offset += 1;
 
+        Buffer.BlockCopy(BitConverter.GetBytes(Time.realtimeSinceStartupAsDouble),0,buffer,offset,8);
+
         client.Send(buffer);
     }
 
     private void HandleMoveState(byte[] body)
     {
+        if (body==null || (body.Length!=26 && body.Length!=34)) return;
         int offset = 0;
 
         uint playerId = BitConverter.ToUInt32(body, offset);
@@ -3618,7 +3629,8 @@ public partial class NetworkManager : MonoBehaviour
             yaw,
             pitch,
             animIndex,
-            isCrouching
+            isCrouching,
+            body.Length==34 ? BitConverter.ToDouble(body,26) : -1
         );
     }
 
@@ -3902,6 +3914,53 @@ public partial class NetworkManager : MonoBehaviour
         return null;
     }
 
+    private uint nextTrackedShot = unchecked((uint)Environment.TickCount);
+    private readonly Dictionary<ulong, (uint target, float time)> pendingTrackedHits = new Dictionary<ulong, (uint, float)>();
+
+    private void HandleShotConfirmed(byte[] body)
+    {
+        if (body == null || body.Length != 18) return;
+        uint shot = BitConverter.ToUInt32(body, 0);
+        uint target = BitConverter.ToUInt32(body, 4);
+        int damage = BitConverter.ToInt32(body, 12);
+        byte pellet = body[16];
+        ulong key = ((ulong)shot << 8) | pellet;
+        if (!pendingTrackedHits.TryGetValue(key, out var pending) || pending.target != target) return;
+        pendingTrackedHits.Remove(key);
+        if (damage > 0 && Time.unscaledTime - pending.time <= 5f)
+            HitManager.TriggerEnemyHit();
+    }
+
+    public uint SendTrackedFire(int weaponId)
+    {
+        if (StorePanelUI.IsBlockingGameplayInput) return 0;
+        uint shot = unchecked(++nextTrackedShot);
+        if (shot == 0) shot = unchecked(++nextTrackedShot);
+        byte[] packet = new byte[12];
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)12), 0, packet, 0, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)PacketType.PKT_CS_FIRE), 0, packet, 2, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes(shot), 0, packet, 4, 4);
+        Buffer.BlockCopy(BitConverter.GetBytes(weaponId), 0, packet, 8, 4);
+        client.Send(packet);
+        return shot;
+    }
+
+    public void SendTrackedHit(uint targetPlayerId, bool isHeadshot, uint shot, byte pellet)
+    {
+        if (shot == 0) return;
+        byte[] packet = new byte[14];
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)14), 0, packet, 0, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)PacketType.PKT_CS_HIT), 0, packet, 2, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes(targetPlayerId), 0, packet, 4, 4);
+        packet[8] = isHeadshot ? (byte)1 : (byte)0;
+        Buffer.BlockCopy(BitConverter.GetBytes(shot), 0, packet, 9, 4);
+        packet[13] = pellet;
+        // Bounded even if a server rejects all requests; no speculative player hit marker.
+        if (pendingTrackedHits.Count >= 2048) pendingTrackedHits.Clear();
+        pendingTrackedHits[((ulong)shot << 8) | pellet] = (targetPlayerId, Time.unscaledTime);
+        client.Send(packet);
+    }
+
     public void SendHit(uint targetPlayerId, bool isHeadshot = false)
     {
         ushort size = 4 + 4 + 1;
@@ -4032,6 +4091,7 @@ public partial class NetworkManager : MonoBehaviour
 
     private void HandleRoundReset(byte[] body)
     {
+        if(body!=null && body.Length>=4) movementRound=body[0];
         if (CombatFeedbackUI.Instance != null)
             CombatFeedbackUI.Instance.ResetAll();
 
@@ -4982,6 +5042,9 @@ public partial class NetworkManager : MonoBehaviour
         Debug.Log($"[SEND] SPIKE PLANT COMPLETE pos={position}");
     }
 
+    public void SendSpikePlantStart() => SendEmptyPacket(PacketType.PKT_CS_SPIKE_PLANT_START);
+    public void SendSpikePlantCancel() => SendEmptyPacket(PacketType.PKT_CS_SPIKE_PLANT_CANCEL);
+
     private void HandleSpikePickupNotify(byte[] body)
     {
         int offset = 0;
@@ -5037,6 +5100,9 @@ public partial class NetworkManager : MonoBehaviour
     }
     private void HandleSpikePlanted(byte[] body)
     {
+        if (body == null || body.Length != 12) return;
+        if (RoundManager.Instance != null && (RoundManager.Instance.currentState == RoundManager.RoundState.RoundEnd ||
+            RoundManager.Instance.currentState == RoundManager.RoundState.GameOver)) return;
         int offset = 0;
 
         float x = BitConverter.ToSingle(body, offset); offset += 4;
@@ -5111,6 +5177,7 @@ public partial class NetworkManager : MonoBehaviour
 
     private void HandleSpikeDefuseState(byte[] body)
     {
+        if (body == null || body.Length != 6) return;
         int offset = 0;
 
         byte state = body[offset];
@@ -5733,6 +5800,7 @@ public partial class NetworkManager : MonoBehaviour
             if (spike == null)
                 continue;
 
+            if (spike.IsLocalInteraction) spike.ForceCancelInteraction();
             Destroy(spike.gameObject);
         }
 

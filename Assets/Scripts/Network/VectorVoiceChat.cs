@@ -23,6 +23,9 @@ public sealed class VectorVoiceChat : MonoBehaviour, IVivoxTokenProvider
     public int OutputVolume { get; private set; }
     public string Status { get; private set; } = "음성 연결 대기";
     public string Channel => joinedChannel;
+    public byte Scope => FreshContext() ? desired.Scope : (byte)0;
+    public int ChannelCapacity => Scope == 3 ? 8 : Scope == 4 ? 2 : 3;
+    public string ChannelLabel => Scope == 3 ? "사설방 전체 음성" : Scope == 4 ? "관전자 음성" : Scope == 1 ? "파티 음성" : "팀 음성";
     public bool Ready => initialized && VivoxService.Instance.IsLoggedIn;
     public string InputDevice => Ready ? VivoxService.Instance.EffectiveInputDevice?.DeviceName ?? "마이크 없음" : "연결 대기";
     public string OutputDevice => Ready ? VivoxService.Instance.EffectiveOutputDevice?.DeviceName ?? "출력 장치 없음" : "연결 대기";
@@ -179,7 +182,7 @@ public sealed class VectorVoiceChat : MonoBehaviour, IVivoxTokenProvider
                     Voice.MuteInputDevice(); requireKeyRelease = true;
                 }
             }
-            Status = joinedChannel.Length == 0 ? "같은 파티·팀에 들어가면 음성 연결" : context.Scope == 1 ? "파티 음성" : "팀 음성";
+            Status = joinedChannel.Length == 0 ? "같은 파티·팀에 들어가면 음성 연결" : ChannelLabel;
         }
         catch
         {

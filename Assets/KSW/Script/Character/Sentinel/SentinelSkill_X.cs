@@ -73,6 +73,8 @@ public class SentinelSkill_X : CharacterSkill
         if (!IsMine())
             return;
 
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) { CancelCharging(); SetReady(false); return; }
+
         if (chargingSlider == null)
             TryResolveChargingSlider();
 
@@ -213,7 +215,7 @@ public class SentinelSkill_X : CharacterSkill
         {
             CharacterSkillUI.Instance.SentinelSkillText(
                 ready,
-                ready ? "X 궁극기: 좌클릭을 길게 눌러 차징" : ""
+                ready ? "X 궁극�? 좌클�?�� 길게 ?�러 차징" : ""
             );
         }
     }

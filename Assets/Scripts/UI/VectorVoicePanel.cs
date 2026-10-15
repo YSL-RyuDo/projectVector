@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 // All referenced objects are authored in scene. Runtime only binds state/input.
 public sealed class VectorVoicePanel : MonoBehaviour
@@ -22,11 +23,12 @@ public sealed class VectorVoicePanel : MonoBehaviour
     public TMP_Text participantCount;
     public Button partyButton;
     public GameObject partyView;
+    public GameObject privateRoomView;
     public GameObject[] hudRows = System.Array.Empty<GameObject>();
     public TMP_Text[] hudNames = System.Array.Empty<TMP_Text>();
     public Image[] hudIcons = System.Array.Empty<Image>(), hudActivity = System.Array.Empty<Image>();
     public GameObject[] blockingPopups = System.Array.Empty<GameObject>();
-    private readonly string[] accounts = new string[3];
+    private string[] accounts;
     private static readonly HashSet<VectorVoicePanel> activePanels = new();
     private float nextRefresh;
     private CursorLockMode previousLock;
@@ -38,6 +40,7 @@ public sealed class VectorVoicePanel : MonoBehaviour
 
     private void Awake()
     {
+        accounts = new string[participantTexts.Length];
         openButton.onClick.AddListener(Toggle);
         if (partyButton) partyButton.onClick.AddListener(Toggle);
         closeButton.onClick.AddListener(Close);
@@ -55,16 +58,16 @@ public sealed class VectorVoicePanel : MonoBehaviour
             participantResetButtons[i].onClick.AddListener(() => { if (!string.IsNullOrEmpty(accounts[slot])) VectorVoiceChat.Instance?.ResetParticipant(accounts[slot]); });
         }
     }
-    private void OnEnable() { activePanels.Add(this); }
+    private void OnEnable() { activePanels.Add(this); RefreshVisibility(); }
     private void OnDisable() { Close(); activePanels.Remove(this); }
     private void Update()
     {
+        if (!RefreshVisibility()) return;
         if (Keyboard.current?.f10Key.wasPressedThisFrame == true) Toggle();
         if (panel.activeSelf && Keyboard.current?.escapeKey.wasPressedThisFrame == true) Close();
         if (Time.unscaledTime < nextRefresh) return;
         nextRefresh = Time.unscaledTime + .1f;
         var service = VectorVoiceChat.Instance;
-        if (partyButton) partyButton.gameObject.SetActive(partyView && partyView.activeInHierarchy);
         if (service == null) { statusText.text = "게임 로그인 후 이용할 수 있습니다"; speakingText.text = ""; return; }
         statusText.text = service.Status;
         modeText.text = service.Automatic ? "자동 음성 감지" : "눌러서 말하기  [ ~ ]";
@@ -74,15 +77,16 @@ public sealed class VectorVoicePanel : MonoBehaviour
         inputVolume.SetValueWithoutNotify(service.InputVolume);
         outputVolume.SetValueWithoutNotify(service.OutputVolume);
         inputDeviceButton.interactable = outputDeviceButton.interactable = service.Ready;
-        var members = service.Participants.OrderByDescending(p => p.IsSelf).ThenBy(p => p.PlayerId).Take(3).ToArray();
+        var members = service.Participants.OrderByDescending(p => p.IsSelf).ThenBy(p => p.PlayerId).Take(accounts.Length).ToArray();
         // A departure/reorder must not redirect an in-flight drag or button release to another teammate.
         bool pointerBusy = Mouse.current != null && (Mouse.current.leftButton.isPressed || Mouse.current.leftButton.wasReleasedThisFrame);
-        if (pointerBusy && Enumerable.Range(0, 3).Any(i => accounts[i] != (i < members.Length ? members[i].PlayerId : ""))) return;
-        participantCount.text = $"{members.Length} / 3";
-        if (partyButton) partyButton.GetComponentInChildren<TMP_Text>().text = $"파티 음성  ·  {members.Length}/3";
+        if (pointerBusy && Enumerable.Range(0, accounts.Length).Any(i => accounts[i] != (i < members.Length ? members[i].PlayerId : ""))) return;
+        participantCount.text = $"{members.Length} / {service.ChannelCapacity}";
+        if (partyButton) partyButton.GetComponentInChildren<TMP_Text>().text = $"{service.ChannelLabel} · {members.Length}/{service.ChannelCapacity}";
         var speaking = new List<string>();
-        for (int i = 0; i < 3; ++i)
+        for (int i = 0; i < accounts.Length; ++i)
         {
+            participantTexts[i].transform.parent.gameObject.SetActive(i < service.ChannelCapacity);
             bool exists = i < members.Length;
             accounts[i] = exists ? members[i].PlayerId : "";
             bool self = exists && members[i].IsSelf;
@@ -114,9 +118,29 @@ public sealed class VectorVoicePanel : MonoBehaviour
     public void Toggle()
     {
         if (panel.activeSelf) { Close(); return; }
+        if (!RefreshVisibility()) return;
         if (HasBlockingPopup || InGameChatUI.IsChatOpen) return;
         previousLock = Cursor.lockState; previousCursor = Cursor.visible;
         panel.SetActive(true); Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
+    }
+    public static bool ShouldShow(string scene, bool authenticated, bool temporaryRoomVisible, bool privateRoomVisible) =>
+        authenticated && (scene == "Game_TestVersion" || (scene == "Lobby" && (temporaryRoomVisible || privateRoomVisible)));
+
+    private bool RefreshVisibility()
+    {
+        var network = NetworkManager.Instance;
+        bool show = ShouldShow(SceneManager.GetActiveScene().name,
+            network != null && network.IsConnected && network.IsAuthenticated,
+            partyView && partyView.activeInHierarchy, privateRoomView && privateRoomView.activeInHierarchy);
+        if (openButton) openButton.gameObject.SetActive(show);
+        if (partyButton) partyButton.gameObject.SetActive(show && SceneManager.GetActiveScene().name == "Lobby");
+        if (!show)
+        {
+            Close();
+            if (speakingText) speakingText.text = "";
+            foreach (var row in hudRows) if (row) row.SetActive(false);
+        }
+        return show;
     }
     public void Close()
     {

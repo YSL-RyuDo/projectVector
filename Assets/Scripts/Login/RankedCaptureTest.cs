@@ -16,6 +16,8 @@ public sealed class RankedCaptureTest : MonoBehaviour
     string account, root, frames;
     bool recording, finished;
     int frame;
+    int encounterRound = 1;
+    bool Lifecycle => Environment.GetEnvironmentVariable("VECTOR_CAPTURE_LIFECYCLE") == "1";
     StreamWriter timeline;
     static readonly BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
     static T Field<T>(object obj, string name) => (T)obj.GetType().GetField(name, Private).GetValue(obj);
@@ -157,9 +159,18 @@ public sealed class RankedCaptureTest : MonoBehaviour
         yield return Wait(() => GameController.Instance != null && GameController.Instance.CurrentState == GameController.GameFlowState.Playing, "loading actual match", 90);
         if (finished) yield break;
         Stage("in game"); File.WriteAllText(Path.Combine(root, account + ".playing"), "verified");
+        if (Lifecycle && net.MyPlayer != null && net.MyPlayer.GetComponent<InitiatorSkill_Q>() != null)
+            net.SendStoreBuyRequest(2, (int)SkillSlot.Q);
         yield return Wait(() => RoundManager.Instance != null && RoundManager.Instance.currentState == RoundManager.RoundState.MainRound && net.MyPlayer != null,
             "waiting for combat round", 40);
         if (finished) yield break;
+        if (Environment.GetEnvironmentVariable("VECTOR_CAPTURE_OBJECTIVE") == "1")
+        {
+            yield return ProbeObjective();
+            if(!finished) Finish("PASS: six clients observe valid plant, ESC cancel, exclusive defuse, range cancel and server round result");
+            yield break;
+        }
+        if (Lifecycle) { yield return ProbeActions(); if(finished) yield break; }
         if (Environment.GetEnvironmentVariable("VECTOR_CAPTURE_RECONNECT") == "1")
         {
             yield return ReconnectEncounter();
@@ -167,6 +178,33 @@ public sealed class RankedCaptureTest : MonoBehaviour
         }
         yield return StageCombat();
         if (finished) yield break;
+        if (Lifecycle)
+        {
+            yield return Wait(()=>RoundManager.Instance.currentState==RoundManager.RoundState.RoundEnd,"first round ended",45);
+            if(finished) yield break;
+            SettingsMenu.Instance.OpenSettingsMenu();
+            yield return Wait(()=>RoundManager.Instance.currentState==RoundManager.RoundState.Preparation,"ESC open across round reset and side swap",15);
+            if(finished) yield break;
+            var me=net.MyPlayer;
+            var info=FindFirstObjectByType<MapInfo>();
+            var expected=info.GetSpawnPoint((byte)(1-me.Team),me.SlotIndex).position;
+            if(me.GetComponent<PlayerHP>().IsDead || Vector3.Distance(me.transform.position,expected)>1.5f ||
+                InitiatorSkill_Q.IsLocalDroneMode || EntrySkill_X.IsLocalBladeMode || !SettingsMenu.Instance.IsOpen ||
+                Cursor.lockState != CursorLockMode.None || !Cursor.visible)
+            { Finish("FAILED: round reset under ESC/side swap mismatch"); yield break; }
+            Stage("PASS alive/dead reset and opposite-side spawn while ESC remains open");
+            File.WriteAllText(Path.Combine(root,account+".round-reset"),"PASS: alive/dead reset, opposite side spawn under ESC");
+            SettingsMenu.Instance.CloseSettingsMenu();
+            me.GetComponent<PlayerMovement>().enabled=true;
+            me.GetComponent<PlayerCameraController>().CameraLook.enabled=true;
+            yield return Wait(()=>RoundManager.Instance.currentState==RoundManager.RoundState.MainRound,"second round buy end",20);
+            if(finished) yield break;
+            if(info.barriers.activeSelf || !RoundManager.Instance.CanAttack)
+            { Finish("FAILED: buy-end barriers/attack"); yield break; }
+            encounterRound=2;
+            yield return StageCombat();
+            if(finished) yield break;
+        }
         yield return Wait(() => SceneManager.GetActiveScene().name == "Result" && MatchResultCache.members.Count == 6,
             "waiting for authoritative match settlement", 100);
         if (finished) yield break;
@@ -175,6 +213,19 @@ public sealed class RankedCaptureTest : MonoBehaviour
         { Finish("FAILED: ranked MVP settlement assertion"); yield break; }
         File.WriteAllText(Path.Combine(root, account + ".result"),
             $"ranked={MatchResultCache.matchType} score={MatchResultCache.scoreA}:{MatchResultCache.scoreB} MVP={result.isMvp} KDA={result.kills}/{result.deaths}/{result.assists} rank={result.rankPointsBefore}->{result.rankPointsAfter} delta={result.rankPointDelta}");
+        if(account=="qwer" && Environment.GetEnvironmentVariable("VECTOR_CAPTURE_RESULT_RECONNECT")=="1")
+        {
+            int prior=net.CompletedReconnects; int rank=result.rankPointsAfter; int kills=result.kills;
+            Field<NetworkClient>(net,"client").Close();
+            yield return Wait(()=>net.ReconnectBusy,"result screen detects transport loss",10);
+            yield return Wait(()=>net.CompletedReconnects>prior && !net.ReconnectBusy && SceneManager.GetActiveScene().name=="Result",
+                "restoring settled result without awarding again",60);
+            if(finished) yield break;
+            var restored=MatchResultCache.members.First(m=>m.playerId==net.MyPlayerId);
+            if(restored.rankPointsAfter!=rank || restored.kills!=kills || !restored.isMvp)
+            {Finish("FAILED: restored result changed");yield break;}
+            File.WriteAllText(Path.Combine(root,"result-reconnect.pass"),"PASS actual Unity Result disconnect, reconnect loading, same MVP/rank/KDA");
+        }
         yield return Wait(() => FindFirstObjectByType<ResultVictorySequence>() != null &&
             FindFirstObjectByType<ResultVictorySequence>().CurrentPage == ResultVictorySequence.Page.Rank, "recording MVP and rank presentation", 20);
         if (finished) yield break;
@@ -185,6 +236,133 @@ public sealed class RankedCaptureTest : MonoBehaviour
         sequence.next.onClick.Invoke();
         yield return new WaitForSecondsRealtime(7);
         Finish("PASS: ranked duos/solos, selection, combat, server MVP, rank and rewards");
+    }
+
+    IEnumerator ProbeActions()
+    {
+        var net=NetworkManager.Instance; var me=net.MyPlayer;
+        var menu=SettingsMenu.Instance;
+        if(menu==null) { Finish("FAILED: missing authored settings menu"); yield break; }
+        menu.OpenSettingsMenu();
+        if(!menu.IsOpen) { Finish("FAILED: settings did not open"); yield break; }
+        var position=me.transform.position;
+        foreach(GameplayAction action in Enum.GetValues(typeof(GameplayAction)))
+            if(GameplayActionPolicy.CanAct(me,action)) { Finish("FAILED: ESC leaked "+action); yield break; }
+        var keyboard=UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Keyboard>();
+        UnityEngine.InputSystem.InputSystem.QueueStateEvent(keyboard,new UnityEngine.InputSystem.LowLevel.KeyboardState(UnityEngine.InputSystem.Key.W,UnityEngine.InputSystem.Key.Space));
+        yield return new WaitForSecondsRealtime(1);
+        UnityEngine.InputSystem.InputSystem.RemoveDevice(keyboard);
+        if(Vector2.Distance(new Vector2(position.x,position.z),new Vector2(me.transform.position.x,me.transform.position.z))>.15f)
+        { Finish("FAILED: ESC allowed movement"); yield break; }
+        menu.CloseSettingsMenu(); yield return new WaitForSecondsRealtime(.3f);
+        if(Environment.GetEnvironmentVariable("VECTOR_CAPTURE_RESULT_RECONNECT")=="1")
+        {
+            var safe=me.transform.position; int corrections=net.MovementCorrections;
+            PlaceForTest(safe+Vector3.right*500);
+            yield return Wait(()=>net.MovementCorrections>corrections,"server corrects impossible movement",5);
+            if(finished)yield break;
+            if(Vector3.Distance(me.transform.position,safe)>1) {Finish("FAILED: correction did not restore actor");yield break;}
+            File.WriteAllText(Path.Combine(root,account+".correction-pass"),"PASS server correction restores position without respawn");
+        }
+        var drone=me.GetComponent<InitiatorSkill_Q>();
+        if(drone!=null)
+        {
+            yield return Wait(()=>SkillInventoryState.CanUse(SkillSlot.Q),"drone purchase confirmed",4);
+            if(finished) yield break;
+            Call(drone,"UseSkill");
+            yield return Wait(()=>InitiatorSkill_Q.IsLocalDroneMode,"server deployed drone",5);
+            if(finished) yield break;
+            if(GameplayActionPolicy.CanAct(me,GameplayAction.Reload) || GameplayActionPolicy.CanAct(me,GameplayAction.WeaponChange))
+            { Finish("FAILED: drone leaked weapon action"); yield break; }
+            yield return new WaitForSecondsRealtime(2);
+            Call(drone,"UseSkill"); yield return new WaitForSecondsRealtime(1);
+            if(InitiatorSkill_Q.IsLocalDroneMode || !me.GetComponent<PlayerCameraController>().PlayerCamera.enabled ||
+                !GameplayActionPolicy.CanAct(me,GameplayAction.Fire))
+            { Finish("FAILED: drone exit did not restore camera/weapon"); yield break; }
+        }
+        File.WriteAllText(Path.Combine(root,account+".policy-probe"),"PASS ESC blocks held W/jump and seven actions"+(drone!=null?"; server drone deploy/exit, weapon lock, camera restore":""));
+        yield return Wait(()=>All(".policy-probe"),"six clients action-policy probes",15);
+    }
+
+    void PlaceForTest(Vector3 position)
+    {
+        var me=NetworkManager.Instance.MyPlayer; var cc=me.GetComponent<CharacterController>();
+        cc.enabled=false; me.transform.position=position; cc.enabled=true;
+        NetworkManager.Instance.SendMoveState(position.x,position.y,position.z,me.transform.eulerAngles.y,0,0,false);
+    }
+
+    IEnumerator ProbeObjective()
+    {
+        var net=NetworkManager.Instance; var me=net.MyPlayer; var ps=me.GetComponent<PlayerSpike>();
+        var keyboard=UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Keyboard>();
+        try
+        {
+            var site=FindObjectsByType<SpikePlantZone>(FindObjectsSortMode.None).OrderBy(z=>z.name).First();
+            var box=site.GetComponent<BoxCollider>(); var center=box.transform.TransformPoint(box.center);
+            bool planter=me.Team==0 && me.SlotIndex==0;
+            bool defender=me.Team==1 && me.SlotIndex<2;
+            if(planter)
+            {
+                PlaceForTest(FindFirstObjectByType<MapInfo>().spikeSpawnPoint.position);
+                yield return new WaitForSecondsRealtime(.5f); net.SendSpikePickupRequest();
+                yield return Wait(()=>ps.hasSpike,"server granted spike carrier",5); if(finished)yield break;
+                // An invalid client request must not be trusted by the server.
+                net.SendSpikePlantStart(); yield return new WaitForSecondsRealtime(3.2f);
+                net.SendSpikePlantComplete(me.transform.position); yield return new WaitForSecondsRealtime(.5f);
+                if(RoundManager.Instance.currentState!=RoundManager.RoundState.MainRound || !ps.hasSpike)
+                {Finish("FAILED: server allowed outside-site plant");yield break;}
+                PlaceForTest(center); yield return new WaitForSecondsRealtime(.6f);
+                if(!SpikePlantZone.Contains(me.transform.position)) {Finish("FAILED: authored plant site/root mismatch");yield break;}
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(keyboard,new UnityEngine.InputSystem.LowLevel.KeyboardState(UnityEngine.InputSystem.Key.F));
+                yield return null; ps.TryStartPlant(); yield return new WaitForSecondsRealtime(.7f);
+                SettingsMenu.Instance.OpenSettingsMenu(); yield return new WaitForSecondsRealtime(.3f);
+                if(ps.IsInteracting) {Finish("FAILED: ESC did not cancel planting");yield break;}
+                SettingsMenu.Instance.CloseSettingsMenu(); yield return new WaitForSecondsRealtime(.3f);
+                ps.TryStartPlant();
+            }
+            yield return Wait(()=>Spike.PlantedSpike!=null && RoundManager.Instance.currentState==RoundManager.RoundState.SpikePlanted,
+                "all clients receive server plant",25); if(finished)yield break;
+            UnityEngine.InputSystem.InputSystem.QueueStateEvent(keyboard,new UnityEngine.InputSystem.LowLevel.KeyboardState());
+            var spike=Spike.PlantedSpike;
+            if(planter) PlaceForTest(center+Vector3.forward*4);
+            if(defender) PlaceForTest(spike.transform.position+Vector3.right*(me.SlotIndex==0?-.6f:.6f));
+            yield return new WaitForSecondsRealtime(.6f);
+            File.WriteAllText(Path.Combine(root,account+".defuse-ready"),"ready");
+            yield return Wait(()=>All(".defuse-ready"),"six clients ready for simultaneous defuse",8); if(finished)yield break;
+            if(account=="qwer") File.WriteAllText(Path.Combine(root,"defuse.utc"),DateTimeOffset.UtcNow.AddSeconds(2).ToUnixTimeMilliseconds().ToString());
+            yield return Wait(()=>File.Exists(Path.Combine(root,"defuse.utc")),"synchronize defuse requests",5); if(finished)yield break;
+            yield return new WaitForSecondsRealtime(.2f);
+            long utc=long.Parse(File.ReadAllText(Path.Combine(root,"defuse.utc")));
+            while(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()<utc) yield return null;
+            if(defender)
+            {
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(keyboard,new UnityEngine.InputSystem.LowLevel.KeyboardState(UnityEngine.InputSystem.Key.F));
+                yield return null; spike.TryStartDefuse();
+            }
+            yield return new WaitForSecondsRealtime(.7f);
+            bool owns=Field<bool>(spike,"isDefusing");
+            File.WriteAllText(Path.Combine(root,account+".defuse-owner"),owns?"1":"0");
+            yield return Wait(()=>All(".defuse-owner"),"verify single defuse owner",2); if(finished)yield break;
+            if(Accounts.Count(a=>File.ReadAllText(Path.Combine(root,a+".defuse-owner"))=="1")!=1)
+            {Finish("FAILED: simultaneous defuse owner count");yield break;}
+            if(owns) PlaceForTest(center+Vector3.right*6);
+            yield return new WaitForSecondsRealtime(1);
+            if(Field<bool>(spike,"isDefusing")) {Finish("FAILED: out-of-range defuse continued");yield break;}
+            UnityEngine.InputSystem.InputSystem.QueueStateEvent(keyboard,new UnityEngine.InputSystem.LowLevel.KeyboardState());
+            yield return new WaitForSecondsRealtime(.5f);
+            if(me.Team==1 && me.SlotIndex==0)
+            {
+                PlaceForTest(spike.transform.position+Vector3.right*.5f); yield return new WaitForSecondsRealtime(.6f);
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(keyboard,new UnityEngine.InputSystem.LowLevel.KeyboardState(UnityEngine.InputSystem.Key.F));
+                yield return null; spike.TryStartDefuse();
+            }
+            yield return Wait(()=>RoundManager.Instance.currentState==RoundManager.RoundState.RoundEnd,"server confirms defuse round result",12);
+            if(finished)yield break;
+            File.WriteAllText(Path.Combine(root,account+".objective-pass"),"PASS plant/ESC/exclusive defuse/range cancel/result");
+            yield return Wait(()=>All(".objective-pass"),"all six confirmed objective result",3);
+            yield return new WaitForSecondsRealtime(2);
+        }
+        finally { UnityEngine.InputSystem.InputSystem.RemoveDevice(keyboard); }
     }
 
     IEnumerator ReconnectEncounter()
@@ -228,7 +406,7 @@ public sealed class RankedCaptureTest : MonoBehaviour
     {
         var net = NetworkManager.Instance;
         var me = net.MyPlayer;
-        var planPath = Path.Combine(root, "combat.json");
+        var planPath = Path.Combine(root, "combat-"+encounterRound+".json");
         yield return new WaitForSecondsRealtime(2);
         if (account == "qwer")
         {
@@ -264,15 +442,24 @@ public sealed class RankedCaptureTest : MonoBehaviour
         {
             var controller = me.GetComponent<CharacterController>();
             if (controller != null) controller.enabled = false;
-            me.transform.position = plan.positions[me.SlotIndex % plan.positions.Length];
+            var destination=plan.positions[me.SlotIndex % plan.positions.Length];
+            // QA positioning still obeys the server's movement budget. This is not
+            // a navigation/collision test; only the actual combat lane is physics checked.
+            while(Vector3.Distance(me.transform.position,destination)>.01f)
+            {
+                me.transform.position=Vector3.MoveTowards(me.transform.position,destination,8*Time.unscaledDeltaTime);
+                var step=me.transform.position;
+                net.SendMoveState(step.x,step.y,step.z,me.transform.eulerAngles.y,0,0,false);
+                yield return null;
+            }
             if (controller != null) controller.enabled = true;
             var hero = FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None).First(p => p.PlayerId == plan.hero);
             me.transform.rotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(hero.transform.position - me.transform.position, Vector3.up));
             var p = me.transform.position;
             net.SendMoveState(p.x, p.y, p.z, me.transform.eulerAngles.y, 0, 0, false);
         }
-        File.WriteAllText(Path.Combine(root, account + ".combat-ready"), "ready");
-        yield return Wait(() => All(".combat-ready"), "waiting for combat actors", 20);
+        File.WriteAllText(Path.Combine(root, account + ".combat-ready-"+encounterRound), "ready");
+        yield return Wait(() => All(".combat-ready-"+encounterRound), "waiting for combat actors", 35);
         if (finished || account != "qwer") yield break;
         yield return new WaitForSecondsRealtime(2);
         var item = me.GetComponent<PlayerItem>();

@@ -131,8 +131,11 @@ public class ControllerSkill_E : CharacterSkill
 
         if (_miniMapOverlay != null) _miniMapOverlay.SetActive(false);
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        if (!SettingsMenu.PreserveOpenMenuCursor())
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
 
         if (_cameraLook == null) _cameraLook = GetComponentInChildren<FPSCameraLook>(true);
         if (_cameraLook != null) _cameraLook.CanMove = true;
@@ -161,8 +164,11 @@ public class ControllerSkill_E : CharacterSkill
 
         if (_miniMapOverlay != null) _miniMapOverlay.SetActive(false);
 
-        if (Cursor.lockState != CursorLockMode.Locked) Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        if (!SettingsMenu.PreserveOpenMenuCursor())
+        {
+            if (Cursor.lockState != CursorLockMode.Locked) Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
 
         if (_cameraLook == null) _cameraLook = GetComponentInChildren<FPSCameraLook>(true);
         if (_cameraLook != null) _cameraLook.CanMove = true;

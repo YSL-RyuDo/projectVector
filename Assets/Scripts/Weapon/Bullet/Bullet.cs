@@ -1,207 +1,137 @@
+using System;
 using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
     [SerializeField] private GameObject bulletHolePrefab;
-
     private PlayerIdentity ownerIdentity;
-    private int ownerPlayerId;
-    private byte ownerTeam;
-
-    private float maxDistance;
-    private float bulletSpeed;
-    private Vector3 startPos;
+    private float remainingDistance, bulletSpeed;
     private Vector3 direction;
-
-    private bool canSendHit;
-    private bool hitSent;
+    private bool canSendHit, finished, visualOnly, visualSurface;
+    private Vector3 visualTarget, visualNormal;
+    private int hitMask = ~0;
+    private uint shotId;
+    private byte pelletIndex;
+    private Func<RaycastHit, bool> deviceImpact;
     private int practiceDamage, practiceShot, practiceGeneration;
 
-    private Rigidbody rb;
-    private Collider bulletCollider;
+    public Collider LastImpactCollider { get; private set; }
+    public Vector3 LastImpactPoint { get; private set; }
+    public bool HasFinished => finished;
 
-    public void Init(PlayerIdentity owner, float range, float speed, Vector3 dir, bool sendHitFromThisBullet)
+    public void Init(PlayerIdentity owner, float range, float speed, Vector3 dir, bool sendHitFromThisBullet,
+        int mask = ~0, uint shot = 0, byte pellet = 0, Func<RaycastHit, bool> onDeviceImpact = null)
     {
         ownerIdentity = owner;
-        ownerPlayerId = owner != null ? (int)owner.PlayerId : -1;
-        ownerTeam = owner != null ? owner.Team : (byte)255;
-
-        maxDistance = range;
-        bulletSpeed = speed;
+        remainingDistance = Mathf.Max(0f, range);
+        bulletSpeed = Mathf.Max(0f, speed);
         direction = dir.normalized;
-
         canSendHit = sendHitFromThisBullet;
-        var practice=PracticePlayerContext.For(owner);
-        if(practice!=null)
+        hitMask = mask; shotId = shot; pelletIndex = pellet; deviceImpact = onDeviceImpact;
+        finished = false; visualOnly = false;
+        var practice = PracticePlayerContext.For(owner);
+        if (practice != null)
         {
-            var weapon=practice.GetComponent<PlayerItem>()?.GetCurrentWeapon()?.Data;
-            practiceDamage=practice.range.loadout?.DamageFor(weapon) ?? weapon?.damage ?? 0;
-            practiceShot=practice.GetComponent<PracticeWeaponInput>()?.Fired ?? -1;
-            practiceGeneration=practice.range.spawner.Generation;
+            var weapon = practice.GetComponent<PlayerItem>()?.GetCurrentWeapon()?.Data;
+            practiceDamage = practice.range.loadout?.DamageFor(weapon) ?? weapon?.damage ?? 0;
+            practiceShot = practice.GetComponent<PracticeWeaponInput>()?.Fired ?? -1;
+            practiceGeneration = practice.range.spawner.Generation;
         }
-        hitSent = false;
-        startPos = transform.position;
-
-        rb = GetComponent<Rigidbody>();
-        bulletCollider = GetComponent<Collider>();
-
-        if (bulletCollider == null)
-        {
-            Debug.LogError("[BULLET] Collider missing.", this);
-            Destroy(gameObject);
-            return;
-        }
-
-        if (rb == null)
-        {
-            Debug.LogError("[BULLET] Rigidbody missing.", this);
-            Destroy(gameObject);
-            return;
-        }
-
-        rb.useGravity = false;
-        rb.isKinematic = false;
-        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-        rb.interpolation = RigidbodyInterpolation.Interpolate;
-
-        IgnoreOwnerColliders();
-
-        rb.linearVelocity = direction * bulletSpeed;
+        DisablePhysicalContact();
     }
 
-    private void Update()
+    public void InitVisual(Vector3 target, Vector3 normal, bool surface, float speed)
     {
-        if (Vector3.Distance(startPos, transform.position) > maxDistance)
-            Destroy(gameObject);
+        visualOnly = true; finished = false; canSendHit = false;
+        visualTarget = target; visualNormal = normal; visualSurface = surface;
+        bulletSpeed = Mathf.Max(1f, speed);
+        DisablePhysicalContact();
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void DisablePhysicalContact()
     {
-        if (collision == null || collision.collider == null)
-            return;
-
-        if (PracticePlayerContext.For(ownerIdentity) != null && collision.collider.TryGetComponent<PracticeTargetZone>(out var practiceTarget))
+        // A sphere/CCD collision can hit a corner the aim ray missed. The swept
+        // ray owns impact; this object is only its presentation, never a second hit.
+        foreach (var collider in GetComponentsInChildren<Collider>(true)) collider.enabled = false;
+        var body = GetComponent<Rigidbody>();
+        if (body != null)
         {
-            if(canSendHit && !hitSent){hitSent=true;practiceTarget.Hit(practiceDamage,practiceShot,practiceGeneration);}
-            Destroy(gameObject); return;
+            body.collisionDetectionMode = CollisionDetectionMode.Discrete;
+            body.isKinematic = true;
+            body.useGravity = false;
         }
-
-        PlayerIdentity targetIdentity = collision.collider.GetComponentInParent<PlayerIdentity>();
-
-        if (targetIdentity != null)
-        {
-            HandlePlayerCollision(collision, targetIdentity);
-            return;
-        }
-
-        if (collision.contacts.Length > 0)
-        {
-            ContactPoint contact = collision.contacts[0];
-            SpawnBulletHole(contact.point, contact.normal);
-        }
-
-        Destroy(gameObject);
     }
 
-    private void HandlePlayerCollision(Collision collision, PlayerIdentity targetIdentity)
+    private void FixedUpdate() => Advance(Time.fixedDeltaTime);
+
+    public void Advance(float deltaTime)
     {
-        if (targetIdentity == null)
-            return;
-
-        if (ownerIdentity != null && targetIdentity.PlayerId == ownerIdentity.PlayerId)
+        if (finished || deltaTime <= 0f) return;
+        if (visualOnly)
         {
-            IgnoreThisCollision(collision.collider);
-            RestoreVelocity();
-            return;
-        }
-
-        if (ownerIdentity != null && targetIdentity.Team == ownerTeam)
-        {
-            Debug.Log($"[BULLET] Friendly ignored. owner={ownerPlayerId}, target={targetIdentity.PlayerId}");
-
-            IgnoreThisCollision(collision.collider);
-            RestoreVelocity();
-            return;
-        }
-
-        PlayerHP targetHP = targetIdentity.GetComponent<PlayerHP>();
-
-        if (targetHP == null)
-            targetHP = targetIdentity.GetComponentInChildren<PlayerHP>(true);
-
-        if (targetHP != null && targetHP.IsDead)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        if (canSendHit && !hitSent)
-        {
-            hitSent = true;
-
-            Debug.Log($"[BULLET HIT] targetPlayerId={targetIdentity.PlayerId}, owner={ownerPlayerId}");
-
-            // 네트워크 상태와 상관없이 로컬 히트마커를 먼저 표시한다.
-            HitManager.TriggerEnemyHit();
-
-            if (NetworkManager.Instance != null)
+            transform.position = Vector3.MoveTowards(transform.position, visualTarget, bulletSpeed * deltaTime);
+            if ((transform.position - visualTarget).sqrMagnitude < 0.000001f)
             {
-                string hitName = collision.collider != null ? collision.collider.name.ToLowerInvariant() : string.Empty;
-                bool isHeadshot = hitName.Contains("head") || hitName.Contains("머리");
-                NetworkManager.Instance.SendHit(targetIdentity.PlayerId, isHeadshot);
+                if (visualSurface) SpawnBulletHole(visualTarget, visualNormal);
+                Finish();
             }
-            else
-            {
-                Debug.LogWarning("[BULLET HIT] NetworkManager.Instance is null.");
-            }
-        }
-
-        Destroy(gameObject);
-    }
-
-    private void IgnoreOwnerColliders()
-    {
-        if (ownerIdentity == null || bulletCollider == null)
             return;
-
-        Collider[] ownerColliders = ownerIdentity.GetComponentsInChildren<Collider>(true);
-
-        foreach (Collider col in ownerColliders)
+        }
+        Vector3 origin = transform.position;
+        Transform root = ownerIdentity != null ? ownerIdentity.transform : null;
+        var enclosing = WeaponShotTrace.EnclosingCollider(origin, hitMask, ownerIdentity, root);
+        if (enclosing != null) { ResolveImpact(enclosing, origin, -direction, null); return; }
+        float distance = Mathf.Min(remainingDistance, bulletSpeed * deltaTime);
+        if (WeaponShotTrace.FirstHit(new Ray(origin, direction), distance, hitMask, ownerIdentity, root, out var hit))
         {
-            if (col == null || col == bulletCollider)
-                continue;
-
-            Physics.IgnoreCollision(bulletCollider, col, true);
+            transform.position = hit.point;
+            ResolveImpact(hit.collider, hit.point, hit.normal, hit);
+            return;
         }
+        transform.position = origin + direction * distance;
+        remainingDistance -= distance;
+        if (remainingDistance <= 0f || bulletSpeed <= 0f) Finish();
     }
 
-    private void IgnoreThisCollision(Collider other)
+    private void ResolveImpact(Collider collider, Vector3 point, Vector3 normal, RaycastHit? rayHit)
     {
-        if (bulletCollider == null || other == null)
+        if (finished) return;
+        LastImpactCollider = collider; LastImpactPoint = point;
+        // Set terminal state BEFORE callbacks, preventing repeated contact damage.
+        Finish();
+        if (PracticePlayerContext.For(ownerIdentity) != null && collider.TryGetComponent<PracticeTargetZone>(out var target))
+        {
+            if (canSendHit) target.Hit(practiceDamage, practiceShot, practiceGeneration);
             return;
-
-        Physics.IgnoreCollision(bulletCollider, other, true);
+        }
+        if (canSendHit && rayHit.HasValue && deviceImpact != null && deviceImpact(rayHit.Value)) return;
+        var player = collider.GetComponentInParent<PlayerIdentity>();
+        if (player != null)
+        {
+            var hp = player.GetComponentInChildren<PlayerHP>(true);
+            if (hp != null && hp.IsDead) return;
+            if (canSendHit && ownerIdentity != null && player.PlayerId != ownerIdentity.PlayerId &&
+                player.Team != ownerIdentity.Team && NetworkManager.Instance != null)
+            {
+                NetworkManager.Instance.SendTrackedHit(player.PlayerId, WeaponShotTrace.IsHead(collider), shotId, pelletIndex);
+            }
+            return;
+        }
+        SpawnBulletHole(point, normal);
     }
 
-    private void RestoreVelocity()
+    private void Finish()
     {
-        if (rb == null)
-            return;
-
-        rb.linearVelocity = direction * bulletSpeed;
+        finished = true;
+        enabled = false;
+        if (Application.isPlaying) Destroy(gameObject);
     }
 
     private void SpawnBulletHole(Vector3 point, Vector3 normal)
     {
-        if (bulletHolePrefab == null)
-            return;
-
-        GameObject hole = Instantiate(
-            bulletHolePrefab,
-            point + normal * 0.001f,
-            Quaternion.LookRotation(normal) * Quaternion.Euler(0f, 180f, 0f)
-        );
-
+        if (bulletHolePrefab == null || normal.sqrMagnitude < 0.01f) return;
+        var hole = Instantiate(bulletHolePrefab, point + normal * 0.001f,
+            Quaternion.LookRotation(normal) * Quaternion.Euler(0f, 180f, 0f));
         hole.transform.SetParent(null);
     }
 }

@@ -123,6 +123,7 @@ public static class VectorVoiceAuthoring
             EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene);
         }
         AssetDatabase.SaveAssets();
+        VoiceRoomUpgrade.Run();
         Debug.Log("[VoiceAuthoring] Scene-authored voice controls saved. Live service testing still required.");
     }
     private static RectTransform Box(Transform parent, string name, Color color, float x, float y, float w, float h)

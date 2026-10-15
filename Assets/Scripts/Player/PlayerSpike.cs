@@ -29,6 +29,16 @@ public class PlayerSpike : MonoBehaviour
 
     private PlayerIdentity _playerIdentity;
     private bool spikeDropRequested;
+    public bool IsInteracting => isPlanting || (spikeInRange != null && spikeInRange.IsLocalInteraction);
+    public bool CanInteract => isActiveAndEnabled && IsLocalPlayer() &&
+        GameplayActionPolicy.CanAct(this, GameplayAction.Interact) &&
+        NetworkManager.Instance != null && NetworkManager.Instance.IsConnected && NetworkManager.Instance.IsAuthenticated &&
+        GetComponent<PlayerHP>()?.IsDead != true && GetComponent<PlayerDeathController>()?.IsDead != true &&
+        GetComponent<ElectricShock>()?.IsStunned != true && !InitiatorSkill_Q.IsLocalDroneMode && !EntrySkill_X.IsLocalBladeMode &&
+        !InitiatorSkill_C.ShouldBlockWeaponInput() && !SentinelSkill_C.ShouldBlockWeaponInput() &&
+        !SentinelSkill_E.ShouldBlockWeaponInput() && !SentinelSkill_X.ShouldBlockWeaponInput() &&
+        RoundManager.Instance != null && (RoundManager.Instance.currentState == RoundManager.RoundState.MainRound ||
+        RoundManager.Instance.currentState == RoundManager.RoundState.SpikePlanted);
 
     private void Start()
     {
@@ -46,13 +56,20 @@ public class PlayerSpike : MonoBehaviour
 
     private void Update()
     {
+        if (IsLocalPlayer()) SetPlantZone(SpikePlantZone.Contains(transform.position));
+        if (IsInteracting && (!CanInteract || Keyboard.current == null || !Keyboard.current.fKey.isPressed ||
+            InGameChatUI.IsChatOpen || (GameController.Instance != null && GameController.Instance.IsPaused)))
+        {
+            ForceCancelPlant();
+            if (spikeInRange != null) spikeInRange.CancelDefuse();
+        }
         if (VectorVoicePanel.BlocksGameplayInput && IsLocalPlayer())
         {
             CancelPlant();
             if (spikeInRange != null) spikeInRange.CancelDefuse();
             return;
         }
-        if (GameController.Instance != null && GameController.Instance.IsPaused)
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Interact))
             return;
 
         if (!IsLocalPlayer())
@@ -250,12 +267,13 @@ public class PlayerSpike : MonoBehaviour
     {
         isInsidePlantZone = value;
 
-        if (!isInsidePlantZone)
+        if (!isInsidePlantZone && isPlanting)
             ForceCancelPlant();
     }
 
     public void TryStartPlant()
     {
+        if (!CanInteract || isPlanting) return;
         if (spikeDropRequested)
             return;
 
@@ -290,6 +308,7 @@ public class PlayerSpike : MonoBehaviour
 
         isPlanting = true;
         currentPlantTime = 0f;
+        NetworkManager.Instance?.SendSpikePlantStart();
 
         SetPlayerControl(false);
 
@@ -344,6 +363,7 @@ public class PlayerSpike : MonoBehaviour
         SetPlayerControl(true);
 
         Vector3 plantPos = transform.position + transform.forward * 1f;
+        if (!SpikePlantZone.Contains(plantPos)) plantPos = transform.position;
 
         if (NetworkManager.Instance != null)
             NetworkManager.Instance.SendSpikePlantComplete(plantPos);
@@ -355,6 +375,7 @@ public class PlayerSpike : MonoBehaviour
     {
         if (!isPlanting)
             return;
+        NetworkManager.Instance?.SendSpikePlantCancel();
 
         Debug.Log("[SPIKE] Cancel planting");
 
@@ -399,11 +420,16 @@ public class PlayerSpike : MonoBehaviour
 
     public void SetPlayerControl(bool canControl)
     {
+        bool alive = GetComponent<PlayerHP>()?.IsDead != true && GetComponent<PlayerDeathController>()?.IsDead != true;
+        bool restore = canControl && alive && !InitiatorSkill_Q.IsLocalDroneMode && !EntrySkill_X.IsLocalBladeMode;
         if (playerItem != null)
-            playerItem.SetWeaponVisibility(canControl);
+        {
+            if (!canControl) playerItem.CancelReload(false);
+            playerItem.SetWeaponVisibility(restore);
+        }
 
         if (playerMove != null)
-            playerMove.CanMove = canControl;
+            playerMove.CanMove = restore;
 
         if (!canControl)
             return;
@@ -437,9 +463,13 @@ public class PlayerSpike : MonoBehaviour
     public void ForceCancelPlant()
     {
         bool wasPlanting = isPlanting;
+        if (wasPlanting && IsLocalPlayer()) NetworkManager.Instance?.SendSpikePlantCancel();
 
         isPlanting = false;
         currentPlantTime = 0f;
+
+        // Other actors receive the same carrier/reset events, but do not own our UI.
+        if (!IsLocalPlayer()) return;
 
         CombatFeedbackUI.Instance?.HideSpikeProgress();
 
@@ -466,6 +496,8 @@ public class PlayerSpike : MonoBehaviour
 
         if (IsLocalPlayer())
         {
+            ForceCancelPlant();
+            if (spikeInRange != null) spikeInRange.CancelDefuse();
             CombatFeedbackUI.Instance?.HideSpikeProgress();
             InteractionPromptUI.Instance?.Hide();
         }

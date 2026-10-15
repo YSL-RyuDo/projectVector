@@ -146,6 +146,12 @@ public class InitiatorSkill_Q : CharacterSkill
     {
         if (!IsMine())
             return;
+        if (!IsAlive())
+        {
+            drone?.SetLocalCameraActive(false);
+            NetworkManager.Instance?.SendDroneExit(droneId);
+            return;
+        }
 
         _currentTaserDrone = drone;
         _currentDroneId = droneId;
@@ -156,6 +162,7 @@ public class InitiatorSkill_Q : CharacterSkill
 
     public void OnOwnerDroneDestroyed(uint droneId)
     {
+        if (!IsMine()) return;
         if (droneId != 0 && _currentDroneId != droneId)
             return;
 
@@ -168,34 +175,39 @@ public class InitiatorSkill_Q : CharacterSkill
 
     private void SetLocalDroneMode(bool active)
     {
+        if (active && !IsAlive()) return;
         _isDroneMode = active;
         IsLocalDroneMode = active;
+        bool restore = !active && IsAlive();
 
         if (_playerMovement != null)
-            _playerMovement.CanMove = !active;
+            _playerMovement.CanMove = restore;
 
         if (_cameraLook != null)
         {
             if (active)
                 _cameraLook.ForceExitADS();
 
-            _cameraLook.CanMove = !active;
+            _cameraLook.CanMove = restore;
         }
 
         if (_playerCamera != null)
-            _playerCamera.enabled = !active;
+            _playerCamera.enabled = restore;
 
         if (_playerAudioListener != null)
-            _playerAudioListener.enabled = !active;
+            _playerAudioListener.enabled = restore;
 
         if (_playerItem != null)
-            _playerItem.SetWeaponVisibility(!active);
+        {
+            if (active) _playerItem.CancelReload(false);
+            _playerItem.SetWeaponVisibility(restore);
+        }
 
         if (DroneModeUIController.Instance != null)
             DroneModeUIController.Instance.SetDroneModeUI(active);
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        if (restore && !VectorVoicePanel.IsAnyOpen && !(SettingsMenu.Instance != null && SettingsMenu.Instance.IsOpen))
+        { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
 
         LocalDroneBodyProxy bodyProxy = GetComponent<LocalDroneBodyProxy>();
         if (bodyProxy != null)
@@ -207,32 +219,16 @@ public class InitiatorSkill_Q : CharacterSkill
 
     private void ForceReturnToPlayerCamera()
     {
-        _isDroneMode = false;
-        IsLocalDroneMode = false;
-
-        if (_playerMovement != null)
-            _playerMovement.CanMove = true;
-
-        if (_cameraLook != null)
-            _cameraLook.CanMove = true;
-
-        if (_playerCamera != null)
-            _playerCamera.enabled = true;
-
-        if (_playerAudioListener != null)
-            _playerAudioListener.enabled = true;
-
-        if (_playerItem != null)
-            _playerItem.SetWeaponVisibility(true);
-
         if (_currentTaserDrone != null)
             _currentTaserDrone.SetLocalCameraActive(false);
+        SetLocalDroneMode(false);
+    }
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
-        LocalDroneBodyProxy bodyProxy = GetComponent<LocalDroneBodyProxy>();
-        if (bodyProxy != null)
-            bodyProxy.SetVisible(false);
+    private bool IsAlive() => GetComponent<PlayerHP>()?.IsDead != true && GetComponent<PlayerDeathController>()?.IsDead != true;
+    private void OnDisable()
+    {
+        if (!Application.isPlaying || !_isDroneMode) return;
+        ForceReturnToPlayerCamera();
+        _currentTaserDrone = null; _currentDroneId = 0; _exitRequested = false;
     }
 }

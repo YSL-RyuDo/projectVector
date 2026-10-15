@@ -33,6 +33,8 @@ public class SentinelSkill_C : CharacterSkill
         if (!IsMine())
             return;
 
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) { CancelReady(); return; }
+
         if (Input.GetKeyDown(KeyCode.C))
             UseSkill();
 

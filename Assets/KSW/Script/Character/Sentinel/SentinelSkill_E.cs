@@ -37,6 +37,8 @@ public class SentinelSkill_E : CharacterSkill
         if (!IsMine())
             return;
 
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) { SetPlanning(false); return; }
+
         if (Input.GetKeyDown(KeyCode.E))
             UseSkill();
 

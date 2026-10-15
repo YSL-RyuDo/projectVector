@@ -67,10 +67,12 @@ public class SpectatorManager : MonoBehaviour
         if (targets.Count == 1)
             currentIndex = 0;
 
-        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        // Keep following the target while menus are open, but don't interpret
+        // settings/voice/chat clicks as spectator target-selection input.
+        if (!GameplayActionPolicy.MenuBlocksInput && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             NextTarget();
 
-        if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
+        if (!GameplayActionPolicy.MenuBlocksInput && Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
             PrevTarget();
 
         FollowTarget();

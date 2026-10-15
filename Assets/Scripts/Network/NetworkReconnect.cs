@@ -18,8 +18,9 @@ public partial class NetworkManager
 
     void UpdateReconnect()
     {
+        string scene=SceneManager.GetActiveScene().name;
         if (!ReconnectBusy && IsAuthenticated && !IsConnected && reconnectRoster != null &&
-            SceneManager.GetActiveScene().name == "Game_TestVersion") RetryReconnect();
+            (scene == "Game_TestVersion" || scene == "Result" || scene == "RankResult")) RetryReconnect();
         if (!ReconnectBusy) return;
         if (MyPlayer != null) {
             var movement=MyPlayer.GetComponent<PlayerMovement>();
@@ -183,7 +184,13 @@ public partial class NetworkManager
             var hp=actor.GetComponent<PlayerHP>(); bool dead=hp!=null && hp.IsDead;
             if(controller!=null) controller.enabled=!dead;
             if(id==MyPlayerId) actor.GetComponentInChildren<FPSCameraLook>(true)?.ResetLookRotation(yaw);
-            else actor.GetComponent<PlayerMovement>()?.OnReceiveRemoteMove(position,yaw,pitch,0,false);
+            else {
+                // Restored poses are not samples from the peer's running clock.
+                // Do not mix local arrival time into its timestamped stream.
+                actor.GetComponent<PlayerMovement>()?.ResetNetworkInterpolation();
+                var look=actor.GetComponentInChildren<FPSCameraLook>(true);
+                if(look!=null) look.transform.localRotation=Quaternion.Euler(pitch,0,0);
+            }
         }
         // Dead actors also need their presentation restored if they have no
         // position update in this round (the map spawn is retained for those).

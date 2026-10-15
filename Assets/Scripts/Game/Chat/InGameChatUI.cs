@@ -261,7 +261,7 @@ public class InGameChatUI : MonoBehaviour
             GameController.Instance != null &&
             GameController.Instance.IsPaused;
 
-        if (!gamePaused)
+        if (!SettingsMenu.PreserveOpenMenuCursor() && !gamePaused)
         {
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;

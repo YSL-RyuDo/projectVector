@@ -202,6 +202,9 @@ public class GameController : MonoBehaviour
 
     public void LockGameplayCursor()
     {
+        if (SettingsMenu.PreserveOpenMenuCursor())
+            return;
+
         if (!CanOpenSettings)
             return;
 

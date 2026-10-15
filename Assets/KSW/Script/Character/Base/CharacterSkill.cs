@@ -6,6 +6,7 @@ public abstract class CharacterSkill : MonoBehaviour
 
     protected bool CanUsePurchasedSkill(SkillSlot slot)
     {
+        if (!isActiveAndEnabled || !GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) return false;
         if (SkillInventoryState.CanUse(slot))
             return true;
 

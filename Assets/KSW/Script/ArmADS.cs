@@ -120,8 +120,6 @@ public class ArmADS : MonoBehaviour
 
     private void Update()
     {
-        UpdateWeaponTypeAndTransform();
-
         if (InGameChatUI.IsChatOpen)
         {
             isADS = false;
@@ -138,17 +136,7 @@ public class ArmADS : MonoBehaviour
 
         // ADS
 
-        if (Mouse.current != null)
-        {
-            if (Mouse.current.rightButton.isPressed)
-            {
-                isADS = CanAim();
-            }
-            else
-            {
-                isADS = false;
-            }
-        }
+        // Aim pose is resolved in LateUpdate from the weapon's accepted state.
 
         // Ä® °ø°Ý
 
@@ -176,6 +164,9 @@ public class ArmADS : MonoBehaviour
 
     private void LateUpdate()
     {
+        Weapon weapon = playerItem != null ? playerItem.GetCurrentWeapon() : null;
+        isADS = weapon != null && weapon.IsAiming && !playerItem.IsReloading;
+        UpdateWeaponTypeAndTransform();
         transform.localPosition = Vector3.Lerp(
             transform.localPosition,
             targetPos,

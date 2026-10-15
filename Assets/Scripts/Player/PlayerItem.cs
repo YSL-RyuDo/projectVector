@@ -83,11 +83,28 @@ public class PlayerItem : MonoBehaviour
             Switch(2);
     }
 
+    private bool WeaponActionBlocked()
+    {
+        // Menus stop new input, not a reload that the server already accepted.
+        return !GameplayActionPolicy.CanAct(this, GameplayAction.WeaponChange, false);
+    }
+
+    private void OnDisable()
+    {
+        // Disabling a component does not stop its coroutines in Unity.
+        if (isReloading || reloadCoroutine != null) CancelReload(false);
+    }
+
     void Update()
     {
+        if (WeaponActionBlocked())
+        {
+            if (isReloading) CancelReload(false);
+            return;
+        }
         var practice = PracticePlayerContext.For(this);
         if (practice != null && practice.range.MenuOpen) return;
-        if (VectorVoicePanel.BlocksGameplayInput || InGameChatUI.BlocksGameplayInput)
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.WeaponChange))
             return;
 
         if (!gameObject.CompareTag("Player"))
@@ -747,6 +764,7 @@ public class PlayerItem : MonoBehaviour
 
     public void ApplyWeaponSwitchFromServer(int weaponId)
     {
+        if (GetComponent<PlayerHP>()?.IsDead == true || GetComponent<PlayerDeathController>()?.IsDead == true) return;
         SwitchWeaponVisualOnly(weaponId);
     }
 
@@ -1214,6 +1232,8 @@ public class PlayerItem : MonoBehaviour
 
     private void TryStartReload()
     {
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Reload)) return;
+        if (WeaponActionBlocked()) return;
         if (isReloading)
             return;
 
@@ -1275,7 +1295,7 @@ public class PlayerItem : MonoBehaviour
                           items[reloadSlot] != null &&
                           items[reloadSlot] == reloadItem;
 
-        if (!sameWeapon)
+        if (!sameWeapon || WeaponActionBlocked())
         {
             FinishReloadState(false);
             yield break;
@@ -1343,6 +1363,11 @@ public class PlayerItem : MonoBehaviour
 
     public void SetReloadVisualFromServer(int weaponId, bool isReloadingValue)
     {
+        if (GetComponent<PlayerDeathController>()?.IsDead == true || GetComponent<PlayerHP>()?.IsDead == true)
+        {
+            remoteIsReloading=false; remoteReloadWeaponId=-1;
+            return;
+        }
         int slot = FindSlotByWeaponId(weaponId);
 
         if (slot == -1)
@@ -1375,6 +1400,7 @@ public class PlayerItem : MonoBehaviour
 
     public void RefreshRemoteReloadAnimation()
     {
+        if (GetComponent<PlayerDeathController>()?.IsDead == true || GetComponent<PlayerHP>()?.IsDead == true) return;
         if (!IsCurrentlySpectated())
             return;
 

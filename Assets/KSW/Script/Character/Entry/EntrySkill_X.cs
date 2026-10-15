@@ -106,6 +106,8 @@ public class EntrySkill_X : CharacterSkill
         if (!IsMine())
             return;
 
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) return;
+
         if (Keyboard.current == null ||
             Mouse.current == null)
             return;
@@ -264,6 +266,7 @@ public class EntrySkill_X : CharacterSkill
         int bladeCount,
         float duration)
     {
+        if (active && (GetComponent<PlayerHP>()?.IsDead == true || GetComponent<PlayerDeathController>()?.IsDead == true)) active = false;
         _isBladeMode =
             active;
 
@@ -772,8 +775,15 @@ public class EntrySkill_X : CharacterSkill
     private void OnDestroy()
     {
         ClearFloatingToenails();
+        ClearToenailFan();
 
         if (IsMine())
             IsLocalBladeMode = false;
+    }
+    private void OnDisable()
+    {
+        if (!Application.isPlaying) return;
+        ApplyBladeStateFromServer(false, 0, 0);
+        ClearToenailFan();
     }
 }

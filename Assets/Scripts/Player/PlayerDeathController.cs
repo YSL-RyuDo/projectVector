@@ -18,6 +18,15 @@ public class PlayerDeathController : MonoBehaviour
     private PlayerWeaponViewController weaponViewController;
     private PlayerCameraController cameraController;
     private FPSCameraLook cameraLook;
+    private readonly System.Collections.Generic.List<CharacterSkill> suspendedSkills = new();
+
+    private void SuspendSkills()
+    {
+        // Input-mode singletons belong only to the local actor. Remote deaths must not clear them.
+        if (identity == null || NetworkManager.Instance == null || identity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
+        foreach (var skill in GetComponents<CharacterSkill>())
+            if (skill.enabled) { suspendedSkills.Add(skill); skill.enabled = false; }
+    }
 
     private void Awake()
     {
@@ -61,6 +70,7 @@ public class PlayerDeathController : MonoBehaviour
     {
         IsDead = true;
         _playerHp.SetHp(0);
+        SuspendSkills();
 
         if (movement != null)
         {
@@ -110,7 +120,11 @@ public class PlayerDeathController : MonoBehaviour
 
     public void OnRespawn()
     {
+        // Alive survivors also need pending casts/input modes cleared at the round boundary.
+        SuspendSkills();
         IsDead = false;
+        foreach (var skill in suspendedSkills) if (skill) skill.enabled = true;
+        suspendedSkills.Clear();
 
         bool isMine =
             NetworkManager.Instance != null &&

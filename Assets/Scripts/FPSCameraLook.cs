@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[DefaultExecutionOrder(-200)]
 public class FPSCameraLook : MonoBehaviour
 {
     [Header("Mouse")]
@@ -51,6 +52,7 @@ public class FPSCameraLook : MonoBehaviour
         bool isLocal,
         Transform root)
     {
+        bool gainedControl = isLocal && (!isLocalPlayer || playerRoot != root);
         isLocalPlayer = isLocal;
         playerRoot = root;
 
@@ -60,10 +62,16 @@ public class FPSCameraLook : MonoBehaviour
         if (!isLocal)
             return;
 
-        Cursor.lockState =
-            CursorLockMode.Locked;
+        // The first Update must not replace the authored spawn yaw with zero.
+        // Repeated view refreshes must not erase the player's ongoing aim.
+        if (gainedControl && root != null)
+            ResetLookRotation(root.eulerAngles.y);
 
-        Cursor.visible = false;
+        if (!SettingsMenu.PreserveOpenMenuCursor())
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
 
         if (_playerIdentity == null)
         {
@@ -105,6 +113,8 @@ public class FPSCameraLook : MonoBehaviour
 
         if (!CanMove)
             return;
+
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Look)) return;
 
         if (playerRoot == null)
             return;
@@ -284,6 +294,7 @@ public class FPSCameraLook : MonoBehaviour
 
     public void ForceExitADS()
     {
+        GetComponentInParent<PlayerItem>()?.GetCurrentWeapon()?.ForceCancelADS();
         SetADSLocal(false);
 
         PlayerMovement movement =
@@ -305,6 +316,9 @@ public class FPSCameraLook : MonoBehaviour
     public void SetADSFromServer(
         bool isADS)
     {
+        // The local weapon owns smooth FOV and sensitivity. Ignore delayed echoes.
+        if (isLocalPlayer || GetComponentInParent<PlayerMovement>()?.IsMine == true)
+            return;
         _isADS = isADS;
 
         Camera cam =
@@ -320,8 +334,9 @@ public class FPSCameraLook : MonoBehaviour
 
         if (cam != null)
         {
-            cam.fieldOfView =
-                isADS ? 40f : 60f;
+            WeaponData data = GetComponentInParent<PlayerItem>()?.GetCurrentWeapon()?.Data;
+            if (data != null)
+                cam.fieldOfView = isADS ? data.adsFOV : data.normalFOV;
         }
 
         Debug.Log(
@@ -337,7 +352,7 @@ public class FPSCameraLook : MonoBehaviour
 
         _isADS = value;
 
-        if (PracticePlayerContext.For(this) == null && NetworkManager.Instance != null &&
+        if (isLocalPlayer && PracticePlayerContext.For(this) == null && NetworkManager.Instance != null &&
             lastSentADS != _isADS)
         {
             lastSentADS = _isADS;

@@ -58,6 +58,8 @@ public class Weapon : Item
 
     public WeaponData Data => weaponData;
     public bool IsAiming => isADS;
+    private uint activeShotId;
+    private byte nextPelletIndex;
     public int CurrentAmmo => currentAmmo;
     public int ReserveAmmo => reserveAmmo;
     public int MagazineCapacity => GetMagazineCapacity();
@@ -236,14 +238,15 @@ public class Weapon : Item
 
     void OnDisable()
     {
-        isADS = false;
+        // Cancel shared aim state before the next weapon becomes active.
+        ForceCancelADS();
 
         SetCrosshairActive(true);
 
         StopAllCoroutines();
     }
 
-    private void ForceCancelADS()
+    public void ForceCancelADS()
     {
         if (!isADS)
             return;
@@ -252,6 +255,7 @@ public class Weapon : Item
 
         cameraLook?.SetADS(false);
         playerMovement?.SetADS(false);
+        fovVelocity = 0f;
 
         SetCrosshairActive(true);
 
@@ -261,6 +265,12 @@ public class Weapon : Item
 
     private bool ShouldBlockWeaponInput()
     {
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Fire))
+        {
+            ForceCancelADS();
+            currentShotIndex = 0;
+            return true;
+        }
         var practice = PracticePlayerContext.For(this);
         if (practice != null && practice.range.MenuOpen) return true;
         if (StorePanelUI.IsBlockingGameplayInput)
@@ -445,6 +455,8 @@ public class Weapon : Item
 
         nextFireTime =
             Time.time + weaponData.fireRate;
+        activeShotId = 0;
+        nextPelletIndex = 0;
 
         if (UsesAmmo())
         {
@@ -453,7 +465,7 @@ public class Weapon : Item
             UpdateAmmoUI();
 
             if (practice == null && NetworkManager.Instance != null)
-                NetworkManager.Instance.SendFire();
+                activeShotId = NetworkManager.Instance.SendTrackedFire(GetWeaponId());
         }
 
         if (practice != null) practice.GetComponent<PracticeWeaponInput>()?.RecordShot();
@@ -685,159 +697,40 @@ public class Weapon : Item
 
     private void FireHitscan()
     {
-        if (ShouldBlockWeaponInput())
-            return;
-
-        if (cam == null)
+        if (ShouldBlockWeaponInput() || cam == null || weaponData == null) return;
+        Vector3 direction = GetSpreadDirection(cam.transform.forward);
+        Vector3 origin = cam.transform.position;
+        var enclosing = WeaponShotTrace.EnclosingCollider(origin, hitMask, _playerIdentity, ShotOwnerRoot);
+        if (enclosing != null)
         {
-            Debug.LogWarning("[WEAPON] FireHitscan failed. cam is null.");
+            TryHandlePlayerCollider(enclosing, activeShotId, 0);
+            SpawnBulletVisual(direction, origin, -direction, enclosing.GetComponentInParent<PlayerIdentity>() == null);
             return;
         }
-
-        if (weaponData == null)
-        {
-            Debug.LogWarning("[WEAPON] FireHitscan failed. weaponData is null.");
-            return;
-        }
-
-        Vector3 shootDir =
-            GetSpreadDirection(cam.transform.forward);
-
-        Ray ray =
-            new Ray(cam.transform.position, shootDir);
-
-        Vector3 visualTargetPoint =
-            ray.origin + shootDir * weaponData.range;
-
-        bool hasHit =
-            TryGetFirstValidHit(
-                ray,
-                weaponData.range,
-                out RaycastHit hit
-            );
-
+        bool hasHit = TryGetFirstValidHit(new Ray(origin, direction), weaponData.range, out var hit);
+        Vector3 target = hasHit ? hit.point : origin + direction * weaponData.range;
         if (hasHit)
         {
-            visualTargetPoint =
-                hit.point;
-
             if (PracticePlayerContext.For(this) != null && hit.collider.TryGetComponent<PracticeTargetZone>(out var practiceTarget))
-            {
-                practiceTarget.Hit(); SpawnBulletVisual(shootDir, visualTargetPoint); return;
-            }
-
-            Debug.Log(
-                $"[HITSCAN HIT] object={hit.collider.name}, root={hit.collider.transform.root.name}, point={hit.point}"
-            );
-
-            if (TryHandleScannerHit(hit))
-            {
-                SpawnBulletVisual(
-                    shootDir,
-                    visualTargetPoint
-                );
-
-                return;
-            }
-
-            if (TryHandleDroneHit(hit))
-            {
-                SpawnBulletVisual(
-                    shootDir,
-                    visualTargetPoint
-                );
-
-                return;
-            }
-
-            if (TryHandleSentinelTrapHit(hit))
-            {
-                SpawnBulletVisual(
-                    shootDir,
-                    visualTargetPoint
-                );
-
-                return;
-            }
-
-            if (TryHandleSentinelQTrapHit(hit))
-            {
-                SpawnBulletVisual(
-                    shootDir,
-                    visualTargetPoint
-                );
-
-                return;
-            }
-
-            if (TryHandleSentinelETrapHit(hit))
-            {
-                SpawnBulletVisual(
-                    shootDir,
-                    visualTargetPoint
-                );
-
-                return;
-            }
-
-            TryHandlePlayerHit(hit);
+                practiceTarget.Hit();
+            else if (!TryHandleDeviceHit(hit))
+                TryHandlePlayerCollider(hit.collider, activeShotId, 0);
         }
-        else
-        {
-            Debug.Log("[HITSCAN MISS]");
-        }
-
-        SpawnBulletVisual(
-            shootDir,
-            visualTargetPoint
-        );
+        SpawnBulletVisual(direction, target, hasHit ? hit.normal : Vector3.zero,
+            hasHit && hit.collider.GetComponentInParent<PlayerIdentity>() == null);
     }
 
-    private bool TryGetFirstValidHit(
-        Ray ray,
-        float range,
-        out RaycastHit result)
+    private Transform ShotOwnerRoot => _playerIdentity != null ? _playerIdentity.transform : transform.root;
+
+    private bool TryGetFirstValidHit(Ray ray, float range, out RaycastHit result)
     {
-        result = default;
+        return WeaponShotTrace.FirstHit(ray, range, hitMask, _playerIdentity, ShotOwnerRoot, out result);
+    }
 
-        RaycastHit[] hits =
-            Physics.RaycastAll(
-                ray,
-                range,
-                hitMask,
-                QueryTriggerInteraction.Ignore
-            );
-
-        if (hits == null ||
-            hits.Length == 0)
-        {
-            return false;
-        }
-
-        Array.Sort(
-            hits,
-            (a, b) => a.distance.CompareTo(b.distance)
-        );
-
-        Transform myRoot =
-            transform.root;
-
-        for (int i = 0; i < hits.Length; i++)
-        {
-            RaycastHit hit =
-                hits[i];
-
-            if (hit.collider == null)
-                continue;
-
-            if (hit.collider.transform.root == myRoot)
-                continue;
-
-            result = hit;
-            return true;
-        }
-
-        return false;
+    private bool TryHandleDeviceHit(RaycastHit hit)
+    {
+        return TryHandleScannerHit(hit) || TryHandleDroneHit(hit) || TryHandleSentinelTrapHit(hit) ||
+            TryHandleSentinelQTrapHit(hit) || TryHandleSentinelETrapHit(hit);
     }
 
     private bool TryHandleDroneHit(RaycastHit hit)
@@ -892,155 +785,41 @@ public class Weapon : Item
         return true;
     }
 
-    private bool TryHandlePlayerHit(RaycastHit hit)
+    private bool TryHandlePlayerCollider(Collider collider, uint shotId, byte pellet)
     {
-        if (hit.collider == null)
-            return false;
-
-        PlayerIdentity targetIdentity =
-            hit.collider.GetComponentInParent<PlayerIdentity>();
-
-        if (targetIdentity == null)
+        var target = collider != null ? collider.GetComponentInParent<PlayerIdentity>() : null;
+        if (target == null) return false;
+        if (_playerIdentity == null || target.PlayerId == _playerIdentity.PlayerId ||
+            target.Team == _playerIdentity.Team) return true;
+        var hp = target.GetComponentInChildren<PlayerHP>(true);
+        if (hp != null && hp.IsDead) return true;
+        if (NetworkManager.Instance != null && _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId)
         {
-            Debug.Log("[HITSCAN HIT] hit object is not player.");
-            return false;
+            NetworkManager.Instance.SendTrackedHit(target.PlayerId, WeaponShotTrace.IsHead(collider), shotId, pellet);
         }
-
-        if (NetworkManager.Instance == null)
-            return true;
-
-        if (targetIdentity.PlayerId ==
-            NetworkManager.Instance.MyPlayerId)
-        {
-            Debug.Log("[HITSCAN HIT] ignored self.");
-            return true;
-        }
-
-        Debug.Log(
-            $"[HITSCAN PLAYER] targetPlayerId={targetIdentity.PlayerId}, userId={targetIdentity.UserId}"
-        );
-
-        HitManager.TriggerEnemyHit();
-
-        NetworkManager.Instance.SendHit(
-            targetIdentity.PlayerId
-        );
-
         return true;
     }
 
-    private void SpawnBulletVisual(
-        Vector3 shootDir,
-        Vector3 targetPoint)
+    private void SpawnBulletVisual(Vector3 shootDir, Vector3 targetPoint, Vector3 normal, bool surfaceImpact)
     {
-        if (bulletPrefab == null ||
-            firePoint == null)
-        {
-            return;
-        }
-
-        GameObject bullet =
-            Instantiate(
-                bulletPrefab,
-                firePoint.position,
-                Quaternion.LookRotation(shootDir)
-            );
-
-        Bullet bulletScript =
-            bullet.GetComponent<Bullet>();
-
-        if (bulletScript != null)
-        {
-            bulletScript.Init(
-                _playerIdentity,
-                weaponData.range,
-                1000f,
-                shootDir,
-                false
-            );
-        }
+        if (bulletPrefab == null || firePoint == null) return;
+        var bullet = Instantiate(bulletPrefab, firePoint.position, Quaternion.LookRotation(shootDir));
+        var visual = bullet.GetComponent<Bullet>();
+        if (visual != null) visual.InitVisual(targetPoint, normal, surfaceImpact, 1000f);
+        else Destroy(bullet);
     }
 
     public void FireProjectile()
     {
-        if (ShouldBlockWeaponInput())
-            return;
-
-        if (cam == null)
-        {
-            Debug.LogWarning("[WEAPON] FireProjectile failed. cam is null.");
-            return;
-        }
-
-        if (weaponData == null)
-            return;
-
-        if (bulletPrefab == null ||
-            firePoint == null)
-        {
-            return;
-        }
-
-        Vector3 shootDir =
-            GetSpreadDirection(cam.transform.forward);
-
-        Ray ray =
-            new Ray(cam.transform.position, shootDir);
-
-        bool hasHit =
-            TryGetFirstValidHit(
-                ray,
-                weaponData.range,
-                out RaycastHit hit
-            );
-
-        if (hasHit)
-        {
-            Debug.Log(
-                $"[PROJECTILE AIM HIT] object={hit.collider.name}, root={hit.collider.transform.root.name}, point={hit.point}"
-            );
-
-            if (!TryHandleScannerHit(hit) &&
-                !TryHandleDroneHit(hit))
-            {
-                if (!TryHandleSentinelTrapHit(hit))
-                {
-                    if (!TryHandleSentinelQTrapHit(hit))
-                        TryHandleSentinelETrapHit(hit);
-                }
-            }
-        }
-
-        GameObject bullet =
-            Instantiate(
-                bulletPrefab,
-                cam.transform.position,
-                Quaternion.LookRotation(shootDir)
-            );
-
-        Bullet bulletScript =
-            bullet.GetComponent<Bullet>();
-
-        if (bulletScript != null)
-        {
-            bool isOwnerBullet =
-                PracticePlayerContext.For(this) != null || (NetworkManager.Instance != null &&
-                _playerIdentity != null &&
-                _playerIdentity.PlayerId ==
-                NetworkManager.Instance.MyPlayerId);
-
-            bulletScript.Init(
-                _playerIdentity,
-                weaponData.range,
-                weaponData.muzzleVelocity,
-                shootDir,
-                isOwnerBullet
-            );
-        }
-
-        Debug.Log(
-            $"[PROJECTILE FIRE] weapon={weaponData.name}"
-        );
+        if (ShouldBlockWeaponInput() || cam == null || weaponData == null || bulletPrefab == null) return;
+        Vector3 direction = GetSpreadDirection(cam.transform.forward);
+        var bullet = Instantiate(bulletPrefab, cam.transform.position, Quaternion.LookRotation(direction));
+        var projectile = bullet.GetComponent<Bullet>();
+        if (projectile == null) { Destroy(bullet); return; }
+        bool owned = PracticePlayerContext.For(this) != null || (NetworkManager.Instance != null &&
+            _playerIdentity != null && _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId);
+        projectile.Init(_playerIdentity, weaponData.range, weaponData.muzzleVelocity, direction, owned,
+            hitMask, activeShotId, nextPelletIndex++, TryHandleDeviceHit);
     }
 
     void SetupStrategy()
@@ -1226,16 +1005,13 @@ public class Weapon : Item
             return true;
         }
 
-        if (Keyboard.current == null)
-            return false;
+        if (playerMovement != null)
+            return playerMovement.PlanarSpeed > 0.1f || !playerMovement.GetIsGrounded();
 
-        return
-            Keyboard.current.wKey.isPressed ||
-            Keyboard.current.aKey.isPressed ||
-            Keyboard.current.sKey.isPressed ||
-            Keyboard.current.dKey.isPressed ||
-            playerMovement != null &&
-            !playerMovement.GetIsGrounded();
+        // Legacy practice rigs without PlayerMovement still cancel opposite keys.
+        if (Keyboard.current == null) return false;
+        return Keyboard.current.wKey.isPressed != Keyboard.current.sKey.isPressed ||
+            Keyboard.current.aKey.isPressed != Keyboard.current.dKey.isPressed;
     }
 
     Vector3 GetSpreadDirection(Vector3 baseDirection)
