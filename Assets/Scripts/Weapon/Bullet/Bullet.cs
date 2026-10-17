@@ -1,4 +1,5 @@
 using UnityEngine;
+using static UnityEngine.Rendering.DebugUI;
 
 public class Bullet : MonoBehaviour
 {
@@ -131,9 +132,18 @@ public class Bullet : MonoBehaviour
 
             if (NetworkManager.Instance != null)
             {
-                string hitName = collision.collider != null ? collision.collider.name.ToLowerInvariant() : string.Empty;
-                bool isHeadshot = hitName.Contains("head") || hitName.Contains("머리");
-                NetworkManager.Instance.SendHit(targetIdentity.PlayerId, isHeadshot);
+                int hitPartCode = 0; // 기본값: 0 (몸통)
+
+                if (collision.collider != null)
+                {
+                    HitCollider hitbox = collision.collider.GetComponent<HitCollider>();
+                    if (hitbox != null)
+                    {
+                        hitPartCode = (int)hitbox.Part; // 0: Body, 1: Head, 2: Leg
+                    }
+                }
+
+                NetworkManager.Instance.SendHit(targetIdentity.PlayerId, hitPartCode);
             }
             else
             {
