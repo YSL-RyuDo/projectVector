@@ -3902,7 +3902,7 @@ public partial class NetworkManager : MonoBehaviour
         return null;
     }
 
-    public void SendHit(uint targetPlayerId, bool isHeadshot = false)
+    public void SendHit(uint targetPlayerId, int hitPart = 0)
     {
         ushort size = 4 + 4 + 1;
         ushort type = (ushort)PacketType.PKT_CS_HIT;
@@ -3919,11 +3919,13 @@ public partial class NetworkManager : MonoBehaviour
 
         Buffer.BlockCopy(BitConverter.GetBytes(targetPlayerId), 0, buffer, offset, 4);
         offset += 4;
-        buffer[offset] = isHeadshot ? (byte)1 : (byte)0;
+
+        // buffer[offset] = isHeadshot ? (byte)1 : (byte)0;
+        buffer[offset] = (byte)hitPart;
 
         client.Send(buffer);
 
-        Debug.Log($"[SEND HIT] targetPlayerId={targetPlayerId} headshot={isHeadshot}");
+        Debug.Log($"[SEND HIT] targetPlayerId={targetPlayerId} hitPart={hitPart}");
     }
 
     public void SendWeaponSwitch(int weaponId)
