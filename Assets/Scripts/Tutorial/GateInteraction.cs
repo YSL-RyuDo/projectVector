@@ -1,3 +1,4 @@
+
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -6,44 +7,55 @@ public class GateInteraction : MonoBehaviour
 {
     [Header("연결")]
     [SerializeField] private Transform player;
-    [SerializeField] private Transform gate;
+    [SerializeField] private Transform leftGate;
+    [SerializeField] private Transform rightGate;
 
     [Header("설정")]
     [SerializeField] private float interactionDistance = 3f;
-    [SerializeField] private float openHeight = 3f;
+    [SerializeField] private float openDistance = 3f;
     [SerializeField] private float openSpeed = 2f;
 
     private bool isOpening;
     private bool isOpened;
-    private Vector3 openPosition;
+
+    private Vector3 leftOpenPosition;
+    private Vector3 rightOpenPosition;
 
     private void Start()
     {
         if (player == null)
         {
-            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+            GameObject playerObject =
+                GameObject.FindGameObjectWithTag("Player");
 
             if (playerObject != null)
                 player = playerObject.transform;
         }
 
-        if (gate == null)
+        if (leftGate == null || rightGate == null)
         {
-            Debug.LogError("Gate 칸에 실제 문 오브젝트를 연결해야 합니다.");
+            Debug.LogError("좌우 게이트를 연결해야 합니다.");
             return;
         }
 
-        openPosition = gate.position + Vector3.up * openHeight;
+        leftOpenPosition =
+            leftGate.position - transform.right * openDistance;
+
+        rightOpenPosition =
+            rightGate.position + transform.right * openDistance;
     }
 
     private void Update()
     {
-        if (player == null || gate == null || isOpened)
+        if (player == null || leftGate == null ||
+            rightGate == null || isOpened || isOpening)
             return;
 
-        float distance = Vector3.Distance(player.position, transform.position);
+        float distance =
+            Vector3.Distance(player.position, transform.position);
 
-        if (Keyboard.current.fKey.wasPressedThisFrame)
+        if (Keyboard.current != null &&
+            Keyboard.current.fKey.wasPressedThisFrame)
         {
             Debug.Log("플레이어와 게이트 거리: " + distance);
 
@@ -60,23 +72,30 @@ public class GateInteraction : MonoBehaviour
 
     private IEnumerator OpenGate()
     {
-        if (isOpening)
-            yield break;
-
         isOpening = true;
 
-        while (Vector3.Distance(gate.position, openPosition) > 0.01f)
+        while (
+            Vector3.Distance(leftGate.position, leftOpenPosition) > 0.01f ||
+            Vector3.Distance(rightGate.position, rightOpenPosition) > 0.01f)
         {
-            gate.position = Vector3.MoveTowards(
-                gate.position,
-                openPosition,
+            leftGate.position = Vector3.MoveTowards(
+                leftGate.position,
+                leftOpenPosition,
+                openSpeed * Time.deltaTime
+            );
+
+            rightGate.position = Vector3.MoveTowards(
+                rightGate.position,
+                rightOpenPosition,
                 openSpeed * Time.deltaTime
             );
 
             yield return null;
         }
 
-        gate.position = openPosition;
+        leftGate.position = leftOpenPosition;
+        rightGate.position = rightOpenPosition;
+
         isOpened = true;
         isOpening = false;
     }
