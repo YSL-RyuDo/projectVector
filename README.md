@@ -1,8 +1,44 @@
-# Project Vector
+# CodeName VAIS
 
 [English](README.md) · [Korean](README.ko.md) · [Japanese](README.ja.md)
 
+**C++ · Windows IOCP · C# · Unity** · Active development
+
+[Explore the case](https://ysl-ryudo.github.io/en/work/vector/) · [Portfolio](https://ysl-ryudo.github.io/en/)
+
+**CodeName VAIS** is the official project name; **Project Vector** was the working title. Repository names are retained.
+
+
 A team-developed Unity multiplayer FPS. My focus is game-server integration and the systems that connect a match, its players, and their persistent progress.
+
+## The engineering problem
+
+A multiplayer FPS has to connect transport, match lifecycle and player-facing state. Rejoining a session also requires deciding what state to restore and what actions must not run again.
+
+## My implementation
+
+I worked across the IOCP server and Unity integration: sessions and packet dispatch, match/profile/shop flows, and reconnect presentation-state recovery. ReconnectJournal retains persistent state while excluding damage, rewards and player-command replay.
+
+### Implementation overview · conceptual flow
+
+```mermaid
+flowchart LR
+    N0["Unity client"] --> N1
+    N1["IOCP / sessions"] --> N2
+    N2["Match & player services"] --> N3
+    N3["Reconnect state"]
+```
+
+### Development videos
+
+[![CodeName VAIS — Lobby UI](https://i.ytimg.com/vi/WqRBn-yWVdo/hqdefault.jpg)](https://www.youtube.com/watch?v=WqRBn-yWVdo)
+
+- [Lobby UI](https://www.youtube.com/watch?v=WqRBn-yWVdo)
+- [Store system](https://www.youtube.com/watch?v=OBFWkZE2rzo)
+- [Profile system](https://www.youtube.com/watch?v=A3CkQvnQEGI)
+- [Earlier Project Vector demo](https://www.youtube.com/watch?v=oga4ai_1Ugg)
+
+Recorded project demonstrations; the contribution section below identifies my work within the game.
 
 ## My contribution
 
@@ -35,3 +71,7 @@ Active development. At the documentation baseline, `YSL` contains additional mov
 
 - [Docs/NextWorkSession.md](Docs/NextWorkSession.md)
 - [Docs/ShopGachaImplementation.md](Docs/ShopGachaImplementation.md)
+
+## How to evaluate the work
+
+Read the IOCP core, ReconnectJournal and contract-test sources together. Separate the checked-in test coverage from a new two-client match or two-PC voice run.
