@@ -509,7 +509,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &178794084
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -524,15 +524,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DialogueManager
   characters:
   - characterName: "\uC138\uB9B0"
+    characterId: 0
     icon: {fileID: 21300000, guid: b56d744bbed93bb46a00c15edea894cd, type: 3}
     dialogueData: {fileID: 11400000, guid: fc521fcc0049dc244ac3727444c7c903, type: 2}
   - characterName: "\uB3C4\uD76C"
+    characterId: 0
     icon: {fileID: 21300000, guid: b241a5f4fe098914e93d46ce36ac92be, type: 3}
     dialogueData: {fileID: 11400000, guid: 83b85bb1a4b77c342a3007a98925c09d, type: 2}
   - characterName: "\uD55C\uBCC4"
+    characterId: 0
     icon: {fileID: 21300000, guid: 12deff9c334b3084cadf51843813e4bf, type: 3}
     dialogueData: {fileID: 11400000, guid: 4495b0361fb3093448b620b441870bee, type: 2}
   - characterName: "\uD558\uC740"
+    characterId: 0
     icon: {fileID: 21300000, guid: a132300c40dbc6b4aaa51cec0092f680, type: 3}
     dialogueData: {fileID: 11400000, guid: 316f07b5ea2b7584ea1230c509883cfd, type: 2}
   myName: "\uD559\uC0DD"
@@ -549,6 +553,7 @@ MonoBehaviour:
   choiceText1: {fileID: 597191310}
   choiceText2: {fileID: 222593672}
   choiceText3: {fileID: 1233390824}
+  newBadges: []
   lineInterval: 2
 --- !u!4 &178794085
 Transform:
@@ -653,9 +658,9 @@ RectTransform:
   m_Father: {fileID: 292300963}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_SizeDelta: {x: -17, y: 0}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &221354346
 MonoBehaviour:
@@ -1005,7 +1010,7 @@ RectTransform:
   m_Father: {fileID: 1955404190}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -6320,7 +6325,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1864503507
 MonoBehaviour:
   m_ObjectHideFlags: 0
