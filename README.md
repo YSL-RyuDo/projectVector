@@ -8,6 +8,10 @@
 
 **CodeName VAIS** is the official project name; **Project Vector** was the working title. Repository names are retained.
 
+**Mar 2026 - Present · 10 members: 5 software, 5 graphics**
+
+Server development & Unity multiplayer integration
+
 
 A team-developed Unity multiplayer FPS. My focus is game-server integration and the systems that connect a match, its players, and their persistent progress.
 
