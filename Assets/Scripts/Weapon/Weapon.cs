@@ -59,6 +59,7 @@ public class Weapon : Item
     public WeaponData Data => weaponData;
     public bool IsAiming => isADS;
     private uint activeShotId;
+    private Vector3 activeDamageOrigin;
     private byte nextPelletIndex;
     public int CurrentAmmo => currentAmmo;
     public int ReserveAmmo => reserveAmmo;
@@ -456,6 +457,7 @@ public class Weapon : Item
         nextFireTime =
             Time.time + weaponData.fireRate;
         activeShotId = 0;
+        activeDamageOrigin = firePoint != null ? firePoint.position : cam != null ? cam.transform.position : transform.position;
         nextPelletIndex = 0;
 
         if (UsesAmmo())
@@ -465,7 +467,7 @@ public class Weapon : Item
             UpdateAmmoUI();
 
             if (practice == null && NetworkManager.Instance != null)
-                activeShotId = NetworkManager.Instance.SendTrackedFire(GetWeaponId());
+                activeShotId = NetworkManager.Instance.SendTrackedFire(GetWeaponId(), activeDamageOrigin);
         }
 
         if (practice != null) practice.GetComponent<PracticeWeaponInput>()?.RecordShot();
@@ -703,7 +705,7 @@ public class Weapon : Item
         var enclosing = WeaponShotTrace.EnclosingCollider(origin, hitMask, _playerIdentity, ShotOwnerRoot);
         if (enclosing != null)
         {
-            TryHandlePlayerCollider(enclosing, activeShotId, 0);
+            TryHandlePlayerCollider(enclosing, activeShotId, 0, origin);
             SpawnBulletVisual(direction, origin, -direction, enclosing.GetComponentInParent<PlayerIdentity>() == null);
             return;
         }
@@ -712,9 +714,9 @@ public class Weapon : Item
         if (hasHit)
         {
             if (PracticePlayerContext.For(this) != null && hit.collider.TryGetComponent<PracticeTargetZone>(out var practiceTarget))
-                practiceTarget.Hit();
+                practiceTarget.HitAt(activeDamageOrigin, hit.point);
             else if (!TryHandleDeviceHit(hit))
-                TryHandlePlayerCollider(hit.collider, activeShotId, 0);
+                TryHandlePlayerCollider(hit.collider, activeShotId, 0, hit.point);
         }
         SpawnBulletVisual(direction, target, hasHit ? hit.normal : Vector3.zero,
             hasHit && hit.collider.GetComponentInParent<PlayerIdentity>() == null);
@@ -785,7 +787,7 @@ public class Weapon : Item
         return true;
     }
 
-    private bool TryHandlePlayerCollider(Collider collider, uint shotId, byte pellet)
+    private bool TryHandlePlayerCollider(Collider collider, uint shotId, byte pellet, Vector3 point)
     {
         var target = collider != null ? collider.GetComponentInParent<PlayerIdentity>() : null;
         if (target == null) return false;
@@ -795,7 +797,7 @@ public class Weapon : Item
         if (hp != null && hp.IsDead) return true;
         if (NetworkManager.Instance != null && _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId)
         {
-            NetworkManager.Instance.SendTrackedHit(target.PlayerId, WeaponShotTrace.GetHitZone(collider), shotId, pellet);
+            NetworkManager.Instance.SendTrackedHit(target.PlayerId, WeaponShotTrace.GetHitZone(collider), shotId, pellet, point);
         }
         return true;
     }
@@ -819,7 +821,7 @@ public class Weapon : Item
         bool owned = PracticePlayerContext.For(this) != null || (NetworkManager.Instance != null &&
             _playerIdentity != null && _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId);
         projectile.Init(_playerIdentity, weaponData.range, weaponData.muzzleVelocity, direction, owned,
-            hitMask, activeShotId, nextPelletIndex++, TryHandleDeviceHit);
+            hitMask, activeShotId, nextPelletIndex++, TryHandleDeviceHit, activeDamageOrigin);
     }
 
     void SetupStrategy()

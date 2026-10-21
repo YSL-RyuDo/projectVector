@@ -46,6 +46,9 @@ public static class InteractionLifecycleVerification
         Set(planted, "isDefusing", true); Set(planted, "defuseStartRequested", true);
         planted.ForceCancelInteraction();
         Check(!(bool)typeof(Spike).GetField("isDefusing", Flags).GetValue(planted), "Defuse round cleanup");
+        // Edit-mode fixtures do not run MonoBehaviour lifecycle callbacks automatically.
+        Call(drone, "OnDisable");
+        Check(!InitiatorSkill_Q.IsLocalReturning && !InitiatorSkill_Q.IsLocalPreparing, "Drone teardown retained transition input lock");
         UnityEngine.Object.DestroyImmediate(planted.gameObject); UnityEngine.Object.DestroyImmediate(actor);
         var round = new GameObject("RoundFixture").AddComponent<RoundManager>(); Call(round, "Awake");
         foreach (string map in new[] { "TestMap", "Desert" })

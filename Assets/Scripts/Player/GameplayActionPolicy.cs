@@ -32,7 +32,9 @@ public static class GameplayActionPolicy
         if (practice == null && RoundManager.Instance != null &&
             (RoundManager.Instance.currentState == RoundManager.RoundState.RoundEnd ||
              RoundManager.Instance.currentState == RoundManager.RoundState.GameOver)) return false;
-        if (action == GameplayAction.Skill) return true; // Each skill owns its active-mode cancel/confirm rules.
+        if (InitiatorSkill_Q.IsLocalReturning) return false;
+        if (action == GameplayAction.Skill) return !InitiatorSkill_Q.IsLocalPreparing || owner is InitiatorSkill_Q;
+        if (InitiatorSkill_Q.IsLocalPreparing) return false;
         if (practice == null && (EntrySkill_X.IsLocalBladeMode ||
             owner.GetComponentInParent<EntryDashMotor>()?.IsDashing == true ||
             InitiatorSkill_C.ShouldBlockWeaponInput() || SentinelSkill_C.ShouldBlockWeaponInput() ||

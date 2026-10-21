@@ -89,6 +89,35 @@ public class PlayerItem : MonoBehaviour
         return !GameplayActionPolicy.CanAct(this, GameplayAction.WeaponChange, false);
     }
 
+    public bool TrySelectWeapon(int slot)
+    {
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.WeaponChange)) return false;
+        if (slot < 0 || slot > 2 || items[slot] == null) return false;
+        if (_playerIdentity == null || NetworkManager.Instance == null ||
+            _playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return false;
+        Switch(slot);
+        return true;
+    }
+
+    private void LateUpdate()
+    {
+        // Inventory/view acknowledgements may refresh a held model during a skill.
+        // Preserve those data updates, but never render a gun over the drone rig.
+        var drone = GetComponent<InitiatorSkill_Q>();
+        if (drone != null && drone.BlocksWeaponPresentation) SetWeaponVisibility(drone.ShowTransitionWeapon);
+    }
+
+    // Internal completion of an already queued request, not a new input action.
+    // Fire/reload remain locked until the draw animation has finished.
+    public void RestoreQueuedDroneWeapon(int slot)
+    {
+        var drone=GetComponent<InitiatorSkill_Q>();
+        if (drone == null || !drone.CanRestoreQueuedWeapon || _playerIdentity == null ||
+            NetworkManager.Instance == null || _playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return;
+        if (slot < 0 || slot > 2 || items[slot] == null || currentIndex == slot) return;
+        Switch(slot);
+    }
+
     private void OnDisable()
     {
         // Disabling a component does not stop its coroutines in Unity.

@@ -190,7 +190,10 @@ public class DroneNetworkManager : MonoBehaviour
         bool isMine = drone != null && drone.IsMine;
 
         if (drone != null)
+        {
+            if (reason == 1) drone.GetComponent<DroneCombatVfx>()?.BreakApart();
             Destroy(drone.gameObject);
+        }
 
         _drones.Remove(droneId);
         _ownerDroneIds.Remove(ownerPlayerId);
@@ -215,7 +218,7 @@ public class DroneNetworkManager : MonoBehaviour
             ownerIdentity.GetComponent<InitiatorSkill_Q>();
 
         if (skill != null)
-            skill.OnOwnerDroneDestroyed(droneId);
+            skill.OnOwnerDroneDestroyed(droneId, reason);
     }
 
     public void OnDroneHpUpdate(

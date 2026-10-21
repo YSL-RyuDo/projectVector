@@ -12,6 +12,8 @@ public class ElectricShock : MonoBehaviour
 
     [Header("Visual")]
     [SerializeField] private float _defaultShockVisualDuration = 0.35f;
+    [SerializeField] private ParticleSystem _shockEffect;
+    private float _lastEffectTime = -1f;
 
     private Animator _animator;
     private Rigidbody _rb;
@@ -60,6 +62,11 @@ public class ElectricShock : MonoBehaviour
 
     private IEnumerator ShockVisualRoutine(float duration)
     {
+        if (_shockEffect != null && Time.unscaledTime-_lastEffectTime>.08f)
+        {
+            _lastEffectTime=Time.unscaledTime;
+            _shockEffect.Play();
+        }
         Debug.Log($"[SHOCK VISUAL START] {gameObject.name}");
 
         if (_rb != null)
@@ -156,6 +163,8 @@ public class ElectricShock : MonoBehaviour
 
     public void ClearElectricState()
     {
+        if (_shockEffect != null) _shockEffect.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
+        _lastEffectTime=-1f;
         _shockCount = 0;
         IsStunned = false;
 
@@ -177,4 +186,6 @@ public class ElectricShock : MonoBehaviour
         if (_renderer != null && _normalMaterial != null)
             _renderer.material = _normalMaterial;
     }
+
+    private void OnDisable() { ClearElectricState(); }
 }

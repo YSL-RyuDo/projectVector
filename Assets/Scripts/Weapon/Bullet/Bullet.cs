@@ -14,15 +14,18 @@ public class Bullet : MonoBehaviour
     private byte pelletIndex;
     private Func<RaycastHit, bool> deviceImpact;
     private int practiceDamage, practiceShot, practiceGeneration;
+    private int practiceWeaponId = -1;
+    private Vector3 damageOrigin;
 
     public Collider LastImpactCollider { get; private set; }
     public Vector3 LastImpactPoint { get; private set; }
     public bool HasFinished => finished;
 
     public void Init(PlayerIdentity owner, float range, float speed, Vector3 dir, bool sendHitFromThisBullet,
-        int mask = ~0, uint shot = 0, byte pellet = 0, Func<RaycastHit, bool> onDeviceImpact = null)
+        int mask = ~0, uint shot = 0, byte pellet = 0, Func<RaycastHit, bool> onDeviceImpact = null, Vector3? firedOrigin = null)
     {
         ownerIdentity = owner;
+        damageOrigin = firedOrigin ?? transform.position;
         remainingDistance = Mathf.Max(0f, range);
         bulletSpeed = Mathf.Max(0f, speed);
         direction = dir.normalized;
@@ -34,6 +37,7 @@ public class Bullet : MonoBehaviour
         {
             var weapon = practice.GetComponent<PlayerItem>()?.GetCurrentWeapon()?.Data;
             practiceDamage = practice.range.loadout?.DamageFor(weapon) ?? weapon?.damage ?? 0;
+            practiceWeaponId = weapon != null ? weapon.weaponId : -1;
             practiceShot = practice.GetComponent<PracticeWeaponInput>()?.Fired ?? -1;
             practiceGeneration = practice.range.spawner.Generation;
         }
@@ -101,7 +105,8 @@ public class Bullet : MonoBehaviour
         Finish();
         if (PracticePlayerContext.For(ownerIdentity) != null && collider.TryGetComponent<PracticeTargetZone>(out var target))
         {
-            if (canSendHit) target.Hit(practiceDamage, practiceShot, practiceGeneration);
+            if (canSendHit) target.Hit(WeaponDamage.Calculate(practiceWeaponId, practiceDamage,
+                WeaponDamage.Distance(damageOrigin, point), target.isHead ? 1 : target.isLegs ? 2 : 0), practiceShot, practiceGeneration);
             return;
         }
         if (canSendHit && rayHit.HasValue && deviceImpact != null && deviceImpact(rayHit.Value)) return;
@@ -113,7 +118,7 @@ public class Bullet : MonoBehaviour
             if (canSendHit && ownerIdentity != null && player.PlayerId != ownerIdentity.PlayerId &&
                 player.Team != ownerIdentity.Team && NetworkManager.Instance != null)
             {
-                NetworkManager.Instance.SendTrackedHit(player.PlayerId, WeaponShotTrace.GetHitZone(collider), shotId, pelletIndex);
+                NetworkManager.Instance.SendTrackedHit(player.PlayerId, WeaponShotTrace.GetHitZone(collider), shotId, pelletIndex, point);
             }
             return;
         }

@@ -3931,16 +3931,22 @@ public partial class NetworkManager : MonoBehaviour
             HitManager.TriggerEnemyHit();
     }
 
-    public uint SendTrackedFire(int weaponId)
+    public uint SendTrackedFire(int weaponId, Vector3? origin = null)
     {
         if (StorePanelUI.IsBlockingGameplayInput) return 0;
         uint shot = unchecked(++nextTrackedShot);
         if (shot == 0) shot = unchecked(++nextTrackedShot);
-        byte[] packet = new byte[12];
-        Buffer.BlockCopy(BitConverter.GetBytes((ushort)12), 0, packet, 0, 2);
+        byte[] packet = new byte[origin.HasValue ? 24 : 12];
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)packet.Length), 0, packet, 0, 2);
         Buffer.BlockCopy(BitConverter.GetBytes((ushort)PacketType.PKT_CS_FIRE), 0, packet, 2, 2);
         Buffer.BlockCopy(BitConverter.GetBytes(shot), 0, packet, 4, 4);
         Buffer.BlockCopy(BitConverter.GetBytes(weaponId), 0, packet, 8, 4);
+        if (origin.HasValue)
+        {
+            Buffer.BlockCopy(BitConverter.GetBytes(origin.Value.x), 0, packet, 12, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(origin.Value.y), 0, packet, 16, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(origin.Value.z), 0, packet, 20, 4);
+        }
         client.Send(packet);
         return shot;
     }
@@ -3949,16 +3955,22 @@ public partial class NetworkManager : MonoBehaviour
         => SendTrackedHit(targetPlayerId, isHeadshot ? (byte)1 : (byte)0, shot, pellet);
 
     // Wire regions stay 0=body, 1=head, 2=legs; authored HitPart values differ.
-    public void SendTrackedHit(uint targetPlayerId, byte hitZone, uint shot, byte pellet)
+    public void SendTrackedHit(uint targetPlayerId, byte hitZone, uint shot, byte pellet, Vector3? point = null)
     {
         if (shot == 0 || hitZone > 2) return;
-        byte[] packet = new byte[14];
-        Buffer.BlockCopy(BitConverter.GetBytes((ushort)14), 0, packet, 0, 2);
+        byte[] packet = new byte[point.HasValue ? 26 : 14];
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)packet.Length), 0, packet, 0, 2);
         Buffer.BlockCopy(BitConverter.GetBytes((ushort)PacketType.PKT_CS_HIT), 0, packet, 2, 2);
         Buffer.BlockCopy(BitConverter.GetBytes(targetPlayerId), 0, packet, 4, 4);
         packet[8] = hitZone;
         Buffer.BlockCopy(BitConverter.GetBytes(shot), 0, packet, 9, 4);
         packet[13] = pellet;
+        if (point.HasValue)
+        {
+            Buffer.BlockCopy(BitConverter.GetBytes(point.Value.x), 0, packet, 14, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(point.Value.y), 0, packet, 18, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(point.Value.z), 0, packet, 22, 4);
+        }
         // Bounded even if a server rejects all requests; no speculative player hit marker.
         if (pendingTrackedHits.Count >= 2048) pendingTrackedHits.Clear();
         pendingTrackedHits[((ulong)shot << 8) | pellet] = (targetPlayerId, Time.unscaledTime);
@@ -6968,6 +6980,11 @@ public partial class NetworkManager : MonoBehaviour
         bool successHit =
             hit != 0 &&
             targetPlayerId != 0;
+
+        if (DroneNetworkManager.Instance != null &&
+            DroneNetworkManager.Instance.TryGetActiveDroneByOwner(ownerPlayerId, out var firingDrone) &&
+            firingDrone != null && firingDrone.DroneId == droneId)
+            firingDrone.TaserGun?.PlayServerResult(successHit, successHit ? FindPlayerIdentityById(targetPlayerId)?.transform : null);
 
         // 핵심:
         // 서버 판정 결과를 내 드론 HUD에 반영

@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 
 // Explicit local QA only. Uses real client/server handlers and authored UI;
 // does not fabricate responses, create UI, or store credentials.
-public sealed class RankedCaptureTest : MonoBehaviour
+public sealed partial class RankedCaptureTest : MonoBehaviour
 {
     static readonly string[] Accounts = { "qwer", "asdf", "zxcv", "wert", "sdfg", "xcvb" };
     string account, root, frames;
@@ -18,6 +18,7 @@ public sealed class RankedCaptureTest : MonoBehaviour
     int frame;
     int encounterRound = 1;
     bool Lifecycle => Environment.GetEnvironmentVariable("VECTOR_CAPTURE_LIFECYCLE") == "1";
+    bool DroneEvidence => Environment.GetEnvironmentVariable("VECTOR_CAPTURE_DRONE") == "1";
     StreamWriter timeline;
     static readonly BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
     static T Field<T>(object obj, string name) => (T)obj.GetType().GetField(name, Private).GetValue(obj);
@@ -144,6 +145,11 @@ public sealed class RankedCaptureTest : MonoBehaviour
         int position = members.FindIndex(m => m.isMe);
         var characters = Field<PickCharacterData[]>(pick, "characters");
         int character = characters[Mathf.Max(position, 0) % characters.Length].characterId;
+        if (DroneEvidence) {
+            uint pilot=uint.Parse(File.ReadAllText(Path.Combine(root,"qwer.id")));
+            int pilotIndex=members.FindIndex(m=>m.playerId==pilot);
+            character=pilotIndex>=0 ? (account=="qwer"?0:1+members.Where(m=>m.playerId!=pilot).ToList().FindIndex(m=>m.isMe)) : position;
+        }
         File.WriteAllText(Path.Combine(root, account + ".team"), "room=" + state.roomId + " team=" + state.myTeam + " character=" + character + " members=" + string.Join(",", members.Select(m => m.playerId)));
         yield return new WaitForSecondsRealtime(1);
         Call(pick, "OnClickCharacter", character); Stage("preview character " + character);
@@ -159,11 +165,12 @@ public sealed class RankedCaptureTest : MonoBehaviour
         yield return Wait(() => GameController.Instance != null && GameController.Instance.CurrentState == GameController.GameFlowState.Playing, "loading actual match", 90);
         if (finished) yield break;
         Stage("in game"); File.WriteAllText(Path.Combine(root, account + ".playing"), "verified");
-        if (Lifecycle && net.MyPlayer != null && net.MyPlayer.GetComponent<InitiatorSkill_Q>() != null)
+        if ((Lifecycle || DroneEvidence) && net.MyPlayer != null && net.MyPlayer.GetComponent<InitiatorSkill_Q>() != null)
             net.SendStoreBuyRequest(2, (int)SkillSlot.Q);
         yield return Wait(() => RoundManager.Instance != null && RoundManager.Instance.currentState == RoundManager.RoundState.MainRound && net.MyPlayer != null,
             "waiting for combat round", 40);
         if (finished) yield break;
+        if (DroneEvidence) { yield return CaptureDroneEncounter(); if(!finished) Finish(Environment.GetEnvironmentVariable("VECTOR_CAPTURE_DRONE_CANCEL")=="1" ? "PASS: queued deploy cancellation and weapon input lock" : "PASS: actual drone flight, taser victim status and enemy weapon destruction"); yield break; }
         if (Environment.GetEnvironmentVariable("VECTOR_CAPTURE_OBJECTIVE") == "1")
         {
             yield return ProbeObjective();
@@ -270,6 +277,7 @@ public sealed class RankedCaptureTest : MonoBehaviour
             yield return Wait(()=>SkillInventoryState.CanUse(SkillSlot.Q),"drone purchase confirmed",4);
             if(finished) yield break;
             Call(drone,"UseSkill");
+            Call(drone,"RequestDroneDeploy");
             yield return Wait(()=>InitiatorSkill_Q.IsLocalDroneMode,"server deployed drone",5);
             if(finished) yield break;
             if(GameplayActionPolicy.CanAct(me,GameplayAction.Reload) || GameplayActionPolicy.CanAct(me,GameplayAction.WeaponChange))
@@ -514,7 +522,7 @@ public sealed class RankedCaptureTest : MonoBehaviour
             RenderTexture.active = previous; Destroy(shot);
             File.WriteAllBytes(Path.Combine(frames, frame.ToString("D6") + ".jpg"), image.EncodeToJPG(85));
             timeline.WriteLine(frame + "," + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); timeline.Flush(); frame++;
-            yield return new WaitForSecondsRealtime(.125f);
+            yield return new WaitForSecondsRealtime(DroneEvidence?.05f:.125f);
         }
         Destroy(image); target.Release(); Destroy(target);
     }

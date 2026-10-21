@@ -35,6 +35,12 @@ public class DroneMovement : MonoBehaviour
 
     private float _sendTimer;
     private const float SEND_INTERVAL = 0.05f; // 20Hz
+    private float _ceiling;
+    private float _launchHeight;
+    public float HeightAboveLaunch => Mathf.Max(0, transform.position.y - _launchHeight);
+    public bool CeilingLimited { get; private set; }
+    public Vector3 Velocity => _currentVelocity;
+    public static bool InputBlocked => GameplayActionPolicy.MenuBlocksInput || Game.Pings.PingSystem.WheelOpen;
 
     private void Awake()
     {
@@ -52,6 +58,8 @@ public class DroneMovement : MonoBehaviour
     {
         _drone = drone;
         _isMine = isMine;
+        _launchHeight = transform.position.y;
+        _ceiling = _launchHeight + DroneFlightSafety.MaxClimb;
 
         if (_cameraTransform == null)
         {
@@ -121,6 +129,7 @@ public class DroneMovement : MonoBehaviour
 
     private void HandleLook()
     {
+        if (InputBlocked || !InitiatorSkill_Q.IsLocalDroneMode) return;
         if (Mouse.current == null)
             return;
 
@@ -142,6 +151,8 @@ public class DroneMovement : MonoBehaviour
 
     private void HandleInput()
     {
+        if (Keyboard.current == null || InputBlocked || !InitiatorSkill_Q.IsLocalDroneMode)
+        { _targetVelocity = Vector3.zero; return; }
         if (_cameraTransform == null)
             return;
 
@@ -182,10 +193,17 @@ public class DroneMovement : MonoBehaviour
             accelRate * Time.fixedDeltaTime
         );
 
+        Vector3 requested = _currentVelocity * Time.fixedDeltaTime;
+        Vector3 allowed = DroneFlightSafety.Constrain(transform.position, requested, _ceiling, 0.48f, transform);
+        CeilingLimited = requested.y > 0.001f && allowed.y < requested.y - 0.0001f;
+        _currentVelocity = allowed / Time.fixedDeltaTime;
+
         if (_rb != null)
         {
             _rb.linearVelocity = _currentVelocity;
         }
+        if (DroneHUDUI.Instance != null)
+            DroneHUDUI.Instance.SetTelemetry(HeightAboveLaunch, _currentVelocity.magnitude, CeilingLimited);
     }
 
     private void SendStateTick()

@@ -21,6 +21,10 @@ public class TaserGun : MonoBehaviour
     [SerializeField] private AudioSource _audioSource;
     [SerializeField] private AudioClip _fireSound;
     [SerializeField] private float _beamShowTime = 0.08f;
+    [SerializeField] private ParticleSystem _impactSpark;
+    private Vector3 _lastImpact;
+    private Coroutine _beamRoutine;
+    [SerializeField] private DroneCombatVfx _combatVfx;
 
     public void Init(
         Drone drone,
@@ -57,6 +61,7 @@ public class TaserGun : MonoBehaviour
     {
         if (!_isMine)
             return;
+        if (!InitiatorSkill_Q.IsLocalDroneMode || DroneMovement.InputBlocked) return;
 
         if (Mouse.current == null)
             return;
@@ -72,6 +77,8 @@ public class TaserGun : MonoBehaviour
 
     private void FireTaserRequest()
     {
+        if (!_isMine || !InitiatorSkill_Q.IsLocalDroneMode || InitiatorSkill_Q.IsLocalReturning ||
+            DroneMovement.InputBlocked || (_singleUse && _used)) return;
         if (_drone == null)
         {
             Debug.LogWarning("[TASER] drone is null");
@@ -104,13 +111,10 @@ public class TaserGun : MonoBehaviour
         Vector3 startPoint = cam.position;
         Vector3 endPoint = cam.position + cam.forward * _range;
 
-        bool hasHit = Physics.Raycast(
-            ray,
-            out RaycastHit hit,
-            _range,
-            _hitMask,
-            QueryTriggerInteraction.Ignore
-        );
+        PlayerIdentity owner = null;
+        foreach (var player in FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None))
+            if (player.PlayerId == _drone.OwnerPlayerId) { owner = player; break; }
+        bool hasHit = WeaponShotTrace.FirstHit(ray, _range, _hitMask, owner, _drone.transform, out RaycastHit hit);
 
         if (hasHit)
         {
@@ -152,6 +156,7 @@ public class TaserGun : MonoBehaviour
 
         // 핵심: 여기서 즉시 발사 연출 재생
         PlayLocalTaserFeedback(startPoint, endPoint);
+        _lastImpact = endPoint;
 
         NetworkManager.Instance.SendDroneTaserFire(
             _drone.DroneId,
@@ -163,7 +168,9 @@ public class TaserGun : MonoBehaviour
 
     private void PlayLocalTaserFeedback(Vector3 start, Vector3 end)
     {
-        if (_muzzleSpark != null)
+        if (_combatVfx != null)
+            _combatVfx.Fire(start + _droneCamera.transform.right * .12f - _droneCamera.transform.up * .10f + _droneCamera.transform.forward * .3f, end);
+        else if (_muzzleSpark != null)
             _muzzleSpark.Play();
 
         if (_audioSource != null && _fireSound != null)
@@ -175,10 +182,11 @@ public class TaserGun : MonoBehaviour
             DroneHUDUI.Instance.SetTaserReady(false);
         }
 
+        if (_combatVfx != null) return;
         if (_taserBeam != null)
         {
-            StopCoroutine(nameof(BeamRoutine));
-            StartCoroutine(BeamRoutine(start, end));
+            if (_beamRoutine != null) StopCoroutine(_beamRoutine);
+            _beamRoutine = StartCoroutine(BeamRoutine(start, end));
         }
         else
         {
@@ -201,6 +209,31 @@ public class TaserGun : MonoBehaviour
     public bool HasUsedTaser()
     {
         return _used;
+    }
+
+    public void PlayServerResult(bool hit, Transform target)
+    {
+        if (!_isMine && _droneCamera != null)
+        {
+            Vector3 origin = _droneCamera.transform.position;
+            Vector3 end = target != null ? target.position + Vector3.up : origin + _droneCamera.transform.forward * _range;
+            if (_combatVfx) _combatVfx.Fire(origin,end);
+            else {
+                if (_taserBeam != null) { if (_beamRoutine != null) StopCoroutine(_beamRoutine); _beamRoutine=StartCoroutine(BeamRoutine(origin,end)); }
+                if (_muzzleSpark) _muzzleSpark.Play();
+            }
+            if (_audioSource && _fireSound) _audioSource.PlayOneShot(_fireSound,.45f);
+        }
+        if (hit && _combatVfx != null)
+        {
+            Vector3 point = _isMine ? _lastImpact : target != null ? target.position + Vector3.up : transform.position;
+            _combatVfx.ConfirmImpact(point, transform.position - point);
+        }
+        else if (hit && _impactSpark != null)
+        {
+            _impactSpark.transform.position = _isMine ? _lastImpact : target != null ? target.position + Vector3.up : transform.position;
+            _impactSpark.Play();
+        }
     }
 
     public void ResetTaser()
