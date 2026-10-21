@@ -10,7 +10,11 @@ public static class WeaponShotTrace
         if (collider == null || collider.GetComponentInParent<Bullet>() != null) return true;
         if (ownerRoot != null && collider.transform.IsChildOf(ownerRoot)) return true;
         var player = collider.GetComponentInParent<PlayerIdentity>();
-        return owner != null && player != null && (player.PlayerId == owner.PlayerId || player.Team == owner.Team);
+        if (owner != null && player != null && (player.PlayerId == owner.PlayerId || player.Team == owner.Team)) return true;
+        // Authored per-bone hitboxes replace the movement capsule for shooting.
+        // Legacy actors/practice targets without HitCollider retain their old behavior.
+        return player != null && collider.GetComponent<HitCollider>() == null &&
+            player.GetComponentInChildren<HitCollider>() != null;
     }
 
     public static bool FirstHit(Ray ray, float range, int mask, PlayerIdentity owner, Transform ownerRoot, out RaycastHit hit)
@@ -44,10 +48,22 @@ public static class WeaponShotTrace
         return player;
     }
 
-    public static bool IsHead(Collider collider)
+    public static byte GetHitZone(Collider collider)
     {
-        if (collider == null) return false;
+        if (collider == null) return 0;
+        var hitbox = collider.GetComponent<HitCollider>();
+        if (hitbox != null)
+        {
+            switch (hitbox.Part)
+            {
+                case HitPart.Head: return 1;
+                case HitPart.Legs: return 2;
+                default: return 0;
+            }
+        }
         string name = collider.name.ToLowerInvariant();
-        return name.Contains("head") || name.Contains("머리");
+        return name.Contains("head") || name.Contains("머리") ? (byte)1 : (byte)0;
     }
+
+    public static bool IsHead(Collider collider) => GetHitZone(collider) == 1;
 }

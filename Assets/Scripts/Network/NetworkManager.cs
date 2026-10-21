@@ -3946,13 +3946,17 @@ public partial class NetworkManager : MonoBehaviour
     }
 
     public void SendTrackedHit(uint targetPlayerId, bool isHeadshot, uint shot, byte pellet)
+        => SendTrackedHit(targetPlayerId, isHeadshot ? (byte)1 : (byte)0, shot, pellet);
+
+    // Wire regions stay 0=body, 1=head, 2=legs; authored HitPart values differ.
+    public void SendTrackedHit(uint targetPlayerId, byte hitZone, uint shot, byte pellet)
     {
-        if (shot == 0) return;
+        if (shot == 0 || hitZone > 2) return;
         byte[] packet = new byte[14];
         Buffer.BlockCopy(BitConverter.GetBytes((ushort)14), 0, packet, 0, 2);
         Buffer.BlockCopy(BitConverter.GetBytes((ushort)PacketType.PKT_CS_HIT), 0, packet, 2, 2);
         Buffer.BlockCopy(BitConverter.GetBytes(targetPlayerId), 0, packet, 4, 4);
-        packet[8] = isHeadshot ? (byte)1 : (byte)0;
+        packet[8] = hitZone;
         Buffer.BlockCopy(BitConverter.GetBytes(shot), 0, packet, 9, 4);
         packet[13] = pellet;
         // Bounded even if a server rejects all requests; no speculative player hit marker.
@@ -3961,8 +3965,12 @@ public partial class NetworkManager : MonoBehaviour
         client.Send(packet);
     }
 
-    public void SendHit(uint targetPlayerId, bool isHeadshot = false)
+    public void SendHit(uint targetPlayerId, bool isHeadshot)
+        => SendHit(targetPlayerId, isHeadshot ? 1 : 0);
+
+    public void SendHit(uint targetPlayerId, int hitPart = 0)
     {
+        if (hitPart < 0 || hitPart > 2) return;
         ushort size = 4 + 4 + 1;
         ushort type = (ushort)PacketType.PKT_CS_HIT;
 
@@ -3978,11 +3986,12 @@ public partial class NetworkManager : MonoBehaviour
 
         Buffer.BlockCopy(BitConverter.GetBytes(targetPlayerId), 0, buffer, offset, 4);
         offset += 4;
-        buffer[offset] = isHeadshot ? (byte)1 : (byte)0;
+
+        buffer[offset] = (byte)hitPart;
 
         client.Send(buffer);
 
-        Debug.Log($"[SEND HIT] targetPlayerId={targetPlayerId} headshot={isHeadshot}");
+        Debug.Log($"[SEND HIT] targetPlayerId={targetPlayerId} hitPart={hitPart}");
     }
 
     public void SendWeaponSwitch(int weaponId)

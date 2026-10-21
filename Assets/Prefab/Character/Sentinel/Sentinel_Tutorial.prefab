@@ -394,6 +394,7 @@ MonoBehaviour:
   _crouchHeightOffset: 0.5
   _crouchSpeed: 8
   firstPersonArmModel: {fileID: 256870932689928733}
+  modelTransform: {fileID: 0}
 --- !u!114 &7179143017235550764
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -449,6 +450,7 @@ MonoBehaviour:
   thrown: {fileID: 0}
   spike: {fileID: 0}
   itemHolder: {fileID: 5845481878991695680}
+  tpItemHolder: {fileID: 0}
   dropPoint: {fileID: 5565248629657153407}
   pickupRange: 2.5
   itemLayer:
@@ -1129,7 +1131,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1166754175604888097, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}
       propertyPath: m_Layer
@@ -1284,10 +1286,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b97f1fa5e2c6a942981ed7af830dd7d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArmADS
-  adsPosition: {x: -0.015, y: -1.33, z: 0}
-  adsRotation: {x: 0, y: 0, z: 0}
+  arTransform:
+    defaultPosition: {x: 0, y: 0, z: 0}
+    defaultRotation: {x: 0, y: 0, z: 0}
+    adsPosition: {x: 0, y: -0.1, z: 0.2}
+    adsRotation: {x: 0, y: 0, z: 0}
+    weaponPositionOffset: {x: 0, y: 0, z: 0}
+    weaponRotationOffset: {x: 0, y: 0, z: 0}
+  pistolTransform:
+    defaultPosition: {x: 0, y: 0, z: 0}
+    defaultRotation: {x: 0, y: 0, z: 0}
+    adsPosition: {x: 0, y: -0.05, z: 0.15}
+    adsRotation: {x: 0, y: 0, z: 0}
+    weaponPositionOffset: {x: 0, y: 0, z: 0}
+    weaponRotationOffset: {x: 0, y: 0, z: 0}
+  knifeTransform:
+    defaultPosition: {x: 0, y: 0, z: 0}
+    defaultRotation: {x: 0, y: 0, z: 0}
+    adsPosition: {x: 0, y: 0, z: 0}
+    adsRotation: {x: 0, y: 0, z: 0}
+    weaponPositionOffset: {x: 0, y: 0, z: 0}
+    weaponRotationOffset: {x: 0, y: 0, z: 0}
   adsSpeed: 7
-  fovZoomSpeed: 15
+  reloadAnimationLength: 1.5
+  armAnimator: {fileID: 0}
+  weaponTypeParam: WeaponType
+  reloadBoolParam: IsReloading
+  knifeAttackCooldown: 0.7
 --- !u!4 &638181201918236839 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 9e557ab1838c5f949a7bd358b973da35, type: 3}

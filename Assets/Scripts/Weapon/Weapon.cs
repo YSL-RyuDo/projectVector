@@ -795,7 +795,7 @@ public class Weapon : Item
         if (hp != null && hp.IsDead) return true;
         if (NetworkManager.Instance != null && _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId)
         {
-            NetworkManager.Instance.SendTrackedHit(target.PlayerId, WeaponShotTrace.IsHead(collider), shotId, pellet);
+            NetworkManager.Instance.SendTrackedHit(target.PlayerId, WeaponShotTrace.GetHitZone(collider), shotId, pellet);
         }
         return true;
     }

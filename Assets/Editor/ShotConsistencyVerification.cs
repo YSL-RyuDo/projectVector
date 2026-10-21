@@ -29,6 +29,7 @@ public static class ShotConsistencyVerification
     public static void Run()
     {
         Check(Application.isBatchMode,"Run in isolated batch mode");
+        VerifyMergedHitboxes();
         Directory.CreateDirectory(Output);
         var report=new StringBuilder();
         var fixtures=new StringBuilder();
@@ -138,6 +139,62 @@ public static class ShotConsistencyVerification
             File.WriteAllText(Path.Combine(Output,"client-results.txt"),report.ToString());
             File.WriteAllText(Path.Combine(Output,"impact-fixtures.txt"),fixtures.ToString());
         }
+    }
+
+    static void VerifyMergedHitboxes()
+    {
+        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        foreach (string role in new[] { "Controller", "Entry", "Initiator", "Sentinel" })
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Character/{role}/{role}.prefab");
+            var parts = prefab.GetComponentsInChildren<HitCollider>(true);
+            foreach (HitPart part in Enum.GetValues(typeof(HitPart)))
+                Check(parts.Any(p => p.Part == part), role + " missing authored " + part);
+        }
+        var actor = Box("MovementCapsuleFixture", new Vector3(0, 0, 5), Vector3.one * 3);
+        actor.AddComponent<PlayerIdentity>().PlayerId = 2;
+        var region = Box("MisleadingHeadName", new Vector3(0, 0, 5), Vector3.one);
+        region.transform.SetParent(actor.transform, true);
+        var marker = region.AddComponent<HitCollider>();
+        foreach (HitPart part in Enum.GetValues(typeof(HitPart)))
+        {
+            typeof(HitCollider).GetField("hitPart", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(marker, part);
+            byte expected = part == HitPart.Head ? (byte)1 : part == HitPart.Legs ? (byte)2 : (byte)0;
+            Check(WeaponShotTrace.GetHitZone(region.GetComponent<Collider>()) == expected, "Authored/wire region mapping");
+            Check(WeaponShotTrace.FirstHit(new Ray(Vector3.zero, Vector3.forward), 10, ~0, null, null, out var hit) &&
+                hit.collider == region.GetComponent<Collider>(), "Movement capsule masked an authored hitbox");
+        }
+        var wall = Box("Cover", new Vector3(0, 0, 2), Vector3.one);
+        foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefab/Weapon" }))
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid));
+            foreach (var weapon in prefab.GetComponentsInChildren<Weapon>(true))
+            {
+                int mask = new SerializedObject(weapon).FindProperty("hitMask").intValue;
+                Check(WeaponShotTrace.FirstHit(new Ray(Vector3.zero, Vector3.forward), 10, mask, null, null, out var hit) &&
+                    hit.collider == wall.GetComponent<Collider>(), prefab.name + " weapon mask shoots through cover");
+            }
+        }
+        UnityEngine.Object.DestroyImmediate(wall); UnityEngine.Object.DestroyImmediate(actor);
+        var net = new GameObject("HitRegionWireFixture").AddComponent<NetworkManager>();
+        var transport = (NetworkClient)typeof(NetworkManager).GetField("client", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(net);
+        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        System.Net.Sockets.TcpClient peer = null;
+        try
+        {
+            listener.Start(); transport.Connect("127.0.0.1", ((System.Net.IPEndPoint)listener.LocalEndpoint).Port);
+            peer = listener.AcceptTcpClient(); peer.GetStream().ReadTimeout = 3000;
+            for (byte part = 0; part < 3; part++)
+            {
+                net.SendTrackedHit(2, part, 123, 4);
+                var packet = new byte[14]; int count = 0;
+                while (count < packet.Length) { int n = peer.GetStream().Read(packet, count, packet.Length - count); Check(n > 0, "Wire closed"); count += n; }
+                Check(BitConverter.ToUInt16(packet, 0) == 14 && packet[8] == part &&
+                    BitConverter.ToUInt32(packet, 9) == 123 && packet[13] == 4, "Merged tracked-hit wire layout");
+            }
+        }
+        finally { transport.Close(); peer?.Close(); listener.Stop(); UnityEngine.Object.DestroyImmediate(net.gameObject); }
+        Debug.Log("MERGED_HITBOX_PASS: four authored characters, body/head/legs wire mapping, movement capsule filtering, weapon cover masks, real TCP tracked hit payload");
     }
 }
 #endif

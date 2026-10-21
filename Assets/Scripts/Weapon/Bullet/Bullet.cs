@@ -113,7 +113,7 @@ public class Bullet : MonoBehaviour
             if (canSendHit && ownerIdentity != null && player.PlayerId != ownerIdentity.PlayerId &&
                 player.Team != ownerIdentity.Team && NetworkManager.Instance != null)
             {
-                NetworkManager.Instance.SendTrackedHit(player.PlayerId, WeaponShotTrace.IsHead(collider), shotId, pelletIndex);
+                NetworkManager.Instance.SendTrackedHit(player.PlayerId, WeaponShotTrace.GetHitZone(collider), shotId, pelletIndex);
             }
             return;
         }
