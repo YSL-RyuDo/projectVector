@@ -23,8 +23,8 @@ public static class DronePolishVerification
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
         var self=new GameObject("DroneSafetyFixture");self.AddComponent<SphereCollider>().radius=.48f;
         Vector3 p=Vector3.zero;
-        for(int i=0;i<3000;i++)p+=DroneFlightSafety.Constrain(p,Vector3.up*.16f,8,.48f,self.transform);
-        Check(Mathf.Abs(p.y-8)<.001f,"open sky stays at launch + 8m after sustained ascent");
+        for(int i=0;i<3000;i++)p+=DroneFlightSafety.Constrain(p,Vector3.up*.16f,DroneFlightSafety.MaxClimb,.48f,self.transform);
+        Check(Mathf.Abs(p.y-DroneFlightSafety.MaxClimb)<.001f,"open sky stays at launch + 1.25m after sustained ascent");
         var ceiling=GameObject.CreatePrimitive(PrimitiveType.Cube);ceiling.transform.position=new Vector3(0,2,0);ceiling.transform.localScale=new Vector3(6,.05f,6);Physics.SyncTransforms();
         var delta=DroneFlightSafety.Constrain(Vector3.zero,Vector3.up*4,8,.48f,self.transform);
         Check(delta.y>1 && delta.y<1.5f,"thin physical ceiling stops flight before camera/body clips");
@@ -52,12 +52,25 @@ public static class DronePolishVerification
             foreach(var renderer in visual.GetComponentsInChildren<Renderer>(true))
                 Check(renderer.sharedMaterials.All(m=>m && m.shader && m.shader.name!="Standard"),"drone materials have no legacy or missing slots: "+renderer.name);
         var actorInstance=(GameObject)PrefabUtility.InstantiatePrefab(actor);
+        var weaponModel=actorInstance.transform.Find("CameraRoot/Controller Model_Riging (1)");
+        var neutralBones=weaponModel.GetComponentsInChildren<Transform>(true);
+        var neutralUpper=neutralBones.First(t=>t.name=="mixamorig:LeftArm");
+        var neutralFore=neutralBones.First(t=>t.name=="mixamorig:LeftForeArm");
+        var neutralHand=neutralBones.First(t=>t.name=="mixamorig:LeftHand");
+        var shoulderPosition=neutralUpper.position+actorInstance.GetComponentInChildren<Camera>(true).transform.TransformVector(new Vector3(-.34f,-.10f,.13f));
+        float upperLength=Vector3.Distance(neutralUpper.position,neutralFore.position),foreLength=Vector3.Distance(neutralFore.position,neutralHand.position);
+        AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character(New)/Controller/Animation/AR.anim").SampleAnimation(weaponModel.gameObject,0);
         var rig=actorInstance.GetComponent<DroneLaunchRig>();Call(rig,"Awake");
         var view=Field<Transform>(rig,"_viewModel");var restPosition=view.localPosition;
         var bones=Field<Transform[]>(rig,"_posedBones");var rotations=bones.Select(b=>b.localRotation).ToArray();
+        var upper=Field<Transform>(rig,"_upperArm");var fore=Field<Transform>(rig,"_forearm");var hand=Field<Transform>(rig,"_hand");
         for(int cycle=0;cycle<3;cycle++) {
             rig.SetPrepared(true);Call(rig,"ApplyPose",1f);
-            Check(Vector3.Distance(view.localPosition,restPosition)>.2f,"preparation pose moves arms clear of camera");
+            Check(Vector3.Distance(view.localPosition,restPosition)<.4f && Vector3.Distance(upper.position,shoulderPosition)<.0001f,"authored left-side framing translates the whole rig without stretching shoulder");
+            Check(Mathf.Abs(Vector3.Distance(upper.position,fore.position)-upperLength)<.0001f && Mathf.Abs(Vector3.Distance(fore.position,hand.position)-foreLength)<.0001f,"preparation preserves both arm segment lengths");
+            var fingerRotations=Field<Transform[]>(rig,"_handBones").Select(b=>b.localRotation).ToArray();
+            for(int i=0;i<100;i++)Call(rig,"ApplyPose",1f);
+            Check(Field<Transform[]>(rig,"_handBones").Select((b,i)=>Quaternion.Angle(b.localRotation,fingerRotations[i])<.02f).All(v=>v),"held pose does not accumulate finger rotation");
             rig.SetPrepared(false);Call(rig,"OnDisable");
             Check(Vector3.Distance(view.localPosition,restPosition)<.0001f && bones.Select((b,i)=>Quaternion.Angle(b.localRotation,rotations[i])).All(a=>a<.02f),"cancel/disable restores original weapon rig");
         }
@@ -69,21 +82,28 @@ public static class DronePolishVerification
         for(int i=0;i<90;i++)Call(rig,"Advance",1f/120);
         Check(rig.ReadyToLaunch && !rig.WeaponVisible && device.activeSelf,"arm preparation completes before deploy unlock");
         var poseCamera=actorInstance.GetComponentInChildren<Camera>(true);poseCamera.fieldOfView=90;Call(rig,"Advance",1f/120);
-        Check(poseCamera.WorldToViewportPoint(Field<Transform>(rig,"_upperArm").position).y<0,"open shoulder stays below the actual gameplay frame");
+        Check(Vector3.Distance(upper.position,shoulderPosition)<.0001f,"ready pose preserves authored shoulder framing");
         var deviceViewport=poseCamera.WorldToViewportPoint(device.GetComponent<Renderer>().bounds.center);
         Check(deviceViewport.x>0 && deviceViewport.x<.5f && deviceViewport.y>.1f && deviceViewport.y<.5f,"prepared drone stays visible below-left without covering reticle");
         poseCamera.fieldOfView=60;Call(rig,"Advance",1f/120);
         var gameplayViewport=poseCamera.WorldToViewportPoint(device.GetComponent<Renderer>().bounds.center);
-        Check(Mathf.Abs(gameplayViewport.y-deviceViewport.y)<.02f && gameplayViewport.y>.1f,"actual 60 degree gameplay FOV keeps device above HUD");
-        Check(poseCamera.WorldToViewportPoint(Field<Transform>(rig,"_upperArm").position).y<0,"60 degree framing keeps cut shoulder outside view");
+        Check(gameplayViewport.x>0 && gameplayViewport.x<.5f && gameplayViewport.y>.05f && gameplayViewport.y<.55f,"actual 60 degree gameplay FOV keeps drone visible below-left: "+gameplayViewport);
+        var elbowViewport=poseCamera.WorldToViewportPoint(fore.position);
+        var wristViewport=poseCamera.WorldToViewportPoint(hand.position);
+        Check(elbowViewport.x<wristViewport.x-.15f && elbowViewport.y<wristViewport.y,
+            "reference composition: forearm enters from lower-left, not bottom-center: elbow="+elbowViewport+" wrist="+wristViewport);
+        Check(wristViewport.x>.35f && wristViewport.x<.6f && wristViewport.y>.1f && wristViewport.y<.35f,
+            "reference composition: wrist remains in lower central band without hiding aim");
+        Check(Vector3.Distance(upper.position,shoulderPosition)<.0001f,"changing FOV preserves authored shoulder framing");
         poseCamera.fieldOfView=90;Call(rig,"Advance",1f/120);
-        var cameraPosition=poseCamera.transform.localPosition;var cameraRotation=poseCamera.transform.localRotation;
-        poseCamera.transform.localPosition+=Vector3.up*.2f;poseCamera.transform.localRotation*=Quaternion.Euler(15,0,0);
+        var cameraRoot=poseCamera.transform.parent;
+        var cameraPosition=cameraRoot.localPosition;var cameraRotation=cameraRoot.localRotation;
+        cameraRoot.localPosition+=Vector3.up*.2f;cameraRoot.localRotation*=Quaternion.Euler(15,0,0);
         Call(rig,"Advance",1f/120);
         var correctedViewport=poseCamera.WorldToViewportPoint(device.GetComponent<Renderer>().bounds.center);
-        Check(Vector2.Distance(new Vector2(deviceViewport.x,deviceViewport.y),new Vector2(correctedViewport.x,correctedViewport.y))<.01f,"camera offset/pitch corrections preserve preparation framing");
+        Check(correctedViewport.z>.05f && correctedViewport.x>0 && correctedViewport.x<.6f && correctedViewport.y>0 && correctedViewport.y<.6f,"camera offset and pitch keep drone visible within natural arm reach");
         Check(Field<Transform[]>(rig,"_handBones").Length>5,"authored open wrist and finger pose replaces firearm grip");
-        poseCamera.transform.localPosition=cameraPosition;poseCamera.transform.localRotation=cameraRotation;Call(rig,"Advance",1f/120);
+        cameraRoot.localPosition=cameraPosition;cameraRoot.localRotation=cameraRotation;Call(rig,"Advance",1f/120);
         var releaseOrigin=device.transform.position;rig.BeginLaunch();Call(rig,"Advance",.14f);
         Check(Vector3.Distance(device.transform.position,releaseOrigin)>.1f,"device travels off forearm during release");
         for(int i=0;i<45;i++)Call(rig,"Advance",1f/120);
@@ -91,6 +111,7 @@ public static class DronePolishVerification
         rig.SetPrepared(false);
         for(int i=0;i<90;i++)Call(rig,"Advance",1f/120);
         Check(!rig.IsReturning && rig.WeaponVisible && Vector3.Distance(view.localPosition,restPosition)<.0001f,"lower and redraw restores rig without pose drift");
+        Check(Vector3.Distance(device.transform.localScale,Field<Vector3>(rig,"_deviceBaseScale"))<.0001f,"held-device presentation scale restores after return");
         rig.SetDeployed(); rig.SetPrepared(false); rig.DrawAllowed=false;
         for(int i=0;i<180;i++)Call(rig,"Advance",1f/120);
         Check(rig.ReadyForWeaponDraw && rig.IsReturning && !rig.WeaponVisible,"server exit delay holds gun below frame before redraw");

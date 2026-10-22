@@ -90,7 +90,7 @@ public class DroneHUDUI : MonoBehaviour
     public void SetTelemetry(float altitude,float speed,bool limited)
     {
         if (_spectating) return;
-        if (_telemetryText) { _telemetryText.text=$"{altitude:0.0}m"; _telemetryText.color=limited?Amber:Color.white; }
+        if (_telemetryText) { _telemetryText.text=float.IsNaN(altitude)?"--m":$"{altitude:0.0}m"; _telemetryText.color=limited?Amber:Color.white; }
         if (limited) ShowNotice("상승 제한");
     }
     public void PlayTaserFireFeedback() { _firePulse=.9f; }

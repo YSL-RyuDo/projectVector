@@ -165,12 +165,18 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
         yield return Wait(() => GameController.Instance != null && GameController.Instance.CurrentState == GameController.GameFlowState.Playing, "loading actual match", 90);
         if (finished) yield break;
         Stage("in game"); File.WriteAllText(Path.Combine(root, account + ".playing"), "verified");
-        if ((Lifecycle || DroneEvidence) && net.MyPlayer != null && net.MyPlayer.GetComponent<InitiatorSkill_Q>() != null)
+        if ((Lifecycle || DroneEvidence) && !DischargeEvidence && net.MyPlayer != null && net.MyPlayer.GetComponent<InitiatorSkill_Q>() != null)
             net.SendStoreBuyRequest(2, (int)SkillSlot.Q);
+        if (DischargeEvidence && net.MyPlayer?.GetComponent<InitiatorSkill_X>() != null)
+            net.SendStoreBuyRequest(2, (int)SkillSlot.X);
+        if (DroneEvidence && Environment.GetEnvironmentVariable("VECTOR_CAPTURE_EMP")=="1" && net.MyPlayer?.GetComponent<InitiatorSkill_E>()!=null)
+            net.SendStoreBuyRequest(2,(int)SkillSlot.E);
+        if (DroneEvidence && Environment.GetEnvironmentVariable("VECTOR_CAPTURE_SCANNER")=="1" && net.MyPlayer?.GetComponent<InitiatorSkill_C>()!=null)
+            net.SendStoreBuyRequest(2,(int)SkillSlot.C);
         yield return Wait(() => RoundManager.Instance != null && RoundManager.Instance.currentState == RoundManager.RoundState.MainRound && net.MyPlayer != null,
             "waiting for combat round", 40);
         if (finished) yield break;
-        if (DroneEvidence) { yield return CaptureDroneEncounter(); if(!finished) Finish(Environment.GetEnvironmentVariable("VECTOR_CAPTURE_DRONE_CANCEL")=="1" ? "PASS: queued deploy cancellation and weapon input lock" : "PASS: actual drone flight, taser victim status and enemy weapon destruction"); yield break; }
+        if (DroneEvidence) { yield return CaptureDroneEncounter(); if(!finished) Finish(DischargeEvidence ? "PASS: actual X input, server discharge hit and first-person weapon recovery" : Environment.GetEnvironmentVariable("VECTOR_CAPTURE_SCANNER")=="1" ? "PASS: scanner throw, authoritative shock, weapon restoration and cleanup" : Environment.GetEnvironmentVariable("VECTOR_CAPTURE_DRONE_CANCEL")=="1" ? "PASS: queued deploy cancellation and weapon input lock" : "PASS: actual drone flight, taser victim status and enemy weapon destruction"); yield break; }
         if (Environment.GetEnvironmentVariable("VECTOR_CAPTURE_OBJECTIVE") == "1")
         {
             yield return ProbeObjective();
@@ -513,6 +519,12 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
         {
             yield return end;
             if (!recording) break;
+            if(DischargeEvidence){
+                if(!dischargeCaptureReady){yield return null;continue;}
+                CaptureDischargeFrame(image);
+                yield return new WaitForSecondsRealtime(.025f);
+                continue;
+            }
             var shot = ScreenCapture.CaptureScreenshotAsTexture();
             if (frame == 0 && account == "qwer")
                 File.WriteAllBytes(Path.Combine(root, "capture-source.png"), shot.EncodeToPNG());

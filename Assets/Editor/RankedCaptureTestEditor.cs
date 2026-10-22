@@ -7,6 +7,7 @@ using UnityEditor.SceneManagement;
 
 public static class RankedCaptureTestEditor
 {
+    public static void BuildSkillEvidence(){SkillVfxClarityAuthoring.Run();SkillVfxClarityVerification.Run();Build();}
     public static void Build()
     {
         string root = Environment.GetEnvironmentVariable("VECTOR_CAPTURE_ROOT");

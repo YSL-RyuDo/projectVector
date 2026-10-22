@@ -1481,11 +1481,25 @@ public partial class NetworkManager : MonoBehaviour
             case (ushort)PacketType.PKT_SC_EMP_CAST:
                 HandleEmpCast(body);
                 break;
+            case (ushort)PacketType.PKT_SC_EMP_GESTURE:
+                if(body!=null && body.Length==5 && body[4]<=1)
+                    FindPlayerIdentityById(BitConverter.ToUInt32(body,0))?.GetComponent<InitiatorSkill_E>()?.ReceiveGesture(body[4]==1);
+                break;
+            case (ushort)PacketType.PKT_SC_SCANNER_GESTURE:
+                if(body!=null && body.Length==5 && body[4]<=2)
+                    FindPlayerIdentityById(BitConverter.ToUInt32(body,0))?.GetComponent<InitiatorSkill_C>()?.ReceiveGesture(body[4]);
+                break;
 
             case (ushort)PacketType.PKT_SC_ELECTRIC_STATUS:
                 HandleElectricStatus(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_DISCHARGE_GESTURE:
+            case (ushort)PacketType.PKT_SC_DISCHARGE_BEGIN:
+            case (ushort)PacketType.PKT_SC_DISCHARGE_STRIKE:
+            case (ushort)PacketType.PKT_SC_DISCHARGE_END:
+                DischargeDirector.Instance?.Receive(type, body);
+                break;
             case (ushort)PacketType.PKT_SC_ULTIMATE_CAST:
                 HandleUltimateCast(body);
                 break;
@@ -4030,6 +4044,9 @@ public partial class NetworkManager : MonoBehaviour
 
     private void HandleRoundResult(byte[] body)
     {
+        ScannerNetworkManager.Instance?.ClearAll();
+        DischargeDirector.Instance?.ClearAll();
+        ScannerFeedbackUI.Instance?.ResetFeedback();
         int offset = 0;
 
         byte winnerTeam = body[offset];
@@ -4112,6 +4129,9 @@ public partial class NetworkManager : MonoBehaviour
 
     private void HandleRoundReset(byte[] body)
     {
+        ScannerNetworkManager.Instance?.ClearAll();
+        DischargeDirector.Instance?.ClearAll();
+        ScannerFeedbackUI.Instance?.ResetFeedback();
         if(body!=null && body.Length>=4) movementRound=body[0];
         if (CombatFeedbackUI.Instance != null)
             CombatFeedbackUI.Instance.ResetAll();
@@ -7270,13 +7290,20 @@ public partial class NetworkManager : MonoBehaviour
         float duration = BitConverter.ToSingle(body, offset);
         offset += 4;
 
+        // Older servers send the original 13-byte body. Newer servers include
+        // the exact endpoint used for wall occlusion, including crouch height.
+        Vector3? confirmedTarget = null;
+        if (body.Length >= requiredSize + 12)
+            confirmedTarget = new Vector3(BitConverter.ToSingle(body, offset),
+                BitConverter.ToSingle(body, offset + 4), BitConverter.ToSingle(body, offset + 8));
+
         if (ScannerNetworkManager.Instance != null)
         {
             ScannerNetworkManager.Instance.OnScannerZap(
                 scannerId,
                 targetPlayerId,
                 stack,
-                duration
+                duration, confirmedTarget
             );
         }
     }
@@ -7290,7 +7317,7 @@ public partial class NetworkManager : MonoBehaviour
 
         if (ScannerNetworkManager.Instance != null)
         {
-            ScannerNetworkManager.Instance.OnScannerDestroy(scannerId);
+            ScannerNetworkManager.Instance.OnScannerDestroy(scannerId,body.Length>=5 && body[4]==1);
         }
     }
 
@@ -7337,8 +7364,31 @@ public partial class NetworkManager : MonoBehaviour
         Debug.Log("[SEND EMP CAST]");
     }
 
+    public void SendEmpGesture(bool preparing)
+    {
+        if(!IsConnected || !IsAuthenticated)return;
+        var buffer=new byte[5];
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)5),0,buffer,0,2);
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)PacketType.PKT_CS_EMP_GESTURE),0,buffer,2,2);
+        buffer[4]=(byte)(preparing?1:0);client.Send(buffer);
+    }
+    public void SendScannerGesture(byte phase)
+    {
+        SendSkillGesture(PacketType.PKT_CS_SCANNER_GESTURE, phase);
+    }
+    public void SendDischargeGesture(bool preparing) => SendSkillGesture(PacketType.PKT_CS_DISCHARGE_GESTURE, (byte)(preparing ? 1 : 0));
+    private void SendSkillGesture(PacketType type, byte phase)
+    {
+        if(!IsConnected || !IsAuthenticated || phase>2)return;
+        var buffer=new byte[5];
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)5),0,buffer,0,2);
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)type),0,buffer,2,2);
+        buffer[4]=phase;client.Send(buffer);
+    }
+
     private void HandleEmpCast(byte[] body)
     {
+        if(body==null || body.Length<5 || body[4]>8 || body.Length<5+body[4]*4)return;
         int offset = 0;
 
         uint casterPlayerId =
@@ -7378,6 +7428,7 @@ public partial class NetworkManager : MonoBehaviour
 
     private void HandleElectricStatus(byte[] body)
     {
+        if(body==null || body.Length<10)return;
         int offset = 0;
 
         uint playerId =
@@ -7393,6 +7444,8 @@ public partial class NetworkManager : MonoBehaviour
         float stunSeconds =
             BitConverter.ToSingle(body, offset);
         offset += 4;
+
+        if(float.IsNaN(stunSeconds) || float.IsInfinity(stunSeconds) || stunSeconds<0)return;
 
         PlayerIdentity target =
             FindPlayerIdentityById(playerId);
@@ -7452,6 +7505,7 @@ public partial class NetworkManager : MonoBehaviour
 
     public void SendUltimateCast(Vector3 direction)
     {
+        if (!IsConnected || !IsAuthenticated) return;
         ushort size = 4 + 4 + 4 + 4;
         ushort type = (ushort)PacketType.PKT_CS_ULTIMATE_CAST;
 
@@ -7518,6 +7572,7 @@ public partial class NetworkManager : MonoBehaviour
 
     private void HandleUltimateCast(byte[] body)
     {
+        if (body == null || body.Length < 46 || body[16] > 6) return;
         const int maxTargetCount = 6;
 
         int offset = 0;

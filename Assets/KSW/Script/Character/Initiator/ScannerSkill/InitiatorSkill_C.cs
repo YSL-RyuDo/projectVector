@@ -1,289 +1,121 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[DefaultExecutionOrder(1400)]
 public class InitiatorSkill_C : CharacterSkill
 {
     public static bool IsLocalScannerAiming { get; private set; }
-
-    private static int _blockWeaponInputUntilFrame = -1;
-
-    public static bool ShouldBlockWeaponInput()
-    {
-        return IsLocalScannerAiming || Time.frameCount <= _blockWeaponInputUntilFrame;
-    }
-
-    private static void BlockWeaponInputThisFrame()
-    {
-        _blockWeaponInputUntilFrame = Time.frameCount + 1;
-    }
-
-    [Header("Throw")]
-    [SerializeField] private float _baseForce = 12f;
-    [SerializeField] private int _lineResolution = 18;
-    [SerializeField] private float _lineSpacing = 0.09f;
-
-    [Header("Trajectory Visual")]
-    [SerializeField] private float _trajectoryWidth = 0.025f;
-    [SerializeField] private float _maxTrajectoryTime = 1.5f;
-
-    [Header("Spawn")]
+    private static int _blockWeaponInputUntilFrame=-1;
+    public static bool ShouldBlockWeaponInput()=>IsLocalScannerAiming || Time.frameCount<=_blockWeaponInputUntilFrame;
+    [SerializeField] private float _baseForce=12f;
+    [SerializeField] private int _lineResolution=32;
+    [SerializeField] private float _trajectoryWidth=.018f, _maxTrajectoryTime=1.5f;
     [SerializeField] private Transform _throwSpawnPoint;
-
+    [SerializeField] private ScannerCastRig _rig;
     private LineRenderer _lineRenderer;
-    private bool _isAiming;
-    private Camera _mainCam;
-    private PlayerIdentity _playerIdentity;
-
-    private void Awake()
-    {
-        _playerIdentity = GetComponent<PlayerIdentity>();
-        _lineRenderer = GetComponent<LineRenderer>();
-
-        if (_lineRenderer != null)
-        {
-            _lineRenderer.enabled = false;
-            _lineRenderer.useWorldSpace = true;
-            _lineRenderer.startWidth = _trajectoryWidth;
-            _lineRenderer.endWidth = _trajectoryWidth;
-            _lineRenderer.positionCount = 0;
-        }
-    }
-
-    private void Start()
-    {
-        _mainCam = GetComponentInChildren<Camera>(true);
-
-        if (_mainCam == null)
-            _mainCam = Camera.main;
-    }
-
-    private void OnDisable()
-    {
-        CancelAiming();
-    }
-
+    private PlayerIdentity _identity;
+    private bool _aiming, _throwing, _ownsLocal, _hidWeapon;
+    private int _queuedSlot=-1;
+    public bool BlocksActions=>_aiming || _throwing || (_rig && _rig.Active);
+    private bool Ready=>!_rig || _rig.Ready;
+    private Vector3 ReleasePosition=>_rig?_rig.ReleasePosition:_throwSpawnPoint?_throwSpawnPoint.position:
+        GetComponent<PlayerCameraController>().PlayerCamera.transform.TransformPoint(new Vector3(-.1f,-.2f,.4f));
+    private bool IsMine()=>_identity && NetworkManager.Instance && _identity.PlayerId==NetworkManager.Instance.MyPlayerId;
+    private void Awake(){_identity=GetComponent<PlayerIdentity>();_lineRenderer=GetComponent<LineRenderer>();HideTrajectory();}
     private void Update()
     {
-        if (!IsMine())
-            return;
-
-
-
-        if (Keyboard.current == null || Mouse.current == null)
-            return;
-
-        if (InGameChatUI.IsChatOpen)
-            return;
-
-        if (GameController.Instance != null &&
-            GameController.Instance.IsPaused)
-            return;
-
-        if (SettingsMenu.Instance != null &&
-            SettingsMenu.Instance.IsOpen)
-            return;
-
-        if (Keyboard.current.cKey.wasPressedThisFrame)
-        {
-            if (_isAiming)
-                CancelAiming();
-            else
-                StartAiming();
-        }
-
-        if (!_isAiming)
-            return;
-
-        // 조준 중에는 무조건 총기 입력 차단
-        IsLocalScannerAiming = true;
-
-        if (Mouse.current.leftButton.wasPressedThisFrame)
-        {
-            BlockWeaponInputThisFrame();
-
-            UseSkill();
-
-            CancelAiming();
-            return;
-        }
-
-        if (Mouse.current.rightButton.wasPressedThisFrame)
-        {
-            BlockWeaponInputThisFrame();
-
-            CancelAiming();
-            return;
-        }
+        if(GetComponent<PlayerHP>()?.IsDead==true || (RoundManager.Instance && (RoundManager.Instance.currentState==RoundManager.RoundState.RoundEnd || RoundManager.Instance.currentState==RoundManager.RoundState.GameOver))){ResetCast();return;}
+        if(!IsMine())return;
+        if(BlocksActions && !GameplayActionPolicy.CanAct(this,GameplayAction.Skill,false)){ResetCast();return;}
+        if(_ownsLocal)IsLocalScannerAiming=BlocksActions;
+        if(_throwing && _rig && _rig.ReleaseReady){Release();return;}
+        if(!BlocksActions && _queuedSlot>=0 && !GameplayActionPolicy.MenuBlocksInput){int slot=_queuedSlot;_queuedSlot=-1;GetComponent<PlayerItem>()?.TrySelectWeapon(slot);}
+        if(GameplayActionPolicy.MenuBlocksInput || Keyboard.current==null || Mouse.current==null)return;
+        var key=Keyboard.current;
+        if(BlocksActions){
+            int slot=key.digit1Key.wasPressedThisFrame?0:key.digit2Key.wasPressedThisFrame?1:key.digit3Key.wasPressedThisFrame?2:-1;
+            if(slot>=0){_queuedSlot=slot;if(!_throwing)CancelAiming();return;}
+            if(_aiming && (key.cKey.wasPressedThisFrame || Mouse.current.rightButton.wasPressedThisFrame)){CancelAiming();return;}
+            if(_aiming && Ready && Mouse.current.leftButton.wasPressedThisFrame)UseSkill();
+        }else if(key.cKey.wasPressedThisFrame && GameplayActionPolicy.CanAct(this,GameplayAction.Skill))StartAiming();
     }
-
-    private void LateUpdate()
-    {
-        if (!IsMine())
-            return;
-
-        if (_isAiming)
-            DrawTrajectory();
-    }
-
-    private bool IsMine()
-    {
-        return _playerIdentity != null &&
-               NetworkManager.Instance != null &&
-               _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
-    }
-
     private void StartAiming()
     {
-        if (!CanUsePurchasedSkill(SkillSlot.C))
-            return;
-
-        _isAiming = true;
-        IsLocalScannerAiming = true;
-
-        if (_lineRenderer != null)
-        {
-            _lineRenderer.enabled = true;
-            _lineRenderer.startWidth = _trajectoryWidth;
-            _lineRenderer.endWidth = _trajectoryWidth;
-        }
+        if(!CanUsePurchasedSkill(SkillSlot.C))return;
+        GetComponent<PlayerItem>()?.CancelReload(false);GetComponentInChildren<FPSCameraLook>(true)?.ForceExitADS();
+        _ownsLocal=_aiming=IsLocalScannerAiming=true;_rig?.Begin();NetworkManager.Instance.SendScannerGesture(1);
     }
-
     private void CancelAiming()
     {
-        _isAiming = false;
-        IsLocalScannerAiming = false;
-
-        if (_lineRenderer != null)
-        {
-            _lineRenderer.enabled = false;
-            _lineRenderer.positionCount = 0;
-        }
+        if(_aiming && IsMine())NetworkManager.Instance.SendScannerGesture(0);
+        _aiming=false;_rig?.Return();HideTrajectory();_blockWeaponInputUntilFrame=Time.frameCount+1;
     }
-
     protected override void UseSkill()
     {
-        if (!CanUsePurchasedSkill(SkillSlot.C))
-            return;
-
-        if (!IsMine())
-            return;
-
-        if (NetworkManager.Instance == null)
-            return;
-
-        Vector3 spawnPos = GetSpawnPosition();
-        Vector3 velocity = GetThrowVelocity();
-
-        NetworkManager.Instance.SendScannerThrow(
-            spawnPos.x,
-            spawnPos.y,
-            spawnPos.z,
-            velocity.x,
-            velocity.y,
-            velocity.z
-        );
-
-        Debug.Log(
-            $"[SCANNER THROW REQUEST] " +
-            $"spawn={spawnPos}, velocity={velocity}"
-        );
+        if(!IsMine() || !_aiming || !Ready || !CanUsePurchasedSkill(SkillSlot.C))return;
+        _aiming=false;_throwing=true;_rig?.Throw();HideTrajectory();NetworkManager.Instance.SendScannerGesture(2);
+        // Older non-production test prefabs retain their original immediate throw until re-authored.
+        if(!_rig)Release();
     }
-
-    private void DrawTrajectory()
+    private void Release()
     {
-        if (_lineRenderer == null)
-            return;
-
-        Vector3 startPos = GetSpawnPosition();
-        Vector3 velocity = GetThrowVelocity();
-        Vector3 gravity = Physics.gravity;
-
-        int count = Mathf.Max(2, _lineResolution);
-        _lineRenderer.positionCount = count;
-
-        float spacing = _maxTrajectoryTime / (count - 1);
-
-        for (int i = 0; i < count; i++)
-        {
-            float t = i * spacing;
-
-            Vector3 point =
-                startPos +
-                velocity * t +
-                0.5f * gravity * t * t;
-
-            _lineRenderer.SetPosition(i, point);
+        _throwing=false;
+        if(CanUsePurchasedSkill(SkillSlot.C)){
+            var position=ReleasePosition;var velocity=GetThrowVelocity();
+            var camera=GetComponent<PlayerCameraController>().PlayerCamera;
+            var origin=camera.transform.position;var delta=position-origin;
+            float distance=delta.magnitude;
+            foreach(var hit in Physics.SphereCastAll(origin,.12f,delta.normalized,distance,~0,QueryTriggerInteraction.Ignore))
+                if(!hit.collider.transform.IsChildOf(transform))distance=Mathf.Min(distance,Mathf.Max(0,hit.distance-.02f));
+            position=origin+delta.normalized*distance;
+            NetworkManager.Instance.SendScannerThrow(position.x,position.y,position.z,velocity.x,velocity.y,velocity.z);
         }
+        _rig?.Return();_blockWeaponInputUntilFrame=Time.frameCount+1;
     }
-
+    public void ReceiveGesture(byte phase)
+    {
+        if(IsMine() || GetComponent<PlayerHP>()?.IsDead==true)return;
+        if(phase==1)_rig?.Begin();else if(phase==2)_rig?.Throw();else _rig?.Return();
+    }
+    public void ConfirmSpawn(){if(!IsMine())_rig?.Return();}
     private Vector3 GetThrowVelocity()
     {
-        Camera cam = GetActiveCamera();
-
-        Vector3 aimDir;
-
-        if (cam != null)
-        {
-            aimDir = cam.transform.forward;
-        }
-        else
-        {
-            aimDir = transform.forward;
-        }
-
-        aimDir.Normalize();
-
-        // 너무 아래로 던지면 바로 바닥에 박히니까 최소 상향 보정
-        if (aimDir.y < -0.25f)
-            aimDir.y = -0.25f;
-
-        aimDir.Normalize();
-
-        float pitchBonus = Mathf.Clamp01(aimDir.y);
-        float finalForce = _baseForce + pitchBonus * _baseForce * 0.35f;
-
-        return aimDir * finalForce;
+        var camera=GetComponent<PlayerCameraController>()?.PlayerCamera;
+        Vector3 direction=camera?camera.transform.forward:transform.forward;
+        direction.y=Mathf.Max(-.25f,direction.y);direction.Normalize();
+        return direction*(_baseForce+Mathf.Clamp01(direction.y)*_baseForce*.35f);
     }
-
-    private Vector3 GetSpawnPosition()
+    private void HideTrajectory(){if(_lineRenderer){_lineRenderer.enabled=false;_lineRenderer.positionCount=0;}}
+    private void LateUpdate()
     {
-        if (_throwSpawnPoint != null)
-            return _throwSpawnPoint.position;
-
-        Camera cam = GetActiveCamera();
-
-        if (cam != null)
-        {
-            return cam.transform.position +
-                   cam.transform.forward * 0.6f +
-                   Vector3.down * 0.15f;
+        var item=GetComponent<PlayerItem>();
+        if(BlocksActions){item?.SetWeaponVisibility(_rig && _rig.WeaponVisible);_hidWeapon=true;}
+        else if(_hidWeapon){_hidWeapon=false;if(GetComponent<PlayerHP>()?.IsDead!=true)item?.SetWeaponVisibility(true);}
+        if(!IsMine() || !_aiming || !Ready || !_lineRenderer)return;
+        Vector3 start=ReleasePosition,velocity=GetThrowVelocity(),previous=start;
+        _lineRenderer.useWorldSpace=true;_lineRenderer.startWidth=_lineRenderer.endWidth=_trajectoryWidth;
+        _lineRenderer.enabled=true;_lineRenderer.positionCount=_lineResolution;
+        float duration=Mathf.Min(.6f,_maxTrajectoryTime);
+        for(int i=0;i<_lineResolution;i++){
+            float t=duration*i/(_lineResolution-1);Vector3 point=start+velocity*t+Physics.gravity*(.5f*t*t);
+            Vector3 delta=point-previous;float distance=delta.magnitude;bool blocked=false;
+            if(distance>.0001f)foreach(var hit in Physics.SphereCastAll(previous,.12f,delta/distance,distance,~0,QueryTriggerInteraction.Ignore)){
+                if(hit.collider.transform.IsChildOf(transform))continue;
+                if(hit.distance<distance){distance=hit.distance;blocked=true;}
+            }
+            if(blocked)point=previous+delta.normalized*distance;
+            _lineRenderer.SetPosition(i,point);previous=point;
+            if(blocked){_lineRenderer.positionCount=i+1;break;}
         }
-
-        Vector3 forward = transform.forward;
-        forward.y = 0f;
-        forward.Normalize();
-
-        return transform.position +
-               Vector3.up * 1.6f +
-               forward * 0.8f;
     }
-
-    private Camera GetActiveCamera()
+    public void ResetCast()
     {
-        if (_mainCam != null && _mainCam.enabled)
-            return _mainCam;
-
-        Camera[] cameras = GetComponentsInChildren<Camera>(true);
-
-        for (int i = 0; i < cameras.Length; i++)
-        {
-            if (cameras[i] != null && cameras[i].enabled)
-                return cameras[i];
-        }
-
-        if (Camera.main != null)
-            return Camera.main;
-
-        return _mainCam;
+        bool was=BlocksActions;
+        if((_aiming||_throwing) && IsMine())NetworkManager.Instance.SendScannerGesture(0);
+        _aiming=_throwing=false;_queuedSlot=-1;_rig?.ResetPresentation();HideTrajectory();
+        if(_ownsLocal){IsLocalScannerAiming=false;_ownsLocal=false;}
+        if(was && GetComponent<PlayerHP>()?.IsDead!=true)GetComponent<PlayerItem>()?.SetWeaponVisibility(true);
+        _hidWeapon=false;
     }
+    private void OnDisable()=>ResetCast();
 }

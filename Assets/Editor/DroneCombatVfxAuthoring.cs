@@ -69,6 +69,7 @@ public static class DroneCombatVfxAuthoring
             finally{PrefabUtility.UnloadPrefabContents(actor);}
         }
         AssetDatabase.SaveAssets();
+        SkillVfxClarityAuthoring.Run();
         Capture();
         DroneVisualReview.PoseReview();
         // Cursor regression needs a separate -nographics batch, not this render batch.

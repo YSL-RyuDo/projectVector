@@ -11,6 +11,7 @@ public class DroneLaunchRig : MonoBehaviour
     [SerializeField] private Transform _shoulderAnchor;
     [SerializeField, Range(40,120)] private float _poseReferenceFieldOfView = 90f;
     private Camera _presentationCamera;
+    private FirstPersonSkillMotion _motion;
     [SerializeField] private Vector3 _preparedViewOffset;
     [SerializeField] private Transform _stowedShoulder;
     [SerializeField] private Vector3 _stowCameraOffset = new Vector3(0,-.3f,0);
@@ -35,6 +36,11 @@ public class DroneLaunchRig : MonoBehaviour
     private Quaternion _viewRotation;
     private Vector3[] _fanPositions;
     private Quaternion[] _boneRest, _fanRotations;
+    private Transform _hand;
+    private Quaternion _handRotation, _deviceRotation;
+    [SerializeField, Range(.1f,1f)] private float _heldDeviceScale=.75f;
+    private Vector3 _deviceBaseScale;
+    private Vector3 _releaseStart, _releaseEnd;
     public float ReturnDuration => _returnDuration + _drawDuration;
     public float LaunchDuration => _launchDuration;
     public bool ReadyToLaunch => _phase == Phase.Ready;
@@ -46,23 +52,27 @@ public class DroneLaunchRig : MonoBehaviour
     private void Awake()
     {
         _presentationCamera=GetComponent<PlayerCameraController>()?.PlayerCamera;
+        _motion=GetComponent<FirstPersonSkillMotion>();
+        if(_forearm)foreach(var t in _forearm.GetComponentsInChildren<Transform>(true))if(t.name=="mixamorig:LeftHand"){_hand=t;break;}
         _fanPositions=new Vector3[_fans.Length];
         _fanRotations=new Quaternion[_fans.Length];
         for(int i=0;i<_fans.Length;i++) {
             _fanPositions[i]=_fans[i].localPosition; _fanRotations[i]=_fans[i].localRotation;
         }
-        if (_device) { _deviceRest=_device.transform.localPosition; _device.SetActive(false); }
+        if (_device) { _deviceRest=_device.transform.localPosition; _deviceRotation=_device.transform.localRotation; _deviceBaseScale=_device.transform.localScale; _device.SetActive(false); }
     }
     private void Enter(Phase phase) { _phase=phase; _elapsed=0; }
     public void SetPrepared(bool value)
     {
         if (value) {
             if (_phase != Phase.Idle) return;
+            if(!_motion)_motion=GetComponent<FirstPersonSkillMotion>();
             if (_viewModel) { _viewRest=_viewModel.localPosition; _viewRotation=_viewModel.localRotation; }
             if (_stowedShoulder) _shoulderRest=_stowedShoulder.localPosition;
             _boneRest=new Quaternion[_posedBones.Length];
             for(int i=0;i<_posedBones.Length;i++)_boneRest[i]=_posedBones[i].localRotation;
             _handRest=new Quaternion[_handBones.Length];
+            if(_hand)_handRotation=_hand.localRotation;
             for(int i=0;i<_handBones.Length;i++)_handRest[i]=_handBones[i].localRotation;
             _weight=0; Enter(Phase.Holster);
         } else {
@@ -70,7 +80,19 @@ public class DroneLaunchRig : MonoBehaviour
             _lowerStart=_weight; _lowerHolster=_holsterWeight; Enter(Phase.Lower);
         }
     }
-    public void BeginLaunch() { if (ReadyToLaunch) Enter(Phase.Release); }
+    public bool TryGetReleasePosition(out Vector3 position)
+    {
+        position=default;
+        if (!ReadyToLaunch || !_device || !_viewModel) return false;
+        position=_device.transform.position+_viewModel.parent.TransformVector(_releaseTravel);
+        return true;
+    }
+    public void BeginLaunch()
+    {
+        if (!TryGetReleasePosition(out _releaseEnd)) return;
+        _releaseStart=_device.transform.position;
+        Enter(Phase.Release);
+    }
     public void SetDeployed()
     {
         // Reconnect may restore a live drone without a local preparation animation.
@@ -97,7 +119,8 @@ public class DroneLaunchRig : MonoBehaviour
             case Phase.Ready: ApplyPose(1); break;
             case Phase.Release:
                 t=Mathf.Clamp01(_elapsed/_launchDuration); ApplyPose(1-.25f*t);
-                if(_device && _viewModel) _device.transform.position+=_viewModel.parent.TransformVector(_releaseTravel)*(t*t);
+                // The visible release ends at the same world point sent to the server.
+                if(_device) _device.transform.position=Vector3.Lerp(_releaseStart,_releaseEnd,t*t);
                 if(t>=1) SetDeployed();
                 break;
             case Phase.Deployed: ApplyPose(0); ApplyHolster(1); break;
@@ -127,41 +150,24 @@ public class DroneLaunchRig : MonoBehaviour
     }
     private void ApplyPose(float weight)
     {
+        _motion?.Restore(FirstPersonSkillMotion.Motion.Drone);
         _weight=weight;
         _holsterWeight=0;
         if (_device) _device.transform.localPosition=_deviceRest;
-        if (_viewModel) { _viewModel.localPosition=_viewRest+_preparedViewOffset*weight; _viewModel.localRotation=_viewRotation; }
-        if (_stowedShoulder && _viewModel)
-            _stowedShoulder.position=_stowedShoulder.parent.TransformPoint(_shoulderRest)+_viewModel.parent.TransformVector(_stowCameraOffset)*weight;
+        if (_viewModel) { _viewModel.localPosition=_viewRest; _viewModel.localRotation=_viewRotation; }
+        if (_stowedShoulder) _stowedShoulder.localPosition=_shoulderRest;
         if(_boneRest==null)return;
-        for(int i=0;i<_posedBones.Length;i++) {
-            var bone=_posedBones[i];
-            Quaternion target=_poseTargets[i].rotation;
-            if(_presentationCamera && _viewModel)
-                target=_presentationCamera.transform.rotation*Quaternion.Inverse(_viewModel.parent.rotation)*target;
-            bone.rotation=Quaternion.Slerp(bone.parent.rotation*_boneRest[i],target,weight);
-        }
-        // Keep the open sleeve/shoulder outside the frame irrespective of the
-        // current weapon's animator pose; wrist/device then enter from below-left.
-        if(_viewModel && _upperArm && _shoulderAnchor) {
-            Vector3 anchor=_shoulderAnchor.position;
-            if(_presentationCamera)anchor=_presentationCamera.transform.TransformPoint(_viewModel.parent.InverseTransformPoint(anchor));
-            _viewModel.position+=(anchor-_upperArm.position)*weight;
-        }
-        for(int i=0;i<_handBones.Length && i<_openHandPose.Length;i++)
-            _handBones[i].localRotation=Quaternion.Slerp(_handBones[i].localRotation,_openHandPose[i],weight);
-        // Gameplay uses a different FOV from the authoring camera. Preserve the
-        // authored screen position without altering the player's camera or aim.
-        if(weight>0 && _presentationCamera && _viewModel && _device) {
-            var renderer=_device.GetComponent<Renderer>();
-            if(renderer) {
-                Vector3 center=renderer.bounds.center;
-                Vector3 local=_presentationCamera.transform.InverseTransformPoint(center);
-                if(local.z>.03f) {
-                    float ratio=Mathf.Tan(_presentationCamera.fieldOfView*Mathf.Deg2Rad*.5f)/Mathf.Tan(_poseReferenceFieldOfView*Mathf.Deg2Rad*.5f);
-                    Vector3 framed=_presentationCamera.transform.TransformPoint(new Vector3(local.x*ratio,local.y*ratio,local.z));
-                    _viewModel.position+=(framed-center)*weight;
-                }
+        for(int i=0;i<_posedBones.Length;i++)_posedBones[i].localRotation=_boneRest[i];
+        if(_hand)_hand.localRotation=_handRotation;
+        float release=_phase==Phase.Release?Mathf.Clamp01(_elapsed/_launchDuration):0;
+        _motion?.Apply(FirstPersonSkillMotion.Motion.Drone,release*.32f,weight);
+        var frame=_presentationCamera?_presentationCamera.transform:_viewModel?_viewModel.parent:transform;
+        if(_device){
+            _device.transform.localScale=_deviceBaseScale*Mathf.Lerp(1,_heldDeviceScale,weight);
+            _device.transform.localRotation=_deviceRotation;
+            if(weight>0 && _hand){
+                _device.transform.rotation=Quaternion.Slerp(_device.transform.rotation,frame.rotation*Quaternion.Euler(15,0,0),weight);
+                _device.transform.position=Vector3.Lerp(_device.transform.position,Vector3.Lerp(_forearm.position,_hand.position,.86f)+frame.up*.075f,weight);
             }
         }
     }

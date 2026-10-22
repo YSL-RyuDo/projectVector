@@ -135,33 +135,14 @@ public class PlayerWeaponViewController : MonoBehaviour
             return;
         }
 
-        Transform rightHand = FindRightHand();
-
-        if (rightHand == null)
-        {
-            Debug.LogError(
-                $"[WEAPON VIEW] third-person holder is missing and RightHand could not be found. object={name}"
-            );
-            return;
-        }
-
-        thirdPersonWeaponHolder = new GameObject("WeaponHolder (Model Runtime)");
-        thirdPersonWeaponHolder.transform.SetParent(rightHand, false);
-
-        // Initiator is the only current character prefab without a serialized
-        // model holder. Match the working Entry holder correction instead of
-        // leaving the runtime holder at the raw humanoid hand transform.
-        thirdPersonWeaponHolder.transform.localPosition =
-            new Vector3(0.008803651f, -0.113508634f, -0.017433593f);
-        thirdPersonWeaponHolder.transform.localRotation =
-            new Quaternion(0.0632022f, -0.70312023f, 0.7055075f, -0.06234216f);
-        thirdPersonWeaponHolder.transform.localScale = Vector3.one;
-
-        EnsureWeaponMirror(thirdPersonWeaponHolder, true);
-
-        Debug.LogWarning(
-            $"[WEAPON VIEW] missing third-person holder was created on RightHand. object={name}"
-        );
+        // Reuse the authored third-person hierarchy. Searching every hand can
+        // select the first-person rig and create a second gun next to the camera.
+        var model = transform.Find("Model");
+        var mirrors = model ? model.GetComponentsInChildren<WeaponHolderModel>(true) : new WeaponHolderModel[0];
+        if (mirrors.Length == 1)
+            thirdPersonWeaponHolder = mirrors[0].gameObject;
+        else
+            Debug.LogError($"[WEAPON VIEW] Assign the authored third-person holder. object={name}");
     }
 
     private void EnsureWeaponMirror(GameObject holder, bool useRuntimeDefaults)

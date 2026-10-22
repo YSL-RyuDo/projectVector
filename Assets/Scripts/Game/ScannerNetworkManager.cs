@@ -8,6 +8,8 @@ public class ScannerNetworkManager : MonoBehaviour
     [SerializeField] private ScannerProjectile _scannerPrefab;
 
     private readonly Dictionary<uint, ScannerProjectile> _scanners = new();
+    private readonly Dictionary<uint, uint> _scannerOwners = new();
+    private readonly HashSet<ulong> _confirmedZaps = new();
 
     private void Awake()
     {
@@ -36,6 +38,7 @@ public class ScannerNetworkManager : MonoBehaviour
         float vy,
         float vz)
     {
+        _scannerOwners[scannerId] = ownerPlayerId;
         if (_scannerPrefab == null)
         {
             Debug.LogError("[SCANNER SPAWN] scanner prefab is null");
@@ -72,6 +75,7 @@ public class ScannerNetworkManager : MonoBehaviour
         );
 
         _scanners[scannerId] = scanner;
+        FindPlayerIdentityById(ownerPlayerId)?.GetComponent<InitiatorSkill_C>()?.ConfirmSpawn();
 
         Debug.Log(
             $"[SCANNER SPAWN APPLY] " +
@@ -104,27 +108,27 @@ public class ScannerNetworkManager : MonoBehaviour
         uint scannerId,
         uint targetPlayerId,
         byte stack,
-        float duration)
+        float duration, Vector3? confirmedTarget = null)
     {
-        if (!_scanners.TryGetValue(scannerId, out ScannerProjectile scanner))
-            return;
-
-        if (scanner == null)
-        {
-            _scanners.Remove(scannerId);
-            return;
-        }
+        if (!_scannerOwners.TryGetValue(scannerId, out uint ownerId)) return;
+        if (!_confirmedZaps.Add(((ulong)scannerId << 32) | targetPlayerId)) return;
+        uint localId = NetworkManager.Instance ? NetworkManager.Instance.MyPlayerId : 0;
+        // Notify the owner/victim even if a presentation object has disappeared.
+        bool personalCue = ScannerFeedbackUI.Instance && localId != 0 && (localId == ownerId || localId == targetPlayerId);
+        ScannerFeedbackUI.Instance?.ConfirmZap(localId, ownerId, scannerId, targetPlayerId);
+        _scanners.TryGetValue(scannerId, out ScannerProjectile scanner);
 
         PlayerIdentity target =
             FindPlayerIdentityById(targetPlayerId);
 
-        if (target == null)
-            return;
+        if (target == null && !confirmedTarget.HasValue) return;
 
         Vector3 targetPos =
-            target.transform.position + Vector3.up * 1.2f;
+            confirmedTarget ?? (target.transform.position + Vector3.up * 1.2f);
 
-        scanner.PlayZap(targetPos);
+        // Owner and victim already hear a local cue; observers hear the spatial zap.
+        if (scanner) scanner.PlayZap(targetPos, !personalCue);
+        if (!target) return;
 
         ElectricShock shock =
             target.GetComponent<ElectricShock>();
@@ -142,13 +146,13 @@ public class ScannerNetworkManager : MonoBehaviour
         );
     }
 
-    public void OnScannerDestroy(uint scannerId)
+    public void OnScannerDestroy(uint scannerId, bool expired=false)
     {
         if (!_scanners.TryGetValue(scannerId, out ScannerProjectile scanner))
             return;
 
         if (scanner != null)
-            Destroy(scanner.gameObject);
+            scanner.End(expired);
 
         _scanners.Remove(scannerId);
     }
@@ -162,6 +166,9 @@ public class ScannerNetworkManager : MonoBehaviour
         }
 
         _scanners.Clear();
+        _scannerOwners.Clear();
+        _confirmedZaps.Clear();
+        ScannerFeedbackUI.Instance?.ResetFeedback();
     }
 
     private PlayerIdentity FindPlayerIdentityById(uint playerId)

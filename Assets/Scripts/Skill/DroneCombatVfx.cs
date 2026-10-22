@@ -63,22 +63,27 @@ public sealed class DroneCombatVfx : MonoBehaviour
             for (int i=0;i<_points.Length;i++) {
                 float t=i/(float)(_points.Length-1);
                 float envelope = Mathf.Sin(t*Mathf.PI);
-                float offset = Mathf.Min(.09f, Vector3.Distance(_start,_end)*.012f)*envelope;
+                float offset = Mathf.Min(.035f, Vector3.Distance(_start,_end)*.006f)*envelope;
                 _points[i]=Vector3.Lerp(_start,_end,t)+offset*(side*Mathf.Sin(i*7.31f+_shotAge*53)+up*Mathf.Cos(i*4.17f-_shotAge*37));
             }
-            foreach(var line in new[]{_core,_halo,_arc}) { line.positionCount=_points.Length; line.SetPositions(_points); }
-            Tint(_core,new Color(.82f,1,1,fade),.022f);
-            Tint(_halo,new Color(.08f,.65f,1,fade*.65f),.14f);
-            Tint(_arc,new Color(.20f,.85f,1,fade*.45f),.035f);
+            // Primary shape states the real shot direction. Only secondary
+            // electrical detail may bend, never the apparent hit path.
+            _core.positionCount=_halo.positionCount=2;
+            _core.SetPosition(0,_start);_core.SetPosition(1,_end);
+            _halo.SetPosition(0,_start);_halo.SetPosition(1,_end);
+            _arc.positionCount=_points.Length;_arc.SetPositions(_points);
+            Tint(_core,new Color(.48f,.91f,1,fade),.024f);
+            Tint(_halo,new Color(.08f,.65f,1,fade*.24f),.065f);
+            Tint(_arc,new Color(.20f,.85f,1,fade*.32f),.012f);
         }
         if (_impactRing) {
-            _impactRing.enabled = _hitAge < .28f;
+            _impactRing.enabled = _hitAge < .2f;
             if (_impactRing.enabled) {
                 _impactRing.transform.SetPositionAndRotation(_impactPosition, _impactRotation);
-                float t=_hitAge/.28f, radius=Mathf.Lerp(.045f,.42f,t);
+                float t=_hitAge/.2f, radius=Mathf.Lerp(.04f,.30f,t);
                 _impactRing.positionCount=48;
                 for(int i=0;i<48;i++) { float a=i*Mathf.PI*2/48; _impactRing.SetPosition(i,new Vector3(Mathf.Cos(a),Mathf.Sin(a),0)*radius); }
-                Tint(_impactRing,new Color(.18f,.8f,1,(1-t)*.7f),.025f*(1-t)+.003f);
+                Tint(_impactRing,new Color(.65f,.95f,1,(1-t)*.95f),.03f*(1-t)+.004f);
             }
         }
     }
@@ -87,5 +92,6 @@ public sealed class DroneCombatVfx : MonoBehaviour
     {
         _shotAge=_hitAge=10;
         foreach(var line in new[]{_core,_halo,_arc,_impactRing}) if(line)line.enabled=false;
+        foreach(var particle in new[]{_muzzle,_impact,_flash})if(particle)particle.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
     }
 }

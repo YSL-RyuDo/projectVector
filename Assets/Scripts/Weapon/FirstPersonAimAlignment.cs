@@ -26,6 +26,7 @@ public sealed class FirstPersonAimAlignment : MonoBehaviour
     private void OnDisable() { RestoreBase(); weight = 0; previousWeapon = null; }
     private void LateUpdate()
     {
+        if (GetComponentInParent<InitiatorSkill_E>()?.BlocksActions == true) { weight=0; return; }
         if (movement == null || !movement.IsMine || aimCamera == null || inventory == null) return;
         var weapon = inventory.GetCurrentWeapon();
         if (weapon != previousWeapon) { weight = 0; previousWeapon = weapon; }

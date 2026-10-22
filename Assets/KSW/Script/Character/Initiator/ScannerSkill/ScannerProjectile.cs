@@ -1,185 +1,52 @@
-using System.Collections;
 using UnityEngine;
-
 public class ScannerProjectile : MonoBehaviour
 {
-    [Header("Visual")]
-    [SerializeField] private float _zapDuration = 0.15f;
-    [SerializeField] private float _lifeTimeAfterAnchor = 3.5f;
-    [SerializeField] private int _zapSegmentCount = 8;
-    [SerializeField] private float _zapJitterAmount = 0.25f;
-    [SerializeField] private float _zapStartWidth = 0.025f;
-    [SerializeField] private float _zapEndWidth = 0.008f;
-
-    private uint _scannerId;
-    private uint _ownerPlayerId;
-    private bool _isMine;
-    private bool _isAnchored;
-
+    [SerializeField] private ScannerPresentation _presentation;
+    [SerializeField] private float _airDeployDelay=.6f;
     private Rigidbody _rb;
-    private Collider _collider;
-    private LineRenderer _lineRenderer;
-
-    public uint ScannerId => _scannerId;
-    public uint OwnerPlayerId => _ownerPlayerId;
-
-    private void Awake()
+    private bool _isMine,_anchored,_requested,_ending;
+    private float _age;
+    public uint ScannerId {get;private set;}
+    public uint OwnerPlayerId {get;private set;}
+    public bool IsAnchored=>_anchored;
+    private void Awake()=>_rb=GetComponent<Rigidbody>();
+    public void Init(uint scannerId,uint ownerPlayerId,bool isMine,Vector3 velocity)
     {
-        _rb = GetComponent<Rigidbody>();
-        _collider = GetComponent<Collider>();
-
-        _lineRenderer = GetComponent<LineRenderer>();
-
-        if (_lineRenderer == null)
-            _lineRenderer = gameObject.AddComponent<LineRenderer>();
-
-        _lineRenderer.positionCount = 2;
-        _lineRenderer.enabled = false;
-        _lineRenderer.useWorldSpace = true;
-
-        _lineRenderer.startWidth = _zapStartWidth;
-        _lineRenderer.endWidth = _zapEndWidth;
+        ScannerId=scannerId;OwnerPlayerId=ownerPlayerId;_isMine=isMine;_age=0;
+        if(_rb){_rb.isKinematic=false;_rb.linearVelocity=velocity;_rb.collisionDetectionMode=CollisionDetectionMode.ContinuousDynamic;}
+        foreach(var player in FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None))
+            foreach(var collider in player.GetComponentsInChildren<Collider>())
+                foreach(var own in GetComponentsInChildren<Collider>())Physics.IgnoreCollision(own,collider);
     }
-
-    public void Init(
-        uint scannerId,
-        uint ownerPlayerId,
-        bool isMine,
-        Vector3 velocity)
+    private void Update()
     {
-        _scannerId = scannerId;
-        _ownerPlayerId = ownerPlayerId;
-        _isMine = isMine;
-        _isAnchored = false;
-
-        if (_rb != null)
-        {
-            _rb.isKinematic = false;
-            _rb.linearVelocity = velocity;
-        }
-
-        Debug.Log(
-            $"[SCANNER INIT] " +
-            $"scannerId={_scannerId}, owner={_ownerPlayerId}, " +
-            $"isMine={_isMine}, velocity={velocity}"
-        );
+        if(_anchored || _ending)return;_age+=Time.deltaTime;
+        if(_age>=_airDeployDelay)RequestAnchor();
+        if(_age>12)Destroy(gameObject);
     }
-
     private void OnCollisionEnter(Collision collision)
     {
-        if (_isAnchored)
-            return;
-
-        if (collision.gameObject.CompareTag("Player"))
-            return;
-
-        Vector3 anchorPos = transform.position;
-
-        ApplyAnchored(anchorPos);
-
-        // 핵심:
-        // 소유자 클라만 서버에 안착 보고한다.
-        if (_isMine && NetworkManager.Instance != null)
-        {
-            NetworkManager.Instance.SendScannerAnchor(
-                _scannerId,
-                anchorPos.x,
-                anchorPos.y,
-                anchorPos.z
-            );
-
-            Debug.Log(
-                $"[SCANNER ANCHOR REQUEST] " +
-                $"scannerId={_scannerId}, pos={anchorPos}"
-            );
-        }
+        if(collision.collider.GetComponentInParent<PlayerIdentity>())return;
+        RequestAnchor();
     }
-
+    private void RequestAnchor()
+    {
+        if(_requested || _anchored)return;_requested=true;
+        FreezeBody();
+        if(_isMine && NetworkManager.Instance){var p=transform.position;NetworkManager.Instance.SendScannerAnchor(ScannerId,p.x,p.y,p.z);}
+    }
     public void ApplyAnchored(Vector3 position)
     {
-        if (_isAnchored)
-            return;
-
-        _isAnchored = true;
-
-        transform.position = position;
-
-        if (_rb != null)
-        {
-            _rb.linearVelocity = Vector3.zero;
-            _rb.angularVelocity = Vector3.zero;
-            _rb.isKinematic = true;
-        }
-
-        Destroy(gameObject, _lifeTimeAfterAnchor);
-
-        Debug.Log(
-            $"[SCANNER ANCHORED APPLY] " +
-            $"scannerId={_scannerId}, pos={position}"
-        );
+        if(_ending)return;transform.position=position;
+        FreezeBody();
+        if(_anchored)return;_anchored=true;_presentation?.Anchor();
     }
-
-    public void PlayZap(Vector3 targetPosition)
+    public void PlayZap(Vector3 targetPosition, bool playSound=true){if(!_ending)_presentation?.Zap(targetPosition,playSound);}
+    private void FreezeBody(){if(_rb && !_rb.isKinematic){_rb.linearVelocity=Vector3.zero;_rb.angularVelocity=Vector3.zero;_rb.isKinematic=true;}}
+    public void End(bool expired)
     {
-        StopCoroutine(nameof(ZapEffectRoutine));
-        StartCoroutine(ZapEffectRoutine(targetPosition));
-    }
-
-    private IEnumerator ZapEffectRoutine(Vector3 targetPosition)
-    {
-        if (_lineRenderer == null)
-            yield break;
-
-        int segmentCount = Mathf.Max(2, _zapSegmentCount);
-
-        _lineRenderer.enabled = true;
-        _lineRenderer.positionCount = segmentCount;
-
-        Vector3 start = transform.position;
-        Vector3 end = targetPosition;
-
-        float timer = 0f;
-
-        while (timer < _zapDuration)
-        {
-            timer += Time.deltaTime;
-
-            float normalized = Mathf.Clamp01(timer / _zapDuration);
-
-            float width = Mathf.Lerp(
-                _zapStartWidth,
-                _zapEndWidth,
-                normalized
-            );
-
-            _lineRenderer.startWidth = width;
-            _lineRenderer.endWidth = width;
-
-            for (int i = 0; i < segmentCount; i++)
-            {
-                float t = i / (float)(segmentCount - 1);
-
-                Vector3 point = Vector3.Lerp(
-                    start,
-                    end,
-                    t
-                );
-
-                if (i != 0 && i != segmentCount - 1)
-                {
-                    float fade = Mathf.Sin(t * Mathf.PI);
-
-                    point += Random.insideUnitSphere *
-                             _zapJitterAmount *
-                             fade;
-                }
-
-                _lineRenderer.SetPosition(i, point);
-            }
-
-            yield return null;
-        }
-
-        _lineRenderer.enabled = false;
+        if(_ending)return;_ending=true;
+        foreach(var c in GetComponentsInChildren<Collider>())c.enabled=false;
+        _presentation?.End(expired);Destroy(gameObject,.8f);
     }
 }

@@ -9,6 +9,19 @@ using UnityEngine.InputSystem.LowLevel;
 
 public sealed partial class RankedCaptureTest
 {
+    bool EmpEvidence=>Environment.GetEnvironmentVariable("VECTOR_CAPTURE_EMP")=="1";
+    IEnumerator PressCaptureKey(Key key,float seconds=.10f)
+    {
+        var input=InputSystem.AddDevice<Keyboard>();input.MakeCurrent();
+        try{InputSystem.QueueStateEvent(input,new KeyboardState(key));yield return new WaitForSecondsRealtime(seconds);InputSystem.QueueStateEvent(input,new KeyboardState());yield return new WaitForSecondsRealtime(.12f);}
+        finally{InputSystem.RemoveDevice(input);}
+    }
+    IEnumerator ClickCaptureMouse()
+    {
+        var input=InputSystem.AddDevice<Mouse>();input.MakeCurrent();
+        try{InputSystem.QueueStateEvent(input,new MouseState().WithButton(MouseButton.Left));yield return new WaitForSecondsRealtime(.08f);InputSystem.QueueStateEvent(input,new MouseState());yield return new WaitForSecondsRealtime(.08f);}
+        finally{InputSystem.RemoveDevice(input);}
+    }
     [Serializable] sealed class DronePlan { public uint pilot,victim,shooter; public Vector3[] points; }
     void Evidence(string name,string detail)
     {
@@ -42,6 +55,7 @@ public sealed partial class RankedCaptureTest
         var net=NetworkManager.Instance;var me=net.MyPlayer;
         InputSystem.settings.backgroundBehavior=InputSettings.BackgroundBehavior.IgnoreFocus;
         yield return Wait(()=>All(".playing"),"six clients ready for drone evidence");if(finished)yield break;
+        yield return new WaitForSecondsRealtime(2);
         var actors=FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None);
         uint pilotId=uint.Parse(File.ReadAllText(Path.Combine(root,"qwer.id")));
         var pilot=actors.First(p=>p.PlayerId==pilotId);
@@ -102,11 +116,19 @@ public sealed partial class RankedCaptureTest
                 var p=me.transform.position;net.SendMoveState(p.x,p.y,p.z,me.transform.eulerAngles.y,0,0,false);yield return null;
             }
             cc.enabled=true;AimActor(pilot.transform.position+Vector3.up*1.4f);
+            yield return new WaitForSecondsRealtime(1);
+            if(Vector3.Distance(me.transform.position,destination)>.5f){Finish("FAILED: encounter movement corrected before arrival");yield break;}
         }
         File.WriteAllText(Path.Combine(root,account+".drone-ready"),me.PlayerId.ToString());
         yield return Wait(()=>All(".drone-ready"),"drone encounter actors positioned",30);if(finished)yield break;
         if(me.PlayerId!=plan.pilot && me.PlayerId!=plan.victim && me.PlayerId!=plan.shooter)recording=false;
         Evidence("encounter-ready","id="+me.PlayerId);
+        if(DischargeEvidence){
+            yield return CaptureDischargeEncounter(plan,pilot,victim);yield break;
+        }
+        if(Environment.GetEnvironmentVariable("VECTOR_CAPTURE_SCANNER")=="1"){
+            yield return CaptureScannerEncounter(plan,pilot,victim);yield break;
+        }
         if(account=="qwer") {
             AimActor(victim.transform.position+Vector3.up*1.2f);
             var eye=me.GetComponent<PlayerCameraController>().PlayerCamera.transform.position;
@@ -115,7 +137,7 @@ public sealed partial class RankedCaptureTest
                 Debug.Log($"[DRONE NEAR VISUAL] {path} player={renderer.GetComponentInParent<PlayerIdentity>()?.PlayerId} layer={renderer.gameObject.layer} bounds={renderer.bounds} mesh={renderer.GetComponent<MeshFilter>()?.sharedMesh?.name}");
             }
             yield return Wait(()=>SkillInventoryState.CanUse(SkillSlot.Q),"drone skill purchased",4);if(finished)yield break;
-            var skill=me.GetComponent<InitiatorSkill_Q>();Call(skill,"UseSkill");
+            var skill=me.GetComponent<InitiatorSkill_Q>();yield return PressCaptureKey(Key.Q);
             var playerItem=me.GetComponent<PlayerItem>();var held=playerItem.GetCurrentWeapon();int ammoBefore=held.CurrentAmmo;
             held.OnUse();Call(playerItem,"TryStartReload");
             if(held.CurrentAmmo!=ammoBefore || playerItem.IsReloading || GameplayActionPolicy.CanAct(playerItem,GameplayAction.Fire))
@@ -123,14 +145,14 @@ public sealed partial class RankedCaptureTest
             if(!skill.ReturnToWeapon(playerItem.CurrentIndex)){Finish("FAILED: preparation cancel did not accept weapon key");yield break;}
             yield return Wait(()=>!InitiatorSkill_Q.IsLocalReturning && !InitiatorSkill_Q.IsLocalPreparing,"cancel preparation to gun",3);if(finished)yield break;
             Evidence("weapon-lock-confirmed","ammo unchanged and cancel returned to gun");
-            Call(skill,"UseSkill");
+            yield return PressCaptureKey(Key.Q);
             Evidence("prepare","left arm device");yield return new WaitForSecondsRealtime(2);
             var launchRig=me.GetComponent<DroneLaunchRig>();
             if(Field<Transform[]>(launchRig,"_handBones").Length<5) { Finish("FAILED: latest hand pose missing");yield break; }
             var device=Field<GameObject>(launchRig,"_device");
             foreach(var visibleCamera in Camera.allCameras.Where(c=>c.enabled))
                 Debug.Log($"[DRONE POSE CAMERA] {visibleCamera.name} fov={visibleCamera.fieldOfView} depth={visibleCamera.depth} root={visibleCamera.transform.parent?.name} device={visibleCamera.WorldToViewportPoint(device.GetComponent<Renderer>().bounds.center)} shoulder={visibleCamera.WorldToViewportPoint(Field<Transform>(launchRig,"_upperArm").position)}");
-            Call(skill,"RequestDroneDeploy");
+            yield return ClickCaptureMouse();
             if(Environment.GetEnvironmentVariable("VECTOR_CAPTURE_DRONE_CANCEL")=="1") {
                 if(!skill.ReturnToWeapon(playerItem.CurrentIndex) || !InitiatorSkill_Q.IsLocalReturning)
                 {Finish("FAILED: pending deploy did not queue weapon return");yield break;}
@@ -149,10 +171,22 @@ public sealed partial class RankedCaptureTest
             if(!drone.GetComponent<DroneCombatVfx>() || !Field<DroneCombatVfx>(drone.TaserGun,"_combatVfx"))
             {Finish("FAILED: latest combat effects missing");yield break;}
             Evidence("latest-build-confirmed","open hand pose and authored combat effects loaded");
+            if(FindObjectsByType<Transform>(FindObjectsSortMode.None).Any(t=>t.name.StartsWith("LocalDroneBody_")))
+            {Finish("FAILED: duplicate drone body clone exists");yield break;}
+            Evidence("body-view-confirmed","actual player body reused without clone");
             Evidence("flight-start","drone="+drone.DroneId);
             var keyboard=InputSystem.AddDevice<Keyboard>();
             try {
                 Vector3 start=drone.transform.position;
+                if(Environment.GetEnvironmentVariable("VECTOR_CAPTURE_DRONE_CEILING")=="1") {
+                    yield return DriveDrone(keyboard,Key.Space,2.5f,drone);
+                    InputSystem.QueueStateEvent(keyboard,new KeyboardState());yield return new WaitForSecondsRealtime(.3f);
+                    float climb=drone.transform.position.y-start.y;
+                    if(climb<DroneFlightSafety.MaxClimb-.08f || climb>DroneFlightSafety.MaxClimb+.03f){Finish("FAILED: sustained ascent did not stop at reduced ceiling: "+climb);yield break;}
+                    Evidence("ceiling-confirmed",$"climb={climb:F3} ground={drone.Movement.GroundClearance:F3} limit={DroneFlightSafety.MaxClimb:F2}");
+                    yield return DriveDrone(keyboard,Key.Space,.5f,drone);
+                    if(drone.transform.position.y-start.y>DroneFlightSafety.MaxClimb+.03f){Finish("FAILED: repeated ascent bypassed ceiling");yield break;}
+                }
                 yield return DriveDrone(keyboard,Key.Space,.25f,drone);
                 InputSystem.QueueStateEvent(keyboard,new KeyboardState());yield return new WaitForSecondsRealtime(.6f);
                 yield return DriveDrone(keyboard,Key.W,.4f,drone);
@@ -175,13 +209,32 @@ public sealed partial class RankedCaptureTest
                 }
                 if(!WeaponShotTrace.FirstHit(new Ray(drone.ViewTransform.position,drone.ViewTransform.forward),100,~0,me,drone.transform,out var aimHit) || aimHit.collider.GetComponentInParent<PlayerIdentity>()!=victim)
                 {Evidence("aim-diagnostic",$"body={body?.name} center={body?.GetComponent<Collider>().bounds.center} camera={drone.ViewTransform.position} forward={drone.ViewTransform.forward} first={aimHit.collider?.name}");Finish("FAILED: taser crosshair does not cover victim hitbox");yield break;}
-                Call(drone.TaserGun,"FireTaserRequest");Evidence("taser-fired","target="+plan.victim);
+                yield return ClickCaptureMouse();Evidence("taser-fired","target="+plan.victim);
                 yield return Wait(()=>File.Exists(Path.Combine(root,"drone-victim-hit")),"victim confirms server HP and shock",6);if(finished)yield break;
-                yield return new WaitForSecondsRealtime(4);
+                yield return new WaitForSecondsRealtime(EmpEvidence?.35f:4);
                 File.WriteAllText(Path.Combine(root,"drone-destroy-now"),"go");
                 yield return Wait(()=>!InitiatorSkill_Q.IsLocalDroneMode,"enemy weapon destroys drone",15);if(finished)yield break;
                 Evidence("pilot-returned","camera="+me.GetComponent<PlayerCameraController>().PlayerCamera.enabled);
                 if(!me.GetComponent<PlayerCameraController>().PlayerCamera.enabled){Finish("FAILED: pilot camera not restored");yield break;}
+                if(EmpEvidence){
+                    yield return Wait(()=>!InitiatorSkill_Q.IsLocalReturning,"gun recovery before EMP",4);if(finished)yield break;
+                    AimActor(victim.transform.position+Vector3.up*1.1f);
+                    me.GetComponent<PlayerMovement>().enabled=true;yield return PressCaptureKey(Key.W,.4f);me.GetComponent<PlayerMovement>().enabled=false;
+                    yield return Wait(()=>SkillInventoryState.CanUse(SkillSlot.E),"EMP inventory available",3);if(finished)yield break;
+                    Evidence("emp-key","E input, distance="+Vector3.Distance(me.transform.position,victim.transform.position));
+                    yield return PressCaptureKey(Key.E);
+                    yield return Wait(()=>File.Exists(Path.Combine(root,"emp-victim-hit")),"victim confirms authoritative EMP stun",5);if(finished)yield break;
+                    Evidence("emp-confirmed","victim independently received stun");yield return new WaitForSecondsRealtime(4);
+                }
+                var view=me.GetComponent<PlayerWeaponViewController>();
+                var fp=Field<GameObject>(view,"firstPersonWeaponHolder");var tp=Field<GameObject>(view,"thirdPersonWeaponHolder");
+                yield return PressCaptureKey(Key.Digit3);yield return new WaitForSecondsRealtime(.6f);
+                if(playerItem.CurrentIndex!=2 || !fp.activeInHierarchy || tp.activeInHierarchy || me.GetComponentsInChildren<WeaponHolderModel>(true).Length!=1)
+                {Finish("FAILED: duplicate/wrong-view weapon after drone return and knife switch");yield break;}
+                yield return PressCaptureKey(Key.Digit2);yield return new WaitForSecondsRealtime(.6f);
+                if(playerItem.CurrentIndex!=1 || !fp.activeInHierarchy || tp.activeInHierarchy)
+                {Finish("FAILED: wrong view after returning to pistol");yield break;}
+                Evidence("weapon-view-confirmed","FP only, TP holder hidden, one mirror; knife and pistol switched");
                 File.WriteAllText(Path.Combine(root,"drone-finished"),"verified");
             } finally {InputSystem.RemoveDevice(keyboard);}
         } else {
@@ -189,20 +242,28 @@ public sealed partial class RankedCaptureTest
             float end=Time.realtimeSinceStartup+50;
             while(!File.Exists(Path.Combine(root,"drone-finished")) && Time.realtimeSinceStartup<end) {
                 var drone=FindObjectsByType<Drone>(FindObjectsSortMode.None).FirstOrDefault(d=>d.OwnerPlayerId==plan.pilot);
-                if(drone && (me.PlayerId==plan.victim || me.PlayerId==plan.shooter))AimActor(drone.transform.position);
+                if(me.PlayerId==plan.victim || me.PlayerId==plan.shooter)AimActor(drone?drone.transform.position:pilot.transform.position+Vector3.up*1.3f);
+                if(EmpEvidence && me.PlayerId==plan.victim && me.GetComponent<ElectricShock>().IsStunned && !File.Exists(Path.Combine(root,"emp-victim-hit"))){
+                    Evidence("emp-victim-stunned","remaining="+me.GetComponent<ElectricShock>().StunRemaining);
+                    File.WriteAllText(Path.Combine(root,"emp-victim-hit"),"server stun received");
+                }
                 if(me.PlayerId==plan.victim && !confirmed && me.GetComponent<PlayerHP>().CurrentHP<hp && me.GetComponent<ElectricShock>().ShockCount>0) {
                     confirmed=true;Evidence("victim-hit","hp="+me.GetComponent<PlayerHP>().CurrentHP+" shock="+me.GetComponent<ElectricShock>().ShockCount);
                     File.WriteAllText(Path.Combine(root,"drone-victim-hit"),"authoritative damage/status received");
                 }
                 if(me.PlayerId==plan.shooter && drone && File.Exists(Path.Combine(root,"drone-destroy-now")) && Time.realtimeSinceStartup>nextShot) {
                     var weapon=me.GetComponent<PlayerItem>().GetCurrentWeapon();
-                    weapon.OnUse();nextShot=Time.realtimeSinceStartup+.6f;Evidence("shoot-drone","hp="+drone.CurrentHp);
+                    weapon.OnUse();nextShot=Time.realtimeSinceStartup+(EmpEvidence?.15f:.6f);Evidence("shoot-drone","hp="+drone.CurrentHp);
                 }
                 yield return null;
             }
             if(!File.Exists(Path.Combine(root,"drone-finished"))){Finish("FAILED: drone encounter completion missing");yield break;}
             yield return Wait(()=>FindObjectsByType<Drone>(FindObjectsSortMode.None).All(d=>d.OwnerPlayerId!=plan.pilot),"server destruction reaches peer",4);if(finished)yield break;
             Evidence("peer-destroy-confirmed","active drones="+FindObjectsByType<Drone>(FindObjectsSortMode.None).Length);
+            var pilotView=pilot.GetComponent<PlayerWeaponViewController>();
+            if(Field<GameObject>(pilotView,"firstPersonWeaponHolder").activeInHierarchy || !Field<GameObject>(pilotView,"thirdPersonWeaponHolder").activeInHierarchy || pilot.GetComponentsInChildren<WeaponHolderModel>(true).Length!=1)
+            {Finish("FAILED: remote pilot weapon view is not TP only");yield break;}
+            Evidence("remote-weapon-view-confirmed","pilot TP only, one authored mirror");
         }
         yield return new WaitForSecondsRealtime(4);
     }

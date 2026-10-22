@@ -13,6 +13,7 @@ public class PlayerCameraController : MonoBehaviour
 
     private bool isLocalView;
     private bool isSpectatorView;
+    private bool isDroneBodyView;
 
     public Camera PlayerCamera => playerCamera;
     public FPSCameraLook CameraLook => cameraLook;
@@ -177,6 +178,14 @@ public class PlayerCameraController : MonoBehaviour
             deathController != null &&
             deathController.IsDead;
 
+        if (isDroneBodyView && !isDead)
+        {
+            // Show the authored world body, never a duplicate prefab or FPS arms.
+            deathController?.SetModelVisible(true);
+            weaponViewController?.HideAll();
+            return;
+        }
+
         // 죽은 플레이어는 모델과 양쪽 WeaponHolder 모두 숨긴다.
         if (isDead)
         {
@@ -235,6 +244,15 @@ public class PlayerCameraController : MonoBehaviour
             $"firstPerson={firstPersonView}, " +
             $"dead={isDead}"
         );
+    }
+
+    public void SetDroneBodyView(bool active)
+    {
+        isDroneBodyView = active;
+        RefreshViewVisuals();
+        var drone = GetComponent<InitiatorSkill_Q>();
+        if (!active && drone != null && drone.BlocksWeaponPresentation)
+            playerItem?.SetWeaponVisibility(drone.ShowTransitionWeapon);
     }
 
     public void SetFOV(float fov)

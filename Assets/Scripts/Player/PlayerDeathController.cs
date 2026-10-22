@@ -68,6 +68,8 @@ public class PlayerDeathController : MonoBehaviour
 
     public void OnDead()
     {
+        GetComponent<ElectricShock>()?.ClearElectricState();
+        GetComponent<EmpCastVfx>()?.ResetPresentation();
         IsDead = true;
         _playerHp.SetHp(0);
         SuspendSkills();
@@ -120,6 +122,8 @@ public class PlayerDeathController : MonoBehaviour
 
     public void OnRespawn()
     {
+        GetComponent<ElectricShock>()?.ClearElectricState();
+        GetComponent<EmpCastVfx>()?.ResetPresentation();
         // Alive survivors also need pending casts/input modes cleared at the round boundary.
         SuspendSkills();
         IsDead = false;
@@ -202,6 +206,12 @@ public class PlayerDeathController : MonoBehaviour
 
         for (int i = 0; i < modelRenderers.Length; i++)
         {
+            // Respawn/view changes must not activate dormant skill geometry.
+            if (modelRenderers[i] is LineRenderer || modelRenderers[i] is TrailRenderer || modelRenderers[i] is ParticleSystemRenderer)
+            {
+                modelRenderers[i].forceRenderingOff = !visible;
+                continue;
+            }
             if (modelRenderers[i] != null)
                 modelRenderers[i].enabled = visible;
         }

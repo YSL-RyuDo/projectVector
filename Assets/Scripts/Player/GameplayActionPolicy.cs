@@ -33,6 +33,9 @@ public static class GameplayActionPolicy
             (RoundManager.Instance.currentState == RoundManager.RoundState.RoundEnd ||
              RoundManager.Instance.currentState == RoundManager.RoundState.GameOver)) return false;
         if (InitiatorSkill_Q.IsLocalReturning) return false;
+        if (owner.GetComponentInParent<InitiatorSkill_C>()?.BlocksActions == true && !(owner is InitiatorSkill_C)) return false;
+        if (owner.GetComponentInParent<InitiatorSkill_E>()?.BlocksActions == true && !(owner is InitiatorSkill_E)) return false;
+        if (owner.GetComponentInParent<InitiatorSkill_X>()?.IsCasting == true && !(owner is InitiatorSkill_X)) return false;
         if (action == GameplayAction.Skill) return !InitiatorSkill_Q.IsLocalPreparing || owner is InitiatorSkill_Q;
         if (InitiatorSkill_Q.IsLocalPreparing) return false;
         if (practice == null && (EntrySkill_X.IsLocalBladeMode ||

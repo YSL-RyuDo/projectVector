@@ -9,6 +9,9 @@ public class DroneMovement : MonoBehaviour
     [SerializeField] private float _moveSpeed = 8f;
     [SerializeField] private float _acceleration = 20f;
     [SerializeField] private float _deceleration = 10f;
+    [SerializeField, Min(.1f)] private float _verticalSpeed = 2f;
+    [SerializeField, Min(.1f)] private float _verticalAcceleration = 4f;
+    [SerializeField, Min(.1f)] private float _verticalDeceleration = 8f;
 
     [Header("Look Settings")]
     [SerializeField] private float _mouseSensitivity = 0.12f;
@@ -38,6 +41,7 @@ public class DroneMovement : MonoBehaviour
     private float _ceiling;
     private float _launchHeight;
     public float HeightAboveLaunch => Mathf.Max(0, transform.position.y - _launchHeight);
+    public float GroundClearance { get; private set; } = float.NaN;
     public bool CeilingLimited { get; private set; }
     public Vector3 Velocity => _currentVelocity;
     public static bool InputBlocked => GameplayActionPolicy.MenuBlocksInput || Game.Pings.PingSystem.WheelOpen;
@@ -176,7 +180,7 @@ public class DroneMovement : MonoBehaviour
         if (Keyboard.current.leftCtrlKey.isPressed) moveDir += Vector3.down;
 
         _targetVelocity = moveDir.sqrMagnitude > 0.001f
-            ? moveDir.normalized * _moveSpeed
+            ? Vector3.Scale(moveDir.normalized,new Vector3(_moveSpeed,_verticalSpeed,_moveSpeed))
             : Vector3.zero;
     }
 
@@ -187,11 +191,11 @@ public class DroneMovement : MonoBehaviour
                 ? _acceleration
                 : _deceleration;
 
-        _currentVelocity = Vector3.MoveTowards(
-            _currentVelocity,
-            _targetVelocity,
-            accelRate * Time.fixedDeltaTime
-        );
+        float vertical=Mathf.MoveTowards(_currentVelocity.y,_targetVelocity.y,
+            (Mathf.Abs(_targetVelocity.y)>.01f ? _verticalAcceleration : _verticalDeceleration)*Time.fixedDeltaTime);
+        _currentVelocity=Vector3.MoveTowards(new Vector3(_currentVelocity.x,0,_currentVelocity.z),
+            new Vector3(_targetVelocity.x,0,_targetVelocity.z),accelRate*Time.fixedDeltaTime);
+        _currentVelocity.y=vertical;
 
         Vector3 requested = _currentVelocity * Time.fixedDeltaTime;
         Vector3 allowed = DroneFlightSafety.Constrain(transform.position, requested, _ceiling, 0.48f, transform);
@@ -202,8 +206,10 @@ public class DroneMovement : MonoBehaviour
         {
             _rb.linearVelocity = _currentVelocity;
         }
+        DroneFlightSafety.TryGetGroundClearance(transform.position,transform,out float clearance);
+        GroundClearance=clearance;
         if (DroneHUDUI.Instance != null)
-            DroneHUDUI.Instance.SetTelemetry(HeightAboveLaunch, _currentVelocity.magnitude, CeilingLimited);
+            DroneHUDUI.Instance.SetTelemetry(GroundClearance, _currentVelocity.magnitude, CeilingLimited);
     }
 
     private void SendStateTick()

@@ -25,6 +25,9 @@ public class ElectricShock : MonoBehaviour
 
     public int ShockCount => _shockCount;
     public bool IsStunned { get; private set; }
+    private float _stunEndsAt;
+    public float StunDuration { get; private set; }
+    public float StunRemaining => IsStunned ? Mathf.Max(0,_stunEndsAt-Time.unscaledTime) : 0;
 
     private void Awake()
     {
@@ -104,6 +107,14 @@ public class ElectricShock : MonoBehaviour
             return;
         }
 
+        // Explicit server recovery clears both the animation lock and its HUD timer.
+        if (IsStunned && _shockCount == 0)
+        {
+            int preservedStack=_shockCount;
+            ClearElectricState();
+            _shockCount=preservedStack;
+        }
+
         // 서버가 스택만 갱신한 경우
         if (_shockCount > 0)
         {
@@ -127,6 +138,8 @@ public class ElectricShock : MonoBehaviour
     private IEnumerator StunRoutine(float duration)
     {
         IsStunned = true;
+        StunDuration=duration;
+        _stunEndsAt=Time.unscaledTime+duration;
 
         // E 스킬이 스택을 소모했으므로 클라 표시도 0으로 맞춘다.
         _shockCount = 0;
@@ -146,9 +159,10 @@ public class ElectricShock : MonoBehaviour
         if (_renderer != null && _shockMaterial != null)
             _renderer.material = _shockMaterial;
 
-        yield return new WaitForSeconds(duration);
+        yield return new WaitForSecondsRealtime(duration);
 
         IsStunned = false;
+        _stunEndsAt=0;
 
         if (_animator != null)
             _animator.speed = 1f;
@@ -167,6 +181,7 @@ public class ElectricShock : MonoBehaviour
         _lastEffectTime=-1f;
         _shockCount = 0;
         IsStunned = false;
+        _stunEndsAt=0;StunDuration=0;
 
         if (_shockVisualCoroutine != null)
         {

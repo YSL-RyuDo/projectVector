@@ -1020,6 +1020,12 @@ public class MatchManager : MonoBehaviour
 
         for (int i = 0; i < renderers.Length; i++)
         {
+            // Skill controllers own transient renderer activation, not model visibility.
+            if (renderers[i] is LineRenderer || renderers[i] is TrailRenderer || renderers[i] is ParticleSystemRenderer)
+            {
+                renderers[i].forceRenderingOff = !visible;
+                continue;
+            }
             renderers[i].enabled = visible;
         }
 

@@ -114,6 +114,8 @@ public class InitiatorSkill_Q : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (GetComponent<InitiatorSkill_E>()?.BlocksActions == true) return;
+        if (GetComponent<InitiatorSkill_X>()?.IsCasting == true) return;
         if (!IsMine())
             return;
 
@@ -201,7 +203,11 @@ public class InitiatorSkill_Q : CharacterSkill
 
         Vector3 spawnPos;
 
-        if (_droneSpawnPoint != null)
+        if (_launchRig != null && _launchRig.TryGetReleasePosition(out spawnPos))
+        {
+            // Use the actual left-arm release endpoint, not a second elevated spawn.
+        }
+        else if (_droneSpawnPoint != null)
         {
             spawnPos = _droneSpawnPoint.position;
         }
@@ -209,8 +215,8 @@ public class InitiatorSkill_Q : CharacterSkill
         {
             spawnPos =
                 transform.position +
-                transform.forward * 2.5f +
-                Vector3.up * 2.5f;
+                transform.forward * 1.1f +
+                Vector3.up * 0.3f;
         }
 
         float yaw = transform.eulerAngles.y;

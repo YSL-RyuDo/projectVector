@@ -183,7 +183,7 @@ public static class DronePolishAuthoring
             Refs(rig,"_fans",device.GetComponentsInChildren<Transform>(true).Where(t=>t.name.StartsWith("fan.")).ToArray());device.gameObject.SetActive(false);
             Ref(root.GetComponent<InitiatorSkill_Q>(),"_launchRig",rig);
             var spawn=root.transform.Find("DroneLaunchPoint");if(!spawn){spawn=new GameObject("DroneLaunchPoint").transform;spawn.SetParent(root.transform,false);}
-            spawn.localPosition=new Vector3(-.4f,1.35f,1.1f);Ref(root.GetComponent<InitiatorSkill_Q>(),"_droneSpawnPoint",spawn);
+            spawn.localPosition=new Vector3(-.4f,.3f,1.1f);Ref(root.GetComponent<InitiatorSkill_Q>(),"_droneSpawnPoint",spawn);
             PrefabUtility.SaveAsPrefabAsset(root,path);
         } finally {PrefabUtility.UnloadPrefabContents(root);}
     }
