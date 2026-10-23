@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 public class EntrySkill_Q : CharacterSkill
 {
@@ -67,6 +68,7 @@ public class EntrySkill_Q : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) return;
         if (!CanUsePurchasedSkill(SkillSlot.Q))
             return;
 
@@ -87,13 +89,9 @@ public class EntrySkill_Q : CharacterSkill
             NetworkManager.Instance.SendBeastStealthCancel();
         }
 
-        NetworkManager.Instance.SendEntrySmokeThrow(
-            spawnPos,
-            velocity
-        );
-
         _isCasting = true;
-        Invoke(nameof(ResetCast), 0.3f);
+        GetComponent<EntrySkillPresentation>()?.Begin(EntrySkillPresentation.Cast.Smoke, .65f);
+        StartCoroutine(ThrowAfterWindup());
 
         Debug.Log($"[ENTRY SMOKE THROW REQUEST] pos={spawnPos}, velocity={velocity}");
     }
@@ -102,5 +100,13 @@ public class EntrySkill_Q : CharacterSkill
     {
         _isCasting = false;
     }
-    private void OnDisable() { CancelInvoke(nameof(ResetCast)); ResetCast(); }
+    private IEnumerator ThrowAfterWindup()
+    {
+        yield return new WaitForSeconds(.28f);
+        if (GameplayActionPolicy.CanAct(this, GameplayAction.Skill) && NetworkManager.Instance && _playerCamera && _throwPoint)
+            NetworkManager.Instance.SendEntrySmokeThrow(_throwPoint.position, _playerCamera.transform.forward.normalized * _throwForce);
+        yield return new WaitForSeconds(.37f);
+        ResetCast();
+    }
+    private void OnDisable() { StopAllCoroutines(); CancelInvoke(nameof(ResetCast)); ResetCast(); }
 }

@@ -1,5 +1,8 @@
 using System.Collections;
 using UnityEngine;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+using Input = SentinelCaptureInput;
+#endif
 
 public class SentinelSkill_E : CharacterSkill
 {
@@ -37,7 +40,7 @@ public class SentinelSkill_E : CharacterSkill
         if (!IsMine())
             return;
 
-        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) { SetPlanning(false); return; }
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) { if(isPlanning)SetPlanning(false); return; }
 
         if (Input.GetKeyDown(KeyCode.E))
             UseSkill();
@@ -68,7 +71,7 @@ public class SentinelSkill_E : CharacterSkill
         if (cooldownRemaining > 0f)
         {
             ShowTransientMessage(
-                $"E Àç»ç¿ë ´ë±â½Ã°£: {Mathf.CeilToInt(cooldownRemaining)}ÃÊ"
+                $"E ì¬ì‚¬ìš© ëŒ€ê¸°ì‹œê°„: {Mathf.CeilToInt(cooldownRemaining)}ì´ˆ"
             );
             return;
         }
@@ -78,6 +81,7 @@ public class SentinelSkill_E : CharacterSkill
 
     private void HandlePlacement()
     {
+        if(GetComponent<SentinelCastMotion>() is { } motion && !motion.ReadyToCast)return;
         if (Camera.main == null)
             return;
 
@@ -101,20 +105,25 @@ public class SentinelSkill_E : CharacterSkill
             )
         );
 
-        if (!Physics.Raycast(
-                ray,
-                out RaycastHit wallHit,
-                maxDistance,
-                wallLayer,
-                QueryTriggerInteraction.Ignore))
+        if (!TryGetPlacementHit(ray, out RaycastHit wallHit))
         {
-            ShowTransientMessage("E ¼³Ä¡ ºÒ°¡: º®À» Á¶ÁØÇÏ¼¼¿ä.");
+            ShowTransientMessage("E ì„¤ì¹˜ ë¶ˆê°€: ë²½ì„ ì¡°ì¤€í•˜ì„¸ìš”.");
             return;
         }
 
         if (!IsWallSurface(wallHit.normal))
         {
-            ShowTransientMessage("E ¼³Ä¡ ºÒ°¡: ¼öÁ÷ º®¿¡¸¸ ¼³Ä¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.");
+            Debug.Log($"[SENTINEL E PLACE BLOCK] hit={wallHit.collider.name} normal={wallHit.normal}");
+            ShowTransientMessage("E ì„¤ì¹˜ ë¶ˆê°€: ìˆ˜ì§ ë²½ì—ë§Œ ì„¤ì¹˜í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.");
+            return;
+        }
+
+        if (wallHit.collider.GetComponentInParent<PlayerIdentity>() != null ||
+            wallHit.collider.GetComponentInParent<Sentinel_Trap>() != null ||
+            wallHit.collider.GetComponentInParent<Sentinel_SlowTrap>() != null ||
+            wallHit.collider.GetComponentInParent<TrapDevice>() != null)
+        {
+            ShowTransientMessage("E ì„¤ì¹˜ ë¶ˆê°€: ì§€í˜•ì˜ ë²½ì„ ì¡°ì¤€í•˜ì„¸ìš”.");
             return;
         }
 
@@ -124,7 +133,7 @@ public class SentinelSkill_E : CharacterSkill
             !TryFindFarWallSurface(ray, wallHit, out placementHit))
         {
             ShowTransientMessage(
-                $"E ¼³Ä¡ ºÒ°¡: º® µÎ²²°¡ {maxWallThickness:0.#}m¸¦ ³Ñ½À´Ï´Ù."
+                $"E ì„¤ì¹˜ ë¶ˆê°€: ë²½ ë‘ê»˜ê°€ {maxWallThickness:0.#}më¥¼ ë„˜ìŠµë‹ˆë‹¤."
             );
             return;
         }
@@ -141,6 +150,7 @@ public class SentinelSkill_E : CharacterSkill
                 position,
                 normal
             );
+            GetComponent<SentinelCastMotion>()?.Release();
         }
 
         SetPlanning(false);
@@ -149,6 +159,19 @@ public class SentinelSkill_E : CharacterSkill
             $"[SENTINEL E PLACE REQUEST] " +
             $"position={position}, normal={normal}, beyond={placeBeyond}"
         );
+    }
+
+    private bool TryGetPlacementHit(Ray ray, out RaycastHit hit)
+    {
+        hit = default;
+        float nearest = float.PositiveInfinity;
+        foreach (var candidate in Physics.RaycastAll(ray, maxDistance, wallLayer, QueryTriggerInteraction.Ignore))
+        {
+            if (candidate.collider.transform.IsChildOf(transform) || candidate.distance >= nearest) continue;
+            nearest = candidate.distance;
+            hit = candidate;
+        }
+        return hit.collider != null;
     }
 
     private bool TryFindFarWallSurface(
@@ -206,7 +229,7 @@ public class SentinelSkill_E : CharacterSkill
 
         recallRequested = true;
         NetworkManager.Instance.SendSentinelERecall(placedTrapId);
-        ShowTransientMessage("E ÇÔÁ¤ È¸¼ö ¿äÃ»");
+        ShowTransientMessage("E í•¨ì • íšŒìˆ˜ ìš”ì²­");
 
         Debug.Log(
             $"[SENTINEL E RECALL REQUEST] trapId={placedTrapId}"
@@ -219,7 +242,7 @@ public class SentinelSkill_E : CharacterSkill
         recallRequested = false;
         cooldownEndTime = 0f;
         SetPlanning(false);
-        ShowTransientMessage("E ÇÔÁ¤ ¼³Ä¡ ¿Ï·á ¡¤ E¸¦ ´­·¯ È¸¼ö");
+        ShowTransientMessage("E í•¨ì • ì„¤ì¹˜ ì™„ë£Œ Â· Eë¥¼ ëˆŒëŸ¬ íšŒìˆ˜");
     }
 
     public void OnNetworkTrapRemoved(
@@ -239,7 +262,7 @@ public class SentinelSkill_E : CharacterSkill
         if (cooldownSeconds > 0f)
         {
             ShowTransientMessage(
-                $"E Àç»ç¿ë ´ë±â½Ã°£: {Mathf.CeilToInt(cooldownSeconds)}ÃÊ"
+                $"E ì¬ì‚¬ìš© ëŒ€ê¸°ì‹œê°„: {Mathf.CeilToInt(cooldownSeconds)}ì´ˆ"
             );
         }
     }
@@ -267,7 +290,7 @@ public class SentinelSkill_E : CharacterSkill
             CharacterSkillUI.Instance.SentinelSkillText(
                 value,
                 value
-                    ? "E ¹èÄ¡ ¸ğµå: ÁÂÅ¬¸¯(¾Õ¸é), ¿ìÅ¬¸¯(º® ³Ê¸Ó)"
+                    ? "E ë°°ì¹˜ ëª¨ë“œ: ì¢Œí´ë¦­(ì•ë©´), ìš°í´ë¦­(ë²½ ë„ˆë¨¸)"
                     : ""
             );
         }
@@ -275,6 +298,8 @@ public class SentinelSkill_E : CharacterSkill
 
     private void ShowTransientMessage(string message)
     {
+        // Keep placement instructions intact while confirmations use the saved side notice.
+        if(SentinelFeedbackUI.Instance){SentinelFeedbackUI.Instance.Notice(message);return;}
         if (messageRoutine != null)
             StopCoroutine(messageRoutine);
 

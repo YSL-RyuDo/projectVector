@@ -575,9 +575,8 @@ public class PlayerMovement : MonoBehaviour
         _targetPitch = serverPitch;
         _targetAnimIndex = serverAnimIndex;
         _isCrouching = serverIsCrouching;
-        ApplyAnimationIndexFromServer(
-            _targetAnimIndex
-        );
+        // Animation follows the buffered pose in SyncRemotePlayerMovement only.
+        // Applying fresh packets here replays jump triggers against older poses.
 
         // 惯家府 贸府
         bool remoteIsGrounded = (serverAnimIndex % 6 != 5);

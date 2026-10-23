@@ -38,6 +38,9 @@ public sealed partial class RankedCaptureTest
         typeof(FPSCameraLook).GetField("xRotation",Private).SetValue(look,Mathf.DeltaAngle(0,rotation.x));
         look.transform.localRotation=Quaternion.Euler(Mathf.DeltaAngle(0,rotation.x),0,0);
         if(cam.transform!=look.transform)cam.transform.localRotation=Quaternion.identity;
+        // Entry evidence uses the live movement sender, including grounded/animation
+        // state. A second hard-coded idle snapshot would fight that sender.
+        if(EntryEvidence)return;
         var p=me.transform.position;
         net.SendMoveState(p.x,p.y,p.z,me.transform.eulerAngles.y,cam.transform.eulerAngles.x,0,false);
     }

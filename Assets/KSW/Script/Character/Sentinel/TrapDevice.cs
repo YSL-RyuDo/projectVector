@@ -57,7 +57,7 @@ public class TrapDevice : MonoBehaviour
     private void Update()
     {
         if (isDestroyed ||
-            !isOwner ||
+            !isOwner || trapId != 0 ||
             trapId == 0 ||
             NetworkManager.Instance == null)
         {
@@ -104,6 +104,7 @@ public class TrapDevice : MonoBehaviour
     {
         trapId = networkTrapId;
         ownerPlayerId = networkOwnerPlayerId;
+        GetComponent<SentinelDeviceVfx>()?.Initialize(ownerPlayerId);
         ownerTeam = networkOwnerTeam;
         isOwner = owner;
         health = networkHealth;
@@ -138,11 +139,7 @@ public class TrapDevice : MonoBehaviour
         effectRadius = radius;
 
         StartCoroutine(PlayEnergyPulse());
-        ApplyEffectToLocalEnemy(
-            slowDuration,
-            slowMultiplier,
-            stunDuration
-        );
+        GetComponent<SentinelDeviceVfx>()?.Pulse();
 
         Debug.Log(
             $"[SENTINEL E ACTIVATE] trapId={trapId}, " +
@@ -191,66 +188,6 @@ public class TrapDevice : MonoBehaviour
         return false;
     }
 
-    private void ApplyEffectToLocalEnemy(
-        float slowDuration,
-        float slowMultiplier,
-        float stunDuration)
-    {
-        if (NetworkManager.Instance == null)
-            return;
-
-        PlayerIdentity localPlayer =
-            NetworkManager.Instance.MyPlayer;
-
-        if (localPlayer == null ||
-            localPlayer.Team == ownerTeam ||
-            Vector3.Distance(
-                transform.position,
-                localPlayer.transform.position
-            ) > effectRadius)
-        {
-            return;
-        }
-
-        PlayerHP hp = localPlayer.GetComponent<PlayerHP>();
-
-        if (hp != null && hp.IsDead)
-            return;
-
-        PlayerMovement movement =
-            localPlayer.GetComponent<PlayerMovement>();
-
-        if (movement == null)
-        {
-            movement =
-                localPlayer.GetComponentInChildren<PlayerMovement>(true);
-        }
-
-        if (movement == null)
-            return;
-
-        if (movement.IsSlowed)
-        {
-            movement.ApplyStunFromServer(stunDuration);
-
-            Debug.Log(
-                $"[SENTINEL E CONCUSS] trapId={trapId}, " +
-                $"player={localPlayer.PlayerId}, duration={stunDuration}"
-            );
-        }
-        else
-        {
-            movement.ApplyTimedSlowFromServer(
-                slowMultiplier,
-                slowDuration
-            );
-
-            Debug.Log(
-                $"[SENTINEL E SLOW] trapId={trapId}, " +
-                $"player={localPlayer.PlayerId}, duration={slowDuration}"
-            );
-        }
-    }
 
     private IEnumerator PlayEnergyPulse()
     {

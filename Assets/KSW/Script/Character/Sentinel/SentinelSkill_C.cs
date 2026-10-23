@@ -1,4 +1,7 @@
 using UnityEngine;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+using Input = SentinelCaptureInput;
+#endif
 
 public class SentinelSkill_C : CharacterSkill
 {
@@ -33,7 +36,7 @@ public class SentinelSkill_C : CharacterSkill
         if (!IsMine())
             return;
 
-        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) { CancelReady(); return; }
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) { if(isReady)CancelReady(); return; }
 
         if (Input.GetKeyDown(KeyCode.C))
             UseSkill();
@@ -61,14 +64,15 @@ public class SentinelSkill_C : CharacterSkill
         {
             CharacterSkillUI.Instance.SentinelSkillText(
                 isReady,
-                isReady ? "C ÅõÃ´ ¸ğµå: ÁÂÅ¬¸¯(±æ°Ô), ¿ìÅ¬¸¯(Âª°Ô)" : ""
+                isReady ? "C íˆ¬ì²™ ëª¨ë“œ: ì¢Œí´ë¦­(ê¸¸ê²Œ), ìš°í´ë¦­(ì§§ê²Œ)" : ""
             );
         }
     }
 
     private void RequestThrow(float force)
     {
-        // ÅõÃ´ ÈÄ ¼±ÅÃ »óÅÂ°¡ ÇØÁ¦µÇ¾îµµ °°Àº ÇÁ·¹ÀÓÀÇ Å¬¸¯À» ¹«±â°¡ ´Ù½Ã ÀĞÁö ¸øÇÏ°Ô ÇÑ´Ù.
+        if(GetComponent<SentinelCastMotion>() is { } motion && !motion.ReadyToCast)return;
+        // íˆ¬ì²™ í›„ ì„ íƒ ìƒíƒœê°€ í•´ì œë˜ì–´ë„ ê°™ì€ í”„ë ˆì„ì˜ í´ë¦­ì„ ë¬´ê¸°ê°€ ë‹¤ì‹œ ì½ì§€ ëª»í•˜ê²Œ í•œë‹¤.
         consumedThrowInputFrame = Time.frameCount;
 
         Vector3 spawnPos =
@@ -85,7 +89,10 @@ public class SentinelSkill_C : CharacterSkill
         Vector3 velocity = throwDir * force;
 
         if (NetworkManager.Instance != null)
+        {
             NetworkManager.Instance.SendSentinelCThrow(spawnPos, velocity);
+            GetComponent<SentinelCastMotion>()?.Release();
+        }
 
         CancelReady();
     }

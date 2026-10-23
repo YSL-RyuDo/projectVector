@@ -145,6 +145,16 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
         int position = members.FindIndex(m => m.isMe);
         var characters = Field<PickCharacterData[]>(pick, "characters");
         int character = characters[Mathf.Max(position, 0) % characters.Length].characterId;
+        if (SentinelEvidence) {
+            uint pilot=uint.Parse(File.ReadAllText(Path.Combine(root,"qwer.id")));
+            bool withPilot=members.Any(m=>m.playerId==pilot);
+            character=withPilot ? (account=="qwer"?2:members.Where(m=>m.playerId!=pilot).ToList().FindIndex(m=>m.isMe)) : position;
+        }
+        if (EntryEvidence) {
+            uint pilot=uint.Parse(File.ReadAllText(Path.Combine(root,"qwer.id")));
+            bool withPilot=members.Any(m=>m.playerId==pilot);
+            character=withPilot ? (account=="qwer"?3:members.Where(m=>m.playerId!=pilot).ToList().FindIndex(m=>m.isMe)) : position;
+        }
         if (DroneEvidence) {
             uint pilot=uint.Parse(File.ReadAllText(Path.Combine(root,"qwer.id")));
             int pilotIndex=members.FindIndex(m=>m.playerId==pilot);
@@ -165,6 +175,9 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
         yield return Wait(() => GameController.Instance != null && GameController.Instance.CurrentState == GameController.GameFlowState.Playing, "loading actual match", 90);
         if (finished) yield break;
         Stage("in game"); File.WriteAllText(Path.Combine(root, account + ".playing"), "verified");
+        if ((SentinelEvidence || EntryEvidence) && account=="qwer") {
+            foreach(var slot in new[]{SkillSlot.C,SkillSlot.Q,SkillSlot.E,SkillSlot.X})net.SendStoreBuyRequest(2,(int)slot);
+        }
         if ((Lifecycle || DroneEvidence) && !DischargeEvidence && net.MyPlayer != null && net.MyPlayer.GetComponent<InitiatorSkill_Q>() != null)
             net.SendStoreBuyRequest(2, (int)SkillSlot.Q);
         if (DischargeEvidence && net.MyPlayer?.GetComponent<InitiatorSkill_X>() != null)
@@ -177,6 +190,8 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
             "waiting for combat round", 40);
         if (finished) yield break;
         if (DroneEvidence) { yield return CaptureDroneEncounter(); if(!finished) Finish(DischargeEvidence ? "PASS: actual X input, server discharge hit and first-person weapon recovery" : Environment.GetEnvironmentVariable("VECTOR_CAPTURE_SCANNER")=="1" ? "PASS: scanner throw, authoritative shock, weapon restoration and cleanup" : Environment.GetEnvironmentVariable("VECTOR_CAPTURE_DRONE_CANCEL")=="1" ? "PASS: queued deploy cancellation and weapon input lock" : "PASS: actual drone flight, taser victim status and enemy weapon destruction"); yield break; }
+        if (SentinelEvidence) { yield return CaptureSentinelEncounter(); if(!finished)Finish("PASS: live Sentinel inputs, server detection/status/damage and client movement/recovery"); yield break; }
+        if (EntryEvidence) { yield return CaptureEntryEncounter(); if(!finished)Finish(EntryDashOnly ? "PASS: live Entry C, opponent path continuity, endpoint agreement, firearm recovery and normal movement" : "PASS: live Entry C Q E X, replicated effects, health, ammunition and firearm recovery"); yield break; }
         if (Environment.GetEnvironmentVariable("VECTOR_CAPTURE_OBJECTIVE") == "1")
         {
             yield return ProbeObjective();
@@ -519,10 +534,11 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
         {
             yield return end;
             if (!recording) break;
-            if(DischargeEvidence){
+            if(DischargeEvidence || SentinelEvidence || EntryEvidence){
                 if(!dischargeCaptureReady){yield return null;continue;}
                 CaptureDischargeFrame(image);
-                yield return new WaitForSecondsRealtime(.025f);
+                // A 0.28 s dash needs every rendered frame, not alternate frames.
+                if (!EntryDashOnly) yield return new WaitForSecondsRealtime(.025f);
                 continue;
             }
             var shot = ScreenCapture.CaptureScreenshotAsTexture();

@@ -49,16 +49,21 @@ public class Sentinel_Trap : MonoBehaviour
     private Coroutine scanVisualCoroutine;
 
     private readonly Dictionary<Outline, OutlineBackup> outlineBackups = new();
+    private readonly Dictionary<Outline,float> revealEnds = new();
+    private readonly HashSet<uint> localWaveVisited = new();
+    private readonly Dictionary<LineRenderer,Vector3[]> waveLines = new();
 
     public uint TrapId => trapId;
     public uint OwnerPlayerId => ownerPlayerId;
     public int OwnerTeam => ownerTeam;
+    public bool IsPlaced => isPlaced;
 
     private struct OutlineBackup
     {
         public bool enabled;
         public Color color;
         public float width;
+        public Outline.Mode mode;
     }
 
     private void Awake()
@@ -72,6 +77,9 @@ public class Sentinel_Trap : MonoBehaviour
 
         if (scanSphereVisual != null)
         {
+            foreach(var line in scanSphereVisual.GetComponentsInChildren<LineRenderer>(true)){
+                var positions=new Vector3[line.positionCount];line.GetPositions(positions);waveLines[line]=positions;
+            }
             scanSphereVisual.SetActive(false);
             scanSphereVisual.transform.localScale = Vector3.zero;
         }
@@ -94,6 +102,8 @@ public class Sentinel_Trap : MonoBehaviour
 
     private void Update()
     {
+        foreach(var outline in new List<Outline>(revealEnds.Keys))
+            if(!outline || Time.time>=revealEnds[outline]){RestoreOutline(outline);revealEnds.Remove(outline);}
         if (isDestroyed)
             return;
 
@@ -108,8 +118,8 @@ public class Sentinel_Trap : MonoBehaviour
             return;
         }
 
-        // ¼­¹ö ¿¬°á ±¸Á¶¿¡¼­´Â ÇÔÁ¤ ÁÖÀÎ Å¬¶ó¸¸ °¨Áö ÆÇÁ¤À» ÇÑ´Ù.
-        if (!isOwnerTrap)
+        // ì„œë²„ ì—°ê²° êµ¬ì¡°ì—ì„œëŠ” í•¨ì • ì£¼ì¸ í´ë¼ë§Œ ê°ì§€ íŒì •ì„ í•œë‹¤.
+        if (!isOwnerTrap || trapId != 0)
             return;
 
         PlayerIdentity target = FindVisibleEnemy();
@@ -134,6 +144,8 @@ public class Sentinel_Trap : MonoBehaviour
         this.ownerPlayerId = ownerPlayerId;
         this.ownerTeam = ownerTeam;
         this.isOwnerTrap = isOwnerTrap;
+        IgnoreCasterCollisions();
+        GetComponent<SentinelDeviceVfx>()?.Initialize(ownerPlayerId);
 
         currentHp = hp;
         isPlaced = false;
@@ -148,7 +160,7 @@ public class Sentinel_Trap : MonoBehaviour
         );
     }
 
-    // ·ÎÄÃ Å×½ºÆ®¿ë InitÀÌ ³²¾ÆÀÖ¾îµµ ÄÄÆÄÀÏ ±úÁöÁö ¾Ê°Ô À¯Áö.
+    // ë¡œì»¬ í…ŒìŠ¤íŠ¸ìš© Initì´ ë‚¨ì•„ìˆì–´ë„ ì»´íŒŒì¼ ê¹¨ì§€ì§€ ì•Šê²Œ ìœ ì§€.
     public void Init(uint ownerPlayerId, int ownerTeam)
     {
         this.trapId = 0;
@@ -164,7 +176,7 @@ public class Sentinel_Trap : MonoBehaviour
         Debug.Log($"[SENTINEL C INIT LOCAL] owner={ownerPlayerId}, team={ownerTeam}");
     }
 
-    // ·ÎÄÃ Å×½ºÆ®¿ë. ¼­¹ö ¿¬°á ÈÄ¿¡´Â µÇµµ·Ï LaunchVelocity¸¦ »ç¿ë.
+    // ë¡œì»¬ í…ŒìŠ¤íŠ¸ìš©. ì„œë²„ ì—°ê²° í›„ì—ëŠ” ë˜ë„ë¡ LaunchVelocityë¥¼ ì‚¬ìš©.
     public void Launch(Vector3 direction, float force)
     {
         LaunchVelocity(direction.normalized * force);
@@ -174,7 +186,7 @@ public class Sentinel_Trap : MonoBehaviour
     {
         if (rb == null)
         {
-            Debug.LogError("[SENTINEL C] Rigidbody ¾øÀ½");
+            Debug.LogError("[SENTINEL C] Rigidbody ì—†ìŒ");
             return;
         }
 
@@ -195,7 +207,7 @@ public class Sentinel_Trap : MonoBehaviour
         if (isPlaced)
             return;
 
-        if (collision.collider.CompareTag("Player"))
+        if (collision.collider.GetComponentInParent<PlayerIdentity>() != null || collision.collider.CompareTag("Player"))
             return;
 
         if (collision.contactCount <= 0)
@@ -210,7 +222,7 @@ public class Sentinel_Trap : MonoBehaviour
         if (isPlaced)
             return;
 
-        if (other.CompareTag("Player"))
+        if (other.GetComponentInParent<PlayerIdentity>() != null || other.CompareTag("Player"))
             return;
 
         if (Physics.Raycast(
@@ -255,7 +267,7 @@ public class Sentinel_Trap : MonoBehaviour
 
         Debug.Log($"[SENTINEL C PLACED] trapId={trapId}, pos={transform.position}, normal={normal}");
 
-        // ÇÔÁ¤ ÁÖÀÎ Å¬¶ó¸¸ ¼­¹ö¿¡ ¾ÈÂø À§Ä¡¸¦ º¸³½´Ù.
+        // í•¨ì • ì£¼ì¸ í´ë¼ë§Œ ì„œë²„ì— ì•ˆì°© ìœ„ì¹˜ë¥¼ ë³´ë‚¸ë‹¤.
         if (isOwnerTrap &&
             !suppressAnchorSend &&
             trapId != 0 &&
@@ -309,6 +321,23 @@ public class Sentinel_Trap : MonoBehaviour
 
         if (myCollider != null)
             myCollider.enabled = true;
+        IgnoreCasterCollisions();
+    }
+
+    private void IgnoreCasterCollisions()
+    {
+        if (ownerPlayerId == 0) return;
+        foreach (var actor in FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None))
+        {
+            if (actor.PlayerId != ownerPlayerId) continue;
+            // Both the root and child device colliders participate in physics.
+            // Ignore the caster's full hitbox hierarchy, not just its root tag.
+            foreach (var device in GetComponentsInChildren<Collider>(true))
+                foreach (var body in actor.GetComponentsInChildren<Collider>(true))
+                    if (device && body && device.gameObject.activeInHierarchy && body.gameObject.activeInHierarchy)
+                        Physics.IgnoreCollision(device, body, true);
+            break;
+        }
     }
 
     private IEnumerator ScanSequence()
@@ -316,7 +345,7 @@ public class Sentinel_Trap : MonoBehaviour
         isScanning = true;
 
         if (CharacterSkillUI.Instance != null && isOwnerTrap)
-            CharacterSkillUI.Instance.SentinelSkillText(true, $"Àû °¨Áö: {scanDelay:0.0}ÃÊ");
+            CharacterSkillUI.Instance.SentinelSkillText(true, $"ì  ê°ì§€: {scanDelay:0.0}ì´ˆ");
 
         Debug.Log($"[SENTINEL C DETECT] trapId={trapId}, countdown={scanDelay}");
 
@@ -340,7 +369,7 @@ public class Sentinel_Trap : MonoBehaviour
                 float remaining = Mathf.Max(0f, scanDelay - timer);
                 CharacterSkillUI.Instance.SentinelSkillText(
                     true,
-                    $"Àû °¨Áö: {remaining:0.0}ÃÊ"
+                    $"ì  ê°ì§€: {remaining:0.0}ì´ˆ"
                 );
             }
 
@@ -360,7 +389,7 @@ public class Sentinel_Trap : MonoBehaviour
             }
             else
             {
-                // ¼­¹ö ¾øÀÌ ·ÎÄÃ Å×½ºÆ®ÇÒ ¶§¸¸ Á÷Á¢ Àç»ı.
+                // ì„œë²„ ì—†ì´ ë¡œì»¬ í…ŒìŠ¤íŠ¸í•  ë•Œë§Œ ì§ì ‘ ì¬ìƒ.
                 PlayScanFromServer(
                     ownerPlayerId,
                     ownerTeam,
@@ -388,6 +417,9 @@ public class Sentinel_Trap : MonoBehaviour
     {
         this.ownerPlayerId = ownerPlayerId;
         this.ownerTeam = ownerTeam;
+        GetComponent<SentinelDeviceVfx>()?.Pulse();
+        if(NetworkManager.Instance && NetworkManager.Instance.MyPlayerId==ownerPlayerId)
+            SentinelFeedbackUI.Instance?.Notice("ìŠ¤ìº” íŒŒë™ ë°©ì¶œ",.8f);
 
         transform.position = position;
 
@@ -406,8 +438,7 @@ public class Sentinel_Trap : MonoBehaviour
         if (scanSphereVisual == null)
             yield break;
 
-        RestoreAllOutlines();
-
+        localWaveVisited.Clear();
         scanSphereVisual.SetActive(true);
         scanSphereVisual.transform.localScale = Vector3.zero;
 
@@ -419,15 +450,15 @@ public class Sentinel_Trap : MonoBehaviour
 
             scanSphereVisual.transform.localScale =
                 Vector3.one * currentRadius * 2f;
+            ClipWaveToWorld();
 
-            RevealEnemiesForOwnerTeam(currentRadius, radius);
+            // Network matches use only server-confirmed hits. Local previews retain world occlusion.
+            if(trapId==0)RevealEnemiesForOwnerTeam(currentRadius, radius);
 
             yield return null;
         }
 
         yield return new WaitForSeconds(revealDuration);
-
-        RestoreAllOutlines();
 
         scanSphereVisual.transform.localScale = Vector3.zero;
         scanSphereVisual.SetActive(false);
@@ -442,7 +473,7 @@ public class Sentinel_Trap : MonoBehaviour
 
         PlayerIdentity localPlayer = NetworkManager.Instance.MyPlayer;
 
-        // ½ºÄµÀ» º¼ ¼ö ÀÖ´Â °Ç ÇÔÁ¤ ¼³Ä¡ÀÚ¿Í °°Àº ÆÀ»Ó.
+        // ìŠ¤ìº”ì„ ë³¼ ìˆ˜ ìˆëŠ” ê±´ í•¨ì • ì„¤ì¹˜ìì™€ ê°™ì€ íŒ€ë¿.
         if (localPlayer.Team != ownerTeam)
             return;
 
@@ -472,6 +503,45 @@ public class Sentinel_Trap : MonoBehaviour
             if (distance > currentRadius)
                 continue;
 
+            if(!localWaveVisited.Add(identity.PlayerId))continue;
+            Vector3 origin=transform.position+Vector3.up*.15f;
+            Vector3 sight=identity.transform.position+Vector3.up-origin;
+            if(!HasLineOfSight(identity,origin,sight.normalized,sight.magnitude))continue;
+
+            ApplyConfirmedReveal(identity.PlayerId,revealDuration);
+        }
+    }
+
+    private void ClipWaveToWorld()
+    {
+        Vector3 origin=transform.position+Vector3.up*.15f;
+        foreach(var pair in waveLines){
+            var line=pair.Key;if(!line)continue;
+            for(int i=0;i<pair.Value.Length;i++){
+                Vector3 end=line.transform.TransformPoint(pair.Value[i]),delta=end-origin;
+                float length=delta.magnitude,nearest=length;
+                if(length>.001f)foreach(var hit in Physics.RaycastAll(origin,delta/length,length,visibilityMask,QueryTriggerInteraction.Ignore)){
+                    if(hit.collider.transform.IsChildOf(transform)||hit.collider.GetComponentInParent<PlayerIdentity>()||
+                       hit.collider.GetComponentInParent<Sentinel_Trap>()||hit.collider.GetComponentInParent<Sentinel_SlowTrap>()||hit.collider.GetComponentInParent<TrapDevice>())continue;
+                    nearest=Mathf.Min(nearest,Mathf.Max(0,hit.distance-.03f));
+                }
+                var clipped=length>.001f?origin+delta*(nearest/length):end;
+                line.SetPosition(i,line.useWorldSpace?clipped:line.transform.InverseTransformPoint(clipped));
+            }
+        }
+    }
+
+    // Eligibility is evaluated once when the wave hits, NOT every frame while revealed.
+    // Therefore a previously hit enemy remains visible for the remaining time behind cover.
+    public void ApplyConfirmedReveal(uint playerId,float duration)
+    {
+        var local=NetworkManager.Instance?NetworkManager.Instance.MyPlayer:null;
+        if(!local||isDestroyed)return;
+        foreach(var identity in FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None)){
+            if(identity.PlayerId!=playerId || identity.Team==ownerTeam || identity.Team<0 || identity.Team>1 || identity.GetComponent<PlayerHP>()?.IsDead==true)continue;
+            if(local.PlayerId==playerId)SentinelFeedbackUI.Instance?.Notice("ìœ„ì¹˜ ë…¸ì¶œ",duration);
+            if(local.Team!=ownerTeam)return;
+
             Outline outline = identity.GetComponent<Outline>();
 
             if (outline == null)
@@ -483,8 +553,10 @@ public class Sentinel_Trap : MonoBehaviour
             BackupOutline(outline);
 
             outline.enabled = true;
+            outline.OutlineMode = Outline.Mode.OutlineAndSilhouette;
             outline.OutlineColor = Color.yellow;
             outline.OutlineWidth = 5f;
+            revealEnds[outline]=Time.time+duration;
         }
     }
 
@@ -556,9 +628,12 @@ public class Sentinel_Trap : MonoBehaviour
             if (hit.collider == null)
                 continue;
 
-            // Æ®·¦ º»Ã¼¿Í ÀÚ½Ä ¸ğµ¨ Äİ¶óÀÌ´õ´Â ½Ã¾ß¸¦ °¡¸®Áö ¾Ê´Â´Ù.
+            // íŠ¸ë© ë³¸ì²´ì™€ ìì‹ ëª¨ë¸ ì½œë¼ì´ë”ëŠ” ì‹œì•¼ë¥¼ ê°€ë¦¬ì§€ ì•ŠëŠ”ë‹¤.
             if (hit.collider.transform.root == transform.root)
                 continue;
+            // Players do not block an energy wave; only world cover does, matching the server.
+            if(hit.collider.GetComponentInParent<PlayerIdentity>())continue;
+            if(hit.collider.GetComponentInParent<Sentinel_Trap>()||hit.collider.GetComponentInParent<Sentinel_SlowTrap>()||hit.collider.GetComponentInParent<TrapDevice>())continue;
 
             if (hit.distance >= closestDistance)
                 continue;
@@ -655,7 +730,8 @@ public class Sentinel_Trap : MonoBehaviour
             {
                 enabled = outline.enabled,
                 color = outline.OutlineColor,
-                width = outline.OutlineWidth
+                width = outline.OutlineWidth,
+                mode = outline.OutlineMode
             }
         );
     }
@@ -671,6 +747,7 @@ public class Sentinel_Trap : MonoBehaviour
         outline.enabled = backup.enabled;
         outline.OutlineColor = backup.color;
         outline.OutlineWidth = backup.width;
+        outline.OutlineMode = backup.mode;
 
         PlayerOutline playerOutline = outline.GetComponent<PlayerOutline>();
 
@@ -694,6 +771,7 @@ public class Sentinel_Trap : MonoBehaviour
             RestoreOutline(outline);
 
         outlineBackups.Clear();
+        revealEnds.Clear();
     }
 
     private Vector3 GetTargetCenter(PlayerIdentity identity)
@@ -730,14 +808,14 @@ public class Sentinel_Trap : MonoBehaviour
         if (isDestroyed)
             return;
 
-        // ¼­¹ö ¿¬°á »óÅÂ¸é HP´Â ¼­¹ö°¡ ±ğ°í Destroy ÆĞÅ¶À¸·Î Á¦°ÅÇÑ´Ù.
+        // ì„œë²„ ì—°ê²° ìƒíƒœë©´ HPëŠ” ì„œë²„ê°€ ê¹ê³  Destroy íŒ¨í‚·ìœ¼ë¡œ ì œê±°í•œë‹¤.
         if (trapId != 0 && NetworkManager.Instance != null)
         {
             NetworkManager.Instance.SendSentinelCHit(trapId, amount);
             return;
         }
 
-        // ·ÎÄÃ Å×½ºÆ®¿ë.
+        // ë¡œì»¬ í…ŒìŠ¤íŠ¸ìš©.
         currentHp -= amount;
         currentHp = Mathf.Clamp(currentHp, 0f, maxHp);
 

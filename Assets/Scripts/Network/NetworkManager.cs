@@ -1589,6 +1589,18 @@ public partial class NetworkManager : MonoBehaviour
                 HandleSentinelCSpawn(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_SENTINEL_TRACK:
+                SentinelCNetworkManager.Instance?.ReceiveTracking(body);
+                break;
+            case (ushort)PacketType.PKT_SC_SENTINEL_STATUS:
+                SentinelCNetworkManager.Instance?.ReceiveStatus(body);
+                break;
+            case (ushort)PacketType.PKT_SC_SENTINEL_C_REVEAL:
+                SentinelCNetworkManager.Instance?.ReceiveReveal(body);
+                break;
+            case (ushort)PacketType.PKT_SC_SENTINEL_GESTURE:
+                if(body.Length==5 && body[4]<=2)FindPlayerIdentityById(BitConverter.ToUInt32(body,0))?.GetComponent<SentinelCastMotion>()?.ReceiveGesture(body[4]);
+                break;
             case (ushort)PacketType.PKT_SC_SENTINEL_C_ANCHOR:
                 HandleSentinelCAnchor(body);
                 break;
@@ -7381,6 +7393,7 @@ public partial class NetworkManager : MonoBehaviour
     {
         SendSkillGesture(PacketType.PKT_CS_SCANNER_GESTURE, phase);
     }
+    public void SendSentinelGesture(byte phase)=>SendSkillGesture(PacketType.PKT_CS_SENTINEL_GESTURE,phase);
     public void SendDischargeGesture(bool preparing) => SendSkillGesture(PacketType.PKT_CS_DISCHARGE_GESTURE, (byte)(preparing ? 1 : 0));
     private void SendSkillGesture(PacketType type, byte phase)
     {
@@ -7964,6 +7977,8 @@ public partial class NetworkManager : MonoBehaviour
 
         if (EntrySmokeNetworkManager.Instance != null)
         {
+            var entry = FindPlayerIdentityById(ownerPlayerId)?.GetComponent<EntrySkillPresentation>();
+            if (entry && !entry.IsLocal) entry.Begin(EntrySkillPresentation.Cast.Smoke, .35f);
             EntrySmokeNetworkManager.Instance.OnSmokeSpawn(
                 smokeId,
                 ownerPlayerId,
@@ -8444,13 +8459,14 @@ public partial class NetworkManager : MonoBehaviour
     public void SendEntryBladeFire(
         Vector3 direction,
         uint targetPlayerId,
-        Vector3 hitPoint)
+        Vector3 hitPoint,
+        bool burst = false)
     {
         ushort size =
             4 + 12 + 4 + 12; // header + dir + targetId + hitPoint = 32
 
         ushort type =
-            (ushort)PacketType.PKT_CS_ENTRY_BLADE_FIRE;
+            (ushort)(burst ? PacketType.PKT_CS_ENTRY_BLADE_BURST : PacketType.PKT_CS_ENTRY_BLADE_FIRE);
 
         byte[] buffer =
             new byte[size];

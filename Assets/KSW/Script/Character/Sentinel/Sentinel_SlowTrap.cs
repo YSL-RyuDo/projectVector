@@ -19,13 +19,15 @@ public class Sentinel_SlowTrap : MonoBehaviour
     private bool _activationRequested;
     private bool _isDestroyed;
     private bool _localSlowApplied;
+    private PlayerMovement _slowedMovement;
 
     private float _zoneRadius;
     private float _zoneDuration;
     private int _detectionMask;
 
     private AudioSource _warningSource;
-    private LineRenderer _zoneLine;
+    [SerializeField] private LineRenderer _zoneLine;
+    [SerializeField] private SentinelFieldVfx _field;
     private Material _zoneMaterial;
 
     public uint TrapId => _trapId;
@@ -79,6 +81,7 @@ public class Sentinel_SlowTrap : MonoBehaviour
     {
         _trapId = trapId;
         _ownerPlayerId = ownerPlayerId;
+        GetComponent<SentinelDeviceVfx>()?.Initialize(ownerPlayerId);
         _ownerTeam = ownerTeam;
         _isOwner = isOwner;
 
@@ -113,6 +116,8 @@ public class Sentinel_SlowTrap : MonoBehaviour
 
         StopWarningSound();
         CreateZoneVisual();
+        GetComponent<SentinelDeviceVfx>()?.Pulse();
+        if(_field)_field.Begin(_zoneRadius,duration);
         UpdateLocalSlow();
 
         Debug.Log(
@@ -128,7 +133,7 @@ public class Sentinel_SlowTrap : MonoBehaviour
 
     private void TryRequestActivation()
     {
-        if (!_isOwner ||
+        if (!_isOwner || _trapId != 0 ||
             _activationRequested ||
             _trapId == 0 ||
             NetworkManager.Instance == null)
@@ -192,15 +197,13 @@ public class Sentinel_SlowTrap : MonoBehaviour
         if (movement == null)
             return;
 
-        bool isInside =
-            Vector3.Distance(
-                transform.position,
-                localPlayer.transform.position
-            ) <= _zoneRadius;
+        if(_localSlowApplied && _slowedMovement!=movement)RemoveLocalSlow();
+        bool isInside = CanSlowPlayer(localPlayer);
 
         if (isInside && !_localSlowApplied)
         {
             movement.ApplySwampSlow(_slowAmount);
+            _slowedMovement=movement;
             _localSlowApplied = true;
 
             Debug.Log(
@@ -210,6 +213,7 @@ public class Sentinel_SlowTrap : MonoBehaviour
         else if (!isInside && _localSlowApplied)
         {
             movement.RemoveSwampSlow();
+            _slowedMovement=null;
             _localSlowApplied = false;
 
             Debug.Log(
@@ -218,33 +222,19 @@ public class Sentinel_SlowTrap : MonoBehaviour
         }
     }
 
+    private bool CanSlowPlayer(PlayerIdentity player)
+    {
+        // Only opponents are affected; unknown teams and observers are not opponents.
+        return player && _ownerTeam >= 0 && _ownerTeam <= 1 && player.Team <= 1 &&
+            player.PlayerId != _ownerPlayerId && player.Team != _ownerTeam &&
+            player.GetComponent<PlayerHP>()?.IsDead != true &&
+            (player.transform.position - transform.position).sqrMagnitude <= _zoneRadius * _zoneRadius;
+    }
+
     private void RemoveLocalSlow()
     {
-        if (!_localSlowApplied ||
-            NetworkManager.Instance == null)
-        {
-            _localSlowApplied = false;
-            return;
-        }
-
-        PlayerIdentity localPlayer = NetworkManager.Instance.MyPlayer;
-
-        if (localPlayer != null)
-        {
-            PlayerMovement movement =
-                localPlayer.GetComponent<PlayerMovement>();
-
-            if (movement == null)
-            {
-                movement =
-                    localPlayer.GetComponentInChildren<PlayerMovement>(true);
-            }
-
-            if (movement != null)
-                movement.RemoveSwampSlow();
-        }
-
-        _localSlowApplied = false;
+        if(_localSlowApplied && _slowedMovement)_slowedMovement.RemoveSwampSlow();
+        _slowedMovement=null;_localSlowApplied=false;
     }
 
     private void SetupEnemyWarningSound()
@@ -321,11 +311,8 @@ public class Sentinel_SlowTrap : MonoBehaviour
 
     private void CreateZoneVisual()
     {
-        GameObject lineObject = new GameObject("SentinelQSlowZone");
-        lineObject.transform.SetParent(transform, false);
-        lineObject.transform.localPosition = Vector3.up * 0.04f;
-
-        _zoneLine = lineObject.AddComponent<LineRenderer>();
+        if(_zoneLine==null)return;
+        _zoneLine.gameObject.SetActive(true);
         _zoneLine.useWorldSpace = false;
         _zoneLine.loop = true;
         _zoneLine.positionCount = 64;
