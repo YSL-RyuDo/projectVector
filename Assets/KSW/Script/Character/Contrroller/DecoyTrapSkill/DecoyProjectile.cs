@@ -7,6 +7,9 @@ public class DecoyProjectile : MonoBehaviour
     public bool IsMine { get; private set; }
 
     private bool _activated;
+#if UNITY_EDITOR
+    public System.Action<uint, Vector3, Vector3> EditorCaptureActivate;
+#endif
 
     public void InitFromServer(uint decoyId, uint ownerPlayerId, bool isMine)
     {
@@ -20,13 +23,22 @@ public class DecoyProjectile : MonoBehaviour
     {
         if (_activated) return;
         if (collision.contactCount <= 0) return;
+        if (collision.collider.GetComponentInParent<CharacterController>() ||
+            collision.collider.GetComponentInParent<PlayerIdentity>() ||
+            collision.collider.GetComponentInParent<DecoyProjectile>()) return;
 
         ContactPoint contact = collision.contacts[0];
 
-        if (contact.normal.y < 0.55f)
-            return;
-
         _activated = true;
+        // Preserve the surface normal for walls as well as floors and ramps.
+        var body = GetComponent<Rigidbody>();
+        if (body) { body.linearVelocity = Vector3.zero; body.angularVelocity = Vector3.zero; body.isKinematic = true; }
+        transform.SetPositionAndRotation(contact.point + contact.normal * .02f,
+            Quaternion.FromToRotation(Vector3.up, contact.normal));
+#if UNITY_EDITOR
+        if (Application.isBatchMode && IsMine && EditorCaptureActivate != null)
+        { EditorCaptureActivate(DecoyId, contact.point, contact.normal); return; }
+#endif
 
         if (IsMine && NetworkManager.Instance != null)
         {

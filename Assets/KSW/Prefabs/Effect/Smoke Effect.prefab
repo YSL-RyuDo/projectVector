@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7319990621672186039}
   - component: {fileID: 9182341513811541689}
   - component: {fileID: 8600930358704322060}
+  - component: {fileID: 7341628084311791011}
   m_Layer: 0
   m_Name: Smoke Effect
   m_TagString: Untagged
@@ -76,6 +77,20 @@ MonoBehaviour:
   _speedMultiplier: 1.25
   _jumpMultiplier: 1.2
   _upForce: 3
+--- !u!114 &7341628084311791011
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7021023906734013752}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5960c0be6af84907a3c961e80a4e2b2b, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SmokeOutlineOccluder
+  _center: {x: 0, y: 0, z: 0}
+  _radius: 1
 --- !u!1001 &427854773817158793
 PrefabInstance:
   m_ObjectHideFlags: 0

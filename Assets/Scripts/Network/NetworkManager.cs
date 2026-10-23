@@ -1572,6 +1572,11 @@ public partial class NetworkManager : MonoBehaviour
                 HandleControllerDecoyDestroy(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_CONTROLLER_DECOY_TRIGGER:
+                if (body != null && body.Length == 8)
+                    ControllerDecoyNetworkManager.Instance?.OnDecoyTrigger(BitConverter.ToUInt32(body, 0), BitConverter.ToSingle(body, 4));
+                break;
+
             case (ushort)PacketType.PKT_SC_CONTROLLER_ULTIMATE_SPAWN:
                 HandleControllerUltimateSpawn(body);
                 break;
@@ -9023,6 +9028,16 @@ public partial class NetworkManager : MonoBehaviour
         client.Send(buffer);
 
         Debug.Log($"[SEND CONTROLLER DECOY ACTIVATE] decoyId={decoyId}, pos={position}, normal={normal}");
+    }
+
+    public void SendControllerDecoyTrigger(uint decoyId)
+    {
+        if (!IsConnected) return;
+        byte[] buffer = new byte[8];
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)8), 0, buffer, 0, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)PacketType.PKT_CS_CONTROLLER_DECOY_TRIGGER), 0, buffer, 2, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes(decoyId), 0, buffer, 4, 4);
+        client.Send(buffer);
     }
 
     private void HandleControllerDecoySpawn(byte[] body)

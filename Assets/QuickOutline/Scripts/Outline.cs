@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 [DisallowMultipleComponent]
 
@@ -79,11 +80,16 @@ public class Outline : MonoBehaviour {
   private Material outlineFillMaterial;
 
   private bool needsUpdate;
+  private PlayerOutline smokeTarget;
+  private bool smokeSuppressed;
+  public bool SmokeSuppressed => smokeSuppressed;
 
   void Awake() {
 
     // Cache renderers
     renderers = GetComponentsInChildren<Renderer>(true);
+    smokeTarget = GetComponentInParent<PlayerOutline>();
+    if (!smokeTarget) smokeTarget = GetComponentInChildren<PlayerOutline>(true);
 
     // Instantiate outline materials
     outlineMaskMaterial = Instantiate(Resources.Load<Material>(@"Materials/OutlineMask"));
@@ -100,15 +106,35 @@ public class Outline : MonoBehaviour {
   }
 
   void OnEnable() {
+    Camera.onPreCull += ApplySmokeVisibility;
+    RenderPipelineManager.beginCameraRendering += BeginCameraRendering;
+    smokeSuppressed = false;
+    SetOutlineMaterials(true);
+  }
+
+  void BeginCameraRendering(ScriptableRenderContext context, Camera camera) => ApplySmokeVisibility(camera);
+
+  void ApplySmokeVisibility(Camera camera) {
+    if (!camera || camera.cameraType != CameraType.Game) return;
+    if (!smokeTarget) smokeTarget = GetComponentInParent<PlayerOutline>();
+    if (!smokeTarget) smokeTarget = GetComponentInChildren<PlayerOutline>(true);
+    bool hide = smokeTarget && smokeTarget.IsOccludedBySmoke(camera);
+    if (hide == smokeSuppressed) return;
+    smokeSuppressed = hide;
+    // Keep enabled/color/mode intact: reveal skills cannot override smoke, and
+    // leaving it restores their current state rather than a stale cached color.
+    SetOutlineMaterials(!hide);
+  }
+
+  void SetOutlineMaterials(bool visible) {
+    if (renderers == null) return;
     foreach (var renderer in renderers) {
-
-      // Append outline shaders
+      if (!renderer) continue;
       var materials = renderer.sharedMaterials.ToList();
-
-      materials.Add(outlineMaskMaterial);
-      materials.Add(outlineFillMaterial);
-
-      renderer.materials = materials.ToArray();
+      materials.Remove(outlineMaskMaterial);
+      materials.Remove(outlineFillMaterial);
+      if (visible) { materials.Add(outlineMaskMaterial); materials.Add(outlineFillMaterial); }
+      renderer.sharedMaterials = materials.ToArray();
     }
   }
 
@@ -138,16 +164,9 @@ public class Outline : MonoBehaviour {
   }
 
   void OnDisable() {
-    foreach (var renderer in renderers) {
-
-      // Remove outline shaders
-      var materials = renderer.sharedMaterials.ToList();
-
-      materials.Remove(outlineMaskMaterial);
-      materials.Remove(outlineFillMaterial);
-
-      renderer.materials = materials.ToArray();
-    }
+    Camera.onPreCull -= ApplySmokeVisibility;
+    RenderPipelineManager.beginCameraRendering -= BeginCameraRendering;
+    SetOutlineMaterials(false);
   }
 
   void OnDestroy() {

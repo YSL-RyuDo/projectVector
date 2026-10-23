@@ -40,6 +40,7 @@ public class MiniMapCamera : MonoBehaviour
     private Camera miniMapCamera;
 
     private bool isOverlayMode;
+    private float? smokeHeading;
 
     public bool IsOverlayMode => isOverlayMode;
     public Camera Camera => miniMapCamera;
@@ -108,6 +109,7 @@ public class MiniMapCamera : MonoBehaviour
     public void SetOverlayMode(bool value)
     {
         isOverlayMode = value;
+        if (!value) smokeHeading = null;
 
         if (isOverlayMode)
             ResolveOverlayCenter();
@@ -117,6 +119,19 @@ public class MiniMapCamera : MonoBehaviour
         Debug.Log(
             $"[MINIMAP CAMERA] overlayMode={isOverlayMode}"
         );
+    }
+
+    // Snapshot the view heading when casting, without changing the ordinary map.
+    public void SetSmokeHeading(float yaw)
+    {
+        smokeHeading = Mathf.Repeat(yaw, 360f);
+        ApplyCameraTransform();
+    }
+
+    public void ClearSmokeHeading()
+    {
+        smokeHeading = null;
+        ApplyCameraTransform();
     }
 
     private void ResolveOverlayCenter()
@@ -181,12 +196,22 @@ public class MiniMapCamera : MonoBehaviour
             transform.rotation =
                 Quaternion.Euler(
                     90f,
-                    overlayYaw + roleYaw,
+                    smokeHeading ?? (overlayYaw + roleYaw),
                     0f
                 );
 
             miniMapCamera.orthographicSize =
                 overlayOrthographicSize;
+
+            if (smokeHeading.HasValue)
+            {
+                // Fit the original map rectangle after arbitrary rotation. Otherwise
+                // diagonal casts can crop corners that were visible in the normal map.
+                float delta = (smokeHeading.Value - overlayYaw - roleYaw) * Mathf.Deg2Rad;
+                float c = Mathf.Abs(Mathf.Cos(delta)), s = Mathf.Abs(Mathf.Sin(delta));
+                float aspect = Mathf.Max(.01f, miniMapCamera.aspect);
+                miniMapCamera.orthographicSize *= Mathf.Max(c + s * aspect, c + s / aspect);
+            }
 
             return;
         }

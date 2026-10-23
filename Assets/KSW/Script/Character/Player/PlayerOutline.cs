@@ -18,6 +18,29 @@ public class PlayerOutline : MonoBehaviour
     private bool _configured;
     private bool _isMine;
     private bool _isMyTeam;
+    private CharacterController _bodyCapsule;
+
+    public bool IsOccludedBySmoke(Camera camera)
+    {
+        if (!camera) return false;
+        if (!_bodyCapsule) _bodyCapsule = GetComponentInParent<CharacterController>();
+        if (!_bodyCapsule) _bodyCapsule = GetComponentInChildren<CharacterController>(true);
+        Bounds body;
+        if (_bodyCapsule) {
+            var t=_bodyCapsule.transform;var scale=t.lossyScale;
+            float radius=_bodyCapsule.radius*Mathf.Max(Mathf.Abs(scale.x),Mathf.Abs(scale.z));
+            body=new Bounds(t.TransformPoint(_bodyCapsule.center),new Vector3(radius*2,Mathf.Max(radius*2,_bodyCapsule.height*Mathf.Abs(scale.y)),radius*2));
+        } else {
+            // A target without a movement capsule still uses its current rendered body extent.
+            var renderer=GetComponentInChildren<SkinnedMeshRenderer>();
+            body=renderer?renderer.bounds:new Bounds(transform.position+Vector3.up, new Vector3(.6f,2,.6f));
+        }
+        if (DreamForestPresentation.BlocksOutline(camera,body)) return true;
+        // Ordinary smoke still preserves allied identification; the ultimate has
+        // its own boundary and enemy-visitor identification rules above.
+        if (_configured && _isMyTeam && !_isMine) return false;
+        return SmokeOutlineOccluder.BlocksOutline(camera.transform.position,body);
+    }
 
     private int _smokeHideCount;
     private int _dreamForestHideCount;

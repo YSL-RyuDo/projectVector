@@ -33,6 +33,10 @@ public static class GameplayActionPolicy
             (RoundManager.Instance.currentState == RoundManager.RoundState.RoundEnd ||
              RoundManager.Instance.currentState == RoundManager.RoundState.GameOver)) return false;
         if (InitiatorSkill_Q.IsLocalReturning) return false;
+        if (owner.GetComponentInParent<ControllerSkill_X>()?.IsCasting == true && !(owner is ControllerSkill_X)) return false;
+        if (owner.GetComponentInParent<ControllerSkill_C>()?.IsCasting == true && !(owner is ControllerSkill_C)) return false;
+        if (owner.GetComponentInParent<ControllerSkill_Q>()?.IsCasting == true && !(owner is ControllerSkill_Q)) return false;
+        if (ControllerSkill_E.IsBlockingWeaponInput && !(owner is ControllerSkill_E)) return false;
         if (owner.GetComponentInParent<InitiatorSkill_C>()?.BlocksActions == true && !(owner is InitiatorSkill_C)) return false;
         if (owner.GetComponentInParent<InitiatorSkill_E>()?.BlocksActions == true && !(owner is InitiatorSkill_E)) return false;
         if (owner.GetComponentInParent<InitiatorSkill_X>()?.IsCasting == true && !(owner is InitiatorSkill_X)) return false;

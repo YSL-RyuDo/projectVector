@@ -3,8 +3,8 @@ using UnityEngine;
 public class DreamForestArea : MonoBehaviour
 {
     [Header("기본 설정")]
-    [SerializeField] private float defaultMaxRadius = 15f;
-    [SerializeField] private float expandSpeed = 5f;
+    [SerializeField] private float defaultMaxRadius = 7.5f;
+    [SerializeField] private float expandSpeed = 3.75f;
     [SerializeField] private bool destroyAfterDuration = true;
 
     [Header("디버그")]

@@ -1,137 +1,81 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[DefaultExecutionOrder(1400)]
 public class ControllerSkill_Q : CharacterSkill
 {
-    [Header("References")]
     [SerializeField] private Transform _throwPoint;
-
-    [Header("Throw")]
     [SerializeField] private float _throwForce = 15f;
     [SerializeField] private float _upwardForce = 2f;
-    [SerializeField] private float _spawnForwardOffset = 0.6f;
-
-    private PlayerIdentity _playerIdentity;
-    private ElectricShock _electricShock;
-
-    private void Awake()
-    {
-        _playerIdentity =
-            GetComponent<PlayerIdentity>();
-
-        _electricShock =
-            GetComponent<ElectricShock>();
-
-        if (_electricShock == null)
-            _electricShock =
-                GetComponentInChildren<ElectricShock>(true);
-    }
-
-    private void Start()
-    {
-        if (_throwPoint == null)
-        {
-            Transform found =
-                transform.Find("TrapPoint");
-
-            if (found != null)
-                _throwPoint = found;
-        }
-
-        if (_throwPoint == null)
-        {
-            Transform found =
-                transform.Find("CameraRoot/WeaponHolder/DropPoint");
-
-            if (found != null)
-                _throwPoint = found;
-        }
-    }
-
+    [SerializeField] private float _spawnForwardOffset = .6f;
+    [SerializeField] private ControllerSwampMotion _motion;
+    private PlayerIdentity _identity;
+    private float _age;
+    private bool _sent, _hidden;
+    public bool IsCasting { get; private set; }
+#if UNITY_EDITOR
+    public Action<Vector3, Vector3> EditorCaptureThrow;
+    private bool LocalFixture => Application.isBatchMode && PracticePlayerContext.For(this) != null && EditorCaptureThrow != null;
+#else
+    private bool LocalFixture => false;
+#endif
+    private void Awake() => _identity = GetComponent<PlayerIdentity>();
+    private bool IsMine => LocalFixture || (_identity && NetworkManager.Instance && _identity.PlayerId == NetworkManager.Instance.MyPlayerId);
     private void Update()
     {
-        if (!IsMine())
-            return;
-
-        if (Keyboard.current == null)
-            return;
-
-        if (InGameChatUI.IsChatOpen)
-            return;
-
-        if (GameController.Instance != null &&
-            GameController.Instance.IsPaused)
-            return;
-
-        if (SettingsMenu.Instance != null &&
-            SettingsMenu.Instance.IsOpen)
-            return;
-
-        if (InitiatorSkill_Q.IsLocalDroneMode)
-            return;
-
-        if (InitiatorSkill_C.ShouldBlockWeaponInput())
-            return;
-
-        if (EntrySkill_X.IsLocalBladeMode)
-            return;
-
-        EntryDashMotor dashMotor =
-            GetComponent<EntryDashMotor>();
-
-        if (dashMotor != null &&
-            dashMotor.IsDashing)
-            return;
-
-        if (_electricShock != null &&
-            _electricShock.IsStunned)
-            return;
-
-        if (Keyboard.current.qKey.wasPressedThisFrame)
+        if (!IsMine) return;
+        if (IsCasting)
         {
-            UseSkill();
+            if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) { Cancel(); return; }
+            _age += Time.deltaTime;
+            if (!_sent && _age >= .38f) Release();
+            if (_age >= .9f) Cancel();
+            return;
         }
+        if (Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame) UseSkill();
     }
-
-    private bool IsMine()
-    {
-        return _playerIdentity != null &&
-               NetworkManager.Instance != null &&
-               _playerIdentity.PlayerId ==
-               NetworkManager.Instance.MyPlayerId;
-    }
-
     protected override void UseSkill()
     {
-        if (!CanUsePurchasedSkill(SkillSlot.Q))
-            return;
-
-        if (NetworkManager.Instance == null)
-            return;
-
-        Transform origin =
-            _throwPoint != null
-                ? _throwPoint
-                : transform;
-
-        Vector3 forward =
-            origin.forward.normalized;
-
-        Vector3 spawnPos =
-            origin.position +
-            forward * _spawnForwardOffset;
-
-        Vector3 velocity =
-            forward * _throwForce +
-            Vector3.up * _upwardForce;
-
-        NetworkManager.Instance.SendControllerSwampThrow(
-            spawnPos,
-            velocity
-        );
-
-        Debug.Log(
-            $"[CONTROLLER Q REQUEST] pos={spawnPos}, velocity={velocity}"
-        );
+        if (IsCasting || !IsMine || !CanUsePurchasedSkill(SkillSlot.Q) || !_motion) return;
+        if (!LocalFixture && (!NetworkManager.Instance || !NetworkManager.Instance.IsConnected)) return;
+        GetComponentInChildren<FPSCameraLook>()?.ForceExitADS();
+        IsCasting = true; _age = 0; _sent = false; _motion.Begin();
     }
+    private void Release()
+    {
+        if (!CanUsePurchasedSkill(SkillSlot.Q)) { Cancel(); return; }
+        var camera = GetComponent<PlayerCameraController>()?.PlayerCamera;
+        Transform origin = camera ? camera.transform : (_throwPoint ? _throwPoint : transform);
+        Vector3 forward = origin.forward.normalized;
+        Vector3 offset = forward * _spawnForwardOffset + origin.right * .14f - origin.up * .12f;
+        Vector3 position = origin.position + offset;
+        var hits = Physics.SphereCastAll(origin.position, .09f, offset.normalized, offset.magnitude, ~0, QueryTriggerInteraction.Ignore);
+        Array.Sort(hits, (a,b) => a.distance.CompareTo(b.distance));
+        foreach (var hit in hits)
+        {
+            if (hit.collider.transform.IsChildOf(transform)) continue;
+            position = origin.position + offset.normalized * Mathf.Max(.02f, hit.distance - .025f); break;
+        }
+        _sent = true; _motion.ReleaseDevice();
+#if UNITY_EDITOR
+        if (LocalFixture) EditorCaptureThrow(position, forward * _throwForce + Vector3.up * _upwardForce);
+        else
+#endif
+            NetworkManager.Instance.SendControllerSwampThrow(position, forward * _throwForce + Vector3.up * _upwardForce);
+    }
+    private void LateUpdate()
+    {
+        if (!IsMine || !IsCasting) return;
+        GetComponent<PlayerItem>()?.SetWeaponVisibility(false); _hidden = true;
+    }
+    public void Cancel()
+    {
+        if (!IsCasting && !_hidden) return;
+        IsCasting = false; _motion?.ResetPose();
+        if (_hidden && GetComponent<PlayerHP>()?.IsDead != true && GetComponent<PlayerDeathController>()?.IsDead != true)
+            GetComponent<PlayerItem>()?.SetWeaponVisibility(true);
+        _hidden = false;
+    }
+    private void OnDisable() => Cancel();
 }

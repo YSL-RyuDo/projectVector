@@ -40,6 +40,7 @@ public class ControllerUltimateNetworkManager : MonoBehaviour
         }
 
         area.InitFromServer(ultimateId, ownerPlayerId, position, radius, duration);
+        obj.GetComponent<DreamForestPresentation>()?.Init(ownerPlayerId,duration);
         ultimates[ultimateId] = area;
 
         Debug.Log($"[CONTROLLER ULTIMATE SPAWN APPLY] id={ultimateId}, owner={ownerPlayerId}, pos={position}");

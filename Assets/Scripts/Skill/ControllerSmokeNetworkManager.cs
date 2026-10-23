@@ -30,10 +30,11 @@ public class ControllerSmokeNetworkManager : MonoBehaviour
 
         GameObject smoke = Instantiate(_smokePrefab, position, Quaternion.identity);
         smoke.transform.localScale = Vector3.one * radius;
+        smoke.GetComponent<ControllerSmokeVfx>()?.Begin(duration);
 
         _smokes[smokeId] = smoke;
 
-        Destroy(smoke, duration);
+        Destroy(smoke, duration + .3f);
 
         Debug.Log($"[CONTROLLER SMOKE SPAWN] smokeId={smokeId}, owner={ownerPlayerId}, pos={position}, radius={radius}, duration={duration}");
     }
@@ -42,7 +43,10 @@ public class ControllerSmokeNetworkManager : MonoBehaviour
     {
         if (_smokes.TryGetValue(smokeId, out GameObject smoke))
         {
-            if (smoke != null) Destroy(smoke);
+            if (smoke != null) {
+                var fx = smoke.GetComponent<ControllerSmokeVfx>();
+                if (fx) fx.Dissolve(); else Destroy(smoke);
+            }
             _smokes.Remove(smokeId);
         }
 

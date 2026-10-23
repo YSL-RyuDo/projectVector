@@ -142,6 +142,7 @@ public class MiniMapManager : MonoBehaviour
 
     private void Update()
     {
+        if (ControllerSkill_E.IsBlockingWeaponInput) return;
         if (InGameChatUI.BlocksGameplayInput)
             return;
 
@@ -413,6 +414,13 @@ public class MiniMapManager : MonoBehaviour
 
             if (!isAlly)
             {
+                // Smoke targeting is a placement map, never an enemy radar.
+                // Keep ordinary HUD discovery rules unchanged after closing it.
+                if (ControllerSkill_E.IsSelectingSmoke)
+                {
+                    HidePlayerMarkers(player);
+                    continue;
+                }
                 bool enemyVisible =
                     IsEnemyVisible(
                         player,
@@ -1062,6 +1070,12 @@ public class MiniMapManager : MonoBehaviour
             _miniMapOverlay.gameObject.SetActive(true);
             _miniMapOverlay.SetAsLastSibling();
         }
+
+        // Suppress existing enemy markers immediately, before this frame renders.
+        if (ControllerSkill_E.IsSelectingSmoke && _localPlayerIdentity != null)
+            foreach (var player in _registeredPlayers)
+                if (player && player.Identity && player.Identity.Team != _localPlayerIdentity.Team)
+                    HidePlayerMarkers(player);
 
         Debug.Log(
             "[MINIMAP] 전체 맵 오버레이 활성화"

@@ -33,7 +33,7 @@ public class SwampGroundMeshVisual : MonoBehaviour
             _meshRenderer = GetComponent<MeshRenderer>();
 
         if (material != null)
-            _meshRenderer.material = material;
+            _meshRenderer.sharedMaterial = material;
 
         BuildMesh();
     }
@@ -51,6 +51,19 @@ public class SwampGroundMeshVisual : MonoBehaviour
         Vector3 centerWorld = ProjectToGround(transform.position);
         vertices[0] = transform.InverseTransformPoint(centerWorld);
         uvs[0] = new Vector2(0.5f, 0.5f);
+
+        // A star-shaped footprint: stops at cover and never bends around a corner.
+        float[] reach=new float[_segments];
+        for(int s=0;s<_segments;s++){
+            float angle=s/(float)_segments*Mathf.PI*2;
+            Vector3 direction=new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle));
+            var end=ProjectToGround(transform.position+direction*_radius);
+            reach[s]=_radius;
+            if(SwampSurfaceQuery.Blocked(centerWorld,end,out var hit)){
+                var offset=hit.point-centerWorld;offset.y=0;
+                reach[s]=Mathf.Clamp(offset.magnitude-.045f,0,_radius);
+            }
+        }
 
         int v = 1;
 
@@ -70,12 +83,13 @@ public class SwampGroundMeshVisual : MonoBehaviour
                     edgeMul = 1f + (n - 0.5f) * _edgeNoise;
                 }
 
-                Vector3 flatOffset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * ringRadius * edgeMul;
+                float actualRadius=Mathf.Min(_radius,reach[s])*ringT;
+                Vector3 flatOffset = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * actualRadius;
                 Vector3 sampleWorld = transform.position + flatOffset;
                 Vector3 groundWorld = ProjectToGround(sampleWorld);
 
                 vertices[v] = transform.InverseTransformPoint(groundWorld);
-                uvs[v] = new Vector2(0.5f + Mathf.Cos(angle) * ringT * 0.5f, 0.5f + Mathf.Sin(angle) * ringT * 0.5f);
+                uvs[v] = new Vector2(0.5f + flatOffset.x/(_radius*2), 0.5f + flatOffset.z/(_radius*2));
                 v++;
             }
         }
@@ -133,8 +147,11 @@ public class SwampGroundMeshVisual : MonoBehaviour
     {
         Vector3 origin = worldPos + Vector3.up * _rayStartHeight;
 
-        if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, _rayDistance, _groundMask, QueryTriggerInteraction.Ignore))
+        var hits=Physics.RaycastAll(origin,Vector3.down,_rayDistance,_groundMask,QueryTriggerInteraction.Ignore);
+        System.Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
+        foreach(var hit in hits)
         {
+            if(hit.collider.GetComponentInParent<CharacterController>() || hit.collider.GetComponentInParent<PlayerIdentity>() || hit.collider.GetComponentInParent<SwampTrap>())continue;
             if (hit.normal.y >= 0.45f)
                 return hit.point + hit.normal * _surfaceOffset;
         }
