@@ -1,6 +1,9 @@
+
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 using TMPro;
 
 public class ReportUI : MonoBehaviour
@@ -8,28 +11,36 @@ public class ReportUI : MonoBehaviour
     public static ReportUI Instance { get; private set; }
 
     [Header("Root & Panels")]
-    [SerializeField] private GameObject rootPanel; // 전체 리포트 루트
-    [SerializeField] private GameObject summaryView; // 요약 패널
-    [SerializeField] private GameObject detailView; // 상세 패널
-    [SerializeField] private GameObject emptyNotice; // 피해 기록 없음 알림
-    [SerializeField] private GameObject failedNotice; // 조회 실패 알림
-    [SerializeField] private GameObject limitWarningNotice; // 한도 경고
+    [SerializeField] private GameObject rootPanel;
+    [SerializeField] private GameObject summaryView;
+    [SerializeField] private GameObject detailView;
+    [SerializeField] private GameObject emptyNotice;
+    [SerializeField] private GameObject failedNotice;
+    [SerializeField] private GameObject limitWarningNotice;
 
-    [Header("Toggle Button")]
+    [Header("Toggle Button (Optional)")]
     [SerializeField] private Button toggleExpandButton;
     [SerializeField] private TextMeshProUGUI toggleButtonText;
 
-    [Header("Summary View Lines (화면 그대로 4줄)")]
-    [SerializeField] private TextMeshProUGUI opponentInfoText; // 1줄: A - 나를 처치한 상대
-    [SerializeField] private TextMeshProUGUI damageSummaryText; // 2줄: 준 피해 X / 받은 피해 Y
-    [SerializeField] private TextMeshProUGUI hitsDealtText; // 3줄: 내가 맞힌 부위: 머리 X회, 몸통 Y회, 다리 Z회
-    [SerializeField] private TextMeshProUGUI hitsTakenText; // 4줄: 내가 맞은 부위: 머리 X회, 몸통 Y회, 다리 Z회
+    [Header("Summary View Lines")]
+    [SerializeField] private TextMeshProUGUI opponentInfoText;
+    [SerializeField] private TextMeshProUGUI damageSummaryText;
+    [SerializeField] private TextMeshProUGUI hitsDealtText;
+    [SerializeField] private TextMeshProUGUI hitsTakenText;
 
-    [Header("Detail View Prefab & Container")]
+    [Header("Detail View")]
     [SerializeField] private Transform detailItemContainer;
     [SerializeField] private GameObject detailItemPrefab;
+    [SerializeField] private bool spawnPerWeaponLine = true;
+
+    [Header("Timeout Settings")]
+    [SerializeField] private float requestTimeoutSeconds = 3.0f;
 
     private bool isExpanded = false;
+    private bool hasValidData = false;
+    private bool isWaitingResponse = false;
+    private float requestSentTime = 0f;
+
     private readonly List<OpponentCombatSummary> cachedSummaries = new();
 
     private void Awake()
@@ -39,6 +50,7 @@ public class ReportUI : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+
         Instance = this;
 
         if (toggleExpandButton != null)
@@ -47,22 +59,71 @@ public class ReportUI : MonoBehaviour
         CloseAndReset();
     }
 
+    private void Update()
+    {
+        if (rootPanel == null || !rootPanel.activeSelf)
+            return;
+
+        if (isWaitingResponse &&
+            Time.unscaledTime - requestSentTime >= requestTimeoutSeconds)
+        {
+            Debug.LogWarning("[ReportUI] 전투 리포트 응답 타임아웃");
+            isWaitingResponse = false;
+            ShowFailed();
+            return;
+        }
+
+        bool isSpectating =
+            SpectatorManager.Instance != null &&
+            SpectatorManager.Instance.IsSpectating;
+
+        if (!isSpectating || GameplayActionPolicy.MenuBlocksInput)
+            return;
+
+        if (Keyboard.current != null &&
+            Keyboard.current.eKey.wasPressedThisFrame)
+        {
+            ToggleExpand();
+        }
+    }
+
     public void Open()
     {
         if (rootPanel != null)
             rootPanel.SetActive(true);
 
-        SetExpanded(false);
+        isExpanded = false;
+        hasValidData = false;
+        isWaitingResponse = true;
+        requestSentTime = Time.unscaledTime;
+
+        if (failedNotice != null) failedNotice.SetActive(false);
+        if (emptyNotice != null) emptyNotice.SetActive(false);
+        if (limitWarningNotice != null) limitWarningNotice.SetActive(false);
+        if (summaryView != null) summaryView.SetActive(false);
+        if (detailView != null) detailView.SetActive(false);
+
+        UpdateToggleButtonLabel();
+    }
+
+    public void NotifyPageReceived()
+    {
+        requestSentTime = Time.unscaledTime;
     }
 
     public void CloseAndReset()
     {
         cachedSummaries.Clear();
+
+        hasValidData = false;
+        isWaitingResponse = false;
         isExpanded = false;
 
         if (failedNotice != null) failedNotice.SetActive(false);
         if (emptyNotice != null) emptyNotice.SetActive(false);
         if (limitWarningNotice != null) limitWarningNotice.SetActive(false);
+        if (summaryView != null) summaryView.SetActive(false);
+        if (detailView != null) detailView.SetActive(false);
 
         ClearDetailItems();
 
@@ -72,24 +133,50 @@ public class ReportUI : MonoBehaviour
 
     public void ShowFailed()
     {
+        isWaitingResponse = false;
+        hasValidData = false;
+
         if (rootPanel != null) rootPanel.SetActive(true);
         if (failedNotice != null) failedNotice.SetActive(true);
+        if (emptyNotice != null) emptyNotice.SetActive(false);
+        if (limitWarningNotice != null) limitWarningNotice.SetActive(false);
         if (summaryView != null) summaryView.SetActive(false);
         if (detailView != null) detailView.SetActive(false);
     }
 
-    public void ApplyData(List<CombatReportRawEntry> rawEntries, uint killerId, bool limitReached)
+    public void ApplyData(
+        List<CombatReportRawEntry> rawEntries,
+        uint killerId,
+        bool limitReached)
     {
         Debug.Log(
-    $"[ReportUI] ApplyData 호출: " +
-    $"entries={rawEntries?.Count ?? -1}, " +
-    $"killerId={killerId}"
-);
+            $"[ReportUI] ApplyData 호출: " +
+            $"entries={rawEntries?.Count ?? 0}, " +
+            $"killerId={killerId}, limit={limitReached}");
 
+        isWaitingResponse = false;
         cachedSummaries.Clear();
+        hasValidData = false;
 
-        if (failedNotice != null) failedNotice.SetActive(false);
-        if (limitWarningNotice != null) limitWarningNotice.SetActive(limitReached);
+        if (failedNotice != null)
+            failedNotice.SetActive(false);
+
+        if (limitWarningNotice != null)
+            limitWarningNotice.SetActive(limitReached);
+
+        if (rawEntries == null || rawEntries.Count == 0)
+        {
+            if (emptyNotice != null)
+                emptyNotice.SetActive(true);
+
+            if (summaryView != null)
+                summaryView.SetActive(false);
+
+            if (detailView != null)
+                detailView.SetActive(false);
+
+            return;
+        }
 
         Dictionary<uint, OpponentCombatSummary> dict = new();
 
@@ -101,69 +188,133 @@ public class ReportUI : MonoBehaviour
                 {
                     opponentId = entry.opponentId,
                     characterId = entry.characterId,
-                    nickname = string.IsNullOrEmpty(entry.nickname) ? "알 수 없음" : entry.nickname,
-                    isKiller = (entry.opponentId == killerId && killerId != 0)
+                    nickname = string.IsNullOrWhiteSpace(entry.nickname)
+                        ? "알 수 없음"
+                        : entry.nickname,
+                    isKiller = killerId != 0 &&
+                               entry.opponentId == killerId
                 };
+
                 dict[entry.opponentId] = summary;
+            }
+            else if (killerId != 0 &&
+                     entry.opponentId == killerId)
+            {
+                summary.isKiller = true;
             }
 
             summary.details.Add(entry);
 
-            if (entry.direction == 0) // 내가 준 피해
+            uint entryDamage = entry.hpDamage + entry.barrierDamage;
+
+            if (entry.direction == 0)
             {
-                summary.damageDealt += (entry.hpDamage + entry.barrierDamage);
-                summary.hitsDealtHead += entry.headHits;
-                summary.hitsDealtBody += entry.bodyHits;
-                summary.hitsDealtLeg += entry.legHits;
+                summary.damageDealt += entryDamage;
+
+                if (entry.sourceKind == 0)
+                {
+                    summary.hitsDealtHead += entry.headHits;
+                    summary.hitsDealtBody += entry.bodyHits;
+                    summary.hitsDealtLeg += entry.legHits;
+                }
             }
-            else // 내가 받은 피해
+            else
             {
-                summary.damageTaken += (entry.hpDamage + entry.barrierDamage);
-                summary.hitsTakenHead += entry.headHits;
-                summary.hitsTakenBody += entry.bodyHits;
-                summary.hitsTakenLeg += entry.legHits;
+                summary.damageTaken += entryDamage;
+
+                if (entry.sourceKind == 0)
+                {
+                    summary.hitsTakenHead += entry.headHits;
+                    summary.hitsTakenBody += entry.bodyHits;
+                    summary.hitsTakenLeg += entry.legHits;
+                }
             }
+        }
+
+        foreach (var summary in dict.Values)
+        {
+            summary.details.Sort((a, b) =>
+            {
+                int kindCmp = a.sourceKind.CompareTo(b.sourceKind);
+                if (kindCmp != 0)
+                    return kindCmp;
+
+                int dirCmp = a.direction.CompareTo(b.direction);
+                if (dirCmp != 0)
+                    return dirCmp;
+
+                uint dmgA = a.hpDamage + a.barrierDamage;
+                uint dmgB = b.hpDamage + b.barrierDamage;
+
+                return dmgB.CompareTo(dmgA);
+            });
         }
 
         cachedSummaries.AddRange(dict.Values);
-        cachedSummaries.Sort((a, b) => b.isKiller.CompareTo(a.isKiller));
 
-        if (cachedSummaries.Count == 0)
+        cachedSummaries.Sort((a, b) =>
         {
-            if (emptyNotice != null) emptyNotice.SetActive(true);
-            if (summaryView != null) summaryView.SetActive(false);
-            if (detailView != null) detailView.SetActive(false);
-            return;
-        }
+            int killerCmp = b.isKiller.CompareTo(a.isKiller);
+            if (killerCmp != 0)
+                return killerCmp;
 
-        if (emptyNotice != null) emptyNotice.SetActive(false);
+            uint totalA = a.damageDealt + a.damageTaken;
+            uint totalB = b.damageDealt + b.damageTaken;
+
+            return totalB.CompareTo(totalA);
+        });
+
+        hasValidData = true;
+
+        if (emptyNotice != null)
+            emptyNotice.SetActive(false);
+
         RefreshUI();
+        UpdateViewVisibility();
     }
 
     public void ToggleExpand()
     {
-        SetExpanded(!isExpanded);
+        if (!hasValidData)
+            return;
+
+        isExpanded = !isExpanded;
+        UpdateViewVisibility();
     }
 
-    private void SetExpanded(bool expand)
+    private void UpdateViewVisibility()
     {
-        isExpanded = expand;
+        UpdateToggleButtonLabel();
 
-        if (summaryView != null) summaryView.SetActive(!isExpanded);
-        if (detailView != null) detailView.SetActive(isExpanded);
+        if (!hasValidData)
+        {
+            if (summaryView != null)
+                summaryView.SetActive(false);
 
-        if (toggleButtonText != null)
-            toggleButtonText.text = isExpanded ? "요약" : "상세";
+            if (detailView != null)
+                detailView.SetActive(false);
+
+            return;
+        }
+
+        if (summaryView != null)
+            summaryView.SetActive(!isExpanded);
+
+        if (detailView != null)
+            detailView.SetActive(isExpanded);
     }
+
+    private void UpdateToggleButtonLabel()
+    {
+        if (toggleButtonText != null)
+            toggleButtonText.text = isExpanded ? "요약 [E]" : "상세 [E]";
+    }
+
 
     private void RefreshUI()
     {
-        Debug.Log(
-    $"[ReportUI] RefreshUI: " +
-    $"summaries={cachedSummaries.Count}"
-);
-
-        if (cachedSummaries.Count == 0) return;
+        if (cachedSummaries.Count == 0)
+            return;
 
         OpponentCombatSummary mainOpponent = cachedSummaries[0];
 
@@ -171,103 +322,206 @@ public class ReportUI : MonoBehaviour
         {
             opponentInfoText.text = mainOpponent.isKiller
                 ? $"{mainOpponent.nickname} - 나를 처치한 상대"
-                : $"{mainOpponent.nickname}";
+                : mainOpponent.nickname;
         }
+
         if (damageSummaryText != null)
         {
-            damageSummaryText.text = $"준 피해 {mainOpponent.damageDealt} / 받은 피해 {mainOpponent.damageTaken}";
+            damageSummaryText.text =
+                $"준 피해 {mainOpponent.damageDealt} / " +
+                $"받은 피해 {mainOpponent.damageTaken}";
         }
+
         if (hitsDealtText != null)
         {
-            hitsDealtText.text = $"내가 맞힌 부위: 머리 {mainOpponent.hitsDealtHead}회, 몸통 {mainOpponent.hitsDealtBody}회, 다리 {mainOpponent.hitsDealtLeg}회";
+            hitsDealtText.text =
+                $"내가 맞힌 부위: 머리 {mainOpponent.hitsDealtHead}회, " +
+                $"몸통 {mainOpponent.hitsDealtBody}회, " +
+                $"다리 {mainOpponent.hitsDealtLeg}회";
         }
+
         if (hitsTakenText != null)
         {
-            hitsTakenText.text = $"내가 맞은 부위: 머리 {mainOpponent.hitsTakenHead}회, 몸통 {mainOpponent.hitsTakenBody}회, 다리 {mainOpponent.hitsTakenLeg}회";
+            hitsTakenText.text =
+                $"내가 맞은 부위: 머리 {mainOpponent.hitsTakenHead}회, " +
+                $"몸통 {mainOpponent.hitsTakenBody}회, " +
+                $"다리 {mainOpponent.hitsTakenLeg}회";
         }
+
         ClearDetailItems();
 
-        if (detailItemPrefab != null && detailItemContainer != null)
+        if (detailItemPrefab == null || detailItemContainer == null)
         {
-            foreach (var summary in cachedSummaries)
+            Debug.LogError("[ReportUI] 상세 항목 프리팹 또는 컨테이너가 연결되지 않았습니다.");
+            return;
+        }
+
+        foreach (OpponentCombatSummary summary in cachedSummaries)
+        {
+            foreach (CombatReportRawEntry detail in summary.details)
             {
-                GameObject itemObj = Instantiate(detailItemPrefab, detailItemContainer);
-                var itemView = itemObj.GetComponent<ReportDetailItemView>();
-                if (itemView != null)
+                GameObject itemObject = Instantiate(
+                    detailItemPrefab,
+                    detailItemContainer
+                );
+
+                CombatReportDetailItemUI itemUI =
+                    itemObject.GetComponent<CombatReportDetailItemUI>();
+
+                if (itemUI == null)
                 {
-                    itemView.Bind(summary);
+                    Debug.LogError(
+                        "[ReportUI] 프리팹에 CombatReportDetailItemUI가 없습니다."
+                    );
+
+                    Destroy(itemObject);
+                    continue;
                 }
+
+                string sourceName = GetSourceDisplayName(
+                    detail.sourceKind,
+                    detail.sourceId,
+                    detail.characterId
+                );
+
+                uint totalDamage = detail.hpDamage + detail.barrierDamage;
+
+                if (detail.sourceKind == 0)
+                {
+                    itemUI.SetWeaponData(
+                        sourceName,
+                        totalDamage,
+                        detail.hpDamage,
+                        detail.barrierDamage,
+                        detail.headHits,
+                        detail.bodyHits,
+                        detail.legHits
+                    );
+                }
+                else if (detail.sourceKind == 1)
+                {
+                    uint skillHitCount =
+                        detail.headHits +
+                        detail.bodyHits +
+                        detail.legHits +
+                        detail.unlocalizedHits;
+
+                    itemUI.SetSkillData(
+                        sourceName,
+                        totalDamage,
+                        detail.hpDamage,
+                        detail.barrierDamage,
+                        skillHitCount
+                    );
+                }
+
+                itemObject.SetActive(true);
             }
         }
     }
 
     private void ClearDetailItems()
     {
-        if (detailItemContainer == null) return;
-        foreach (Transform child in detailItemContainer)
-        {
-            Destroy(child.gameObject);
-        }
+        if (detailItemContainer == null)
+            return;
+
+        for (int i = detailItemContainer.childCount - 1; i >= 0; i--)
+            Destroy(detailItemContainer.GetChild(i).gameObject);
     }
 
-    public static string GetSourceDisplayName(byte sourceKind, int sourceId)
+    public static string GetSourceDisplayName(
+        byte sourceKind,
+        int sourceId,
+        int characterId)
     {
         if (sourceKind == 0)
         {
-            return WeaponDropSpawner.Instance?.GetWeaponData(sourceId)?.name ?? $"무기 ({sourceId})";
+            string weaponName =
+                WeaponDropSpawner.Instance?.GetWeaponData(sourceId)?.name;
+
+            return !string.IsNullOrEmpty(weaponName)
+                ? weaponName
+                : $"무기 #{sourceId}";
         }
 
-        return sourceId switch
-        {
-            1 => "드론 테이저",
-            2 => "이니시에이터 궁극기",
-            3 => "엔트리 블레이드",
-            4 => "센티널 궁극기",
-            _ => "스킬 피해"
-        };
+        return GetSkillDisplayName(characterId, sourceId);
     }
-}
 
-public class ReportDetailItemView : MonoBehaviour
-{
-    [SerializeField] private TextMeshProUGUI opponentNameText;
-    [SerializeField] private GameObject killerBadge;
-    [SerializeField] private TextMeshProUGUI damageDealtText;
-    [SerializeField] private TextMeshProUGUI damageTakenText;
-    [SerializeField] private TextMeshProUGUI hitsDealtText;
-    [SerializeField] private TextMeshProUGUI hitsTakenText;
-    [SerializeField] private TextMeshProUGUI sourceBreakdownText;
-
-    public void Bind(OpponentCombatSummary summary)
+    private static string GetSkillDisplayName(int characterId, int sourceId)
     {
-        if (opponentNameText != null)
-            opponentNameText.text = summary.nickname;
-
-        if (killerBadge != null)
-            killerBadge.SetActive(summary.isKiller);
-
-        if (damageDealtText != null)
-            damageDealtText.text = $"준 피해: {summary.damageDealt}";
-
-        if (damageTakenText != null)
-            damageTakenText.text = $"받은 피해: {summary.damageTaken}";
-
-        if (hitsDealtText != null)
-            hitsDealtText.text = $"내가 맞힌 부위: 머리 {summary.hitsDealtHead}회, 몸통 {summary.hitsDealtBody}회, 다리 {summary.hitsDealtLeg}회";
-
-        if (hitsTakenText != null)
-            hitsTakenText.text = $"내가 맞은 부위: 머리 {summary.hitsTakenHead}회, 몸통 {summary.hitsTakenBody}회, 다리 {summary.hitsTakenLeg}회";
-
-        if (sourceBreakdownText != null)
+        switch (sourceId)
         {
-            System.Text.StringBuilder sb = new();
-            foreach (var detail in summary.details)
-            {
-                string sourceName = ReportUI.GetSourceDisplayName(detail.sourceKind, detail.sourceId);
-                string dir = detail.direction == 0 ? "[준 피해]" : "[받은 피해]";
-                sb.AppendLine($"{dir} {sourceName}: {detail.hpDamage + detail.barrierDamage} 데미지 (타격 {detail.bodyHits + detail.headHits + detail.legHits + detail.unlocalizedHits}회)");
-            }
-            sourceBreakdownText.text = sb.ToString().TrimEnd();
+            case 1:
+                return "이니시에이터 드론 테이저";
+
+            case 2:
+                return "이니시에이터 궁극기";
+
+            case 3:
+                return "엔트리 블레이드";
+
+            case 4:
+                return "센티널 궁극기";
+
+            default:
+                return $"알 수 없는 스킬 (ID {sourceId})";
         }
+    }
+
+    [ContextMenu("[테스트] 무기별 피해량 샘플 데이터 적용")]
+    public void TestWithSampleData()
+    {
+        Open();
+
+        List<CombatReportRawEntry> sample = new()
+        {
+            new CombatReportRawEntry
+            {
+                opponentId = 101,
+                characterId = 0,
+                nickname = "상대 A",
+                sourceKind = 0,
+                direction = 0,
+                sourceId = 1,
+                hpDamage = 80,
+                barrierDamage = 0,
+                headHits = 1,
+                bodyHits = 2,
+                legHits = 0,
+                unlocalizedHits = 0
+            },
+            new CombatReportRawEntry
+            {
+                opponentId = 101,
+                characterId = 0,
+                nickname = "상대 A",
+                sourceKind = 0,
+                direction = 0,
+                sourceId = 0,
+                hpDamage = 15,
+                barrierDamage = 25,
+                headHits = 0,
+                bodyHits = 1,
+                legHits = 1,
+                unlocalizedHits = 0
+            },
+            new CombatReportRawEntry
+            {
+                opponentId = 101,
+                characterId = 0,
+                nickname = "상대 A",
+                sourceKind = 0,
+                direction = 1,
+                sourceId = 2,
+                hpDamage = 70,
+                barrierDamage = 50,
+                headHits = 1,
+                bodyHits = 3,
+                legHits = 0,
+                unlocalizedHits = 0
+            }
+        };
+
+        ApplyData(sample, killerId: 101, limitReached: false);
     }
 }
