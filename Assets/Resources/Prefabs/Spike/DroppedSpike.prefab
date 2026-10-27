@@ -34,6 +34,7 @@ Transform:
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 7836626525033457571}
+  - {fileID: 3772288342719578646}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &8705310331431309898
@@ -51,7 +52,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 432519131735009139}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -207,3 +208,78 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42c0e73935489db4791dd94ececa9ca4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DroppedSpikePickup
+  requestCooldown: 0.5
+--- !u!1001 &5801683032312639481
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4887928681204534613}
+    m_Modifications:
+    - target: {fileID: 3500359489563331912, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_Name
+      value: Spike Art
+      objectReference: {fileID: 0}
+    - target: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+--- !u!4 &3772288342719578646 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7267239388113939951, guid: 5a0e56bb34f1ba04abfdd9a4c0cd35cb, type: 3}
+  m_PrefabInstance: {fileID: 5801683032312639481}
+  m_PrefabAsset: {fileID: 0}

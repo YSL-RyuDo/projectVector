@@ -16,10 +16,12 @@ public class Spike : Item
 
     private float currentDefuseTime;
     private bool isDefusing;
+    public bool IsDefusing => IsLocalDefuser() && isDefusing;
+    public float DefuseProgress => Mathf.Clamp01(currentDefuseTime / Mathf.Max(.01f, defuseTime));
     private bool isHalfDefused;
 
     [Header("Explosion")]
-    public float explosionTime = 40f;
+    public float explosionTime = 45f;
 
     private bool isExploded;
 
@@ -149,7 +151,9 @@ public class Spike : Item
                 spectatePoint = found;
         }
 
-        PlaySpikeSound();
+        var presentation = GetComponent<SpikePresentation>();
+        if (presentation) presentation.Arm(explosionTime);
+        else PlaySpikeSound();
 
         Debug.Log("[SPIKE] Planted and registered as PlantedSpike");
 
@@ -197,7 +201,7 @@ public class Spike : Item
             defuseSlider.value = progress;
 
         CombatFeedbackUI.Instance?.ShowSpikeProgress(
-            "스파이크를 해체하는 중입니다.",
+            "디바이스의 접속을 차단 중입니다.",
             progress
         );
 
@@ -287,7 +291,7 @@ public class Spike : Item
         if (isDefusing && IsLocalDefuser())
         {
             CombatFeedbackUI.Instance?.ShowSpikeProgress(
-                "스파이크를 해체하는 중입니다.",
+                "디바이스의 접속을 차단 중입니다.",
                 progress
             );
         }
@@ -330,7 +334,7 @@ public class Spike : Item
             defuseSlider.value = progress;
 
         CombatFeedbackUI.Instance?.ShowSpikeProgress(
-            "스파이크를 해체하는 중입니다.",
+            "디바이스의 접속을 차단 중입니다.",
             progress
         );
     }

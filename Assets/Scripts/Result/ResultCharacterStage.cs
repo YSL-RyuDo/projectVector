@@ -11,7 +11,7 @@ public sealed class ResultCharacterStage : MonoBehaviour
     public int SelectedMap { get; private set; }
     public void SelectMap(string mapName)
     {
-        SelectedMap = string.Equals(mapName, "Desert", System.StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        SelectedMap = string.Equals(mapName, "Construction", System.StringComparison.OrdinalIgnoreCase) ? 2 : string.Equals(mapName, "Desert", System.StringComparison.OrdinalIgnoreCase) ? 1 : 0;
         for (int i = 0; i < maps.Length; i++) maps[i].SetActive(i == SelectedMap);
     }
     public int SelectedCharacter { get; private set; } = -1;

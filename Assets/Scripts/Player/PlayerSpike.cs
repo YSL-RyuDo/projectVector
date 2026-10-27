@@ -4,6 +4,8 @@ using UnityEngine.UI;
 
 public class PlayerSpike : MonoBehaviour
 {
+    // Shared with the authored placement pose so the held device meets the spawned device.
+    public const float PlantForwardOffset = .5f;
     [SerializeField] private PlayerItem playerItem;
     [SerializeField] private PlayerMovement playerMove;
     [SerializeField] private Transform dropPoint;
@@ -29,6 +31,10 @@ public class PlayerSpike : MonoBehaviour
 
     private PlayerIdentity _playerIdentity;
     private bool spikeDropRequested;
+    public bool IsPlanting => isPlanting;
+    public float PlantProgress => Mathf.Clamp01(currentPlantTime / Mathf.Max(.01f, plantTime));
+    public bool IsDefusing => spikeInRange != null && spikeInRange.IsDefusing;
+    public float DefuseProgress => spikeInRange != null ? spikeInRange.DefuseProgress : 0;
     public bool IsInteracting => isPlanting || (spikeInRange != null && spikeInRange.IsLocalInteraction);
     public bool CanInteract => isActiveAndEnabled && IsLocalPlayer() &&
         GameplayActionPolicy.CanAct(this, GameplayAction.Interact) &&
@@ -152,13 +158,13 @@ public class PlayerSpike : MonoBehaviour
 
         if (hasSpike && isInsidePlantZone && !isPlanting)
         {
-            InteractionPromptUI.Instance.Show("스파이크 설치");
+            InteractionPromptUI.Instance.Show("디바이스 연결");
             return;
         }
 
         if (!hasSpike && spikeInRange != null)
         {
-            InteractionPromptUI.Instance.Show("스파이크 해체");
+            InteractionPromptUI.Instance.Show("디바이스 접속 차단");
             return;
         }
 
@@ -219,7 +225,7 @@ public class PlayerSpike : MonoBehaviour
             if (hasSpike && !previouslyHadSpike)
             {
                 CombatFeedbackUI.Instance?.ShowObjectiveNotice(
-                    "스파이크를 획득했습니다.",
+                    "디바이스를 획득했습니다.",
                     false
                 );
             }
@@ -316,7 +322,7 @@ public class PlayerSpike : MonoBehaviour
         slider.value = 0f;
 
         CombatFeedbackUI.Instance?.ShowSpikeProgress(
-            "스파이크를 설치 중입니다.",
+            "디바이스를 연결 중입니다.",
             0f
         );
     }
@@ -342,7 +348,7 @@ public class PlayerSpike : MonoBehaviour
             slider.value = progress;
 
         CombatFeedbackUI.Instance?.ShowSpikeProgress(
-            "스파이크를 설치 중입니다.",
+            "디바이스를 연결 중입니다.",
             progress
         );
 
@@ -362,7 +368,7 @@ public class PlayerSpike : MonoBehaviour
 
         SetPlayerControl(true);
 
-        Vector3 plantPos = transform.position + transform.forward * 1f;
+        Vector3 plantPos = transform.position + transform.forward * PlantForwardOffset;
         if (!SpikePlantZone.Contains(plantPos)) plantPos = transform.position;
 
         if (NetworkManager.Instance != null)

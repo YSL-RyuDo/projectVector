@@ -1393,6 +1393,12 @@ public partial class NetworkManager : MonoBehaviour
             case (ushort)PacketType.PKT_SC_SPIKE_PLANTED:
                 HandleSpikePlanted(body);
                 break;
+            case (ushort)PacketType.PKT_SC_SPIKE_PLANT_STATE:
+                if (body.Length == 5) SpikeInteractionPresentation.ServerPlant(BitConverter.ToUInt32(body, 0), body[4] != 0);
+                break;
+            case (ushort)PacketType.PKT_SC_SPIKE_CLOCK:
+                if (body.Length == 4 && Spike.PlantedSpike) Spike.PlantedSpike.GetComponent<SpikePresentation>()?.Sync(BitConverter.ToSingle(body, 0));
+                break;
 
             case (ushort)PacketType.PKT_SC_SPIKE_DROPPED:
                 HandleSpikeDropped(body);
@@ -4084,6 +4090,15 @@ public partial class NetworkManager : MonoBehaviour
         RoundWinReason winReason = (RoundWinReason)body[offset];
         offset += 1;
 
+        SpikeInteractionPresentation.StopAll();
+        if (Spike.PlantedSpike)
+        {
+            var visual = Spike.PlantedSpike.GetComponent<SpikePresentation>();
+            if (winReason == RoundWinReason.ATTACK_SPIKE_EXPLODE) visual?.Resolve(true);
+            else visual?.Silence();
+            Spike.PlantedSpike.ForceCancelInteraction();
+        }
+
         ushort delaySeconds = BitConverter.ToUInt16(body, offset);
         offset += 2;
 
@@ -5151,9 +5166,9 @@ public partial class NetworkManager : MonoBehaviour
         if (TopInfoUI.Instance != null)
         {
             if (showCarrierInfo != 0)
-                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} 스파이크 획득");
+                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} 디바이스 획득");
             else
-                TopInfoUI.Instance.SetGameDescription("스파이크 획득됨");
+                TopInfoUI.Instance.SetGameDescription("디바이스 획득됨");
         }
     }
     private void HandleSpikePlanted(byte[] body)
@@ -5168,6 +5183,7 @@ public partial class NetworkManager : MonoBehaviour
         float z = BitConverter.ToSingle(body, offset); offset += 4;
 
         Vector3 pos = new Vector3(x, y, z);
+        SpikeInteractionPresentation.StopAll();
 
         Debug.Log($"[SPIKE PLANTED] pos={pos}");
 
@@ -5180,7 +5196,7 @@ public partial class NetworkManager : MonoBehaviour
 
         if (TopInfoUI.Instance != null)
         {
-            TopInfoUI.Instance.SetGameDescription("스파이크 설치됨");
+            TopInfoUI.Instance.SetGameDescription("디바이스 접속 중");
             TopInfoUI.Instance.SetUnknownTimer();
         }
 
@@ -5189,7 +5205,7 @@ public partial class NetworkManager : MonoBehaviour
             CombatFeedbackUI.Instance.HideSpikeProgress();
 
             CombatFeedbackUI.Instance.ShowObjectiveNotice(
-                "공격팀이 스파이크를 설치했습니다.",
+                "디바이스가 연결되었습니다. AI 제어권 탈취 중입니다.",
                 true
             );
         }
@@ -5246,10 +5262,14 @@ public partial class NetworkManager : MonoBehaviour
 
         uint defuserPlayerId = BitConverter.ToUInt32(body, offset);
 
+        SpikeInteractionPresentation.ServerDefuse(defuserPlayerId, state, halfDefused != 0);
+
         Spike[] spikes = FindObjectsByType<Spike>(FindObjectsSortMode.None);
 
         for (int i = 0; i < spikes.Length; i++)
         {
+            if (!spikes[i].isPlanted) continue;
+            spikes[i].GetComponent<SpikePresentation>()?.DefuseState(state, halfDefused != 0);
             if (state == 1)
             {
                 if (defuserPlayerId == MyPlayerId)
@@ -5268,6 +5288,8 @@ public partial class NetworkManager : MonoBehaviour
 
     private void HandleSpikeDefused(byte[] body)
     {
+        if (body == null || body.Length != 4) return;
+        SpikeInteractionPresentation.StopAll();
         int offset = 0;
 
         uint defuserPlayerId = BitConverter.ToUInt32(body, offset);
@@ -5276,11 +5298,16 @@ public partial class NetworkManager : MonoBehaviour
 
         for (int i = 0; i < spikes.Length; i++)
         {
-            Destroy(spikes[i].gameObject);
+            if (!spikes[i].isPlanted) continue;
+            spikes[i].ForceCancelInteraction();
+            spikes[i].GetComponent<SpikePresentation>()?.Resolve(false);
+            foreach (var collider in spikes[i].GetComponentsInChildren<Collider>()) collider.enabled = false;
+            spikes[i].isPlanted = false;
+            Destroy(spikes[i].gameObject, 2f);
         }
 
         if (TopInfoUI.Instance != null)
-            TopInfoUI.Instance.SetGameDescription("스파이크 해체됨");
+            TopInfoUI.Instance.SetGameDescription("디바이스 접속 차단됨");
 
         if (CombatFeedbackUI.Instance != null)
         {
@@ -5291,7 +5318,7 @@ public partial class NetworkManager : MonoBehaviour
 
             // 해체 완료 메시지만 잠깐 표시
             CombatFeedbackUI.Instance.ShowObjectiveNotice(
-                "수비팀이 스파이크를 해체했습니다.",
+                "수비팀이 디바이스의 접속을 차단했습니다.",
                 false
             );
         }

@@ -6,7 +6,8 @@ using UnityEngine.UI;
 public enum GameMapId : byte
 {
     TestMap = 0,
-    Desert = 1
+    Desert = 1,
+    Construction = 2
 }
 
 public class RoomRulesPanelUI : MonoBehaviour
@@ -15,6 +16,7 @@ public class RoomRulesPanelUI : MonoBehaviour
     [SerializeField] private Button closeButton;
     [SerializeField] private Button testMapButton;
     [SerializeField] private Button desertButton;
+    [SerializeField] private Button constructionButton;
     [SerializeField] private TMP_Text selectedMapText;
 
     [Header("Selection Colors")]
@@ -42,6 +44,11 @@ public class RoomRulesPanelUI : MonoBehaviour
             desertButton.onClick.RemoveAllListeners();
             desertButton.onClick.AddListener(() => OnMapSelected?.Invoke(GameMapId.Desert));
         }
+        if (constructionButton != null)
+        {
+            constructionButton.onClick.RemoveAllListeners();
+            constructionButton.onClick.AddListener(() => OnMapSelected?.Invoke(GameMapId.Construction));
+        }
     }
 
     public void Show(string currentMapName)
@@ -59,11 +66,13 @@ public class RoomRulesPanelUI : MonoBehaviour
     public void ApplySelectedMap(string mapName)
     {
         bool isDesert = string.Equals(mapName, "Desert", StringComparison.OrdinalIgnoreCase);
-        SetButtonSelected(testMapButton, !isDesert);
+        bool isConstruction = string.Equals(mapName, "Construction", StringComparison.OrdinalIgnoreCase);
+        SetButtonSelected(testMapButton, !isDesert && !isConstruction);
         SetButtonSelected(desertButton, isDesert);
+        SetButtonSelected(constructionButton, isConstruction);
 
         if (selectedMapText != null)
-            selectedMapText.text = isDesert ? "현재 선택: Desert" : "현재 선택: TestMap";
+            selectedMapText.text = isConstruction ? "현재 선택: 공사장" : isDesert ? "현재 선택: Desert" : "현재 선택: TestMap";
     }
 
     private void SetButtonSelected(Button button, bool selected)

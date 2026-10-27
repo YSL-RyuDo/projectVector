@@ -116,6 +116,7 @@ public class ControllerSkill_E : CharacterSkill
         Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
         foreach (var hit in hits) {
             if (hit.collider.GetComponentInParent<PlayerIdentity>() || hit.collider.GetComponentInParent<CharacterController>()) continue;
+            if (hit.collider.GetComponentInParent<MapUtilityPlacementBlocker>()) return false;
             if (hit.normal.y < .45f) return false;
             world = hit.point; return true;
         }
