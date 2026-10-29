@@ -6,6 +6,7 @@ public class X_Area : MonoBehaviour
     [SerializeField] private float duration = 5f;
     [SerializeField] private float radius = 7f;
     [SerializeField] private float slowMultiplier = 0.5f;
+    [SerializeField] private SentinelFieldVfx field;
 
     [SerializeField] private LineRenderer lightningLine;
     [SerializeField] private int segments = 12;
@@ -22,6 +23,7 @@ public class X_Area : MonoBehaviour
 
     private void Start()
     {
+        if(field){field.Begin(radius,duration);Destroy(gameObject,duration);return;}
         if (lightningLine == null)
             lightningLine = GetComponentInChildren<LineRenderer>();
 

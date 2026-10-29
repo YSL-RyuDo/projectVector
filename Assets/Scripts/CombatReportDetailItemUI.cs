@@ -23,6 +23,29 @@ public class CombatReportDetailItemUI : MonoBehaviour
         public TextMeshProUGUI hitCountText;
     }
 
+    public TextMeshProUGUI directionText;
+    public UnityEngine.UI.Image sourceIcon;
+    public EquipmentIconCatalog icons;
+    public void Present(CombatReportRawEntry entry)
+    {
+        bool received=entry.direction==1;
+        string name=ReportUI.GetSourceDisplayName(entry.sourceKind,entry.sourceId,entry.characterId);
+        var text=entry.sourceKind==0?weapon.sourceNameText:skill.sourceNameText;
+        if(weapon.root)weapon.root.SetActive(entry.sourceKind==0);
+        if(skill.root)skill.root.SetActive(entry.sourceKind==1);
+        SetText(text,name);
+        var damage=entry.sourceKind==0?weapon.totalDamageText:skill.totalDamageText;
+        SetText(damage,((ulong)entry.hpDamage+entry.barrierDamage).ToString());
+        if(damage)damage.color=received?new Color(1,.56f,.53f):new Color(.64f,.88f,1);
+        SetText(directionText,received?"받은 피해":"준 피해");
+        if(directionText)directionText.color=damage?damage.color:Color.white;
+        SetText(entry.sourceKind==0?weapon.damageBreakdownText:skill.damageBreakdownText,$"체력 {entry.hpDamage}  /  방어막 {entry.barrierDamage}");
+        SetText(entry.sourceKind==0?weapon.hitCountText:skill.hitCountText,entry.sourceKind==0?
+            $"머리 {entry.headHits}   몸통 {entry.bodyHits}   다리 {entry.legHits}":$"스킬 피해 {entry.unlocalizedHits}회");
+        if(sourceIcon) { sourceIcon.enabled=entry.sourceKind==0 && icons && icons.Weapon(entry.sourceId);
+            if(sourceIcon.enabled)sourceIcon.sprite=icons.Weapon(entry.sourceId); }
+    }
+
     [Header("Weapon")]
     [SerializeField] private WeaponTexts weapon = new WeaponTexts();
 

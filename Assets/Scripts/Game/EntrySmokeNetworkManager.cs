@@ -132,6 +132,8 @@ public class EntrySmokeNetworkManager : MonoBehaviour
         smoke.transform.localScale =
             Vector3.one * radius;
 
+        smoke.GetComponent<ControllerSmokeVfx>()?.Begin(duration);
+
         ParticleSystem[] particles =
             smoke.GetComponentsInChildren<ParticleSystem>(true);
 

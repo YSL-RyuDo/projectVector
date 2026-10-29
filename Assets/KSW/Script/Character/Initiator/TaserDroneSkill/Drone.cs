@@ -24,8 +24,8 @@ public class Drone : MonoBehaviour
     private AudioListener _audioListener;
 
 
-    public int CurrentHp { get; private set; } = 100;
-    public int MaxHp { get; private set; } = 100;
+    public int CurrentHp { get; private set; } = 1;
+    public int MaxHp { get; private set; } = 1;
 
     public void ApplyHp(int hp, int maxHp)
     {

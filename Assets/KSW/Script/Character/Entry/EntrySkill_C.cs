@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 public class EntrySkill_C : CharacterSkill
 {
@@ -87,6 +88,7 @@ public class EntrySkill_C : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) return;
         if (!CanUsePurchasedSkill(SkillSlot.C))
             return;
 
@@ -116,10 +118,9 @@ public class EntrySkill_C : CharacterSkill
             NetworkManager.Instance.SendBeastStealthCancel();
         }
 
-        NetworkManager.Instance.SendEntryDashCast(dir);
-
         _isCasting = true;
-        Invoke(nameof(ResetCast), _castLockTime);
+        GetComponent<EntrySkillPresentation>()?.Begin(EntrySkillPresentation.Cast.Dash, .65f);
+        StartCoroutine(PrepareDash(dir));
 
         Debug.Log(
             $"[ENTRY DASH REQUEST] dir={dir}"
@@ -130,5 +131,13 @@ public class EntrySkill_C : CharacterSkill
     {
         _isCasting = false;
     }
-    private void OnDisable() { CancelInvoke(nameof(ResetCast)); ResetCast(); }
+    private IEnumerator PrepareDash(Vector3 direction)
+    {
+        yield return new WaitForSeconds(.28f);
+        if (GameplayActionPolicy.CanAct(this, GameplayAction.Skill) && NetworkManager.Instance)
+            NetworkManager.Instance.SendEntryDashCast(direction);
+        yield return new WaitForSeconds(Mathf.Max(.25f, _castLockTime));
+        ResetCast();
+    }
+    private void OnDisable() { StopAllCoroutines(); CancelInvoke(nameof(ResetCast)); ResetCast(); }
 }

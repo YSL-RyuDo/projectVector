@@ -1,93 +1,19 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-
 public class KillLogEntryUI : MonoBehaviour
 {
-    [Header("Images")]
-    [SerializeField] private Image killerImage;
-    [SerializeField] private Image deathImage;
-
-    [Header("Texts")]
-    [SerializeField] private TMP_Text killerNicknameText;
-    [SerializeField] private TMP_Text deathNicknameText;
-
-    private void Awake()
+    [SerializeField] private Image killerImage,deathImage,weaponImage,teamAccent;
+    [SerializeField] private TMP_Text killerNicknameText,deathNicknameText,assistText,sourceText,headshotText;
+    [SerializeField] private EquipmentIconCatalog equipmentIcons;
+    public void Initialize(Sprite killer,Sprite dead,string killerName,string deadName){killerImage.sprite=killer;killerImage.enabled=killer;deathImage.sprite=dead;deathImage.enabled=dead;killerNicknameText.text=SafeName(killerName);deathNicknameText.text=SafeName(deadName);SetDetails(-2,false,"");}
+    public void SetTeam(bool ours){var c=ours?new Color(.56f,.88f,1):new Color(1,.48f,.49f);if(teamAccent)teamAccent.color=c;killerNicknameText.color=c;}
+    public void SetDetails(int weaponId,bool headshot,string assists)
     {
-        // Inspector ø¨∞·¿Ã ∫¸¡≥¿ª ∂ß ¿Ã∏ß¿∏∑Œ «— π¯ ¥ı ∞Àªˆ
-        if (killerImage == null)
-        {
-            Transform target = transform.Find("KillerImage");
-
-            if (target != null)
-                killerImage = target.GetComponent<Image>();
-        }
-
-        if (deathImage == null)
-        {
-            Transform target = transform.Find("DeathImage");
-
-            if (target != null)
-                deathImage = target.GetComponent<Image>();
-        }
-
-        if (killerNicknameText == null)
-        {
-            Transform target =
-                transform.Find("KillerNicknameText");
-
-            if (target != null)
-            {
-                killerNicknameText =
-                    target.GetComponent<TMP_Text>();
-            }
-        }
-
-        if (deathNicknameText == null)
-        {
-            Transform target =
-                transform.Find("DeathNicknameText");
-
-            if (target != null)
-            {
-                deathNicknameText =
-                    target.GetComponent<TMP_Text>();
-            }
-        }
+        if(weaponImage){weaponImage.sprite=equipmentIcons?equipmentIcons.Weapon(weaponId):null;weaponImage.enabled=weaponImage.sprite;}
+        if(sourceText)sourceText.text=weaponId==-1?"Ïä§ÌÇ¨":weaponId==-2?"‚Äî":weaponImage && weaponImage.sprite?"":"Ï≤òÏπò";
+        if(headshotText)headshotText.text=headshot?"HS":"";
+        if(assistText)assistText.text=string.IsNullOrEmpty(assists)?"":"ÎèÑÏõÄ  "+assists;
     }
-
-    public void Initialize(
-        Sprite killerSprite,
-        Sprite deadSprite,
-        string killerNickname,
-        string deadNickname)
-    {
-        if (killerImage != null)
-        {
-            killerImage.sprite = killerSprite;
-            killerImage.enabled = killerSprite != null;
-        }
-
-        if (deathImage != null)
-        {
-            deathImage.sprite = deadSprite;
-            deathImage.enabled = deadSprite != null;
-        }
-
-        if (killerNicknameText != null)
-        {
-            killerNicknameText.text =
-                string.IsNullOrWhiteSpace(killerNickname)
-                    ? "Unknown"
-                    : killerNickname;
-        }
-
-        if (deathNicknameText != null)
-        {
-            deathNicknameText.text =
-                string.IsNullOrWhiteSpace(deadNickname)
-                    ? "Unknown"
-                    : deadNickname;
-        }
-    }
+    public static string SafeName(string value)=>string.IsNullOrWhiteSpace(value)?"Ïïå Ïàò ÏóÜÏùå":value.Replace("<","‚Äπ").Replace(">","‚Ä∫");
 }

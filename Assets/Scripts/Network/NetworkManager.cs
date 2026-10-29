@@ -367,10 +367,19 @@ public class ScoreboardMemberData
     public int assists;
 
     public int credits;
+    public bool hasLifeState;
+    public bool hasLoadout;
+    public int primaryWeaponId = -1, pistolWeaponId = -1, knifeWeaponId = -1;
+    public int armor, maxArmor, ultimatePoints, ultimateRequired, ultimatePointPrice;
+    public bool ultimateUsed;
+    public bool hasEquipment;
+    public int ownedWeaponId = -1;
+    public bool equipmentAlive;
 }
 
 public class ScoreboardData
 {
+    public int firstHalfRounds, secondHalfRounds;
     public uint roomId;
     public byte myTeam;
     public List<ScoreboardMemberData> members = new();
@@ -416,16 +425,16 @@ public class OpponentCombatSummary
     public bool isKiller;
 
     // 내가 준 총 피해 & 부위별 타격수
-    public uint damageDealt;
-    public uint hitsDealtHead;
-    public uint hitsDealtBody;
-    public uint hitsDealtLeg;
+    public ulong damageDealt;
+    public ulong hitsDealtHead;
+    public ulong hitsDealtBody;
+    public ulong hitsDealtLeg;
 
     // 내가 받은 총 피해 & 부위별 피격수
-    public uint damageTaken;
-    public uint hitsTakenHead;
-    public uint hitsTakenBody;
-    public uint hitsTakenLeg;
+    public ulong damageTaken;
+    public ulong hitsTakenHead;
+    public ulong hitsTakenBody;
+    public ulong hitsTakenLeg;
 
     // 무기/스킬별 상세 내역
     public List<CombatReportRawEntry> details = new();
@@ -481,11 +490,6 @@ public partial class NetworkManager : MonoBehaviour
 
     public event Action<int> WeaponSkinLoadoutChanged;
 
-    // KSW: Report UI 관련
-    private uint combatReportRequestId = 0;
-    private uint currentCombatLifeId = 0;
-    private ushort expectedReportPage = 0;
-    private readonly List<CombatReportRawEntry> accumulatedReportEntries = new();
 
     public bool HasWeaponSkinLoadout(int characterId)
     {
@@ -691,6 +695,7 @@ public partial class NetworkManager : MonoBehaviour
         reconnectAccount = id.Trim();
         reconnectPassword = pw; // Process memory only; never PlayerPrefs, files or logs.
         IsAuthenticated = false;
+        ResetLocalCombatReport();
         ResetSocialState();
         myUserId = id.Trim();
         equippedWeaponSkinsByCharacter.Clear();
@@ -1125,6 +1130,16 @@ public partial class NetworkManager : MonoBehaviour
     void HandlePacket(ushort type, byte[] body)
     {
         if (HandleReconnectPacket(type, body)) return;
+        if (type == (ushort)PacketType.PKT_SC_PICK_ACTIONS) { HandlePickActions(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_PICK_ACTION_RESULT) { HandlePickActionResult(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_PICK_SHOWCASE) { HandlePickShowcase(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_TEAM_PURCHASES) { HandleTeamPurchases(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_TEAM_PURCHASE_RESULT) { HandleTeamPurchaseResult(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_KILL_FEED) { HandleKillFeed(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_ROUND_RULES) { HandleRoundRules(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_TEAM_LOADOUT) { HandleTeamLoadout(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_TEAM_EQUIPMENT) { HandleTeamEquipment(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_TEAM_PING) { HandleTeamPing(body); return; }
         switch (type)
         {
             case (ushort)PacketType.PKT_SC_REGISTER_RESULT:
@@ -1438,6 +1453,12 @@ public partial class NetworkManager : MonoBehaviour
             case (ushort)PacketType.PKT_SC_SPIKE_PLANTED:
                 HandleSpikePlanted(body);
                 break;
+            case (ushort)PacketType.PKT_SC_SPIKE_PLANT_STATE:
+                if (body.Length == 5) SpikeInteractionPresentation.ServerPlant(BitConverter.ToUInt32(body, 0), body[4] != 0);
+                break;
+            case (ushort)PacketType.PKT_SC_SPIKE_CLOCK:
+                if (body.Length == 4 && Spike.PlantedSpike) Spike.PlantedSpike.GetComponent<SpikePresentation>()?.Sync(BitConverter.ToSingle(body, 0));
+                break;
 
             case (ushort)PacketType.PKT_SC_SPIKE_DROPPED:
                 HandleSpikeDropped(body);
@@ -1617,6 +1638,11 @@ public partial class NetworkManager : MonoBehaviour
                 HandleControllerDecoyDestroy(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_CONTROLLER_DECOY_TRIGGER:
+                if (body != null && body.Length == 8)
+                    ControllerDecoyNetworkManager.Instance?.OnDecoyTrigger(BitConverter.ToUInt32(body, 0), BitConverter.ToSingle(body, 4));
+                break;
+
             case (ushort)PacketType.PKT_SC_CONTROLLER_ULTIMATE_SPAWN:
                 HandleControllerUltimateSpawn(body);
                 break;
@@ -1629,6 +1655,18 @@ public partial class NetworkManager : MonoBehaviour
                 HandleSentinelCSpawn(body);
                 break;
 
+            case (ushort)PacketType.PKT_SC_SENTINEL_TRACK:
+                SentinelCNetworkManager.Instance?.ReceiveTracking(body);
+                break;
+            case (ushort)PacketType.PKT_SC_SENTINEL_STATUS:
+                SentinelCNetworkManager.Instance?.ReceiveStatus(body);
+                break;
+            case (ushort)PacketType.PKT_SC_SENTINEL_C_REVEAL:
+                SentinelCNetworkManager.Instance?.ReceiveReveal(body);
+                break;
+            case (ushort)PacketType.PKT_SC_SENTINEL_GESTURE:
+                if(body.Length==5 && body[4]<=2)FindPlayerIdentityById(BitConverter.ToUInt32(body,0))?.GetComponent<SentinelCastMotion>()?.ReceiveGesture(body[4]);
+                break;
             case (ushort)PacketType.PKT_SC_SENTINEL_C_ANCHOR:
                 HandleSentinelCAnchor(body);
                 break;
@@ -3831,6 +3869,14 @@ public partial class NetworkManager : MonoBehaviour
 
         PlayerIdentity target = FindPlayerIdentityById(playerId);
 
+        var loadout = latestScoreboardData?.members.Find(m=>m.playerId==playerId);
+        if (loadout != null) {
+            loadout.hasLifeState=true;loadout.equipmentAlive=hp>0;
+            if(loadout.hasLoadout){loadout.armor=barrier;loadout.maxArmor=maxBarrier;}
+            InGameScoreboardUI.Instance?.OnRecvScoreboardUpdate(latestScoreboardData);
+            StorePanelUI.Instance?.RefreshPlayerInfo();
+        }
+
         if (target != null)
         {
             PlayerHP hpComponent = target.GetComponent<PlayerHP>();
@@ -4116,6 +4162,15 @@ public partial class NetworkManager : MonoBehaviour
         RoundWinReason winReason = (RoundWinReason)body[offset];
         offset += 1;
 
+        SpikeInteractionPresentation.StopAll(false);
+        if (Spike.PlantedSpike)
+        {
+            var visual = Spike.PlantedSpike.GetComponent<SpikePresentation>();
+            if (winReason == RoundWinReason.ATTACK_SPIKE_EXPLODE) visual?.Resolve(true);
+            else visual?.Silence();
+            Spike.PlantedSpike.ForceCancelInteraction();
+        }
+
         ushort delaySeconds = BitConverter.ToUInt16(body, offset);
         offset += 2;
 
@@ -4178,10 +4233,9 @@ public partial class NetworkManager : MonoBehaviour
 
     private void HandleRoundReset(byte[] body)
     {
-        accumulatedReportEntries.Clear();
-        currentCombatLifeId = 0;
-        ReportUI.Instance?.CloseAndReset();
+        ResetLocalCombatReport();
 
+        teamPurchaseRequests.Clear();TeamPurchaseNotice="";
         ScannerNetworkManager.Instance?.ClearAll();
         DischargeDirector.Instance?.ClearAll();
         ScannerFeedbackUI.Instance?.ResetFeedback();
@@ -5062,9 +5116,12 @@ public partial class NetworkManager : MonoBehaviour
             member.credits = BitConverter.ToInt32(body, offset);
             offset += 4;
 
+            if(playerCombatSnapshots.TryGetValue(member.playerId,out var state) && state.hasHpState){member.hasLifeState=true;member.equipmentAlive=state.hp>0;}
             data.members.Add(member);
         }
 
+        if(latestScoreboardData!=null && latestScoreboardData.roomId==data.roomId)
+        { data.firstHalfRounds=latestScoreboardData.firstHalfRounds;data.secondHalfRounds=latestScoreboardData.secondHalfRounds; }
         latestScoreboardData = data;
 
         if (InGameScoreboardUI.Instance != null)
@@ -5187,9 +5244,9 @@ public partial class NetworkManager : MonoBehaviour
         if (TopInfoUI.Instance != null)
         {
             if (showCarrierInfo != 0)
-                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} 스파이크 획득");
+                TopInfoUI.Instance.SetGameDescription($"{carrierNickname} 디바이스 획득");
             else
-                TopInfoUI.Instance.SetGameDescription("스파이크 획득됨");
+                TopInfoUI.Instance.SetGameDescription("디바이스 획득됨");
         }
     }
     private void HandleSpikePlanted(byte[] body)
@@ -5204,19 +5261,21 @@ public partial class NetworkManager : MonoBehaviour
         float z = BitConverter.ToSingle(body, offset); offset += 4;
 
         Vector3 pos = new Vector3(x, y, z);
+        SpikeInteractionPresentation.StopAll(false);
 
         Debug.Log($"[SPIKE PLANTED] pos={pos}");
 
         if (SpikeSpawner.Instance != null)
             SpikeSpawner.Instance.SpawnPlanted(pos);
 
-        PlayerSpike mySpike = FindMyPlayerSpike();
-        if (mySpike != null)
-            mySpike.SetHasSpikeFromServer(false);
+        // The placement broadcast clears possession on every replicated actor,
+        // including the remote planter's held inventory model.
+        foreach(var actor in FindObjectsByType<PlayerSpike>(FindObjectsSortMode.None))
+            if(actor.hasSpike) actor.SetHasSpikeFromServer(false);
 
         if (TopInfoUI.Instance != null)
         {
-            TopInfoUI.Instance.SetGameDescription("스파이크 설치됨");
+            TopInfoUI.Instance.SetGameDescription("디바이스 접속 중");
             TopInfoUI.Instance.SetUnknownTimer();
         }
 
@@ -5225,7 +5284,7 @@ public partial class NetworkManager : MonoBehaviour
             CombatFeedbackUI.Instance.HideSpikeProgress();
 
             CombatFeedbackUI.Instance.ShowObjectiveNotice(
-                "공격팀이 스파이크를 설치했습니다.",
+                "디바이스가 연결되었습니다. AI 제어권 탈취 중입니다.",
                 true
             );
         }
@@ -5282,10 +5341,14 @@ public partial class NetworkManager : MonoBehaviour
 
         uint defuserPlayerId = BitConverter.ToUInt32(body, offset);
 
+        SpikeInteractionPresentation.ServerDefuse(defuserPlayerId, state, halfDefused != 0);
+
         Spike[] spikes = FindObjectsByType<Spike>(FindObjectsSortMode.None);
 
         for (int i = 0; i < spikes.Length; i++)
         {
+            if (!spikes[i].isPlanted) continue;
+            spikes[i].GetComponent<SpikePresentation>()?.DefuseState(state, halfDefused != 0);
             if (state == 1)
             {
                 if (defuserPlayerId == MyPlayerId)
@@ -5304,6 +5367,8 @@ public partial class NetworkManager : MonoBehaviour
 
     private void HandleSpikeDefused(byte[] body)
     {
+        if (body == null || body.Length != 4) return;
+        SpikeInteractionPresentation.StopAll(false);
         int offset = 0;
 
         uint defuserPlayerId = BitConverter.ToUInt32(body, offset);
@@ -5312,11 +5377,16 @@ public partial class NetworkManager : MonoBehaviour
 
         for (int i = 0; i < spikes.Length; i++)
         {
-            Destroy(spikes[i].gameObject);
+            if (!spikes[i].isPlanted) continue;
+            spikes[i].ForceCancelInteraction();
+            spikes[i].GetComponent<SpikePresentation>()?.Resolve(false);
+            foreach (var collider in spikes[i].GetComponentsInChildren<Collider>()) collider.enabled = false;
+            spikes[i].isPlanted = false;
+            Destroy(spikes[i].gameObject, 2f);
         }
 
         if (TopInfoUI.Instance != null)
-            TopInfoUI.Instance.SetGameDescription("스파이크 해체됨");
+            TopInfoUI.Instance.SetGameDescription("디바이스 접속 차단됨");
 
         if (CombatFeedbackUI.Instance != null)
         {
@@ -5327,7 +5397,7 @@ public partial class NetworkManager : MonoBehaviour
 
             // 해체 완료 메시지만 잠깐 표시
             CombatFeedbackUI.Instance.ShowObjectiveNotice(
-                "수비팀이 스파이크를 해체했습니다.",
+                "수비팀이 디바이스의 접속을 차단했습니다.",
                 false
             );
         }
@@ -5372,6 +5442,7 @@ public partial class NetworkManager : MonoBehaviour
 
     private void HandleDie(byte[] body)
     {
+        if(body == null || body.Length != 58) return;
         int offset = 0;
 
         uint killerPlayerId =
@@ -5426,8 +5497,8 @@ public partial class NetworkManager : MonoBehaviour
             bool isOurKill =
                 killerTeam == myTeam;
 
-            KillLogManager.Instance.ShowKillLog(
-                isOurKill,
+            KillLogManager.Instance.ShowDeath(
+                killerPlayerId, deadPlayerId, isOurKill,
                 killerCharacterId,
                 deadCharacterId,
                 killerNickname,
@@ -5524,9 +5595,7 @@ public partial class NetworkManager : MonoBehaviour
             );
         }
 
-        uint roomId = latestScoreboardData != null ? latestScoreboardData.roomId : 0;
-        SendCombatReportRequest(roomId, 0, 0);
-        ReportUI.Instance?.Open();
+        BeginLocalCombatReport();
     }
 
     public void SendSpikeDropRequest(Vector3 position, Vector3 direction)
@@ -7433,6 +7502,7 @@ public partial class NetworkManager : MonoBehaviour
     {
         SendSkillGesture(PacketType.PKT_CS_SCANNER_GESTURE, phase);
     }
+    public void SendSentinelGesture(byte phase)=>SendSkillGesture(PacketType.PKT_CS_SENTINEL_GESTURE,phase);
     public void SendDischargeGesture(bool preparing) => SendSkillGesture(PacketType.PKT_CS_DISCHARGE_GESTURE, (byte)(preparing ? 1 : 0));
     private void SendSkillGesture(PacketType type, byte phase)
     {
@@ -8016,6 +8086,8 @@ public partial class NetworkManager : MonoBehaviour
 
         if (EntrySmokeNetworkManager.Instance != null)
         {
+            var entry = FindPlayerIdentityById(ownerPlayerId)?.GetComponent<EntrySkillPresentation>();
+            if (entry && !entry.IsLocal) entry.Begin(EntrySkillPresentation.Cast.Smoke, .35f);
             EntrySmokeNetworkManager.Instance.OnSmokeSpawn(
                 smokeId,
                 ownerPlayerId,
@@ -8496,13 +8568,14 @@ public partial class NetworkManager : MonoBehaviour
     public void SendEntryBladeFire(
         Vector3 direction,
         uint targetPlayerId,
-        Vector3 hitPoint)
+        Vector3 hitPoint,
+        bool burst = false)
     {
         ushort size =
             4 + 12 + 4 + 12; // header + dir + targetId + hitPoint = 32
 
         ushort type =
-            (ushort)PacketType.PKT_CS_ENTRY_BLADE_FIRE;
+            (ushort)(burst ? PacketType.PKT_CS_ENTRY_BLADE_BURST : PacketType.PKT_CS_ENTRY_BLADE_FIRE);
 
         byte[] buffer =
             new byte[size];
@@ -9080,6 +9153,16 @@ public partial class NetworkManager : MonoBehaviour
         client.Send(buffer);
 
         Debug.Log($"[SEND CONTROLLER DECOY ACTIVATE] decoyId={decoyId}, pos={position}, normal={normal}");
+    }
+
+    public void SendControllerDecoyTrigger(uint decoyId)
+    {
+        if (!IsConnected) return;
+        byte[] buffer = new byte[8];
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)8), 0, buffer, 0, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)PacketType.PKT_CS_CONTROLLER_DECOY_TRIGGER), 0, buffer, 2, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes(decoyId), 0, buffer, 4, 4);
+        client.Send(buffer);
     }
 
     private void HandleControllerDecoySpawn(byte[] body)
@@ -10101,121 +10184,4 @@ public partial class NetworkManager : MonoBehaviour
         DialogueManager.Instance?.OnRecvFavorLevels(favorDict);
     }
 
-    // KSW : Report UI 처리
-    public void SendCombatReportRequest(uint roomId, uint lifeId = 0, ushort pageIndex = 0)
-    {
-        combatReportRequestId++;
-        if (pageIndex == 0)
-        {
-            currentCombatLifeId = 0;
-            accumulatedReportEntries.Clear();
-        }
-
-        byte[] buffer = new byte[18];
-        BitConverter.GetBytes((ushort)18).CopyTo(buffer, 0);
-        BitConverter.GetBytes((ushort)370).CopyTo(buffer, 2);
-        BitConverter.GetBytes(combatReportRequestId).CopyTo(buffer, 4);
-        BitConverter.GetBytes(roomId).CopyTo(buffer, 8);
-        BitConverter.GetBytes(lifeId).CopyTo(buffer, 12);
-        BitConverter.GetBytes(pageIndex).CopyTo(buffer, 16);
-
-        client.Send(buffer);
-        Debug.Log($"[SEND COMBAT REPORT REQ] reqId={combatReportRequestId}, roomId={roomId}, lifeId={lifeId}, page={pageIndex}");
-    }
-
-
-    private void HandleCombatReport(byte[] body)
-    {
-        const int HeaderSize = 28;
-        const int EntrySize = 60;
-        const int MaxEntries = 8;
-        const int ExpectedSize = HeaderSize + EntrySize * MaxEntries;
-
-        if (body == null || body.Length < ExpectedSize)
-        {
-            Debug.LogWarning(
-                $"[COMBAT REPORT] invalid body size={body?.Length ?? 0}, expected={ExpectedSize}");
-            return;
-        }
-
-        uint reqId = BitConverter.ToUInt32(body, 0);
-        byte version = body[4];
-        byte status = body[5];
-        byte flags = body[6];
-        byte entryCount = body[7];
-        uint roomId = BitConverter.ToUInt32(body, 8);
-        uint lifeId = BitConverter.ToUInt32(body, 12);
-        uint killerId = BitConverter.ToUInt32(body, 16);
-        ushort pageIndex = BitConverter.ToUInt16(body, 20);
-        ushort pageCount = BitConverter.ToUInt16(body, 22);
-        ushort totalEntries = BitConverter.ToUInt16(body, 24);
-
-        Debug.Log(
-            $"[COMBAT REPORT] reqId={reqId}, currentReqId={combatReportRequestId}, " +
-            $"version={version}, status={status}, roomId={roomId}, lifeId={lifeId}, " +
-            $"page={pageIndex}/{pageCount}, entries={entryCount}, total={totalEntries}");
-
-        if (version != 1 || reqId != combatReportRequestId)
-        {
-            Debug.LogWarning(
-                $"[COMBAT REPORT] response ignored: version={version}, " +
-                $"reqId={reqId}, expectedReqId={combatReportRequestId}");
-            return;
-        }
-
-        if (status != 0)
-        {
-            Debug.LogWarning($"[COMBAT REPORT] failed: status={status}");
-            ReportUI.Instance?.ShowFailed();
-            return;
-        }
-
-        currentCombatLifeId = lifeId;
-
-        int count = Math.Min((int)entryCount, MaxEntries);
-
-        for (int i = 0; i < count; i++)
-        {
-            int offset = HeaderSize + i * EntrySize;
-
-            CombatReportRawEntry entry = new CombatReportRawEntry
-            {
-                opponentId = BitConverter.ToUInt32(body, offset),
-                characterId = BitConverter.ToInt32(body, offset + 4),
-                nickname = Packet.ReadFixedString(body, offset + 8, 20),
-                sourceKind = body[offset + 28],
-                direction = body[offset + 29],
-                sourceId = BitConverter.ToInt32(body, offset + 32),
-                hpDamage = BitConverter.ToUInt32(body, offset + 36),
-                barrierDamage = BitConverter.ToUInt32(body, offset + 40),
-                bodyHits = BitConverter.ToUInt32(body, offset + 44),
-                headHits = BitConverter.ToUInt32(body, offset + 48),
-                legHits = BitConverter.ToUInt32(body, offset + 52),
-                unlocalizedHits = BitConverter.ToUInt32(body, offset + 56)
-            };
-
-            accumulatedReportEntries.Add(entry);
-        }
-
-        if (pageIndex + 1 < pageCount)
-        {
-            SendCombatReportRequest(
-                roomId,
-                currentCombatLifeId,
-                (ushort)(pageIndex + 1));
-        }
-        else
-        {
-            bool isLimitReached = (flags & 0x02) != 0;
-
-            Debug.Log(
-                $"[COMBAT REPORT] all pages received: " +
-                $"accumulated={accumulatedReportEntries.Count}, killerId={killerId}");
-
-            ReportUI.Instance?.ApplyData(
-                accumulatedReportEntries,
-                killerId,
-                isLimitReached);
-        }
-    }
 }

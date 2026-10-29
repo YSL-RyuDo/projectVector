@@ -16,6 +16,39 @@ public class SentinelCNetworkManager : MonoBehaviour
     private readonly Dictionary<uint, TrapDevice> eTraps = new();
     private readonly Dictionary<uint, X_Area> xAreas = new();
     private readonly Dictionary<uint, uint> xProtectedOwners = new();
+    private readonly HashSet<ulong> statusEvents = new();
+    public bool HasInstalledDevice(uint owner) =>
+        System.Linq.Enumerable.Any(traps.Values,t=>t && t.OwnerPlayerId==owner && t.IsPlaced) ||
+        System.Linq.Enumerable.Any(qTraps.Values,t=>t && t.OwnerPlayerId==owner) ||
+        System.Linq.Enumerable.Any(eTraps.Values,t=>t && t.OwnerPlayerId==owner);
+    public void ReceiveTracking(byte[] b)
+    {
+        if(b==null||b.Length!=12)return;
+        uint id=System.BitConverter.ToUInt32(b,0),target=System.BitConverter.ToUInt32(b,4);float seconds=System.BitConverter.ToSingle(b,8);
+        if(!float.IsFinite(seconds)||seconds<0||seconds>1||!traps.TryGetValue(id,out var trap)||!trap)return;
+        Transform actor=null;
+        foreach(var identity in FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None))if(identity.PlayerId==target){actor=identity.transform;break;}
+        trap.GetComponent<SentinelDeviceVfx>()?.Track(actor,seconds);
+        if(NetworkManager.Instance && NetworkManager.Instance.MyPlayerId==trap.OwnerPlayerId)SentinelFeedbackUI.Instance?.Track(id,seconds);
+    }
+    public void ReceiveStatus(byte[] b)
+    {
+        if(b==null||b.Length!=24||!NetworkManager.Instance)return;
+        uint id=System.BitConverter.ToUInt32(b,0),target=System.BitConverter.ToUInt32(b,4),sequence=System.BitConverter.ToUInt32(b,8);
+        float slow=System.BitConverter.ToSingle(b,12),multiplier=System.BitConverter.ToSingle(b,16),concussion=System.BitConverter.ToSingle(b,20);
+        if(!eTraps.TryGetValue(id,out var trap)||!trap||target!=NetworkManager.Instance.MyPlayerId||
+           !float.IsFinite(slow)||slow<0||slow>4||!float.IsFinite(multiplier)||multiplier<.05f||multiplier>1||
+           !float.IsFinite(concussion)||concussion<0||concussion>3||!statusEvents.Add(((ulong)sequence<<32)|target))return;
+        SentinelFeedbackUI.Instance?.ApplyStatus(slow,multiplier,concussion);
+    }
+    public void ReceiveReveal(byte[] b)
+    {
+        if(b==null||b.Length!=12)return;
+        uint id=System.BitConverter.ToUInt32(b,0),target=System.BitConverter.ToUInt32(b,4);
+        float duration=System.BitConverter.ToSingle(b,8);
+        if(!float.IsFinite(duration)||duration<=0||duration>2.5f||!traps.TryGetValue(id,out var trap)||!trap)return;
+        trap.ApplyConfirmedReveal(target,duration);
+    }
 
     public bool IsSkillProtected(uint ownerPlayerId)
     {
@@ -43,7 +76,7 @@ public class SentinelCNetworkManager : MonoBehaviour
     {
         if (trapPrefab == null)
         {
-            Debug.LogError("[SENTINEL C NET] trapPrefab æ¯¿Ω");
+            Debug.LogError("[SENTINEL C NET] trapPrefab ÏóÜÏùå");
             return;
         }
 
@@ -60,7 +93,7 @@ public class SentinelCNetworkManager : MonoBehaviour
 
         if (trap == null)
         {
-            Debug.LogError("[SENTINEL C NET] Sentinel_Trap æ¯¿Ω");
+            Debug.LogError("[SENTINEL C NET] Sentinel_Trap ÏóÜÏùå");
             Destroy(obj);
             return;
         }
@@ -142,7 +175,7 @@ public class SentinelCNetworkManager : MonoBehaviour
     {
         if (qTrapPrefab == null)
         {
-            Debug.LogError("[SENTINEL Q NET] qTrapPrefab æ¯¿Ω");
+            Debug.LogError("[SENTINEL Q NET] qTrapPrefab ÏóÜÏùå");
             return;
         }
 
@@ -170,7 +203,7 @@ public class SentinelCNetworkManager : MonoBehaviour
 
         if (trap == null)
         {
-            Debug.LogError("[SENTINEL Q NET] Sentinel_SlowTrap æ¯¿Ω");
+            Debug.LogError("[SENTINEL Q NET] Sentinel_SlowTrap ÏóÜÏùå");
             Destroy(obj);
             return;
         }
@@ -236,7 +269,7 @@ public class SentinelCNetworkManager : MonoBehaviour
     {
         if (eTrapPrefab == null)
         {
-            Debug.LogError("[SENTINEL E NET] eTrapPrefab æ¯¿Ω");
+            Debug.LogError("[SENTINEL E NET] eTrapPrefab ÏóÜÏùå");
             return;
         }
 
@@ -268,7 +301,7 @@ public class SentinelCNetworkManager : MonoBehaviour
 
         if (trap == null)
         {
-            Debug.LogError("[SENTINEL E NET] TrapDevice æ¯¿Ω");
+            Debug.LogError("[SENTINEL E NET] TrapDevice ÏóÜÏùå");
             Destroy(obj);
             return;
         }
@@ -375,7 +408,7 @@ public class SentinelCNetworkManager : MonoBehaviour
     {
         if (xAreaPrefab == null)
         {
-            Debug.LogError("[SENTINEL X NET] xAreaPrefab æ¯¿Ω");
+            Debug.LogError("[SENTINEL X NET] xAreaPrefab ÏóÜÏùå");
             return;
         }
 
@@ -398,7 +431,7 @@ public class SentinelCNetworkManager : MonoBehaviour
 
         if (area == null)
         {
-            Debug.LogError("[SENTINEL X NET] X_Area æ¯¿Ω");
+            Debug.LogError("[SENTINEL X NET] X_Area ÏóÜÏùå");
             Destroy(obj);
             return;
         }
@@ -412,6 +445,14 @@ public class SentinelCNetworkManager : MonoBehaviour
             slowMultiplier
         );
 
+        if(!IsSkillProtected(ownerPlayerId))
+        {
+            foreach(var device in traps.Values)if(device && device.OwnerPlayerId==ownerPlayerId)device.GetComponent<SentinelDeviceVfx>()?.Pulse();
+            foreach(var device in qTraps.Values)if(device && device.OwnerPlayerId==ownerPlayerId)device.GetComponent<SentinelDeviceVfx>()?.Pulse();
+            foreach(var device in eTraps.Values)if(device && device.OwnerPlayerId==ownerPlayerId)device.GetComponent<SentinelDeviceVfx>()?.Pulse();
+            foreach(var actor in FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None))if(actor.PlayerId==ownerPlayerId)actor.GetComponent<SentinelCastMotion>()?.ConfirmOvercharge();
+            if(NetworkManager.Instance && NetworkManager.Instance.MyPlayerId==ownerPlayerId)SentinelFeedbackUI.Instance?.Notice("Í≥ºÏ∂©Ï†Ñ ¬∑ Ïû•Ïπò Î≥¥Ìò∏ ÌôúÏÑ±Ìôî");
+        }
         xAreas[ultimateId] = area;
         xProtectedOwners[ultimateId] = ownerPlayerId;
 
@@ -454,6 +495,7 @@ public class SentinelCNetworkManager : MonoBehaviour
 
     public void ClearAllTraps()
     {
+        statusEvents.Clear();SentinelFeedbackUI.Instance?.Clear();
         foreach (Sentinel_Trap trap in traps.Values)
         {
             if (trap != null)

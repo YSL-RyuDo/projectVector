@@ -25,7 +25,7 @@ public static class ScannerOcclusionExport
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
         var triangles=new List<string>();var boxes=new List<string>();var meshes=new List<string>();
         var checks=new List<string>();
-        foreach(string mapName in new[]{"TestMap","Desert"})
+        foreach(string mapName in new[]{"TestMap","Desert","Construction"})
         {
             var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Maps/{mapName}.prefab"));
             root.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);

@@ -1,8 +1,9 @@
 using TMPro;
+using UnityEngine.EventSystems;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class StoreItemButton : MonoBehaviour
+public class StoreItemButton : MonoBehaviour, IPointerEnterHandler, ISelectHandler, IPointerClickHandler
 {
     public enum StoreItemType : byte
     {
@@ -24,6 +25,34 @@ public class StoreItemButton : MonoBehaviour
     [Header("Button")]
     [SerializeField] private Button button;
 
+    [SerializeField] private Image equipmentImage;
+    [SerializeField] private EquipmentIconCatalog equipmentIcons;
+    [SerializeField] private StoreWeaponDetailsUI details;
+    public void OnPointerEnter(PointerEventData eventData) {if(details)details.Show(this);}
+    public void OnSelect(BaseEventData eventData) {if(details)details.Show(this);}
+    [SerializeField] private GameObject requestBadge;
+    private float nextRequestRefresh,nextRequestClick;
+    public void SetRequestState(bool pending){if(requestBadge)requestBadge.SetActive(pending);}
+    public bool TryGetRequestAction(TeamPurchaseRequest current,bool buying,out byte action,out ulong token)
+    {
+        action=0;token=0;
+        if(!buying || !IsWeaponButton() || !purchasable || price<=0)return false;
+        if(current!=null && current.weaponId==itemId && current.status==1){action=1;token=current.requestId;return true;}
+        return !owned;
+    }
+    private void Update()
+    {
+        if(Time.unscaledTime<nextRequestRefresh)return;nextRequestRefresh=Time.unscaledTime+.15f;
+        var net=NetworkManager.Instance;TeamPurchaseRequest current=null;if(net)net.TeamPurchaseRequests?.TryGetValue(net.MyPlayerId,out current);
+        SetRequestState(current!=null && current.status==1 && current.weaponId==itemId && IsWeaponButton());
+    }
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if(eventData==null || eventData.button!=PointerEventData.InputButton.Right || Time.unscaledTime<nextRequestClick)return;
+        var net=NetworkManager.Instance;if(!net)return;TeamPurchaseRequest current=null;net.TeamPurchaseRequests?.TryGetValue(net.MyPlayerId,out current);
+        if(!TryGetRequestAction(current,RoundManager.Instance && RoundManager.Instance.IsBuyPhase,out byte action,out ulong token))return;
+        nextRequestClick=Time.unscaledTime+.4f;net.SendTeamPurchase(action,itemId,token);
+    }
     private int lastCredits = 0;
     private bool lastBuyPhase = false;
     private bool owned = false;
@@ -99,6 +128,12 @@ public class StoreItemButton : MonoBehaviour
 
     private void RefreshDisplay()
     {
+        if (equipmentImage && equipmentIcons)
+        {
+            equipmentImage.sprite = IsArmorButton() ? equipmentIcons.Armor(itemId) : equipmentIcons.Weapon(itemId);
+            equipmentImage.enabled = equipmentImage.sprite != null;
+            equipmentImage.preserveAspect = true;
+        }
         if (itemNameText != null)
             itemNameText.text = itemName;
 

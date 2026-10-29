@@ -49,6 +49,7 @@ public class MatchManager : MonoBehaviour
 
     private byte myTeam = 0;
     private bool matchStarted = false;
+    public bool IsGameplayVisible => matchStarted && inGameUIPanel && inGameUIPanel.activeInHierarchy && gameUIs && gameUIs.activeInHierarchy;
 
     private void Awake()
     {
@@ -299,10 +300,7 @@ public class MatchManager : MonoBehaviour
             topInfoUI.SetMyTeam(myTeam);
             topInfoUI.SetScoreByTeam(scoreA, scoreB);
 
-            if (currentRound >= 5)
-                topInfoUI.SetGameDescription("듀스 라운드");
-            else
-                topInfoUI.SetGameDescription("구매 단계");
+            topInfoUI.SetGameDescription("구매 단계");
 
             topInfoUI.SetCurrentRoundRole(currentRound);
         }
@@ -785,6 +783,7 @@ public class MatchManager : MonoBehaviour
 
         image.sprite =
             sprite;
+        image.GetComponent<TeamLifeBadge>()?.Present(false);
 
         image.color =
             Color.white;
@@ -872,6 +871,7 @@ public class MatchManager : MonoBehaviour
                 image.material;
         }
 
+        image.GetComponent<TeamLifeBadge>()?.Present(isDead);
         if (isDead)
         {
             if (deadGrayscaleMaterial != null)
@@ -940,6 +940,7 @@ public class MatchManager : MonoBehaviour
 
             image.color =
                 Color.white;
+            image.GetComponent<TeamLifeBadge>()?.Present(false);
         }
     }
 

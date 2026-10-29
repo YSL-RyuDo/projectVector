@@ -1,197 +1,55 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
-
+using UnityEngine.UI;
 public class TopInfoUI : MonoBehaviour
 {
-    [Header("Top Info Texts")]
-    [SerializeField] private TMP_Text mapText;
-    [SerializeField] private TMP_Text timerText;
-
-    [SerializeField] private TMP_Text ourTeamRoleText;
-    [SerializeField] private TMP_Text enemyTeamRoleText;
-
-    [SerializeField] private TMP_Text gameDescriptionText;
-
-    [Header("Score Texts")]
-    [SerializeField] private TMP_Text ourTeamScoreText;
-    [SerializeField] private TMP_Text enemyTeamScoreText;
-
+    [SerializeField] private TMP_Text mapText,timerText,ourTeamRoleText,enemyTeamRoleText,gameDescriptionText;
+    [SerializeField] private TMP_Text ourTeamScoreText,enemyTeamScoreText,roundLabel,phaseHint,announcementText;
+    [SerializeField] private Image phaseAccent;
     public static TopInfoUI Instance;
-
-    private Coroutine timerRoutine;
-
-    // 0 = AÆÀ, 1 = BÆÀ
-    private byte myTeam = 0;
-
-    private void Awake()
-    {
-        Instance = this;
-    }
-
+    Coroutine timerRoutine; byte myTeam,currentRound=1; int firstHalf=5,secondHalf=5;
+    bool playing,planted; string phase=""; float announcementUntil;
+    static readonly Color Ice=new(.62f,.87f,1), Warm=new(1,.78f,.36f);
+    void Awake(){Instance=this;}
+    void OnDestroy(){if(Instance==this)Instance=null;}
+    void Update(){if(announcementText && announcementText.gameObject.activeSelf && Time.unscaledTime>=announcementUntil)announcementText.gameObject.SetActive(false);}
     public void ApplyPickInfo(PickStateData state)
     {
-        if (state == null)
-            return;
-
-        SetMapText(state.mapName);
-        SetMyTeam((byte)state.myTeam);
-
-        if (ourTeamRoleText != null)
-        {
-            if (state.myTeam == RoomSlotTeam.A)
-                ourTeamRoleText.text = "¼± °ø°İ / ÈÄ ¼öºñ";
-            else
-                ourTeamRoleText.text = "¼± ¼öºñ / ÈÄ °ø°İ";
-        }
-
-        if (enemyTeamRoleText != null)
-        {
-            if (state.myTeam == RoomSlotTeam.A)
-                enemyTeamRoleText.text = "¼± ¼öºñ / ÈÄ °ø°İ";
-            else
-                enemyTeamRoleText.text = "¼± °ø°İ / ÈÄ ¼öºñ";
-        }
-
-        SetScoreByTeam(state.blueScore, state.redScore);
-        SetGameDescription("Ä³¸¯ÅÍ ¼±ÅÃ");
+        if(state==null)return;playing=false;SetMapText(state.mapName);SetMyTeam((byte)state.myTeam);
+        ourTeamRoleText.text=myTeam==0?"ì„  ê³µê²© / í›„ ìˆ˜ë¹„":"ì„  ìˆ˜ë¹„ / í›„ ê³µê²©";
+        enemyTeamRoleText.text=myTeam==0?"ì„  ìˆ˜ë¹„ / í›„ ê³µê²©":"ì„  ê³µê²© / í›„ ìˆ˜ë¹„";
+        SetScoreByTeam(state.blueScore,state.redScore);SetGameDescription("ìºë¦­í„° ì„ íƒ");
     }
-
-    public void ApplyGameStartInfo()
-    {
-        SetGameDescription("5ÆÇ 3¼±½Â");
-    }
-
-    public void SetMyTeam(byte team)
-    {
-        myTeam = team;
-    }
-
-    // ¼­¹ö ¿øº» Á¡¼ö: scoreA = AÆÀ, scoreB = BÆÀ
-    // È­¸é Ãâ·Â: ¿ŞÂÊ = ¿ì¸®ÆÀ, ¿À¸¥ÂÊ = »ó´ëÆÀ
-    public void SetScoreByTeam(int scoreA, int scoreB)
-    {
-        int ourScore = myTeam == 0 ? scoreA : scoreB;
-        int enemyScore = myTeam == 0 ? scoreB : scoreA;
-
-        if (ourTeamScoreText != null)
-            ourTeamScoreText.text = ourScore.ToString();
-
-        if (enemyTeamScoreText != null)
-            enemyTeamScoreText.text = enemyScore.ToString();
-    }
-
-    public void SetRoundWinnerText(byte winnerTeam)
-    {
-        bool ourTeamWin = winnerTeam == myTeam;
-        SetGameDescription(ourTeamWin ? "¶ó¿îµå ½Â¸®" : "¶ó¿îµå ÆĞ¹è");
-    }
-
-    public void SetMatchWinnerText(byte winnerTeam)
-    {
-        bool ourTeamWin = winnerTeam == myTeam;
-        SetGameDescription(ourTeamWin ? "°æ±â ½Â¸®" : "°æ±â ÆĞ¹è");
-    }
-
-    public void SetMapText(string mapName)
-    {
-        if (mapText != null)
-            mapText.text = mapName;
-    }
-
+    public void ApplyGameStartInfo(){playing=true;currentRound=1;planted=false;SetCurrentRoundRole(1);SetGameDescription("êµ¬ë§¤ ë‹¨ê³„");}
+    public void ApplyRoundRules(int first,int second){if(first<1||second<1||first+second>=255)return;firstHalf=first;secondHalf=second;if(playing)RefreshRole();}
+    public void SetMyTeam(byte team){myTeam=team;if(playing)RefreshRole();}
+    public void SetScoreByTeam(int a,int b){if(ourTeamScoreText)ourTeamScoreText.text=(myTeam==0?a:b).ToString();if(enemyTeamScoreText)enemyTeamScoreText.text=(myTeam==0?b:a).ToString();}
+    public void SetRoundWinnerText(byte winner){planted=false;SetGameDescription(winner==myTeam?"ë¼ìš´ë“œ ìŠ¹ë¦¬":"ë¼ìš´ë“œ íŒ¨ë°°");}
+    public void SetMatchWinnerText(byte winner){planted=false;SetGameDescription(winner==myTeam?"ìµœì¢… ìŠ¹ë¦¬":"ìµœì¢… íŒ¨ë°°");}
+    public void SetMapText(string name){if(mapText)mapText.text=name;}
     public void SetGameDescription(string text)
     {
-        if (gameDescriptionText != null)
-            gameDescriptionText.text = text;
+        if(text.Contains("íšë“")){Announce(text);return;}
+        if(text=="ê³µìˆ˜ êµëŒ€"){Announce(text);return;}
+        if(text=="êµ¬ë§¤ ë‹¨ê³„"){planted=false;phase="êµ¬ë§¤ ë‹¨ê³„";}
+        else if(text=="ì „íˆ¬ ë‹¨ê³„"){if(planted)return;if(phase=="êµ¬ë§¤ ë‹¨ê³„")Announce("êµ¬ë§¤ ì¢…ë£Œ  /  ì „íˆ¬ ì‹œì‘");phase="ì „íˆ¬ ì¤‘";}
+        else if(text=="ë””ë°”ì´ìŠ¤ ì ‘ì† ì¤‘"){planted=true;phase="ë””ë°”ì´ìŠ¤ ì„¤ì¹˜ë¨";}
+        else {phase=text;if(text.Contains("ì°¨ë‹¨")||text.Contains("ìŠ¹ë¦¬")||text.Contains("íŒ¨ë°°"))planted=false;}
+        if(gameDescriptionText)gameDescriptionText.text=phase;
+        if(phaseAccent)phaseAccent.color=planted?Warm:Ice;
+        if(phaseHint)phaseHint.text=planted?"AI ì œì–´ê¶Œ ì ‘ì† ì¤‘":phase=="êµ¬ë§¤ ë‹¨ê³„"?"B  ì¥ë¹„ êµ¬ë§¤":phase=="ì „íˆ¬ ì¤‘"?(OurAttack()?"ë””ë°”ì´ìŠ¤ë¥¼ ì„¤ì¹˜í•˜ì„¸ìš”":"ì„¤ì¹˜ êµ¬ì—­ì„ ë°©ì–´í•˜ì„¸ìš”"):"";
     }
-
-    public void SetTimer(ushort remainSeconds)
-    {
-        int min = remainSeconds / 60;
-        int sec = remainSeconds % 60;
-
-        if (timerText != null)
-            timerText.text = $"{min:00}:{sec:00}";
-    }
-
-    public void ResetMatchScore()
-    {
-        SetScoreByTeam(0, 0);
-    }
-
-    public void HideRoleTextsForGame()
-    {
-        if (ourTeamRoleText != null)
-            ourTeamRoleText.text = "";
-
-        if (enemyTeamRoleText != null)
-            enemyTeamRoleText.text = "";
-    }
-
-    public void StartLocalCountdown(ushort seconds)
-    {
-        StopLocalCountdown();
-        timerRoutine = StartCoroutine(LocalCountdownRoutine(seconds));
-    }
-
-    public void StopLocalCountdown()
-    {
-        if (timerRoutine != null)
-        {
-            StopCoroutine(timerRoutine);
-            timerRoutine = null;
-        }
-    }
-
-    private IEnumerator LocalCountdownRoutine(ushort seconds)
-    {
-        int remain = seconds;
-
-        while (remain >= 0)
-        {
-            SetTimer((ushort)remain);
-
-            if (remain == 0)
-                break;
-
-            yield return new WaitForSeconds(1f);
-            remain--;
-        }
-
-        timerRoutine = null;
-    }
-
-    public void SetCurrentRoundRole(byte currentRound)
-    {
-        bool aTeamAttack = IsATeamAttackRound(currentRound);
-
-        bool myTeamIsAttack = myTeam == 0
-            ? aTeamAttack
-            : !aTeamAttack;
-
-        if (ourTeamRoleText != null)
-            ourTeamRoleText.text = myTeamIsAttack ? "°ø°İ" : "¼öºñ";
-
-        if (enemyTeamRoleText != null)
-            enemyTeamRoleText.text = myTeamIsAttack ? "¼öºñ" : "°ø°İ";
-    }
-
-    private bool IsATeamAttackRound(byte currentRound)
-    {
-        if (currentRound <= 2)
-            return true;
-
-        if (currentRound < 5)
-            return false;
-
-        return ((currentRound - 5) % 2) == 0;
-    }
-
-    public void SetUnknownTimer()
-    {
-        StopLocalCountdown();
-
-        if (timerText != null)
-            timerText.text = "??:??";
-    }
+    public void Announce(string message){if(!announcementText)return;announcementText.text=message;announcementText.gameObject.SetActive(true);announcementUntil=Time.unscaledTime+4;}
+    public void SetTimer(ushort seconds){if(!timerText)return;if(planted){timerText.text="ì ‘ì† ì¤‘";timerText.fontSize=23;return;}timerText.fontSize=34;timerText.text=$"{seconds/60:00}:{seconds%60:00}";timerText.color=seconds<=10?Warm:Color.white;}
+    public void ResetMatchScore(){SetScoreByTeam(0,0);}
+    public void HideRoleTextsForGame(){if(playing)RefreshRole();else {ourTeamRoleText.text="";enemyTeamRoleText.text="";}}
+    public void StartLocalCountdown(ushort seconds){StopLocalCountdown();timerRoutine=StartCoroutine(Countdown(seconds));}
+    public void StopLocalCountdown(){if(timerRoutine!=null)StopCoroutine(timerRoutine);timerRoutine=null;}
+    IEnumerator Countdown(ushort seconds){for(int n=seconds;n>=0;n--){SetTimer((ushort)n);if(n==0)break;yield return new WaitForSecondsRealtime(1);}timerRoutine=null;}
+    public bool IsATeamAttackRound(int round)=>round<=firstHalf || (round>firstHalf+secondHalf && (round-firstHalf-secondHalf-1)%2==0);
+    bool OurAttack()=>myTeam==0?IsATeamAttackRound(currentRound):!IsATeamAttackRound(currentRound);
+    public void SetCurrentRoundRole(byte round){bool changed=playing && currentRound+1==round && IsATeamAttackRound(currentRound)!=IsATeamAttackRound(round);currentRound=round;playing=true;RefreshRole();if(changed)Announce("ê³µìˆ˜ êµëŒ€  /  "+(OurAttack()?"ê³µê²© ì‹œì‘":"ìˆ˜ë¹„ ì‹œì‘"));}
+    void RefreshRole(){if(ourTeamRoleText)ourTeamRoleText.text=OurAttack()?"ê³µê²©":"ìˆ˜ë¹„";if(enemyTeamRoleText)enemyTeamRoleText.text=OurAttack()?"ìˆ˜ë¹„":"ê³µê²©";if(roundLabel)roundLabel.text=currentRound>firstHalf+secondHalf?$"ì—°ì¥  {currentRound-firstHalf-secondHalf}":$"ROUND  {currentRound:00}";}
+    public void SetUnknownTimer(){StopLocalCountdown();if(timerText){timerText.text=planted?"ì ‘ì† ì¤‘":"â€”";timerText.fontSize=23;timerText.color=Warm;}}
 }

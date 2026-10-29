@@ -11,7 +11,8 @@ using Object=UnityEngine.Object;
 
 public static class DischargeVerification
 {
-    public const string Output="C:/Users/GCT/Documents/DischargeReview-20261022";
+    public const string Output="C:/Users/GCT/Documents/DischargeReview-20261023";
+    const float Warning=2f, Interval=.15f;
     static T Field<T>(object o,string field)=>(T)o.GetType().GetField(field,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(o);
     static void Check(bool ok,string message){if(!ok)throw new Exception(message);Debug.Log("DISCHARGE_CHECK "+message);}
     static GameObject Load(string path)=>(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(path));
@@ -56,7 +57,7 @@ public static class DischargeVerification
             int samples=0;bool elevated=false;
             foreach(var spawn in info.attackSpawnPoints.Concat(info.defendSpawnPoints))for(int angle=0;angle<360;angle+=45)
             {
-                Vector3 origin=spawn.position;effect.Begin(origin,Quaternion.Euler(0,angle,0)*Vector3.forward,18,.65f,.1f);effect.Advance(.6f);
+                Vector3 origin=spawn.position;effect.Begin(origin,Quaternion.Euler(0,angle,0)*Vector3.forward,18,Warning,Interval);effect.Advance(Warning-.05f);
                 for(int i=0;i<7;i++){
                     Vector3 ground=effect.GroundPoints[i],hover=effect.RelayPoints[i];
                     Check(Vector3.Distance(ground,DischargeVfx.Ground(ground))<.06f,"ground projection stable "+mapName+" "+samples);
@@ -74,7 +75,7 @@ public static class DischargeVerification
                 float length=Vector3.Distance(Vector3.ProjectOnPlane(end-spawn.position,Vector3.up),Vector3.zero);
                 if(length>best){best=length;bestOrigin=spawn.position;bestDir=dir;}
             }
-            effect.Begin(bestOrigin,bestDir,18,.65f,.1f);effect.Advance(.57f);
+            effect.Begin(bestOrigin,bestDir,18,Warning,Interval);effect.Advance(Warning-.05f);
             Vector3 target=DischargeVfx.Surface(bestOrigin,bestOrigin+bestDir*7.5f);
             var victim=ActorAt("Sentinel",target);victim.transform.rotation=Quaternion.LookRotation(-bestDir);
             var caster=ActorAt("Initiator",bestOrigin);caster.transform.rotation=Quaternion.LookRotation(bestDir);
@@ -87,7 +88,7 @@ public static class DischargeVerification
             camera.transform.position=target+Vector3.up*1.65f;camera.transform.LookAt(bestOrigin+Vector3.up*1.3f);Save(camera,mapName+"-B-hit");
             ui.ResetFeedback();victim.SetActive(true);camera.transform.position=bestOrigin-bestDir*4+Vector3.up*7+Vector3.Cross(Vector3.up,bestDir)*7;camera.transform.LookAt(bestOrigin+bestDir*6+Vector3.up);Save(camera,mapName+"-C-observer");
             Film(effect,camera,ui,bestOrigin,bestDir,target,mapName);
-            effect.Begin(bestOrigin,bestDir,18,.65f,.1f);effect.Advance(.6f);effect.Strike(2);effect.Hit(target+Vector3.up);effect.Advance(.035f);
+            effect.Begin(bestOrigin,bestDir,18,Warning,Interval);effect.Advance(Warning);effect.Strike(2);effect.Hit(target+Vector3.up);effect.Advance(.035f);
             var beams=Field<LineRenderer[]>(effect,"_bolts");Check(beams[7].enabled && Vector3.Distance(beams[7].GetPosition(14),target+Vector3.up)<.001f,"confirmed impact ends at exact authoritative torso");
             effect.Advance(.3f);Check(beams.All(b=>!b.enabled),"strikes expire without white screen overlay");effect.Finish(true);Check(!Field<LineRenderer>(effect,"_boundary").enabled,"cancel clears warning");
             ui.ShowOwner(1,2);Check(Field<CanvasGroup>(ui,"_ownerNotice").gameObject.activeSelf,"owner confirmation visible");ui.Advance(2);Check(!Field<CanvasGroup>(ui,"_ownerNotice").gameObject.activeSelf,"owner feedback expires");
@@ -104,7 +105,7 @@ public static class DischargeVerification
         var root=Load(DischargeAuthoring.Hud);var ui=root.GetComponent<DischargeDirector>();
         void Put(byte[] bytes,int offset,uint value)=>Buffer.BlockCopy(BitConverter.GetBytes(value),0,bytes,offset,4);
         void Float(byte[] bytes,int offset,float value)=>Buffer.BlockCopy(BitConverter.GetBytes(value),0,bytes,offset,4);
-        var begin=new byte[45];Put(begin,0,100);Put(begin,4,1);Float(begin,28,1);Float(begin,32,18);Float(begin,36,.65f);Float(begin,40,.1f);begin[44]=7;
+        var begin=new byte[45];Put(begin,0,100);Put(begin,4,1);Float(begin,28,1);Float(begin,32,18);Float(begin,36,Warning);Float(begin,40,Interval);begin[44]=7;
         ui.Receive(404,begin);ui.Receive(404,begin);var casts=Field<System.Collections.IDictionary>(ui,"_casts");Check(casts.Count==1,"duplicate begin does not spawn duplicate sequences");
         var strike=new byte[130];Put(strike,0,100);Put(strike,4,1);strike[8]=2;strike[9]=2;Put(strike,10,2);Put(strike,30,3);Float(strike,18,1);Float(strike,38,1);
         ui.Receive(405,strike);ui.Receive(405,strike);var cast=casts[(uint)100];var count=(int)cast.GetType().GetField("count").GetValue(cast);Check(count==2,"single strike delivers two unique authoritative targets exactly once");
@@ -151,15 +152,15 @@ public static class DischargeVerification
         // Explicit editor animation preview, not a gameplay recording or hit test.
         string dir=Output+"/"+map+"-frames";Directory.CreateDirectory(dir);
         var rt=new RenderTexture(1280,720,24);var tex=new Texture2D(1280,720,TextureFormat.RGB24,false);camera.targetTexture=rt;
-        fx.Begin(origin,direction,18,.65f,.1f);int next=0;
+        fx.Begin(origin,direction,18,Warning,Interval);int next=0;
         var particles=fx.GetComponentsInChildren<ParticleSystem>();
-        for(int frame=0;frame<96;frame++){
+        for(int frame=0;frame<126;frame++){
             float time=frame/30f;
-            while(next<7 && time>=.65f+next*.1f){fx.Strike(next);if(next==2)fx.Hit(target+Vector3.up);next++;}
-            if(time>=1.28f)fx.Finish(false);
+            while(next<7 && time>=Warning+next*Interval){fx.Strike(next);if(next==2)fx.Hit(target+Vector3.up);next++;}
+            if(time>=Warning+6*Interval+.03f)fx.Finish(false);
             fx.Advance(1/30f);foreach(var p in particles)if(p.isPlaying)p.Simulate(1/30f,true,false,false);
             Canvas.ForceUpdateCanvases();camera.Render();RenderTexture.active=rt;tex.ReadPixels(new Rect(0,0,1280,720),0,0);tex.Apply();File.WriteAllBytes(dir+"/"+frame.ToString("D4")+".png",tex.EncodeToPNG());
-            if(frame==30)Save(camera,map+"-Full-wave");
+            if(frame==72)Save(camera,map+"-Full-wave");
             camera.targetTexture=rt;
         }
         camera.targetTexture=null;RenderTexture.active=null;Object.DestroyImmediate(rt);Object.DestroyImmediate(tex);

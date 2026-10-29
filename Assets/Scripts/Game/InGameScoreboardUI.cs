@@ -67,7 +67,7 @@ public class InGameScoreboardUI : MonoBehaviour
         bool tabPressed =
             IsTabPressed();
 
-        if (InGameChatUI.IsChatOpen ||
+        if ((StorePanelUI.Instance != null && StorePanelUI.Instance.IsOpen()) || InGameChatUI.IsChatOpen ||
             InGameChatUI.WasTabConsumedThisFrame)
         {
             suppressTabUntilReleased = true;
@@ -104,7 +104,14 @@ public class InGameScoreboardUI : MonoBehaviour
         }
 
         if (isScoreboardOpen)
+        {
+            if(Keyboard.current != null && roundHistoryUI != null)
+            {
+                if(Keyboard.current.pageUpKey.wasPressedThisFrame)roundHistoryUI.PreviousPage();
+                if(Keyboard.current.pageDownKey.wasPressedThisFrame)roundHistoryUI.NextPage();
+            }
             Draw();
+        }
     }
 
     private bool IsTabPressed()
@@ -115,6 +122,7 @@ public class InGameScoreboardUI : MonoBehaviour
 
     public void Open()
     {
+        if(StorePanelUI.Instance != null && StorePanelUI.Instance.IsOpen())return;
         if (rootPanel == null)
             return;
 
@@ -125,6 +133,7 @@ public class InGameScoreboardUI : MonoBehaviour
 
         rootPanel.SetActive(true);
         rootPanel.transform.SetAsLastSibling();
+        if(roundHistoryUI)roundHistoryUI.ShowLatestPage();
 
         Draw();
 
@@ -152,6 +161,7 @@ public class InGameScoreboardUI : MonoBehaviour
     {
         currentData = data;
         myTeam = data.myTeam;
+        if(roundHistoryUI)roundHistoryUI.ApplyRoundRules(data.firstHalfRounds,data.secondHalfRounds);
 
         if (!roundHistoryInitialized)
         {
@@ -217,6 +227,7 @@ public class InGameScoreboardUI : MonoBehaviour
         foreach (ScoreboardMemberData member
                  in currentData.members)
         {
+            if (member.team > 1 || member.slotIndex >= 3) continue;
             if (member.team == myTeam)
                 ourTeam.Add(member);
             else
@@ -244,7 +255,8 @@ public class InGameScoreboardUI : MonoBehaviour
                 GetCharacterSprite(
                     ourTeam[i].characterId
                 ),
-                myPlayerId
+                myPlayerId,
+                true
             );
         }
 

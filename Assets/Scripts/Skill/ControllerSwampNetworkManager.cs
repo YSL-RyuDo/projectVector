@@ -73,7 +73,7 @@ public class ControllerSwampNetworkManager : MonoBehaviour
         if (rb != null)
         {
             rb.linearVelocity = velocity;
-            rb.angularVelocity = Vector3.zero;
+            rb.angularVelocity = new Vector3(3, 5, 1);
         }
 
         IgnoreOwnerCollision(trap, ownerPlayerId);
@@ -154,6 +154,8 @@ public class ControllerSwampNetworkManager : MonoBehaviour
 
         if (swampArea != null)
             swampArea.InitFromServer(ownerPlayerId, _slowMultiplier);
+
+        area.GetComponent<ControllerSwampVfx>()?.Begin(duration);
 
         Destroy(area, duration);
 

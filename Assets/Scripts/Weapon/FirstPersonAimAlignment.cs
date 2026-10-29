@@ -26,6 +26,10 @@ public sealed class FirstPersonAimAlignment : MonoBehaviour
     private void OnDisable() { RestoreBase(); weight = 0; previousWeapon = null; }
     private void LateUpdate()
     {
+        if (GetComponentInParent<ControllerSmokeMotion>()?.Active == true) { weight=0; return; }
+        if (GetComponentInParent<ControllerSwampMotion>()?.Active == true) { weight=0; return; }
+        if (GetComponentInParent<ControllerDecoyMotion>()?.Active == true) { weight=0; return; }
+        if (GetComponentInParent<ControllerForestMotion>()?.Active == true) { weight=0; return; }
         if (GetComponentInParent<InitiatorSkill_E>()?.BlocksActions == true) { weight=0; return; }
         if (movement == null || !movement.IsMine || aimCamera == null || inventory == null) return;
         var weapon = inventory.GetCurrentWeapon();

@@ -34,9 +34,10 @@ namespace Game.Pings
         public readonly int TeamId;
         public readonly PingType Type;
         public readonly Vector3 Position;
+        public readonly float Lifetime;
         public ConfirmedPing(string pingId, uint senderId, int teamId,
-            PingType type, Vector3 position)
-        { PingId = pingId; SenderId = senderId; TeamId = teamId; Type = type; Position = position; }
+            PingType type, Vector3 position, float lifetime = 3f)
+        { PingId = pingId; SenderId = senderId; TeamId = teamId; Type = type; Position = position; Lifetime = lifetime; }
     }
 
     internal static class PingValidation

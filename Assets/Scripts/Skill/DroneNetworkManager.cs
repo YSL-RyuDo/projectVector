@@ -105,9 +105,9 @@ public class DroneNetworkManager : MonoBehaviour
         _drones[droneId] = drone;
         _ownerDroneIds[ownerPlayerId] = droneId;
 
-        // 서버 HP 패킷이 오기 전까지 기본값 100
-        _droneHps[droneId] = 100;
-        _droneMaxHps[droneId] = 100;
+        // Match the server's one-hit durability until its HP packet arrives.
+        _droneHps[droneId] = 1;
+        _droneMaxHps[droneId] = 1;
 
         // 생성 시점 회전값도 바로 반영
         if (!isMine)
@@ -124,7 +124,7 @@ public class DroneNetworkManager : MonoBehaviour
             ownerSkill.OnOwnerDroneSpawned(drone, droneId);
 
             if (DroneHUDUI.Instance != null)
-                DroneHUDUI.Instance.SetDroneHp(100, 100);
+                DroneHUDUI.Instance.SetDroneHp(1, 1);
         }
 
         if (SpectatorManager.Instance != null)
@@ -295,8 +295,8 @@ public class DroneNetworkManager : MonoBehaviour
         out int hp,
         out int maxHp)
     {
-        hp = 100;
-        maxHp = 100;
+        hp = 1;
+        maxHp = 1;
 
         if (!_ownerDroneIds.TryGetValue(ownerPlayerId, out uint droneId))
             return false;

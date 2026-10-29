@@ -143,7 +143,10 @@ public class ArmADS : MonoBehaviour
         if (Mouse.current != null &&
             Mouse.current.leftButton.wasPressedThisFrame)
         {
-            if (currentWeaponType == WeaponData.WeaponType.Knife &&
+            // FirstPersonKnifeGrip is triggered only by Weapon.OnUse after gameplay locks.
+            // Do not layer the legacy raw-input arm clip over that accepted swing.
+            bool authoredKnifeGrip = playerItem?.GetCurrentWeapon()?.GetComponent<FirstPersonKnifeGrip>()?.Ready == true;
+            if (!authoredKnifeGrip && currentWeaponType == WeaponData.WeaponType.Knife &&
                 knifeAttackTimer <= 0f)
             {
                 if (armAnimator != null)

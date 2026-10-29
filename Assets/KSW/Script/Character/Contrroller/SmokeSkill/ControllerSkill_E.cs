@@ -3,379 +3,175 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 public class ControllerSkill_E : CharacterSkill
 {
     public static event Action OnMiniMap;
-
     public static bool IsSelectingSmoke { get; private set; }
     public static bool IsSmokeMapOpen { get; private set; }
     public static bool IsBlockingWeaponInput { get; private set; }
-
-    [Header("Prefab")]
-    [SerializeField] private GameObject _pingPrefab;
-
-    [Header("Mini Map")]
     [SerializeField] private GameObject _miniMapOverlay;
     [SerializeField] private RectTransform _mapRect;
-    [SerializeField] private RectTransform _pingContainer;
     [SerializeField] private Camera _miniMapCamera;
-
-    [Header("Smoke")]
     [SerializeField] private LayerMask _groundMask = ~0;
-
-    private bool _isSelecting;
-    private GameObject _currentPing;
-    private Coroutine _releaseBlockCoroutine;
-    private PlayerIdentity _playerIdentity;
-    private FPSCameraLook _cameraLook;
-
-    private void Awake()
+    [SerializeField] private ControllerSmokeMotion _motion;
+    private SmokeTargetingView _view;
+    private PlayerIdentity _identity;
+    private FPSCameraLook _look;
+    private bool _selecting, _selected, _ownsInput, _hidWeapon;
+    private Vector3 _selectedWorld;
+    private Coroutine _release;
+    private void Awake() { _identity = GetComponent<PlayerIdentity>(); _look = GetComponentInChildren<FPSCameraLook>(true); }
+#if UNITY_EDITOR
+    // Batch-only local integration fixture. Not compiled into game clients.
+    // Input, purchase checks, targeting, gesture and teardown still run normally.
+    public Action<Vector3> EditorCaptureDrop;
+    private bool IsLocalCapture => Application.isBatchMode && PracticePlayerContext.For(this) != null && EditorCaptureDrop != null;
+#else
+    private bool IsLocalCapture => false;
+#endif
+    private bool IsMine() => IsLocalCapture || (_identity && NetworkManager.Instance && _identity.PlayerId == NetworkManager.Instance.MyPlayerId);
+    private void ResolveView()
     {
-        _playerIdentity = GetComponent<PlayerIdentity>();
-        _cameraLook = GetComponentInChildren<FPSCameraLook>(true);
-        AutoAssignMiniMapReferences();
+        if (!_view) foreach (var root in SceneManager.GetActiveScene().GetRootGameObjects()) {
+            _view = root.GetComponentInChildren<SmokeTargetingView>(true); if (_view) break;
+        }
+        if (_view) { _miniMapOverlay = _view.gameObject; _mapRect = _view.Map; }
+        if (!_miniMapCamera) foreach (var root in SceneManager.GetActiveScene().GetRootGameObjects()) {
+            foreach (var cam in root.GetComponentsInChildren<Camera>(true)) if (cam.name.Contains("MiniMap")) { _miniMapCamera = cam; break; }
+            if (_miniMapCamera) break;
+        }
     }
-
-    private void Start()
-    {
-        AutoAssignMiniMapReferences();
-        ForceCloseMiniMapImmediate();
-    }
-
-    private void OnDisable()
-    {
-        ForceCloseMiniMapImmediate();
-    }
-
+    private bool Interrupted() => GetComponent<PlayerHP>()?.IsDead == true ||
+        GetComponent<PlayerDeathController>()?.IsDead == true || GetComponent<ElectricShock>()?.IsStunned == true ||
+        (RoundManager.Instance && (RoundManager.Instance.currentState == RoundManager.RoundState.RoundEnd || RoundManager.Instance.currentState == RoundManager.RoundState.GameOver)) ||
+        (!IsLocalCapture && (!NetworkManager.Instance || !NetworkManager.Instance.IsConnected));
     private void Update()
     {
         if (!IsMine()) return;
+        if (_ownsInput && Interrupted()) { CloseImmediate(); return; }
         if (Keyboard.current == null || Mouse.current == null) return;
-        if (InGameChatUI.IsChatOpen) return;
-        if (GameController.Instance != null && GameController.Instance.IsPaused) return;
-        if (SettingsMenu.Instance != null && SettingsMenu.Instance.IsOpen) return;
-
-        if (Keyboard.current.eKey.wasPressedThisFrame)
-        {
-            UseSkill();
-        }
-
-        if (!_isSelecting) return;
-
-        if (Mouse.current.leftButton.wasPressedThisFrame)
-        {
-            SelectAndDropSmoke();
-            return;
-        }
-
-        if (Mouse.current.rightButton.wasPressedThisFrame || Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
-            CloseMiniMap();
-        }
+        if (GameplayActionPolicy.MenuBlocksInput) { if (_selecting) Close(); return; }
+        if (Keyboard.current.eKey.wasPressedThisFrame) { UseSkill(); return; }
+        if (!_selecting) return;
+        if (Keyboard.current.escapeKey.wasPressedThisFrame) { Close(); return; }
+        if (!_selected) PreviewAt(Mouse.current.position.ReadValue());
+        if (Mouse.current.leftButton.wasPressedThisFrame) SelectAt(Mouse.current.position.ReadValue());
+        if (Mouse.current.rightButton.wasPressedThisFrame && _selected) Confirm();
     }
-
+    private void LateUpdate()
+    {
+        if (!IsMine()) return;
+        if (_ownsInput) { GetComponent<PlayerItem>()?.SetWeaponVisibility(false); _hidWeapon = true; }
+        else if (_hidWeapon) { GetComponent<PlayerItem>()?.SetWeaponVisibility(true); _hidWeapon = false; }
+    }
     protected override void UseSkill()
     {
-        if (_isSelecting)
-        {
-            CloseMiniMap();
-            return;
-        }
-
-        if (!CanUsePurchasedSkill(SkillSlot.E))
-            return;
-
-        OpenMiniMap();
-    }
-
-    private bool IsMine()
-    {
-        if (_playerIdentity == null) _playerIdentity = GetComponent<PlayerIdentity>();
-        return _playerIdentity != null && NetworkManager.Instance != null && _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
-    }
-
-    private void OpenMiniMap()
-    {
-        AutoAssignMiniMapReferences();
-
-        _isSelecting = true;
-        IsSelectingSmoke = true;
-        IsSmokeMapOpen = true;
-        IsBlockingWeaponInput = true;
-
-        if (_releaseBlockCoroutine != null)
-        {
-            StopCoroutine(_releaseBlockCoroutine);
-            _releaseBlockCoroutine = null;
-        }
-
-        if (_miniMapOverlay != null) _miniMapOverlay.SetActive(true);
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-        if (_cameraLook == null) _cameraLook = GetComponentInChildren<FPSCameraLook>(true);
-        if (_cameraLook != null) _cameraLook.CanMove = false;
-
+        if (_selecting) { Close(); return; }
+        if (_ownsInput || !CanUsePurchasedSkill(SkillSlot.E)) return;
+        ResolveView();
+        if (!_view || !_mapRect || !_miniMapCamera) { Debug.LogWarning("Smoke targeting references missing in saved scene"); return; }
+        _selecting = _ownsInput = true; _selected = false;
+        IsSelectingSmoke = IsSmokeMapOpen = IsBlockingWeaponInput = true;
+        _miniMapCamera.GetComponent<MiniMapCamera>()?.SetSmokeHeading(_look ? _look.GetYaw() : transform.eulerAngles.y);
+        MiniMapManager.Instance?.ShowOverlayMiniMap();
+        _miniMapOverlay.SetActive(true); _view.ResetSelection(); _motion?.Begin();
+        Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
+        if (_look) _look.CanMove = false;
         OnMiniMap?.Invoke();
-        Debug.Log("[CONTROLLER SMOKE] minimap open");
     }
-
-    private void CloseMiniMap()
+    public bool SelectAt(Vector2 screenPoint)
     {
-        _isSelecting = false;
-        IsSelectingSmoke = false;
-        IsSmokeMapOpen = false;
-
-        if (_miniMapOverlay != null) _miniMapOverlay.SetActive(false);
-
-        if (!SettingsMenu.PreserveOpenMenuCursor())
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+        if (!_selecting || !_mapRect || !_miniMapCamera) return false;
+        if (!TryMapPoint(screenPoint, out var local)) return false;
+        if (!TryGroundPoint(local, out var world)) {
+            _selected = false; _view.Invalid(); return false;
         }
-
-        if (_cameraLook == null) _cameraLook = GetComponentInChildren<FPSCameraLook>(true);
-        if (_cameraLook != null) _cameraLook.CanMove = true;
-
-        ClearPing();
-
-        if (_releaseBlockCoroutine != null) StopCoroutine(_releaseBlockCoroutine);
-        _releaseBlockCoroutine = StartCoroutine(ReleaseWeaponBlockAfterMouseUp());
-
-        OnMiniMap?.Invoke();
-        Debug.Log("[CONTROLLER SMOKE] minimap close");
+        _selectedWorld = world; _selected = true;
+        _view.Select(local, FootprintSize(), Vector3.Distance(transform.position, world));
+        return true;
     }
-
-    private void ForceCloseMiniMapImmediate()
+    public bool PreviewAt(Vector2 screenPoint)
     {
-        _isSelecting = false;
-        IsSelectingSmoke = false;
-        IsSmokeMapOpen = false;
-        IsBlockingWeaponInput = false;
-
-        if (_releaseBlockCoroutine != null)
-        {
-            StopCoroutine(_releaseBlockCoroutine);
-            _releaseBlockCoroutine = null;
-        }
-
-        if (_miniMapOverlay != null) _miniMapOverlay.SetActive(false);
-
-        if (!SettingsMenu.PreserveOpenMenuCursor())
-        {
-            if (Cursor.lockState != CursorLockMode.Locked) Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
-
-        if (_cameraLook == null) _cameraLook = GetComponentInChildren<FPSCameraLook>(true);
-        if (_cameraLook != null) _cameraLook.CanMove = true;
-
-        ClearPing();
+        if (!_selecting || _selected || !_mapRect || !_miniMapCamera) return false;
+        if (!TryMapPoint(screenPoint, out var local)) { _view.ResetSelection(); return false; }
+        if (!TryGroundPoint(local, out var world)) { _view.Invalid(); return false; }
+        _view.Preview(local, FootprintSize(), Vector3.Distance(transform.position, world));
+        return true; // Preview never arms a drop or changes its selected coordinates.
     }
-
-    private IEnumerator ReleaseWeaponBlockAfterMouseUp()
+    private bool TryMapPoint(Vector2 screenPoint, out Vector2 local)
     {
-        IsBlockingWeaponInput = true;
-
-        yield return null;
-
-        while (Mouse.current != null && Mouse.current.leftButton.isPressed)
-            yield return null;
-
-        yield return null;
-
-        IsBlockingWeaponInput = false;
-        _releaseBlockCoroutine = null;
+        var canvas = _mapRect.GetComponentInParent<Canvas>();
+        Camera uiCamera = canvas && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+        return RectTransformUtility.ScreenPointToLocalPointInRectangle(_mapRect, screenPoint, uiCamera, out local) && _mapRect.rect.Contains(local);
     }
-
-    private void SelectAndDropSmoke()
+    private bool TryGroundPoint(Vector2 local, out Vector3 world)
     {
-        AutoAssignMiniMapReferences();
-
-        if (_mapRect == null || _miniMapCamera == null)
-        {
-            Debug.LogWarning("[CONTROLLER SMOKE] mapRect or miniMapCamera is null");
-            return;
+        world = default;
+        Vector2 normalized = Rect.PointToNormalized(_mapRect.rect, local);
+        Ray ray = _miniMapCamera.ViewportPointToRay(new Vector3(normalized.x, normalized.y));
+        // Hidden actors must not move/disable the preview and disclose their position.
+        int mask = _groundMask & ~LayerMask.GetMask("LocalPlayer", "Enemy", "Player", "PlayerBody", "FirstPersonArms", "HitBox", "Drone", "Item", "Bullet", "UI");
+        var hits = Physics.RaycastAll(ray, 1000, mask, QueryTriggerInteraction.Ignore);
+        Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+        foreach (var hit in hits) {
+            if (hit.collider.GetComponentInParent<PlayerIdentity>() || hit.collider.GetComponentInParent<CharacterController>()) continue;
+            if (hit.collider.GetComponentInParent<MapUtilityPlacementBlocker>()) return false;
+            if (hit.normal.y < .45f) return false;
+            world = hit.point; return true;
         }
-
-        Vector2 mousePos = Mouse.current.position.ReadValue();
-
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(_mapRect, mousePos, null, out Vector2 localPoint))
-        {
-            Debug.LogWarning("[CONTROLLER SMOKE] screen to local failed");
-            return;
-        }
-
-        if (!_mapRect.rect.Contains(localPoint))
-        {
-            Debug.LogWarning($"[CONTROLLER SMOKE] clicked outside map localPoint={localPoint}");
-            return;
-        }
-
-        float normX = localPoint.x / _mapRect.rect.width + 0.5f;
-        float normY = localPoint.y / _mapRect.rect.height + 0.5f;
-
-        Ray ray = _miniMapCamera.ViewportPointToRay(new Vector3(normX, normY, 0f));
-
-        if (!Physics.Raycast(ray, out RaycastHit hit, 1000f, _groundMask, QueryTriggerInteraction.Ignore))
-        {
-            Debug.LogWarning("[CONTROLLER SMOKE] minimap raycast miss");
-            return;
-        }
-
-        SpawnPing(localPoint);
-
-        Debug.Log($"[CONTROLLER SMOKE SELECT] world={hit.point}, local={localPoint}");
-
-        if (NetworkManager.Instance != null)
-        {
-            NetworkManager.Instance.SendControllerSmokeDrop(hit.point);
-            Debug.Log($"[CONTROLLER SMOKE SEND] pos={hit.point}");
-        }
+        return false;
+    }
+    private Vector2 FootprintSize()
+    {
+        float height = _miniMapCamera.orthographicSize * 2;
+        return new Vector2(9 / (height * _miniMapCamera.aspect) * _mapRect.rect.width, 9 / height * _mapRect.rect.height);
+    }
+    private void Confirm()
+    {
+        // Server owns charge consumption/acceptance. Cancellation never sends a drop.
+        if (!_selected || Interrupted() || !CanUsePurchasedSkill(SkillSlot.E)) { Close(); return; }
+#if UNITY_EDITOR
+        if (IsLocalCapture) EditorCaptureDrop(_selectedWorld);
         else
-        {
-            Debug.LogWarning("[CONTROLLER SMOKE] NetworkManager is null");
-        }
-
-        CloseMiniMap();
+#endif
+            NetworkManager.Instance.SendControllerSmokeDrop(_selectedWorld);
+        Close();
     }
-
-    private void SpawnPing(Vector2 localPoint)
+    private void Close()
     {
-        if (_pingPrefab == null || _pingContainer == null)
-        {
-            Debug.LogWarning("[CONTROLLER SMOKE] pingPrefab or pingContainer is null");
-            return;
-        }
-
-        ClearPing();
-
-        _currentPing = Instantiate(_pingPrefab, _pingContainer);
-        _currentPing.SetActive(true);
-
-        RectTransform rect = _currentPing.GetComponent<RectTransform>();
-        if (rect != null)
-        {
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = localPoint;
-            rect.localScale = Vector3.one;
-            rect.sizeDelta = new Vector2(24f, 24f);
-        }
-
-        Image image = _currentPing.GetComponent<Image>();
-        if (image != null)
-        {
-            image.raycastTarget = false;
-            image.color = Color.green;
-        }
+        if (!_ownsInput) return;
+        _selecting = _selected = false; IsSelectingSmoke = IsSmokeMapOpen = false;
+        if (_miniMapCamera) _miniMapCamera.GetComponent<MiniMapCamera>()?.ClearSmokeHeading();
+        MiniMapManager.Instance?.ShowHUDMiniMap();
+        if (_miniMapOverlay) _miniMapOverlay.SetActive(false);
+        if (_look) _look.CanMove = true;
+        if (!SettingsMenu.PreserveOpenMenuCursor()) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
+        _motion?.Release();
+        if (_release != null) StopCoroutine(_release);
+        _release = StartCoroutine(ReleaseInput()); OnMiniMap?.Invoke();
     }
-
-    private void ClearPing()
+    private IEnumerator ReleaseInput()
     {
-        if (_currentPing != null)
-        {
-            Destroy(_currentPing);
-            _currentPing = null;
-        }
-
-        if (_pingContainer == null) return;
-
-        for (int i = _pingContainer.childCount - 1; i >= 0; i--)
-        {
-            Transform child = _pingContainer.GetChild(i);
-            if (child != null && (child.name.Contains("Image") || child.name.Contains("Ping")))
-                Destroy(child.gameObject);
-        }
+        yield return null;
+        while ((_motion && _motion.Active) || (Mouse.current != null && (Mouse.current.leftButton.isPressed || Mouse.current.rightButton.isPressed))) yield return null;
+        _ownsInput = false; IsBlockingWeaponInput = false; _release = null;
     }
-
-    private void AutoAssignMiniMapReferences()
+    public void ForceCloseMiniMapImmediate() => CloseImmediate();
+    private void CloseImmediate()
     {
-        if (_miniMapCamera == null) _miniMapCamera = FindCameraByNameContains("MiniMap");
-        if (_miniMapOverlay == null) _miniMapOverlay = FindGameObjectIncludingInactive("MiniMap (Overlay)");
-
-        RectTransform rawImageRect = FindRawImageRectUnderOverlay();
-
-        if (_mapRect == null)
-        {
-            if (rawImageRect != null) _mapRect = rawImageRect;
-            else if (_miniMapOverlay != null) _mapRect = _miniMapOverlay.GetComponent<RectTransform>();
-        }
-
-        if (_pingContainer == null)
-        {
-            GameObject pingObj = FindGameObjectIncludingInactive("PingContainer");
-            if (pingObj != null) _pingContainer = pingObj.GetComponent<RectTransform>();
-        }
-
-        if (_pingContainer == null && rawImageRect != null)
-        {
-            GameObject container = new GameObject("PingContainer", typeof(RectTransform));
-            container.transform.SetParent(rawImageRect, false);
-
-            RectTransform rect = container.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            rect.localScale = Vector3.one;
-
-            _pingContainer = rect;
-        }
+        if (!_ownsInput) return; // Remote disable must not close/reset the local UI.
+        if (_release != null) StopCoroutine(_release); _release = null;
+        _selecting = _selected = _ownsInput = false;
+        IsSelectingSmoke = IsSmokeMapOpen = IsBlockingWeaponInput = false;
+        if (_miniMapCamera) _miniMapCamera.GetComponent<MiniMapCamera>()?.ClearSmokeHeading();
+        MiniMapManager.Instance?.ShowHUDMiniMap();
+        if (_miniMapOverlay) _miniMapOverlay.SetActive(false);
+        if (_look) _look.CanMove = true;
+        _motion?.ResetPose();
+        if (_hidWeapon) { GetComponent<PlayerItem>()?.SetWeaponVisibility(true); _hidWeapon = false; }
+        if (!SettingsMenu.PreserveOpenMenuCursor()) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
+        OnMiniMap?.Invoke();
     }
-
-    private RectTransform FindRawImageRectUnderOverlay()
-    {
-        if (_miniMapOverlay == null) return null;
-
-        Transform[] children = _miniMapOverlay.GetComponentsInChildren<Transform>(true);
-
-        foreach (Transform child in children)
-        {
-            if (child.name == "RawImage") return child.GetComponent<RectTransform>();
-        }
-
-        return null;
-    }
-
-    private GameObject FindGameObjectIncludingInactive(string objectName)
-    {
-        Scene scene = SceneManager.GetActiveScene();
-        GameObject[] roots = scene.GetRootGameObjects();
-
-        foreach (GameObject root in roots)
-        {
-            Transform[] children = root.GetComponentsInChildren<Transform>(true);
-
-            foreach (Transform child in children)
-            {
-                if (child.name == objectName) return child.gameObject;
-            }
-        }
-
-        return null;
-    }
-
-    private Camera FindCameraByNameContains(string keyword)
-    {
-        Scene scene = SceneManager.GetActiveScene();
-        GameObject[] roots = scene.GetRootGameObjects();
-
-        foreach (GameObject root in roots)
-        {
-            Camera[] cameras = root.GetComponentsInChildren<Camera>(true);
-
-            foreach (Camera cam in cameras)
-            {
-                if (cam.name.Contains(keyword)) return cam;
-            }
-        }
-
-        return null;
-    }
+    private void OnDisable() => CloseImmediate();
 }

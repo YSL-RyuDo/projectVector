@@ -46,7 +46,7 @@ public class DroneHUDUI : MonoBehaviour
         if (_flightInstruments) _flightInstruments.SetActive(true);
         if (_modeText) _modeText.text="드론 조종";
         if (_feedbackText) _feedbackText.text="";
-        SetTaserReady(true); SetDroneHp(100,100);
+        SetTaserReady(true); SetDroneHp(1,1);
         if (_controlGuideText) _controlGuideText.text="SPACE  상승     CTRL  하강     좌클릭  발사     Q  복귀";
     }
     public void ShowPreparation(bool pending)

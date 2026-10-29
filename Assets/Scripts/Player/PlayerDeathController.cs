@@ -78,6 +78,7 @@ public class PlayerDeathController : MonoBehaviour
         {
             movement.ResetMoveSpeedState();
             movement.CanMove = false;
+            movement.SetFirstPersonArmsVisible(false);
             movement.enabled = false;
         }
 
@@ -134,6 +135,9 @@ public class PlayerDeathController : MonoBehaviour
             NetworkManager.Instance != null &&
             identity != null &&
             identity.PlayerId == NetworkManager.Instance.MyPlayerId;
+
+        if (isMine) { NetworkManager.Instance.ResetLocalCombatReport();
+            if (SpectatorManager.Instance && SpectatorManager.Instance.IsSpectating) SpectatorManager.Instance.StopSpectating(); }
 
         // 리스폰 시 애니메이션 상태 초기화
         if (animator != null)

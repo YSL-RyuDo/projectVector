@@ -69,7 +69,7 @@ public class Weapon : Item
     [SerializeField] private float adsSmoothTime = 0.05f;
     private float fovVelocity;
 
-    private bool isTestMode = false; // Å×½ºÆ® ¸ðµå
+    private bool isTestMode = false; // í…ŒìŠ¤íŠ¸ ëª¨ë“œ
 
     void Awake()
     {
@@ -472,6 +472,7 @@ public class Weapon : Item
 
         if (practice != null) practice.GetComponent<PracticeWeaponInput>()?.RecordShot();
 
+        if (weaponData.weaponType == WeaponData.WeaponType.Knife) GetComponent<KnifeMotion>()?.PlayAttack();
         PlayAttackRecoilVisual();
         FireCurrentWeapon();
         PlayLocalGunSound();
@@ -1030,6 +1031,11 @@ public class Weapon : Item
         {
             spread *= weaponData.moveSpreadMultiplier;
         }
+
+        // Concussion affects local aiming stability, never action eligibility or camera rotation.
+        if (SentinelFeedbackUI.LocalConcussed && _playerIdentity != null && NetworkManager.Instance != null &&
+            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId)
+            spread = Mathf.Max(spread * 1.65f, 0.006f);
 
         Vector2 randomCircle =
             UnityEngine.Random.insideUnitCircle * spread;

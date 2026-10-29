@@ -77,6 +77,9 @@ public class SpikeSpawner : MonoBehaviour
 
     public Spike SpawnPlanted(Vector3 pos)
     {
+        // Reconnect and duplicate delivery must not create two ticking devices.
+        if (Spike.PlantedSpike != null && Spike.PlantedSpike.isPlanted)
+            return Spike.PlantedSpike;
         if (spikePrefab == null)
         {
             Debug.LogError("[SPIKE SPAWNER] spikePrefab is null");

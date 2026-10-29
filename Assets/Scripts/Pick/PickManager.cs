@@ -2,7 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class PickManager : MonoBehaviour
+public partial class PickManager : MonoBehaviour
 {
     public static PickManager Instance;
 
@@ -71,6 +71,7 @@ public class PickManager : MonoBehaviour
 
     private void Start()
     {
+        InitializeInteractions();
         isInputLockedByPhase = true;
         NetworkManager.Instance.SetPickManager(this);
 
@@ -197,6 +198,7 @@ public class PickManager : MonoBehaviour
     public void OnRecvPickState(PickStateData state)
     {
         currentState = state;
+        ReconcilePickActions();
         if (mapBackdrop != null) mapBackdrop.ApplyMap(state != null ? state.mapName : null);
         if (mapIntro != null) mapIntro.Begin(state);
         if (presentation != null) presentation.SetState(state);
@@ -206,6 +208,7 @@ public class PickManager : MonoBehaviour
         ApplyCharacterButtons();
         ApplySelectButton();
         ApplyCurrentCharacterInfoSafely();
+        RefreshPickActions();
     }
 
     public void OnRecvPickTimer(PickPhase phase, ushort remainSeconds)
@@ -656,6 +659,7 @@ public class PickManager : MonoBehaviour
 
     public void OnRecvMatchLoadingInfo(MatchLoadingInfoData data)
     {
+        FinishPickInteractions();
         if (mapIntro != null) mapIntro.Finish();
         Debug.Log("[PICK MANAGER] Match loading info received");
 

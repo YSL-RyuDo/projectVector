@@ -15,6 +15,8 @@ public class EntryDashMotor : MonoBehaviour
 
     private Coroutine _dashCoroutine;
     private bool _isDashing;
+    private bool _movesLocally;
+    private bool _previousCanMove;
 
     private float _originalAnimatorSpeed = 1f;
     private Vector3 _originalCameraLocalPosition;
@@ -56,8 +58,13 @@ public class EntryDashMotor : MonoBehaviour
         float dashForce,
         float dashDuration)
     {
+        GetComponent<EntrySkillPresentation>()?.DashConfirmed();
         if (_dashCoroutine != null)
-            StopCoroutine(_dashCoroutine);
+            ForceEndDash();
+
+        // RemoteMotionBuffer is the sole position writer for remote actors.
+        // Replaying the impulse remotely fights received snapshots and snaps back.
+        _movesLocally = _movement != null && _movement.IsMine;
 
         _dashCoroutine =
             StartCoroutine(
@@ -85,7 +92,7 @@ public class EntryDashMotor : MonoBehaviour
         float dashForce,
         float dashDuration)
     {
-        if (_cc == null)
+        if (_movesLocally && _cc == null)
             yield break;
 
         direction.y = 0f;
@@ -97,8 +104,11 @@ public class EntryDashMotor : MonoBehaviour
 
         _isDashing = true;
 
-        if (_movement != null)
+        if (_movesLocally && _movement != null)
+        {
+            _previousCanMove = _movement.CanMove;
             _movement.CanMove = false;
+        }
 
         if (_animator != null)
         {
@@ -117,15 +127,17 @@ public class EntryDashMotor : MonoBehaviour
             float deltaTime =
                 Time.deltaTime;
 
-            if (_cc.enabled)
+            if (_movesLocally && _cc.enabled)
             {
-                _cc.Move(
-                    direction *
-                    dashForce *
-                    deltaTime
-                );
+                // A purely horizontal Move clears CharacterController.isGrounded,
+                // falsely broadcasting a jump during a ground dash. Maintain the
+                // same small ground-contact velocity as normal locomotion; never
+                // force a grounded animation while actually airborne.
+                Vector3 displacement = direction * dashForce * deltaTime;
+                if (_cc.isGrounded) displacement += Vector3.down * (2f * deltaTime);
+                _cc.Move(displacement);
             }
-            else
+            else if (_movesLocally)
             {
                 transform.position +=
                     direction *
@@ -133,7 +145,7 @@ public class EntryDashMotor : MonoBehaviour
                     deltaTime;
             }
 
-            UpdateCameraHeight(true);
+            if (_movesLocally) UpdateCameraHeight(true);
 
             timer += deltaTime;
 
@@ -145,10 +157,11 @@ public class EntryDashMotor : MonoBehaviour
 
     private void EndDashState()
     {
+        if (!_isDashing) return;
         _isDashing = false;
 
-        if (_movement != null)
-            _movement.CanMove = true;
+        if (_movesLocally && _movement != null)
+            _movement.CanMove = _previousCanMove;
 
         if (_animator != null)
         {
@@ -159,7 +172,7 @@ public class EntryDashMotor : MonoBehaviour
             _animator.SetBool("Crouch_Walk", false);
         }
 
-        if (_hasCameraOriginal &&
+        if (_movesLocally && _hasCameraOriginal &&
             _cameraTransform != null)
         {
             _cameraTransform.localPosition =
@@ -172,6 +185,8 @@ public class EntryDashMotor : MonoBehaviour
             $"[ENTRY DASH END LOCAL] object={gameObject.name}"
         );
     }
+
+    private void OnDisable() => ForceEndDash();
 
     private void UpdateCameraHeight(bool dash)
     {

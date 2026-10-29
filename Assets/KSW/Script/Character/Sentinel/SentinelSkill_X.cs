@@ -1,5 +1,8 @@
 using System.Collections;
 using UnityEngine;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+using Input = SentinelCaptureInput;
+#endif
 using UnityEngine.UI;
 
 public class SentinelSkill_X : CharacterSkill
@@ -73,7 +76,7 @@ public class SentinelSkill_X : CharacterSkill
         if (!IsMine())
             return;
 
-        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) { CancelCharging(); SetReady(false); return; }
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) { if(isReady || isCharging){CancelCharging();SetReady(false);} return; }
 
         if (chargingSlider == null)
             TryResolveChargingSlider();
@@ -90,7 +93,7 @@ public class SentinelSkill_X : CharacterSkill
             UseSkill();
         }
 
-        if (!isReady || isCharging)
+        if (!isReady || isCharging || (GetComponent<SentinelCastMotion>() is { } motion && !motion.ReadyToCast))
             return;
 
         if (Input.GetMouseButtonDown(0))
@@ -108,6 +111,10 @@ public class SentinelSkill_X : CharacterSkill
     {
         if (!isReady && !CanUsePurchasedSkill(SkillSlot.X))
             return;
+
+        if(!isReady && (SentinelCNetworkManager.Instance==null ||
+            !SentinelCNetworkManager.Instance.HasInstalledDevice(playerIdentity.PlayerId)))
+        {SentinelFeedbackUI.Instance?.Notice("먼저 장치를 설치하세요");return;}
 
         if (RoundManager.Instance != null &&
             !RoundManager.Instance.CanAttack)
@@ -132,6 +139,7 @@ public class SentinelSkill_X : CharacterSkill
 
         while (timer < chargingTime)
         {
+            if(!isCharging || !isReady || !GameplayActionPolicy.CanAct(this,GameplayAction.Skill)){chargingRoutine=null;CancelCharging();SetReady(false);yield break;}
             if (!Input.GetMouseButton(0))
             {
                 CancelCharging();
@@ -160,35 +168,14 @@ public class SentinelSkill_X : CharacterSkill
             return;
         }
 
-        Ray ray = Camera.main.ScreenPointToRay(
-            new Vector3(
-                Screen.width * 0.5f,
-                Screen.height * 0.5f
-            )
-        );
-
-        Vector3 spawnPosition;
-
-        if (Physics.Raycast(
-                ray,
-                out RaycastHit hit,
-                skillDistance,
-                Physics.DefaultRaycastLayers,
-                QueryTriggerInteraction.Ignore))
-        {
-            spawnPosition = hit.point;
-        }
-        else
-        {
-            spawnPosition =
-                ray.origin + ray.direction * skillDistance;
-        }
-
-        NetworkManager.Instance.SendSentinelXCast(spawnPosition);
+        // The server projects the ultimate onto our installed devices, never an aim-point.
+        NetworkManager.Instance.SendSentinelXCast(transform.position);
+        GetComponent<SentinelCastMotion>()?.Release();
     }
 
     private void CancelCharging()
     {
+        if(chargingRoutine!=null){StopCoroutine(chargingRoutine);chargingRoutine=null;}
         isCharging = false;
         IsChargingSentinelX = false;
         chargingRoutine = null;
@@ -215,7 +202,7 @@ public class SentinelSkill_X : CharacterSkill
         {
             CharacterSkillUI.Instance.SentinelSkillText(
                 ready,
-                ready ? "X 궁극�? 좌클�?�� 길게 ?�러 차징" : ""
+                ready ? "X 과충전 · 좌클릭을 길게 눌러 장치 강화" : ""
             );
         }
     }
@@ -234,6 +221,7 @@ public class SentinelSkill_X : CharacterSkill
 
     private void OnDisable()
     {
+        if(!isReady && !isCharging)return;
         if (chargingRoutine != null)
             StopCoroutine(chargingRoutine);
 

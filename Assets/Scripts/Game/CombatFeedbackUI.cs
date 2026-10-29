@@ -256,7 +256,7 @@ public class CombatFeedbackUI : MonoBehaviour
                 return "수비팀 전멸";
 
             case RoundWinReason.ATTACK_SPIKE_EXPLODE:
-                return "스파이크 폭파";
+                return "AI 제어권 탈취 완료";
 
             case RoundWinReason.DEFENSE_ELIMINATION:
                 return "공격팀 전멸";
@@ -265,7 +265,7 @@ public class CombatFeedbackUI : MonoBehaviour
                 return "시간 초과";
 
             case RoundWinReason.DEFENSE_SPIKE_DEFUSE:
-                return "스파이크 해체";
+                return "디바이스 접속 차단";
 
             default:
                 return "라운드 종료";

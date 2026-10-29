@@ -14,7 +14,7 @@ public static class PlantZoneExport
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         var b = new StringBuilder("// Generated from authored map BoxColliders by PlantZoneExport. Re-export after map edits.\n#pragma once\n#include <cmath>\n#include <string>\nnamespace PlantZones {\nstruct Zone { const char* map; float inverse[12]; float center[3]; float half[3]; };\ninline constexpr Zone zones[] = {\n");
         string F(float v) { string s=v.ToString("G9", CultureInfo.InvariantCulture); return s+(s.Contains(".") || s.Contains("E") ? "f" : ".0f"); }
-        foreach (string name in new[] { "TestMap", "Desert" })
+        foreach (string name in new[] { "TestMap", "Desert", "Construction" })
         {
             var root = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Maps/{name}.prefab"));
             root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);

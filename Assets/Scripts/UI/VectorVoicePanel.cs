@@ -126,12 +126,17 @@ public sealed class VectorVoicePanel : MonoBehaviour
     public static bool ShouldShow(string scene, bool authenticated, bool temporaryRoomVisible, bool privateRoomVisible) =>
         authenticated && (scene == "Game_TestVersion" || (scene == "Lobby" && (temporaryRoomVisible || privateRoomVisible)));
 
+    public static bool ShouldShowContext(string scene, bool authenticated, bool gameplayVisible, bool readyRoom, bool privateRoom) =>
+        authenticated && (scene == "Game_TestVersion" ? gameplayVisible : scene == "Lobby" && (readyRoom || privateRoom));
+
     private bool RefreshVisibility()
     {
         var network = NetworkManager.Instance;
-        bool show = ShouldShow(SceneManager.GetActiveScene().name,
+        bool show = ShouldShowContext(SceneManager.GetActiveScene().name,
             network != null && network.IsConnected && network.IsAuthenticated,
-            partyView && partyView.activeInHierarchy, privateRoomView && privateRoomView.activeInHierarchy);
+            MatchManager.Instance && MatchManager.Instance.IsGameplayVisible,
+            network && network.CurrentLobbyRoomChatKind == LobbyRoomChatKind.ReadyRoom && partyView && partyView.activeInHierarchy,
+            network && network.CurrentLobbyRoomChatKind == LobbyRoomChatKind.PrivateRoom && privateRoomView && privateRoomView.activeInHierarchy);
         if (openButton) openButton.gameObject.SetActive(show);
         if (partyButton) partyButton.gameObject.SetActive(show && SceneManager.GetActiveScene().name == "Lobby");
         if (!show)

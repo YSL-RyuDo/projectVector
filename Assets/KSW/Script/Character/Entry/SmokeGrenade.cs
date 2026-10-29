@@ -218,7 +218,7 @@ public class SmokeGrenade : MonoBehaviour
         if (!_isMine)
             return;
 
-        if (collision.gameObject.CompareTag("Player"))
+        if (collision.collider.GetComponentInParent<PlayerIdentity>() != null)
             return;
 
         if (collision.contactCount <= 0)
@@ -257,6 +257,9 @@ public class SmokeGrenade : MonoBehaviour
 
         _attachPoint = point;
         _attachNormal = normal;
+
+        transform.position = point + normal.normalized * .035f;
+        transform.rotation = Quaternion.FromToRotation(Vector3.up, normal.normalized);
 
         StopOwnerPhysics();
 

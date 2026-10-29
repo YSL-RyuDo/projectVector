@@ -36,6 +36,7 @@ public class PlayerItem : MonoBehaviour
     private GameObject reloadingWeaponObject;
 
     public bool IsReloading => isReloading;
+    public bool IsRemoteReloading => remoteIsReloading;
 
     public Item[] Items => items;
     public int CurrentIndex => currentIndex;
@@ -95,7 +96,7 @@ public class PlayerItem : MonoBehaviour
         if (slot < 0 || slot > 2 || items[slot] == null) return false;
         if (_playerIdentity == null || NetworkManager.Instance == null ||
             _playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return false;
-        Switch(slot);
+        RequestWeaponSwitch(slot);
         return true;
     }
 
@@ -153,31 +154,25 @@ public class PlayerItem : MonoBehaviour
 
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
         {
-            Switch(0);
+            RequestWeaponSwitch(0);
             return;
         }
 
         if (Keyboard.current.digit2Key.wasPressedThisFrame)
         {
-            Switch(1);
+            RequestWeaponSwitch(1);
             return;
         }
 
         if (Keyboard.current.digit3Key.wasPressedThisFrame)
         {
-            Switch(2);
+            RequestWeaponSwitch(2);
             return;
         }
 
         if (Keyboard.current.digit4Key.wasPressedThisFrame)
         {
-            Switch(3);
-            return;
-        }
-
-        if (Keyboard.current.digit5Key.wasPressedThisFrame)
-        {
-            Switch(4);
+            RequestWeaponSwitch(4);
             return;
         }
 
@@ -364,6 +359,16 @@ public class PlayerItem : MonoBehaviour
         );
     }
 
+    private void RequestWeaponSwitch(int index)
+    {
+        if(index<0 || index>=items.Length || !items[index] || currentIndex==index)return;
+        if(index==4 && (playerSpike==null || !playerSpike.hasSpike))return;
+        if(isReloading)CancelReload(false);
+        var transition=GetComponent<FirstPersonEquipmentTransition>();
+        if(transition)transition.Request(index,()=>Switch(index));
+        else Switch(index);
+    }
+
     void Switch(int index)
     {
         if (index < 0 || index >= items.Length)
@@ -378,12 +383,13 @@ public class PlayerItem : MonoBehaviour
         if (currentIndex == index)
         {
             items[index].OnEquip();
+            RefreshLocalInventoryHUD();
             return;
         }
 
         if (index == 4 && playerSpike != null && !playerSpike.hasSpike)
         {
-            Debug.Log("스파이크가 없어서 5번 슬롯으로 전환할 수 없습니다.");
+            Debug.Log("스파이크가 없어서 4번 슬롯으로 전환할 수 없습니다.");
             return;
         }
 
@@ -502,6 +508,20 @@ public class PlayerItem : MonoBehaviour
 
         // ★ 실제 3인칭 WeaponHolder 갱신
         RefreshWeaponHolderModel();
+        RefreshLocalInventoryHUD();
+    }
+
+    // Read the owned slots, not only the currently held item. Remote players never overwrite our HUD.
+    public void RefreshLocalInventoryHUD()
+    {
+        bool local = PracticePlayerContext.For(this) != null ||
+            (_playerIdentity != null && NetworkManager.Instance != null && _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId);
+        if (!local || InGameUIManager.Instance == null) return;
+        WeaponData DataAt(int slot) => items[slot] ? items[slot].GetComponent<Weapon>()?.Data : null;
+        InGameUIManager.Instance.SetMainWeapon(DataAt(0));
+        InGameUIManager.Instance.SetSubWeaponData(DataAt(1));
+        InGameUIManager.Instance.SetKnifeData(DataAt(2));
+        InGameUIManager.Instance.SetSelectedWeaponSlot(currentIndex);
     }
 
     private void RefreshWeaponHolderModel()
@@ -726,6 +746,7 @@ public class PlayerItem : MonoBehaviour
             Destroy(tpWeaponObjects[4]);
 
         GameObject obj = Instantiate(spikePrefab, itemHolder);
+        DisableHeldWeaponPhysics(obj);
         obj.transform.localPosition = new Vector3(0.75f, -0.2f, 1f);
         obj.transform.localRotation = Quaternion.identity;
 
@@ -860,6 +881,15 @@ public class PlayerItem : MonoBehaviour
             tpWeaponObjects[slot] = null;
         }
 
+        bool local = _playerIdentity != null && NetworkManager.Instance != null &&
+            _playerIdentity.PlayerId == NetworkManager.Instance.MyPlayerId;
+        if (local && InGameUIManager.Instance != null)
+        {
+            if (slot == 0) InGameUIManager.Instance.SetMainWeapon(null);
+            else if (slot == 1) InGameUIManager.Instance.SetSubWeapon(null);
+            else if (slot == 2) InGameUIManager.Instance.SetKnife(null);
+        }
+
         if (wasCurrent)
         {
             currentIndex = -1;
@@ -869,6 +899,7 @@ public class PlayerItem : MonoBehaviour
             if (fallbackSlot != -1)
                 SwitchWeaponVisualOnlyBySlot(fallbackSlot);
         }
+        RefreshLocalInventoryHUD();
     }
 
     private int FindSlotByWeaponId(int weaponId)
@@ -1130,9 +1161,9 @@ public class PlayerItem : MonoBehaviour
             if (slot == 0)
                 InGameUIManager.Instance.SetMainWeapon(data);
             else if (slot == 1)
-                InGameUIManager.Instance.SetSubWeapon(data.weaponIcon);
+                InGameUIManager.Instance.SetSubWeaponData(data);
             else if (slot == 2)
-                InGameUIManager.Instance.SetKnife(data.weaponIcon);
+                InGameUIManager.Instance.SetKnifeData(data);
         }
     }
 
@@ -1229,9 +1260,9 @@ public class PlayerItem : MonoBehaviour
                 if (slot == 0)
                     InGameUIManager.Instance.SetMainWeapon(weaponData);
                 else if (slot == 1)
-                    InGameUIManager.Instance.SetSubWeapon(weaponData.weaponIcon);
+                    InGameUIManager.Instance.SetSubWeaponData(weaponData);
                 else if (slot == 2)
-                    InGameUIManager.Instance.SetKnife(weaponData.weaponIcon);
+                    InGameUIManager.Instance.SetKnifeData(weaponData);
             }
         }
         else

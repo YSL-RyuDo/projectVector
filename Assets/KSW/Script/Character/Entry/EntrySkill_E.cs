@@ -79,6 +79,8 @@ public class EntrySkill_E : CharacterSkill
         if (!IsMine())
             return;
 
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) return;
+
         if (Keyboard.current == null)
             return;
 
@@ -119,7 +121,8 @@ public class EntrySkill_E : CharacterSkill
     {
         bool attackPressed =
             Mouse.current != null &&
-            Mouse.current.leftButton.wasPressedThisFrame;
+            (Mouse.current.leftButton.wasPressedThisFrame ||
+             (EntrySkill_X.IsLocalBladeMode && Mouse.current.rightButton.wasPressedThisFrame));
 
         bool qPressed =
             Keyboard.current != null &&
@@ -141,6 +144,7 @@ public class EntrySkill_E : CharacterSkill
 
     protected override void UseSkill()
     {
+        if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) return;
         if (!CanUsePurchasedSkill(SkillSlot.E))
             return;
 
@@ -168,6 +172,7 @@ public class EntrySkill_E : CharacterSkill
         float speedMultiplier,
         float revealRange)
     {
+        GetComponent<EntrySkillPresentation>()?.StealthConfirmed(active);
         if (active)
         {
             StartStealthFromServer(
@@ -469,6 +474,10 @@ public class EntrySkill_E : CharacterSkill
         if (Mathf.Approximately(alpha, _lastRemoteAlpha))
             return;
 
+        // Enemy concealment is binary at the server-provided reveal radius.
+        // Do not leave a visible fade outside it or replace a revealed enemy's toon material.
+        if (alpha > 0.01f && alpha < 0.999f && _lastRemoteAlpha >= 0)
+            alpha = Mathf.MoveTowards(_lastRemoteAlpha, alpha, Time.deltaTime * 10f);
         _lastRemoteAlpha = alpha;
 
         ApplyRemoteAlpha(alpha);
@@ -626,6 +635,14 @@ public class EntrySkill_E : CharacterSkill
             if (source == null)
                 source = renderer.sharedMaterials;
 
+            // Fully revealed characters must use the original shader, textures,
+            // lighting and render queue, not an opaque-looking transparent substitute.
+            if (alpha >= 0.999f)
+            {
+                renderer.sharedMaterials = source;
+                continue;
+            }
+
             Material[] runtime =
                 CreateRuntimeMaterialsIfNeeded(
                     i,
@@ -727,16 +744,27 @@ public class EntrySkill_E : CharacterSkill
         }
 
         Texture texture = null;
+        string textureProperty = null;
 
-        if (source.HasProperty("_BaseMap"))
+        bool toon = source.shader != null && source.shader.name.IndexOf("Toon", System.StringComparison.OrdinalIgnoreCase) >= 0;
+        if (toon && source.HasProperty("_MainTex"))
+        {
+            texture = source.GetTexture("_MainTex");
+            if (texture != null) textureProperty = "_MainTex";
+        }
+        if (texture == null && source.HasProperty("_BaseMap"))
         {
             texture =
                 source.GetTexture("_BaseMap");
+            if (texture != null) textureProperty = "_BaseMap";
         }
-        else if (source.HasProperty("_MainTex"))
+        // Unity Toon declares both slots, but its actual colour texture can live
+        // only in _MainTex. A declared but empty _BaseMap must not stop fallback.
+        if (texture == null && source.HasProperty("_MainTex"))
         {
             texture =
                 source.GetTexture("_MainTex");
+            if (texture != null) textureProperty = "_MainTex";
         }
 
         if (texture == null)
@@ -748,6 +776,8 @@ public class EntrySkill_E : CharacterSkill
                 "_BaseMap",
                 texture
             );
+            target.SetTextureScale("_BaseMap", source.GetTextureScale(textureProperty));
+            target.SetTextureOffset("_BaseMap", source.GetTextureOffset(textureProperty));
         }
 
         if (target.HasProperty("_MainTex"))
@@ -756,6 +786,8 @@ public class EntrySkill_E : CharacterSkill
                 "_MainTex",
                 texture
             );
+            target.SetTextureScale("_MainTex", source.GetTextureScale(textureProperty));
+            target.SetTextureOffset("_MainTex", source.GetTextureOffset(textureProperty));
         }
     }
 
@@ -771,7 +803,11 @@ public class EntrySkill_E : CharacterSkill
 
         Color color = Color.white;
 
-        if (source.HasProperty("_BaseColor"))
+        if (source.shader != null && source.shader.name.IndexOf("Toon", System.StringComparison.OrdinalIgnoreCase) >= 0 && source.HasProperty("_Color"))
+        {
+            color = source.GetColor("_Color");
+        }
+        else if (source.HasProperty("_BaseColor"))
         {
             color =
                 source.GetColor("_BaseColor");
@@ -963,6 +999,7 @@ public class EntrySkill_E : CharacterSkill
 
     private void OnDisable()
     {
+        if (_localTimeoutCoroutine != null) { StopCoroutine(_localTimeoutCoroutine); _localTimeoutCoroutine = null; }
         if (!_isStealth)
             return;
 

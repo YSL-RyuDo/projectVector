@@ -54,6 +54,9 @@ public class DreamForestPostProcessFeedback : MonoBehaviour
 
     private void Update()
     {
+        // Derive membership from the rendered view, not individual body-collider enter/exit events.
+        var view = Camera.main;
+        isInsideDreamForest = view && DreamForestPresentation.Inside(view.transform.position);
         if (vignette == null)
             return;
 
@@ -70,8 +73,9 @@ public class DreamForestPostProcessFeedback : MonoBehaviour
         }
         else if (isInsideDreamForest)
         {
-            targetColor = dreamColor;
-            targetIntensity = dreamIntensity;
+            // The depth-aware mist supplies visibility loss, not a purple screen tint.
+            targetColor = new Color(.64f, .72f, .88f, 1f);
+            targetIntensity = Mathf.Min(dreamIntensity, .08f);
         }
         else
         {
@@ -108,6 +112,8 @@ public class DreamForestPostProcessFeedback : MonoBehaviour
 
     public void ForceHide()
     {
+        var view = Camera.main;
+        if (view && DreamForestPresentation.Inside(view.transform.position)) return;
         isInsideDreamForest = false;
         hitTimer = 0f;
 

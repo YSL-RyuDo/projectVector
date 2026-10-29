@@ -16,6 +16,7 @@ public class EntrySkill_X : CharacterSkill
 
     [Header("Toenail Visual")]
     [SerializeField] private GameObject _toenailPrefab;
+    [SerializeField] private GameObject _impactPrefab;
     [SerializeField] private float _toenailLifeTime = 0.12f;
 
     [Header("Visual")]
@@ -150,10 +151,8 @@ public class EntrySkill_X : CharacterSkill
             return;
         }
 
-        if (Mouse.current.leftButton.wasPressedThisFrame)
-        {
-            TryFireBlade();
-        }
+        if (Mouse.current.rightButton.wasPressedThisFrame) TryFireBlade(true);
+        else if (Mouse.current.leftButton.wasPressedThisFrame) TryFireBlade(false);
     }
 
     private bool IsMine()
@@ -174,6 +173,7 @@ public class EntrySkill_X : CharacterSkill
 
     private void ActivateBladeUltimate()
     {
+        if (!CanUsePurchasedSkill(SkillSlot.X)) return;
         if (NetworkManager.Instance == null)
             return;
 
@@ -191,8 +191,10 @@ public class EntrySkill_X : CharacterSkill
         Debug.Log("[ENTRY BLADE ACTIVATE REQUEST]");
     }
 
-    private void TryFireBlade()
+    private void TryFireBlade(bool burst)
     {
+        var presentation = GetComponent<EntrySkillPresentation>();
+        if (presentation && !presentation.ReadyToFire) return;
         if (!_isBladeMode)
             return;
 
@@ -203,7 +205,7 @@ public class EntrySkill_X : CharacterSkill
             return;
 
         _nextFireTime =
-            Time.time + _fireInterval;
+            Time.time + (burst ? .4f : _fireInterval);
 
         Vector3 rayOrigin =
             _cameraTransform != null
@@ -253,7 +255,8 @@ public class EntrySkill_X : CharacterSkill
         NetworkManager.Instance.SendEntryBladeFire(
             dir,
             targetPlayerId,
-            hitPoint
+            hitPoint,
+            burst
         );
 
         Debug.Log(
@@ -272,6 +275,7 @@ public class EntrySkill_X : CharacterSkill
 
         _bladeCount =
             bladeCount;
+        GetComponent<EntrySkillPresentation>()?.SetBlades(active, bladeCount);
 
         if (IsMine())
             IsLocalBladeMode = active;
@@ -314,6 +318,7 @@ public class EntrySkill_X : CharacterSkill
 
         _isBladeMode = false;
         _bladeCount = 0;
+        GetComponent<EntrySkillPresentation>()?.SetBlades(false, 0);
 
         ClearFloatingToenails();
 
@@ -327,15 +332,17 @@ public class EntrySkill_X : CharacterSkill
     bool hit,
     int remainingBlades)
     {
-        Vector3 fireStart =
-            ConsumeOneFloatingToenailPosition();
+        var presentation = GetComponent<EntrySkillPresentation>();
+        Vector3 fireStart = presentation ? presentation.FireOrigin(start) : ConsumeOneFloatingToenailPosition();
+        presentation?.Fired(remainingBlades);
 
         SpawnToenailVisual(
             fireStart,
             end
         );
+        if (_impactPrefab != null && hit) Destroy(Instantiate(_impactPrefab, end, Quaternion.identity), .45f);
 
-        StartCoroutine(
+        if (presentation == null) StartCoroutine(
             BladeLineRoutine(
                 fireStart,
                 end,
@@ -352,6 +359,7 @@ public class EntrySkill_X : CharacterSkill
 
         if (_bladeCount <= 0)
         {
+            presentation?.SetBlades(false, 0);
             ClearFloatingToenails();
 
             if (IsMine())
@@ -404,11 +412,6 @@ public class EntrySkill_X : CharacterSkill
         lr.endColor =
             hit ? Color.cyan : Color.gray;
 
-        Vector3 jitter =
-            Random.insideUnitSphere *
-            _bladeSpreadVisual;
-
-        jitter.y = 0f;
 
         lr.SetPosition(
             0,
@@ -417,7 +420,7 @@ public class EntrySkill_X : CharacterSkill
 
         lr.SetPosition(
             1,
-            end + jitter
+            end
         );
 
         yield return new WaitForSeconds(
@@ -482,6 +485,8 @@ public class EntrySkill_X : CharacterSkill
 
     private void CreateFloatingToenails(int count)
     {
+        // The saved dual-hand rig owns the claws; retain the legacy fallback for older prefabs.
+        if (GetComponent<EntrySkillPresentation>()) return;
         ClearFloatingToenails();
 
         if (_toenailPrefab == null)
@@ -602,7 +607,7 @@ public class EntrySkill_X : CharacterSkill
             Mathf.Clamp(
                 count,
                 0,
-                5
+                6
             );
 
         for (int i = 0; i < count; i++)
@@ -667,7 +672,7 @@ public class EntrySkill_X : CharacterSkill
             Mathf.Clamp(
                 count,
                 0,
-                5
+                6
             );
 
         if (count <= 0)

@@ -5,34 +5,77 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Linq;
+using UnityEngine.Rendering.Universal;
 
 public sealed partial class RankedCaptureTest
 {
     bool DischargeEvidence => Environment.GetEnvironmentVariable("VECTOR_CAPTURE_DISCHARGE")=="1";
     bool dischargeCaptureReady;
     RenderTexture dischargeTarget;
+    Camera dischargeOverlay;
+    float[] evidenceLinear;
+    byte[] evidenceGamma;
     void CaptureDischargeFrame(Texture2D image)
     {
         // Render the running client's existing camera/HUD, including actual network events.
         // Hidden Windows swap chains return black screenshots; this bypasses only that swap chain.
         var camera=NetworkManager.Instance.MyPlayer?.GetComponent<PlayerCameraController>()?.PlayerCamera;
         if(!camera || !camera.enabled)return;
+        // Hidden capture surfaces do not schedule the minimap's normal render.
+        // Warm the main camera first and refresh this small target at 5 Hz.
+        if((PingEvidence || ReportEvidence) && frame>0 && frame%3==0 && MiniMapCamera.Instance && MiniMapCamera.Instance.Camera)
+            MiniMapCamera.Instance.Camera.Render();
+        CaptureCameraFrame(camera,image);
+    }
+    void CaptureCameraFrame(Camera camera,Texture2D image)
+    {
         if(!dischargeTarget)dischargeTarget=new RenderTexture(960,540,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB);
-        var canvases=FindObjectsByType<Canvas>(FindObjectsSortMode.None).Where(c=>c.isRootCanvas && c.renderMode==RenderMode.ScreenSpaceOverlay).ToArray();
+        if(!dischargeOverlay)
+        {
+            var overlayObject=new GameObject("EvidenceOverlayCamera");overlayObject.hideFlags=HideFlags.HideAndDontSave;
+            dischargeOverlay=overlayObject.AddComponent<Camera>();dischargeOverlay.enabled=false;
+            dischargeOverlay.orthographic=true;dischargeOverlay.orthographicSize=540;dischargeOverlay.nearClipPlane=.1f;dischargeOverlay.farClipPlane=10;
+            dischargeOverlay.allowMSAA=false;dischargeOverlay.allowHDR=false;dischargeOverlay.cullingMask=~0;dischargeOverlay.clearFlags=CameraClearFlags.SolidColor;
+            var overlayData=dischargeOverlay.GetUniversalAdditionalCameraData();
+            overlayData.renderPostProcessing=false;overlayData.renderShadows=false;
+            dischargeOverlay.transform.position=new Vector3(-10000,-10000,-10000);
+        }
+        if(evidenceLinear==null)
+        {
+            evidenceLinear=Enumerable.Range(0,256).Select(i=>QualitySettings.activeColorSpace==ColorSpace.Linear?Mathf.GammaToLinearSpace(i/255f):i/255f).ToArray();
+            evidenceGamma=Enumerable.Range(0,65536).Select(i=>(byte)Mathf.RoundToInt(255*(QualitySettings.activeColorSpace==ColorSpace.Linear?Mathf.LinearToGammaSpace(i/65535f):i/65535f))).ToArray();
+        }
+        dischargeOverlay.targetTexture=dischargeTarget;
+        var canvases=FindObjectsByType<Canvas>(FindObjectsSortMode.None).Where(c=>c.enabled && c.isRootCanvas && c.renderMode==RenderMode.ScreenSpaceOverlay).ToArray();
         var oldCameras=canvases.Select(c=>c.worldCamera).ToArray();
         var oldDistances=canvases.Select(c=>c.planeDistance).ToArray();
-        var prior=camera.targetTexture;var active=RenderTexture.active;
+        var active=RenderTexture.active;var prior=camera.targetTexture;
         try{
-            foreach(var canvas in canvases){canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=camera;canvas.planeDistance=.3f;}
-            camera.targetTexture=dischargeTarget;Canvas.ForceUpdateCanvases();camera.Render();RenderTexture.active=dischargeTarget;
-            image.ReadPixels(new Rect(0,0,960,540),0,0);image.Apply();
+            // Preserve normal overlay ordering: render world/viewmodel first, then
+            // authored UI with an orthographic pass. Moving SDF text to the near
+            // clip plane distorts its distance-field scale and is not equivalent.
+            foreach(var canvas in canvases){canvas.enabled=false;canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=dischargeOverlay;canvas.planeDistance=1;}
+            camera.targetTexture=dischargeTarget;camera.Render();RenderTexture.active=dischargeTarget;
+            image.ReadPixels(new Rect(0,0,960,540),0,0);image.Apply();var world=image.GetPixels32();
+            foreach(var canvas in canvases)canvas.enabled=true;
+            Canvas.ForceUpdateCanvases();
+            // Recover the actual UI coverage against two backgrounds, avoiding
+            // URP's independent-camera color clear and differing UI alpha modes.
+            // Both renders use the same live authored geometry and frame state.
+            dischargeOverlay.backgroundColor=Color.black;dischargeOverlay.Render();RenderTexture.active=dischargeTarget;
+            image.ReadPixels(new Rect(0,0,960,540),0,0);image.Apply();var black=image.GetPixels32();
+            dischargeOverlay.backgroundColor=Color.white;dischargeOverlay.Render();RenderTexture.active=dischargeTarget;
+            image.ReadPixels(new Rect(0,0,960,540),0,0);image.Apply();var white=image.GetPixels32();
+            for(int i=0;i<world.Length;i++)world[i]=new Color32(EvidenceComposite(world[i].r,black[i].r,white[i].r),EvidenceComposite(world[i].g,black[i].g,white[i].g),EvidenceComposite(world[i].b,black[i].b,white[i].b),255);
+            image.SetPixels32(world);image.Apply();
             File.WriteAllBytes(Path.Combine(frames,frame.ToString("D6")+".jpg"),image.EncodeToJPG(92));
             timeline.WriteLine(frame+","+DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());timeline.Flush();frame++;
         }finally{
             camera.targetTexture=prior;RenderTexture.active=active;
-            for(int i=0;i<canvases.Length;i++){canvases[i].renderMode=RenderMode.ScreenSpaceOverlay;canvases[i].worldCamera=oldCameras[i];canvases[i].planeDistance=oldDistances[i];}
+            for(int i=0;i<canvases.Length;i++){canvases[i].enabled=true;canvases[i].renderMode=RenderMode.ScreenSpaceOverlay;canvases[i].worldCamera=oldCameras[i];canvases[i].planeDistance=oldDistances[i];}
         }
     }
+    byte EvidenceComposite(byte world,byte black,byte white)=>evidenceGamma[Mathf.RoundToInt(65535*Mathf.Clamp01(evidenceLinear[black]+evidenceLinear[world]*Mathf.Clamp01(evidenceLinear[white]-evidenceLinear[black])))];
     IEnumerator CaptureDischargeEncounter(DronePlan plan,PlayerIdentity pilot,PlayerIdentity victim)
     {
         var me=NetworkManager.Instance.MyPlayer;

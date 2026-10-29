@@ -61,8 +61,7 @@ public class TESTPlayerItem : MonoBehaviour
         if (Keyboard.current.digit1Key.wasPressedThisFrame) { Switch(0); return; }
         if (Keyboard.current.digit2Key.wasPressedThisFrame) { Switch(1); return; }
         if (Keyboard.current.digit3Key.wasPressedThisFrame) { Switch(2); return; }
-        if (Keyboard.current.digit4Key.wasPressedThisFrame) { Switch(3); return; }
-        if (Keyboard.current.digit5Key.wasPressedThisFrame) { Switch(4); return; }
+        if (Keyboard.current.digit4Key.wasPressedThisFrame) { Switch(4); return; }
 
         if (Keyboard.current.rKey.wasPressedThisFrame)
         {

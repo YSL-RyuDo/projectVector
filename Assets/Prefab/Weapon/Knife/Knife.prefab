@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: -4037518297436315605}
   - component: {fileID: -1280585296039841392}
   - component: {fileID: 3222901139366912808}
+  - component: {fileID: 8981946550103986863}
   m_Layer: 10
   m_Name: Knife
   m_TagString: Untagged
@@ -47,6 +48,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8633c2b64b906848bd06add36e6a574, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponADS
+  sightReference: {fileID: 0}
   defaultHipPosition: {x: 0, y: 0, z: 0}
   defaultHipRotation: {x: 0, y: 0, z: 0}
   initiatorHip:
@@ -100,6 +102,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   attackCooldown: 0.5
+--- !u!114 &8981946550103986863
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8093135740156466454}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: deec8cbd48bc44642ad739d4d642c5c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FirstPersonKnifeGrip
+  handleCenter: {x: 0, y: -0.035, z: 0}
 --- !u!1001 &6358643601619097694
 PrefabInstance:
   m_ObjectHideFlags: 0

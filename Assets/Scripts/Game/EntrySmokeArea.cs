@@ -14,9 +14,6 @@ public class EntrySmokeArea : MonoBehaviour
     private uint _ownerPlayerId;
     private bool _ownerBuffUsed;
 
-    private readonly HashSet<PlayerOutline> _hiddenOutlines =
-        new HashSet<PlayerOutline>();
-
     public void Init(
         uint smokeId,
         uint ownerPlayerId,
@@ -47,49 +44,12 @@ public class EntrySmokeArea : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        TryHideOutline(other);
         TryApplyOwnerBuff(other);
     }
 
     private void OnTriggerStay(Collider other)
     {
-        TryHideOutline(other);
         TryApplyOwnerBuff(other);
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        TryRestoreOutline(other);
-    }
-
-    private void TryHideOutline(Collider other)
-    {
-        PlayerOutline outline =
-            other.GetComponentInParent<PlayerOutline>();
-
-        if (outline == null)
-            return;
-
-        if (_hiddenOutlines.Contains(outline))
-            return;
-
-        _hiddenOutlines.Add(outline);
-        outline.AddSmokeHide();
-    }
-
-    private void TryRestoreOutline(Collider other)
-    {
-        PlayerOutline outline =
-            other.GetComponentInParent<PlayerOutline>();
-
-        if (outline == null)
-            return;
-
-        if (!_hiddenOutlines.Contains(outline))
-            return;
-
-        _hiddenOutlines.Remove(outline);
-        outline.RemoveSmokeHide();
     }
 
     private void TryApplyOwnerBuff(Collider other)
@@ -135,14 +95,4 @@ public class EntrySmokeArea : MonoBehaviour
         );
     }
 
-    private void OnDestroy()
-    {
-        foreach (PlayerOutline outline in _hiddenOutlines)
-        {
-            if (outline != null)
-                outline.RemoveSmokeHide();
-        }
-
-        _hiddenOutlines.Clear();
-    }
 }

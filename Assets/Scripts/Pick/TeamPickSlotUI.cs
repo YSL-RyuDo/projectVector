@@ -19,6 +19,19 @@ public class TeamPickSlotUI : MonoBehaviour
     [SerializeField] private Color myNicknameColor = new Color(1f, 0.85f, 0f);
 
     private Sprite defaultSlotSprite;
+    private uint actionPlayer;
+    public void BindActions(System.Action<uint> exchange, System.Action share)
+    {
+        changeButton.onClick.AddListener(() => exchange(actionPlayer));
+        shareButton.onClick.AddListener(() => share());
+    }
+    public void SetActions(uint player, bool mine, bool locked, bool enabled, bool busy)
+    {
+        actionPlayer = player;
+        changeButton.gameObject.SetActive(!mine && locked);
+        shareButton.gameObject.SetActive(mine && locked);
+        changeButton.interactable = shareButton.interactable = enabled && !busy;
+    }
 
     private void Awake()
     {
@@ -102,9 +115,9 @@ public class TeamPickSlotUI : MonoBehaviour
         }
 
         if (changeButton != null)
-            changeButton.gameObject.SetActive(isLocked);
+            changeButton.gameObject.SetActive(isLocked && !isMe);
 
         if (shareButton != null)
-            shareButton.gameObject.SetActive(isLocked);
+            shareButton.gameObject.SetActive(isLocked && isMe);
     }
 }
