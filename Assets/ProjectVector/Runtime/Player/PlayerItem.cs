@@ -30,6 +30,8 @@ public class PlayerItem : MonoBehaviour
 
     private PlayerIdentity _playerIdentity;
     private bool defaultItemsInitialized;
+    private readonly ProjectVector.Core.EquipmentVisibilityState visibility = new();
+    public bool IsHeldWeaponVisible => visibility.IsVisible && GetComponent<PlayerHP>()?.IsDead != true && GetComponent<PlayerDeathController>()?.IsDead != true;
 
     private bool isReloading;
     private Coroutine reloadCoroutine;
@@ -105,7 +107,7 @@ public class PlayerItem : MonoBehaviour
         // Inventory/view acknowledgements may refresh a held model during a skill.
         // Preserve those data updates, but never render a gun over the drone rig.
         var drone = GetComponent<InitiatorSkill_Q>();
-        if (drone != null && drone.BlocksWeaponPresentation) SetWeaponVisibility(drone.ShowTransitionWeapon);
+        if (drone != null) SetWeaponVisibility(!drone.BlocksWeaponPresentation || drone.ShowTransitionWeapon, drone);
     }
 
     // Internal completion of an already queued request, not a new input action.
@@ -383,6 +385,7 @@ public class PlayerItem : MonoBehaviour
         if (currentIndex == index)
         {
             items[index].OnEquip();
+            ApplySelectedWeaponVisibility();
             RefreshLocalInventoryHUD();
             return;
         }
@@ -410,6 +413,7 @@ public class PlayerItem : MonoBehaviour
         SwitchWeaponVisualOnlyBySlot(currentIndex);
 
         items[currentIndex]?.OnEquip();
+        ApplySelectedWeaponVisibility();
 
         Weapon weapon = items[currentIndex].GetComponent<Weapon>();
         PlayerMovement playerMovement = GetComponent<PlayerMovement>();
@@ -443,31 +447,27 @@ public class PlayerItem : MonoBehaviour
         }
     }
 
-    public void SetWeaponVisibility(bool visibility)
+    public void SetWeaponVisibility(bool visible, object requester = null)
     {
-        if (currentIndex < 0 || currentIndex >= items.Length)
-            return;
-
-        if (items[currentIndex] == null)
-            return;
-
-        if (visibility)
+        bool changed = visibility.SetVisibleFor(requester ?? this, visible);
+        if (IsHeldWeaponVisible && currentIndex == 4 && playerSpike != null && !playerSpike.hasSpike)
         {
-            if (currentIndex == 4 && playerSpike != null && !playerSpike.hasSpike)
-            {
-                int fallbackIndex = FindFirstAvailableWeaponSlotExceptSpike();
-
-                if (fallbackIndex != -1)
-                {
-                    SwitchWeaponVisualOnlyBySlot(fallbackIndex);
-                    return;
-                }
-            }
+            int fallback = FindFirstAvailableWeaponSlotExceptSpike();
+            if (fallback != -1) { SwitchWeaponVisualOnlyBySlot(fallback); return; }
         }
+        ApplySelectedWeaponVisibility();
+        if (changed) RefreshWeaponHolderModel();
+    }
 
-        items[currentIndex].gameObject.SetActive(visibility);
-        if (tpWeaponObjects[currentIndex] != null)
-            tpWeaponObjects[currentIndex].SetActive(visibility);
+    private void ApplySelectedWeaponVisibility()
+    {
+        bool visible = IsHeldWeaponVisible;
+        for (int i = 0; i < items.Length; i++)
+        {
+            bool active = visible && i == currentIndex;
+            if (items[i] && items[i].gameObject.activeSelf != active) items[i].gameObject.SetActive(active);
+            if (tpWeaponObjects[i] && tpWeaponObjects[i].activeSelf != active) tpWeaponObjects[i].SetActive(active);
+        }
     }
 
     private int FindFirstAvailableWeaponSlotExceptSpike()
@@ -496,14 +496,14 @@ public class PlayerItem : MonoBehaviour
         for (int i = 0; i < items.Length; i++)
         {
             if (items[i] != null)
-                items[i].gameObject.SetActive(i == slot);
+                items[i].gameObject.SetActive(i == slot && IsHeldWeaponVisible);
         }
 
         // 기존 tpWeaponObjects는 스파이크 등 레거시용
         for (int i = 0; i < tpWeaponObjects.Length; i++)
         {
             if (tpWeaponObjects[i] != null)
-                tpWeaponObjects[i].SetActive(i == slot);
+                tpWeaponObjects[i].SetActive(i == slot && IsHeldWeaponVisible);
         }
 
         // ★ 실제 3인칭 WeaponHolder 갱신
@@ -801,15 +801,10 @@ public class PlayerItem : MonoBehaviour
 
     public void EnableOnRespawn()
     {
+        visibility.ResetForNewLife();
         enabled = true;
-
-        if (currentIndex >= 0 && currentIndex < items.Length)
-        {
-            if (items[currentIndex] != null)
-                items[currentIndex].gameObject.SetActive(true);
-            if (tpWeaponObjects[currentIndex] != null)
-                tpWeaponObjects[currentIndex].SetActive(true);
-        }
+        ApplySelectedWeaponVisibility();
+        RefreshWeaponHolderModel();
     }
 
     public void ApplyWeaponSwitchFromServer(int weaponId)
@@ -832,14 +827,15 @@ public class PlayerItem : MonoBehaviour
             if (weapon == null)
                 continue;
 
-            bool active = weapon.GetWeaponId() == weaponId;
+            bool selected = weapon.GetWeaponId() == weaponId;
+            bool active = selected && IsHeldWeaponVisible;
 
             items[i].gameObject.SetActive(active);
 
             if (tpWeaponObjects[i] != null)
                 tpWeaponObjects[i].SetActive(active);
 
-            if (active)
+            if (selected)
                 foundSlot = i;
         }
 
@@ -1018,6 +1014,7 @@ public class PlayerItem : MonoBehaviour
         int knifeReserveAmmo,
         int knifeSkinId)
     {
+        visibility.ResetForNewLife();
         CancelReload(false);
 
         remoteIsReloading = false;
@@ -1384,7 +1381,7 @@ public class PlayerItem : MonoBehaviour
             StopReloadAnimation(reloadingWeaponObject);
 
             if (restoreWeapon && !reloadingWeaponObject.activeSelf)
-                reloadingWeaponObject.SetActive(true);
+                reloadingWeaponObject.SetActive(IsHeldWeaponVisible);
         }
 
         if (PracticePlayerContext.For(this) == null && reloadingWeaponId >= 0 && NetworkManager.Instance != null)
@@ -1450,7 +1447,7 @@ public class PlayerItem : MonoBehaviour
         Item reloadItem = items[slot];
 
         if (!reloadItem.gameObject.activeSelf)
-            reloadItem.gameObject.SetActive(true);
+            reloadItem.gameObject.SetActive(IsHeldWeaponVisible);
 
         if (isReloadingValue)
             PlayReloadAnimation(reloadItem);
@@ -1473,7 +1470,7 @@ public class PlayerItem : MonoBehaviour
             return;
 
         if (!currentItem.gameObject.activeSelf)
-            currentItem.gameObject.SetActive(true);
+            currentItem.gameObject.SetActive(IsHeldWeaponVisible);
 
         Weapon currentWeapon = currentItem.GetComponent<Weapon>() ?? currentItem.GetComponentInChildren<Weapon>(true);
 

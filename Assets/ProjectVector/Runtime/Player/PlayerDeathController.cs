@@ -98,7 +98,7 @@ public class PlayerDeathController : MonoBehaviour
             characterController.enabled = false;
 
         if (weaponViewController != null)
-            weaponViewController.HideAll();
+            weaponViewController.HideAll(this);
 
         // 사망 애니메이션 재생
         if (animator != null)
@@ -185,7 +185,7 @@ public class PlayerDeathController : MonoBehaviour
             playerSpike.enabled = isMine;
 
         if (weaponViewController != null)
-            weaponViewController.RestoreLastView();
+            weaponViewController.ResetVisibilityForRespawn();
 
         if (cameraController != null)
             cameraController.RefreshViewVisuals();

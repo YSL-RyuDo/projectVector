@@ -50,11 +50,11 @@ public sealed class SentinelCastMotion : MonoBehaviour
         // Remote view uses WeaponHolderModel's mirror, not PlayerItem's original weapon objects.
         if(!mine){
             var view=GetComponent<PlayerWeaponViewController>();
-            if(lowerBlend>=.99f && !remoteViewHidden){view?.HideAll();remoteViewHidden=true;}
-            else if(lowerBlend<.99f && remoteViewHidden){if(GetComponent<PlayerHP>()?.IsDead!=true)view?.RestoreLastView();remoteViewHidden=false;}
+            if(lowerBlend>=.99f && !remoteViewHidden){view?.HideAll(this);remoteViewHidden=true;}
+            else if(lowerBlend<.99f && remoteViewHidden){if(GetComponent<PlayerHP>()?.IsDead!=true)view?.RestoreLastView(this);remoteViewHidden=false;}
         }
         if(item && (lowerBlend>0 || controlledWeapon)){
-            if(GetComponent<PlayerHP>()?.IsDead!=true)item.SetWeaponVisibility(lowerBlend<.99f);
+            if(GetComponent<PlayerHP>()?.IsDead!=true)item.SetWeaponVisibility(lowerBlend<.99f, this);
             controlledWeapon=lowerBlend>0;
             int index=item.CurrentIndex;
             if(mine && index>=0 && index<item.Items.Length && item.Items[index]){
@@ -77,5 +77,5 @@ public sealed class SentinelCastMotion : MonoBehaviour
     }
     private void Restore(){skillMotion?.Restore(FirstPersonSkillMotion.Motion.Drone);if(weaponPoseApplied){if(loweredWeapon){loweredWeapon.localPosition=weaponPosition;loweredWeapon.localRotation=weaponRotation;}weaponPoseApplied=false;}if(!applied)return;if(upper)upper.localRotation=upperRotation;if(forearm)forearm.localRotation=foreRotation;if(hand)hand.localRotation=handRotation;applied=false;}
     private void RestoreBodyVisibility(){if(!bodyHidden)return;for(int i=0;i<worldBody.Length;i++)if(worldBody[i])worldBody[i].forceRenderingOff=savedVisibility[i];bodyHidden=false;}
-    private void OnDisable(){Restore();RestoreBodyVisibility();if(GetComponent<PlayerHP>()?.IsDead!=true){if(controlledWeapon)GetComponent<PlayerItem>()?.SetWeaponVisibility(true);if(remoteViewHidden)GetComponent<PlayerWeaponViewController>()?.RestoreLastView();}controlledWeapon=remoteViewHidden=false;remotePhase=sentPhase=0;lowerBlend=0;blend=releaseUntil=burstUntil=0;if(heldDevice)heldDevice.gameObject.SetActive(false);if(overchargeBurst)overchargeBurst.gameObject.SetActive(false);}
+    private void OnDisable(){Restore();RestoreBodyVisibility();if(GetComponent<PlayerHP>()?.IsDead!=true){if(controlledWeapon)GetComponent<PlayerItem>()?.SetWeaponVisibility(true, this);if(remoteViewHidden)GetComponent<PlayerWeaponViewController>()?.RestoreLastView(this);}controlledWeapon=remoteViewHidden=false;remotePhase=sentPhase=0;lowerBlend=0;blend=releaseUntil=burstUntil=0;if(heldDevice)heldDevice.gameObject.SetActive(false);if(overchargeBurst)overchargeBurst.gameObject.SetActive(false);}
 }

@@ -145,7 +145,7 @@ public class LoginUI : MonoBehaviour
         if (!isLoginSuccess)
             return;
 
-        SceneManager.LoadScene("Lobby");
+        SceneNavigation.Load(ProjectVector.Core.ProjectScene.Lobby);
     }
 
     public void OnClickClosePopup()
@@ -288,5 +288,9 @@ public class LoginUI : MonoBehaviour
                 idInput.ActivateInputField();
             }
         }
+    }
+    private void OnDestroy()
+    {
+        if (NetworkManager.Instance != null) NetworkManager.Instance.ClearLoginUI(this);
     }
 }

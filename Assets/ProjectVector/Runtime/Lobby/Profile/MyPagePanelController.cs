@@ -568,4 +568,8 @@ public class MyPagePanelController : MonoBehaviour
     // Temporary model names stay in the white title until formal character names are decided.
     private static string CharacterName(int index) => new[] { "Casual1", "PicoChan", "UnityChan", "UnityChanSSU" }[Mathf.Clamp(index, 0, 3)];
     private static string CharacterRole(int index) => new[] { "이니시에이터", "컨트롤러", "센티널", "엔트리" }[Mathf.Clamp(index, 0, 3)];
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
 }

@@ -18,10 +18,11 @@ public class PlayerWeaponViewController : MonoBehaviour
     private WeaponViewMode lastViewMode =
         WeaponViewMode.ThirdPerson;
 
-    private bool hidden = true;
+    private readonly ProjectVector.Core.EquipmentVisibilityState visibility = new();
 
     private void Awake()
     {
+        visibility.SetVisibleFor(this, false);
         EnsureThirdPersonWeaponHolder();
 
         // 소유권과 시점이 확정되기 전에는 둘 다 숨긴다.
@@ -31,34 +32,40 @@ public class PlayerWeaponViewController : MonoBehaviour
 
     public void ShowFirstPerson()
     {
-        hidden = false;
+        visibility.SetVisibleFor(this, true);
         lastViewMode = WeaponViewMode.FirstPerson;
 
         ApplyViewMode();
     }
     public void ShowThirdPerson()
     {
-        hidden = false;
+        visibility.SetVisibleFor(this, true);
         lastViewMode = WeaponViewMode.ThirdPerson;
 
         ApplyViewMode();
         RefreshThirdPersonWeapon();
     }
-    public void HideAll()
+    public void HideAll(object requester = null)
     {
-        hidden = true;
+        visibility.SetVisibleFor(requester ?? this, false);
         ApplyViewMode();
     }
 
-    public void RestoreLastView()
+    public void RestoreLastView(object requester = null)
     {
-        hidden = false;
+        visibility.SetVisibleFor(requester ?? this, true);
+        ApplyViewMode();
+    }
+
+    public void ResetVisibilityForRespawn()
+    {
+        visibility.ResetForNewLife();
         ApplyViewMode();
     }
 
     public void ResetToThirdPerson()
     {
-        hidden = false;
+        visibility.SetVisibleFor(this, true);
         lastViewMode = WeaponViewMode.ThirdPerson;
 
         ApplyViewMode();
@@ -66,7 +73,7 @@ public class PlayerWeaponViewController : MonoBehaviour
 
     public void ResetToFirstPerson()
     {
-        hidden = false;
+        visibility.SetVisibleFor(this, true);
         lastViewMode = WeaponViewMode.FirstPerson;
 
         ApplyViewMode();
@@ -74,7 +81,7 @@ public class PlayerWeaponViewController : MonoBehaviour
 
     private void ApplyViewMode()
     {
-        if (hidden)
+        if (!visibility.IsVisible)
         {
             SetHolderActive(
                 firstPersonWeaponHolder,

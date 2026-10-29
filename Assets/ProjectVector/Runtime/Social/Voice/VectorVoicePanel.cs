@@ -124,10 +124,10 @@ public sealed class VectorVoicePanel : MonoBehaviour
         panel.SetActive(true); Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
     }
     public static bool ShouldShow(string scene, bool authenticated, bool temporaryRoomVisible, bool privateRoomVisible) =>
-        authenticated && (scene == "Game_TestVersion" || (scene == "Lobby" && (temporaryRoomVisible || privateRoomVisible)));
+        ProjectVector.Core.SceneCatalog.CanShowVoice(scene, authenticated, true, temporaryRoomVisible, privateRoomVisible);
 
     public static bool ShouldShowContext(string scene, bool authenticated, bool gameplayVisible, bool readyRoom, bool privateRoom) =>
-        authenticated && (scene == "Game_TestVersion" ? gameplayVisible : scene == "Lobby" && (readyRoom || privateRoom));
+        ProjectVector.Core.SceneCatalog.CanShowVoice(scene, authenticated, gameplayVisible, readyRoom, privateRoom);
 
     private bool RefreshVisibility()
     {
@@ -138,7 +138,7 @@ public sealed class VectorVoicePanel : MonoBehaviour
             network && network.CurrentLobbyRoomChatKind == LobbyRoomChatKind.ReadyRoom && partyView && partyView.activeInHierarchy,
             network && network.CurrentLobbyRoomChatKind == LobbyRoomChatKind.PrivateRoom && privateRoomView && privateRoomView.activeInHierarchy);
         if (openButton) openButton.gameObject.SetActive(show);
-        if (partyButton) partyButton.gameObject.SetActive(show && SceneManager.GetActiveScene().name == "Lobby");
+        if (partyButton) partyButton.gameObject.SetActive(show && SceneNavigation.Current == ProjectVector.Core.ProjectScene.Lobby);
         if (!show)
         {
             Close();

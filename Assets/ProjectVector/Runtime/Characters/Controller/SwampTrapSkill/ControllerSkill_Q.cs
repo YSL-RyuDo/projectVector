@@ -67,14 +67,14 @@ public class ControllerSkill_Q : CharacterSkill
     private void LateUpdate()
     {
         if (!IsMine || !IsCasting) return;
-        GetComponent<PlayerItem>()?.SetWeaponVisibility(false); _hidden = true;
+        GetComponent<PlayerItem>()?.SetWeaponVisibility(false, this); _hidden = true;
     }
     public void Cancel()
     {
         if (!IsCasting && !_hidden) return;
         IsCasting = false; _motion?.ResetPose();
         if (_hidden && GetComponent<PlayerHP>()?.IsDead != true && GetComponent<PlayerDeathController>()?.IsDead != true)
-            GetComponent<PlayerItem>()?.SetWeaponVisibility(true);
+            GetComponent<PlayerItem>()?.SetWeaponVisibility(true, this);
         _hidden = false;
     }
     private void OnDisable() => Cancel();

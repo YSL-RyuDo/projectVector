@@ -433,7 +433,7 @@ public class PlayerSpike : MonoBehaviour
         if (playerItem != null)
         {
             if (!canControl) playerItem.CancelReload(false);
-            playerItem.SetWeaponVisibility(restore);
+            playerItem.SetWeaponVisibility(restore, this);
         }
 
         if (playerMove != null)

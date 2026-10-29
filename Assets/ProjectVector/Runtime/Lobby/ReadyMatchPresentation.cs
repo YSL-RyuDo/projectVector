@@ -27,7 +27,7 @@ public sealed class ReadyMatchPresentation : MonoBehaviour
         yield return new WaitForSecondsRealtime(1.2f);
         var net=NetworkManager.Instance;
         if(token==acceptedToken && net!=null && net.IsConnected && net.IsAuthenticated)
-            SceneManager.LoadSceneAsync("Game_TestVersion");
+            SceneNavigation.LoadAsync(ProjectVector.Core.ProjectScene.Match);
         entering=null;
     }
     void OnDisable() { if(entering!=null)StopCoroutine(entering);entering=null; }

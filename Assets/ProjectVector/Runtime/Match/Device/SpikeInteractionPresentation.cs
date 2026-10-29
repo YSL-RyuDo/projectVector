@@ -63,7 +63,6 @@ public sealed class SpikeInteractionPresentation : MonoBehaviour
         {
             recovering=false;
             if (!shown && source && equipSound && NetworkManager.Instance?.ReconnectBusy != true) source.PlayOneShot(equipSound, .5f);
-            inventory?.SetWeaponVisibility(false);
             if(action==1)
             {
                 int key=elapsed<2.77f?-1:0;
@@ -83,8 +82,6 @@ public sealed class SpikeInteractionPresentation : MonoBehaviour
                 SampleRecovery(thirdPerson,recoveryTime);
                 if(recoveryTime>=StandRecoveryDuration)recovering=false;
             }
-            if (shown && inventory && GetComponent<PlayerHP>()?.IsDead != true && GetComponent<PlayerDeathController>()?.IsDead != true)
-                inventory.SetWeaponVisibility(true);
             remoteAction = 0;
             lastInput = -1;
         }
@@ -94,10 +91,10 @@ public sealed class SpikeInteractionPresentation : MonoBehaviour
             GameplayActionPolicy.CanAct(inventory, GameplayAction.WeaponChange, false);
         if(IsCarryingDevice)
         {
-            inventory.SetWeaponVisibility(false);
             Sample(firstPerson, 1, .65f);
             firstPerson.device.GetComponent<SpikeDeviceVisual>()?.RenderHeld(Time.unscaledTime);
         }
+        inventory?.SetWeaponVisibility(action == 0 && !IsCarryingDevice, this);
         IsPresenting = action != 0; shown = IsPresenting;suppressRecovery=false;
     }
     static void Restore(Rig rig)
@@ -219,7 +216,7 @@ public sealed class SpikeInteractionPresentation : MonoBehaviour
     {
         Hide(firstPerson); Hide(thirdPerson);
         if(shown && inventory && GetComponent<PlayerHP>()?.IsDead != true && GetComponent<PlayerDeathController>()?.IsDead != true)
-            inventory.SetWeaponVisibility(true);
+            inventory.SetWeaponVisibility(true, this);
         remoteAction=0; recovering=false;suppressRecovery=false;lastInput=-1; shown=false;IsPresenting=false;IsCarryingDevice=false;
     }
 }

@@ -96,4 +96,8 @@ public class ProfilePanelController : MonoBehaviour
             expSlider.value = current;
         }
     }
+    private void OnDestroy()
+    {
+        if (NetworkManager.Instance != null) NetworkManager.Instance.ClearProfilePanelController(this);
+    }
 }

@@ -36,6 +36,22 @@ public class StorePanelUI : MonoBehaviour
 
     [SerializeField] private LoadoutSummaryUI loadoutSummary;
     private int currentCredits = 0;
+    private TeamPurchaseState purchaseState;
+
+    private void OnEnable()
+    {
+        var next = NetworkManager.Instance != null ? NetworkManager.Instance.Purchases : null;
+        if (ReferenceEquals(purchaseState, next)) return;
+        UnbindPurchases();
+        purchaseState = next;
+        if (purchaseState != null) purchaseState.CreditsReceived += SetCreditDirect;
+    }
+
+    private void UnbindPurchases()
+    {
+        if (purchaseState != null) purchaseState.CreditsReceived -= SetCreditDirect;
+        purchaseState = null;
+    }
 
     private void Awake()
     {
@@ -54,6 +70,8 @@ public class StorePanelUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        // Hidden shops still receive purchase results; scene destruction detaches them.
+        UnbindPurchases();
         if (Instance == this)
             Instance = null;
 

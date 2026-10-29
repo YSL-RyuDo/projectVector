@@ -42,4 +42,9 @@ public class LobbyManager : MonoBehaviour
     {
         if (!Input.GetKeyDown(KeyCode.Escape)) return;
     }
+    private void OnDestroy()
+    {
+        if (NetworkManager.Instance != null) NetworkManager.Instance.ClearLobbyManager(this);
+        if (Instance == this) Instance = null;
+    }
 }

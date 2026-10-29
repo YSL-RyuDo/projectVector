@@ -210,7 +210,7 @@ public class WeaponHolderModel : MonoBehaviour
                 continue;
 
             myHolderModels[i].SetActive(
-                i == activeIndex
+                i == activeIndex && playerItem.IsHeldWeaponVisible
             );
         }
     }

@@ -89,8 +89,8 @@ public class InitiatorSkill_C : CharacterSkill
     private void LateUpdate()
     {
         var item=GetComponent<PlayerItem>();
-        if(BlocksActions){item?.SetWeaponVisibility(_rig && _rig.WeaponVisible);_hidWeapon=true;}
-        else if(_hidWeapon){_hidWeapon=false;if(GetComponent<PlayerHP>()?.IsDead!=true)item?.SetWeaponVisibility(true);}
+        if(BlocksActions){item?.SetWeaponVisibility(_rig && _rig.WeaponVisible, this);_hidWeapon=true;}
+        else if(_hidWeapon){_hidWeapon=false;if(GetComponent<PlayerHP>()?.IsDead!=true)item?.SetWeaponVisibility(true, this);}
         if(!IsMine() || !_aiming || !Ready || !_lineRenderer)return;
         Vector3 start=ReleasePosition,velocity=GetThrowVelocity(),previous=start;
         _lineRenderer.useWorldSpace=true;_lineRenderer.startWidth=_lineRenderer.endWidth=_trajectoryWidth;
@@ -114,7 +114,7 @@ public class InitiatorSkill_C : CharacterSkill
         if((_aiming||_throwing) && IsMine())NetworkManager.Instance.SendScannerGesture(0);
         _aiming=_throwing=false;_queuedSlot=-1;_rig?.ResetPresentation();HideTrajectory();
         if(_ownsLocal){IsLocalScannerAiming=false;_ownsLocal=false;}
-        if(was && GetComponent<PlayerHP>()?.IsDead!=true)GetComponent<PlayerItem>()?.SetWeaponVisibility(true);
+        if(was && GetComponent<PlayerHP>()?.IsDead!=true)GetComponent<PlayerItem>()?.SetWeaponVisibility(true, this);
         _hidWeapon=false;
     }
     private void OnDisable()=>ResetCast();

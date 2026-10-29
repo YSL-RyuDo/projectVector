@@ -65,12 +65,12 @@ public class InitiatorSkill_X : CharacterSkill
     public void PlayUltimateEffect(uint[] ids, Vector3 direction) => ConfirmBegin();
     private void LateUpdate()
     {
-        if (IsCasting) { GetComponent<PlayerItem>()?.SetWeaponVisibility(_gesture && _gesture.WeaponVisible); _hidWeapon = true; }
+        if (IsCasting) { GetComponent<PlayerItem>()?.SetWeaponVisibility(_gesture && _gesture.WeaponVisible, this); _hidWeapon = true; }
         else if (_hidWeapon) { _hidWeapon = false; RestoreWeapon(); }
     }
     private void RestoreWeapon()
     {
-        if (GetComponent<PlayerHP>()?.IsDead != true) GetComponent<PlayerItem>()?.SetWeaponVisibility(true);
+        if (GetComponent<PlayerHP>()?.IsDead != true) GetComponent<PlayerItem>()?.SetWeaponVisibility(true, this);
     }
     public void ResetCast()
     {

@@ -146,6 +146,6 @@ public sealed class PracticeRangeController : MonoBehaviour
     public void ReturnToLobby()
     {
         spawner.StopTraining(); Time.timeScale = 1; Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
-        SceneManager.LoadScene(NetworkManager.Instance != null && NetworkManager.Instance.IsAuthenticated ? "Lobby" : "Login");
+        SceneNavigation.Load(NetworkManager.Instance != null && NetworkManager.Instance.IsAuthenticated ? ProjectVector.Core.ProjectScene.Lobby : ProjectVector.Core.ProjectScene.Login);
     }
 }

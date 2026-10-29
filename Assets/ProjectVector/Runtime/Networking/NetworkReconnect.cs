@@ -20,7 +20,7 @@ public partial class NetworkManager
     {
         string scene=SceneManager.GetActiveScene().name;
         if (!ReconnectBusy && IsAuthenticated && !IsConnected && reconnectRoster != null &&
-            (scene == "Game_TestVersion" || scene == "Result" || scene == "RankResult")) RetryReconnect();
+            ProjectVector.Core.SceneCatalog.CanReconnect(scene)) RetryReconnect();
         if (!ReconnectBusy) return;
         if (MyPlayer != null) {
             var movement=MyPlayer.GetComponent<PlayerMovement>();
@@ -95,7 +95,7 @@ public partial class NetworkManager
         client.Close(); ReconnectBusy = false; IsAuthenticated = false;
         reconnectRoster = null; reconnectPassword = null; reconnectAccount = null;
         lock (packetQueue) packetQueue.Clear();
-        SceneManager.LoadScene("Login");
+        SceneNavigation.Load(ProjectVector.Core.ProjectScene.Login);
         var connection=NewReconnectTransport();
         Task.Run(() => connection.Connect(host,port));
     }
@@ -141,7 +141,7 @@ public partial class NetworkManager
                 if(movement!=null) movement.CanMove=hp!=null && !hp.IsDead;
             }
             if (reconnectPhase==0) GameController.Instance?.EnterPickPhase();
-            else if (SceneManager.GetActiveScene().name == "Game_TestVersion") GameController.Instance?.EnterPlayingPhase();
+            else if (SceneNavigation.Current == ProjectVector.Core.ProjectScene.Match) GameController.Instance?.EnterPlayingPhase();
             else GameController.Instance?.EnterOutsideGamePhase();
             if (MyPlayer && MyPlayer.GetComponent<PlayerHP>()?.IsDead == true) BeginLocalCombatReport();
             Debug.Log("[RECONNECT] Complete; same identity and authoritative state restored.");
@@ -153,7 +153,7 @@ public partial class NetworkManager
     IEnumerator LoadReconnectScene()
     {
         lock(packetQueue) packetQueue.Clear();
-        var op=SceneManager.LoadSceneAsync("Game_TestVersion");
+        var op=SceneNavigation.LoadAsync(ProjectVector.Core.ProjectScene.Match);
         while(!op.isDone) yield return null;
         yield return null;
         GameController.Instance?.EnterLoadingPhase();

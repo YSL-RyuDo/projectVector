@@ -69,7 +69,7 @@ public class InitiatorSkill_Q : CharacterSkill
             _returnPending = IsLocalReturning = false;
             _queuedWeaponSlot = -1;
             IsLocalPreparing = false;
-            if (IsAlive()) { _playerItem?.TrySelectWeapon(slot); _playerItem?.SetWeaponVisibility(true); }
+            if (IsAlive()) { _playerItem?.TrySelectWeapon(slot); _playerItem?.SetWeaponVisibility(true, this); }
             if (!_isDroneMode) DroneHUDUI.Instance?.SetVisible(false);
         }
 
@@ -147,7 +147,7 @@ public class InitiatorSkill_Q : CharacterSkill
         if (_launchSequence != null) { StopCoroutine(_launchSequence); _launchSequence = null; }
         _isPreparing = _deployPending = IsLocalPreparing = false;
         _launchRig?.SetPrepared(false);
-        if (IsAlive() && !_returnPending) _playerItem?.SetWeaponVisibility(true);
+        if (IsAlive() && !_returnPending) _playerItem?.SetWeaponVisibility(true, this);
         if (!_isDroneMode) DroneHUDUI.Instance?.SetVisible(false);
     }
 
@@ -355,7 +355,7 @@ public class InitiatorSkill_Q : CharacterSkill
         if (_playerItem != null)
         {
             if (active) _playerItem.CancelReload(false);
-            _playerItem.SetWeaponVisibility(restore && !_returnPending);
+            _playerItem.SetWeaponVisibility(restore && !_returnPending, this);
         }
 
         if (DroneModeUIController.Instance != null)

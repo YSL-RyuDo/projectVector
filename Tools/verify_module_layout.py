@@ -23,6 +23,13 @@ def verify(pure_move=False):
             assert hashlib.sha256(path.read_bytes()).hexdigest() == record['sha256'], f'Unexpected code change: {path}'
     for directory in ['Assets/Scripts', 'Assets/Editor', 'Assets/KSW', 'Assets/Prefab']:
         assert not list((ROOT/directory).rglob('*.cs')), f'Owned source outside modules: {directory}'
+    runtime = ROOT / 'Assets/ProjectVector/Runtime'
+    core = json.loads((runtime/'Core/ProjectVector.Core.asmdef').read_text(encoding='utf-8'))
+    assert core['noEngineReferences'] and not core['references'], 'Core must remain independent of Unity/UI'
+    for source in runtime.rglob('*.cs'):
+        if source.name == 'SceneNavigation.cs':
+            continue
+        assert not re.search(rb'\bSceneManager\s*\.\s*LoadScene(?:Async)?\s*\(', source.read_bytes()), f'Scene navigation bypass: {source}'
     print(f'MODULE_LAYOUT_PASS: {len(records)} scripts, unchanged GUIDs, no source copies in old folders')
 
 

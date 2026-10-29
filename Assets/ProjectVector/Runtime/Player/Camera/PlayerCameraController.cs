@@ -188,7 +188,7 @@ public class PlayerCameraController : MonoBehaviour
         {
             // Show the authored world body, never a duplicate prefab or FPS arms.
             deathController?.SetModelVisible(true);
-            weaponViewController?.HideAll();
+            weaponViewController?.HideAll(this);
             return;
         }
 
@@ -197,12 +197,12 @@ public class PlayerCameraController : MonoBehaviour
         {
             if (weaponViewController != null)
             {
-                weaponViewController.HideAll();
+                weaponViewController.HideAll(this);
             }
 
             if (playerItem != null)
             {
-                playerItem.SetWeaponVisibility(false);
+                playerItem.SetWeaponVisibility(false, this);
             }
 
             if (deathController != null)
@@ -216,11 +216,12 @@ public class PlayerCameraController : MonoBehaviour
         // 살아 있는 플레이어의 현재 무기 프리팹을 활성화한다.
         if (playerItem != null)
         {
-            playerItem.SetWeaponVisibility(true);
+            playerItem.SetWeaponVisibility(true, this);
         }
 
         if (weaponViewController != null)
         {
+            weaponViewController.RestoreLastView(this);
             if (firstPersonView)
             {
                 // 내 캐릭터 또는 현재 관전 대상
@@ -258,7 +259,7 @@ public class PlayerCameraController : MonoBehaviour
         RefreshViewVisuals();
         var drone = GetComponent<InitiatorSkill_Q>();
         if (!active && drone != null && drone.BlocksWeaponPresentation)
-            playerItem?.SetWeaponVisibility(drone.ShowTransitionWeapon);
+            playerItem?.SetWeaponVisibility(drone.ShowTransitionWeapon, drone);
     }
 
     public void SetFOV(float fov)

@@ -84,7 +84,7 @@ public class MatchManager : MonoBehaviour
     private void OnDestroy()
     {
         if (NetworkManager.Instance != null)
-            NetworkManager.Instance.SetMatchManager(null);
+            NetworkManager.Instance.ClearMatchManager(this);
 
         if (Instance == this)
             Instance = null;

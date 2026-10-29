@@ -111,7 +111,7 @@ public sealed class EntrySkillPresentation : MonoBehaviour
         lower=Mathf.MoveTowards(lower,show?1:0,Time.deltaTime/.16f);
         blend=Mathf.MoveTowards(blend,show?1:0,Time.deltaTime/.18f);
         if(item && (lower>0||controlledWeapon)){
-            if(!dead)item.SetWeaponVisibility(lower<.99f);controlledWeapon=lower>0;
+            if(!dead)item.SetWeaponVisibility(lower<.99f, this);controlledWeapon=lower>0;
             int index=item.CurrentIndex;
             if(mine && index>=0 && index<item.Items.Length && item.Items[index]){
                 weapon=item.Items[index].transform;weaponPosition=weapon.localPosition;weaponRotation=weapon.localRotation;
@@ -119,8 +119,8 @@ public sealed class EntrySkillPresentation : MonoBehaviour
             }
         }
         if(!mine){var view=GetComponent<PlayerWeaponViewController>();
-            if(lower>=.99f&&!hiddenRemote){view?.HideAll();hiddenRemote=true;}
-            else if(lower<.99f&&hiddenRemote){if(!dead)view?.RestoreLastView();hiddenRemote=false;}}
+            if(lower>=.99f&&!hiddenRemote){view?.HideAll(this);hiddenRemote=true;}
+            else if(lower<.99f&&hiddenRemote){if(!dead)view?.RestoreLastView(this);hiddenRemote=false;}}
         if(heldSmoke)heldSmoke.SetActive(mine && Casting && cast==Cast.Smoke && Time.time-began<.28f && lower>=.99f);
         if(mine && motion && blend>0){
             var kind=cast==Cast.Dash?FirstPersonSkillMotion.Motion.Drone:cast==Cast.Smoke?FirstPersonSkillMotion.Motion.Emp:FirstPersonSkillMotion.Motion.Scanner;
@@ -165,7 +165,7 @@ public sealed class EntrySkillPresentation : MonoBehaviour
     private void OnDisable()
     {
         RestorePose();RestoreBody();
-        if(GetComponent<PlayerHP>()?.IsDead!=true){if(controlledWeapon)item?.SetWeaponVisibility(true);if(hiddenRemote)GetComponent<PlayerWeaponViewController>()?.RestoreLastView();}
+        if(GetComponent<PlayerHP>()?.IsDead!=true){if(controlledWeapon)item?.SetWeaponVisibility(true, this);if(hiddenRemote)GetComponent<PlayerWeaponViewController>()?.RestoreLastView(this);}
         controlledWeapon=hiddenRemote=blades=false;lower=blend=ends=0;firedAt=-10;remaining=0;UpdateClaws();
         if(heldSmoke)heldSmoke.SetActive(false);if(statusCanvas)statusCanvas.enabled=false;
     }

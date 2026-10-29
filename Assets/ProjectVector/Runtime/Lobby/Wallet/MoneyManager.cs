@@ -97,4 +97,8 @@ public class MoneyManager : MonoBehaviour
     public void DecreaseMoney2(int amount) { _money2 -= amount; UpdateAllUI(); }
 
     #endregion
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
 }

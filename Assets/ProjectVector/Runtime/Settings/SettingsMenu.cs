@@ -27,7 +27,7 @@ public class SettingsMenu : MonoBehaviour
     [Header("Game Scene")]
     [Tooltip("실제 인게임 씬 이름을 확장자 없이 입력")]
     [SerializeField]
-    private string gameSceneName = "GameScene";
+    private string gameSceneName = "Game_TestVersion";
 
     [Header("Settings Panel")]
     [Tooltip("실제로 켜고 끌 자식 설정 패널")]
@@ -169,8 +169,8 @@ public class SettingsMenu : MonoBehaviour
         Scene activeScene =
             SceneManager.GetActiveScene();
 
-        return activeScene.name ==
-               gameSceneName;
+        return ProjectVector.Core.SceneCatalog.IsMatch(activeScene.name) ||
+               activeScene.name == gameSceneName;
     }
 
     private bool CanUseSettingsMenu()

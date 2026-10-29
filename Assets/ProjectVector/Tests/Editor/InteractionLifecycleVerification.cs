@@ -98,7 +98,7 @@ public static class InteractionLifecycleVerification
             Check(Mathf.Abs(slider.value - .37f) < .001f, "Respawn reset the current settings edit");
             Check(GameplayActionPolicy.MenuBlocksInput, "Respawn released settings input lock");
             var smoke = actor.AddComponent<ControllerSkill_E>();
-            Call(smoke, "ForceCloseMiniMapImmediate");
+            smoke.ForceCloseMiniMapImmediate();
             Check(Cursor.lockState == CursorLockMode.None && Cursor.visible, "Skill teardown stole settings cursor");
             var store = new GameObject("StoreFixture").AddComponent<StorePanelUI>();
             var storePanel = new GameObject("StorePanel"); Set(store, "storePanelRoot", storePanel);

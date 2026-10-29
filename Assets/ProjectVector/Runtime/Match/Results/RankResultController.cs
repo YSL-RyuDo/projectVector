@@ -56,7 +56,7 @@ public class RankResultController : MonoBehaviour
 
         if (MatchResultCache.matchType != 1)
         {
-            if (!embedded) SceneManager.LoadScene("Result");
+            if (!embedded) SceneNavigation.Load(ProjectVector.Core.ProjectScene.Result);
             return;
         }
 
@@ -135,7 +135,7 @@ public class RankResultController : MonoBehaviour
 
         canContinue = false;
         if (embedded) Completed?.Invoke();
-        else SceneManager.LoadScene("Result");
+        else SceneNavigation.Load(ProjectVector.Core.ProjectScene.Result);
     }
 
     // First press completes the score animation; a second advances the page.

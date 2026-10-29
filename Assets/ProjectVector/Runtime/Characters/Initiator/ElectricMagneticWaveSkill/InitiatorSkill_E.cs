@@ -81,8 +81,8 @@ public class InitiatorSkill_E : CharacterSkill
     private void LateUpdate()
     {
         var item=GetComponent<PlayerItem>();
-        if(BlocksActions){item?.SetWeaponVisibility(WeaponVisible);_hidWeapon=true;}
-        else if(_hidWeapon){_hidWeapon=false;if(GetComponent<PlayerHP>()?.IsDead!=true)item?.SetWeaponVisibility(true);}
+        if(BlocksActions){item?.SetWeaponVisibility(WeaponVisible, this);_hidWeapon=true;}
+        else if(_hidWeapon){_hidWeapon=false;if(GetComponent<PlayerHP>()?.IsDead!=true)item?.SetWeaponVisibility(true, this);}
     }
     public void ResetCast()
     {
@@ -91,7 +91,7 @@ public class InitiatorSkill_E : CharacterSkill
         _preparing=_pending=false;_queuedSlot=-1;
         _hidWeapon=false;
         _gesture?.ResetPresentation();_presentation?.ResetPresentation();
-        if(was && GetComponent<PlayerHP>()?.IsDead!=true)GetComponent<PlayerItem>()?.SetWeaponVisibility(true);
+        if(was && GetComponent<PlayerHP>()?.IsDead!=true)GetComponent<PlayerItem>()?.SetWeaponVisibility(true, this);
     }
     private void OnDisable(){_nextRequest=0;ResetCast();}
 }

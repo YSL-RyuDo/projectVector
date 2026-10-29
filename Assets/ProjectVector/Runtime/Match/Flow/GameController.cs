@@ -19,7 +19,7 @@ public class GameController : MonoBehaviour
 
     [Header("Scene")]
     [SerializeField]
-    private string gameSceneName = "GameScene";
+    private string gameSceneName = "Game_TestVersion";
 
     public GameObject settingsUI;
 
@@ -85,7 +85,7 @@ public class GameController : MonoBehaviour
         Scene scene,
         LoadSceneMode mode)
     {
-        if (scene.name == gameSceneName)
+        if (ProjectVector.Core.SceneCatalog.IsMatch(scene.name) || scene.name == gameSceneName)
         {
             /*
              * GameScene 진입 직후에는 아직 픽 또는 로딩 단계다.
@@ -104,7 +104,7 @@ public class GameController : MonoBehaviour
         Scene currentScene =
             SceneManager.GetActiveScene();
 
-        if (currentScene.name == gameSceneName)
+        if (ProjectVector.Core.SceneCatalog.IsMatch(currentScene.name) || currentScene.name == gameSceneName)
         {
             EnterPickPhase();
         }

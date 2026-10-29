@@ -98,9 +98,10 @@ public partial class PickManager : MonoBehaviour
     private void OnDestroy()
     {
         ClearPreviewModel();
+        if (Instance == this) Instance = null;
 
         if (NetworkManager.Instance != null)
-            NetworkManager.Instance.SetPickManager(null);
+            NetworkManager.Instance.ClearPickManager(this);
     }
 
     private void InitCharacterButtons()

@@ -687,7 +687,7 @@ public class GamePanelController : MonoBehaviour
             ClearPendingMatchmakingModeChange();
             var readyView = LobbySocialController.Instance?.readyPresentation;
             if (readyView == null || !readyView.EnterMatchScene())
-                SceneManager.LoadScene("Game_TestVersion");
+                SceneNavigation.Load(ProjectVector.Core.ProjectScene.Match);
             return;
         }
 
@@ -1589,7 +1589,7 @@ public class GamePanelController : MonoBehaviour
 
         if (result == (byte)RoomGameStartResult.SUCCESS)
         {
-            SceneManager.LoadScene("Game_TestVersion");
+            SceneNavigation.Load(ProjectVector.Core.ProjectScene.Match);
             return;
         }
 
@@ -1618,5 +1618,9 @@ public class GamePanelController : MonoBehaviour
         }
 
         ShowRoomMessage("게임 시작에 실패했습니다.");
+    }
+    private void OnDestroy()
+    {
+        if (NetworkManager.Instance != null) NetworkManager.Instance.ClearGamePanelController(this);
     }
 }

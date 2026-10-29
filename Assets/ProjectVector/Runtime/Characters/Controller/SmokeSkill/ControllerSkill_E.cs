@@ -62,8 +62,8 @@ public class ControllerSkill_E : CharacterSkill
     private void LateUpdate()
     {
         if (!IsMine()) return;
-        if (_ownsInput) { GetComponent<PlayerItem>()?.SetWeaponVisibility(false); _hidWeapon = true; }
-        else if (_hidWeapon) { GetComponent<PlayerItem>()?.SetWeaponVisibility(true); _hidWeapon = false; }
+        if (_ownsInput) { GetComponent<PlayerItem>()?.SetWeaponVisibility(false, this); _hidWeapon = true; }
+        else if (_hidWeapon) { GetComponent<PlayerItem>()?.SetWeaponVisibility(true, this); _hidWeapon = false; }
     }
     protected override void UseSkill()
     {
@@ -169,7 +169,7 @@ public class ControllerSkill_E : CharacterSkill
         if (_miniMapOverlay) _miniMapOverlay.SetActive(false);
         if (_look) _look.CanMove = true;
         _motion?.ResetPose();
-        if (_hidWeapon) { GetComponent<PlayerItem>()?.SetWeaponVisibility(true); _hidWeapon = false; }
+        if (_hidWeapon) { GetComponent<PlayerItem>()?.SetWeaponVisibility(true, this); _hidWeapon = false; }
         if (!SettingsMenu.PreserveOpenMenuCursor()) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
         OnMiniMap?.Invoke();
     }
