@@ -10,9 +10,9 @@ using TMPro;
 
 public static class EquipmentIconsAuthoring
 {
-    public const string Folder = "Assets/Art/EquipmentIcons";
+    public const string Folder = "Assets/ProjectVector/Shared/UI/EquipmentIcons";
     public const string CatalogPath = Folder + "/EquipmentIcons.asset";
-    const string ScenePath = "Assets/Scenes/Game_TestVersion.unity";
+    const string ScenePath = "Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity";
     static readonly string[] Names = { "P92", "P1911", "R1895", "UZI", "UMP", "S1897", "AA-12", "Dragunov", "M416", "AK47", "M249", "Kar98", "AWM" };
     static void Ref(UnityEngine.Object target, string field, UnityEngine.Object value)
     {

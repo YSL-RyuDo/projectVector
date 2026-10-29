@@ -8,7 +8,7 @@ using Object = UnityEngine.Object;
 
 public static class DroneCombatVfxAuthoring
 {
-    const string Path = "Assets/Prefab/Character/Initiator/Drone.prefab";
+    const string Path = "Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Drone.prefab";
     const string Output = "C:/Users/GCT/Downloads/Vector_Drone_20261021/CombatFX";
     static readonly Color Cyan = new Color(.15f,.78f,1);
     static void Ref(Object o,string name,Object value) { var s=new SerializedObject(o);s.FindProperty(name).objectReferenceValue=value;s.ApplyModifiedPropertiesWithoutUndo(); }
@@ -16,7 +16,7 @@ public static class DroneCombatVfxAuthoring
     static T Component<T>(Transform t) where T:Component { var c=t.GetComponent<T>();return c?c:t.gameObject.AddComponent<T>(); }
     static Material Material(string name,bool radial)
     {
-        string path="Assets/Materials/Drone/"+name+".mat";
+        string path="Assets/ProjectVector/Shared/Characters/Effects/Initiator/Drone/Materials/"+name+".mat";
         var mat=AssetDatabase.LoadAssetAtPath<Material>(path);
         if(!mat){mat=new Material(Shader.Find("Vector/DroneEnergy"));AssetDatabase.CreateAsset(mat,path);}
         mat.SetFloat("_Radial",radial?1:0);EditorUtility.SetDirty(mat);return mat;
@@ -57,14 +57,14 @@ public static class DroneCombatVfxAuthoring
             Burst(breakup,"HotFragments",soft,32,4.5f,.055f,.7f,new Color(1,.53f,.18f),true);
             Burst(breakup,"ResidualCharge",soft,16,1.7f,.07f,.38f,Cyan,true);
             var audio=Component<AudioSource>(Child(group,"ImpactAudio"));audio.playOnAwake=false;audio.spatialBlend=1;audio.minDistance=2;audio.maxDistance=22;audio.volume=.32f;audio.pitch=1.4f;
-            audio.clip=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/KSW/Scifi Guns SFX Pack/Gun2_1.wav");Ref(fx,"_impactAudio",audio);
+            audio.clip=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ThirdParty/ScifiGunsAudio/Gun2_1.wav");Ref(fx,"_impactAudio",audio);
             var breaking=Component<AudioSource>(breakup);EditorUtility.CopySerialized(audio,breaking);breaking.pitch=.65f;breaking.volume=.45f;
             Ref(root.GetComponent<TaserGun>(),"_combatVfx",fx);
             PrefabUtility.SaveAsPrefabAsset(root,Path);
         }finally{PrefabUtility.UnloadPrefabContents(root);}
         // Replace the old square particle material on player shock receivers, too.
         foreach(string name in new[]{"Initiator","Controller","Entry","Sentinel"}) {
-            string path=$"Assets/Prefab/Character/{name}/{name}.prefab";var actor=PrefabUtility.LoadPrefabContents(path);
+            string path=$"Assets/ProjectVector/Shared/Characters/Prefabs/{name}/{name}.prefab";var actor=PrefabUtility.LoadPrefabContents(path);
             try { var p=actor.transform.Find("ElectricShockSparks");if(p)p.GetComponent<ParticleSystemRenderer>().sharedMaterial=soft;PrefabUtility.SaveAsPrefabAsset(actor,path); }
             finally{PrefabUtility.UnloadPrefabContents(actor);}
         }
@@ -78,7 +78,7 @@ public static class DroneCombatVfxAuthoring
     public static void Capture()
     {
         Directory.CreateDirectory(Output+"/frames");EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/TestMap.prefab"));map.transform.position=Vector3.zero;
+        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/TestMap.prefab"));map.transform.position=Vector3.zero;
         var info=map.GetComponent<MapInfo>();if(info.barriers)info.barriers.SetActive(false);
         var camera=new GameObject("VFXReviewCamera").AddComponent<Camera>();camera.fieldOfView=48;camera.nearClipPlane=.03f;camera.farClipPlane=300;camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.25f,.36f,.43f);
         camera.transform.position=info.GetSpawnPoint(0,0).position+Vector3.up*2;
@@ -89,12 +89,12 @@ public static class DroneCombatVfxAuthoring
         PrefabUtility.UnpackPrefabInstance(drone,PrefabUnpackMode.Completely,InteractionMode.AutomatedAction);
         drone.transform.position=camera.transform.TransformPoint(new Vector3(-1.3f,-.15f,4));
         foreach(var c in drone.GetComponentsInChildren<Camera>(true))c.enabled=false;
-        var target=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/Sentinel/Sentinel.prefab"));
+        var target=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/Sentinel/Sentinel.prefab"));
         foreach(Transform child in target.transform) if(child.name!="Model")child.gameObject.SetActive(false);
         var rootRenderer=target.GetComponent<Renderer>();if(rootRenderer)rootRenderer.enabled=false;
         target.transform.position=camera.transform.TransformPoint(new Vector3(1.2f,-2,7));target.transform.rotation=Quaternion.LookRotation(-forward);
         var animator=target.transform.Find("Model").GetComponentInChildren<Animator>();
-        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character Animation/Sentinel/Lobby/Sentinel_Lobby_Idle.anim");
+        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Animations/Sentinel/Lobby/Sentinel_Lobby_Idle.anim");
         if(animator && clip) { animator.enabled=true;clip.SampleAnimation(animator.gameObject,.3f); }
         var fx=drone.GetComponent<DroneCombatVfx>();var end=target.transform.position+Vector3.up*1.3f;drone.transform.LookAt(end);
         var particles=drone.GetComponentsInChildren<ParticleSystem>(true);foreach(var p in particles)p.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);

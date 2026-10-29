@@ -51,7 +51,7 @@ public static class ControllerSmokeVideoCapture
     static void Prepare(string name)
     {
         var holder=new GameObject("SmokeCapture_"+name);
-        var map=Load("Assets/Prefab/Maps/"+name+".prefab");map.transform.SetParent(holder.transform);
+        var map=Load("Assets/ProjectVector/Shared/Maps/Prefabs/"+name+".prefab");map.transform.SetParent(holder.transform);
         var info=map.GetComponent<MapInfo>();info.SetBarriersActive(false);
         var spawn=info.attackSpawnPoints[0];var center=spawn.position+spawn.forward*6;
         Physics.SyncTransforms();if(Physics.Raycast(center+Vector3.up*12,Vector3.down,out var hit,40,~0,QueryTriggerInteraction.Ignore))center=hit.point;
@@ -63,7 +63,7 @@ public static class ControllerSmokeVideoCapture
         var person=Object.Instantiate(model.gameObject);Object.DestroyImmediate(actor);person.name="VisibleInsideCharacter";person.transform.SetParent(holder.transform);
         person.transform.SetPositionAndRotation(center+forward*1.1f,Quaternion.LookRotation(-forward));person.SetActive(true);
         foreach(var r in person.GetComponentsInChildren<Renderer>(true)){r.enabled=true;r.forceRenderingOff=false;}
-        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character(New)/Controller/Animation/InGame/Pistol/Controller_Pistol_Idle.anim");clip.SampleAnimation(person,0);
+        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Models/Controller/Animation/InGame/Pistol/Controller_Pistol_Idle.anim");clip.SampleAnimation(person,0);
         foreach(var animator in person.GetComponentsInChildren<Animator>(true))animator.enabled=false;
         var bounds=person.GetComponentsInChildren<SkinnedMeshRenderer>().First().bounds;
         foreach(var skin in person.GetComponentsInChildren<SkinnedMeshRenderer>())bounds.Encapsulate(skin.bounds);

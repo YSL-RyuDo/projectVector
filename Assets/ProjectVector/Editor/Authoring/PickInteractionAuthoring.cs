@@ -44,7 +44,7 @@ public static class PickInteractionAuthoring
     }
     static Sprite Icon(string name, bool exchange)
     {
-        string dir = "Assets/UI/PickActions"; Directory.CreateDirectory(dir);
+        string dir = "Assets/ProjectVector/Modules/Match/UI/PickActions"; Directory.CreateDirectory(dir);
         const int n = 96; var tex = new Texture2D(n, n, TextureFormat.RGBA32, false); var pixels = new Color[n*n];
         void Line(Vector2 a, Vector2 b, float width = 5)
         {
@@ -73,7 +73,7 @@ public static class PickInteractionAuthoring
         for(int i=0;i<UnityEngine.SceneManagement.SceneManager.sceneCount;i++)if(UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty)throw new Exception("Unsaved scene");
         var exchange=Icon("Exchange",true);var badge=Icon("RecordBadge",false);
         font=AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Fonts/Pretendard-Black SDF.asset");
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var pick=Object.FindFirstObjectByType<PickManager>(FindObjectsInactive.Include);
         var parent=Get<GameObject>(pick,"characterInfoPanel").transform.parent;
         var view=Ensure<PickInteractionView>(parent.gameObject);Link(pick,"interactionView",view);
@@ -130,7 +130,7 @@ public static class PickInteractionAuthoring
         view.SetExchange(false,false,null,null,"",0);pick.OnPickShowcase(77,1,0,20,12,1,14);Frame("Pick-Showcase");
         pick.OnPickActionResult(77,5);Frame("Pick-Private-Notice");
         // Preview fixtures are never saved to the scene or career data.
-        EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var saved=Object.FindFirstObjectByType<PickManager>(FindObjectsInactive.Include);
         var savedSlots=new SerializedObject(saved).FindProperty("teamPickSlots");
         for(int i=0;i<savedSlots.arraySize;i++)foreach(string field in new[]{"changeButton","shareButton"}) {

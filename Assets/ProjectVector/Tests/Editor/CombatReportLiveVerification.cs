@@ -8,8 +8,8 @@ public static class CombatReportLiveVerification
     public static void ProbeCapture()
     {
         if(!Application.isBatchMode)throw new System.Exception("Batch only");
-        EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
-        var map=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/TestMap.prefab"));
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
+        var map=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/TestMap.prefab"));
         var spawn=map.GetComponent<MapInfo>().attackSpawnPoints[0];
         var light=new GameObject("EvidenceProbeLight").AddComponent<Light>();light.type=LightType.Directional;light.intensity=1.2f;light.transform.rotation=Quaternion.Euler(45,-25,0);
         RenderSettings.ambientLight=Color.gray;RenderSettings.fog=false;
@@ -32,7 +32,7 @@ public static class CombatReportLiveVerification
     public static void PrepareAndBuild()
     {
         if(!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)throw new System.Exception("Batch only");
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var report=Object.FindFirstObjectByType<ReportUI>(FindObjectsInactive.Include);
         var root=ShopReadabilityAuthoring.Get<GameObject>(report,"rootPanel");
         var group=root.GetComponent<CanvasGroup>();if(!group)group=root.AddComponent<CanvasGroup>();

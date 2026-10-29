@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 public static class SmokeOutlineVerification
 {
     const string Key = "Vector.SmokeOutlineTest";
-    const string Prefab = "Assets/KSW/Prefabs/Effect/Smoke Effect.prefab";
+    const string Prefab = "Assets/ProjectVector/Shared/Characters/Effects/Entry/LegacySmoke/Smoke Effect.prefab";
     static double deadline;
     static bool ran, passed;
     static System.Collections.IEnumerator revealChecks;
@@ -145,7 +145,7 @@ public static class SmokeOutlineVerification
         Check(SmokeOutlineOccluder.IntersectsSegment(Vector3.zero, Vector3.forward * 10, new Vector3(1, 0, 5), 1), "tangent boundary");
         foreach (string name in new[] { "TestMap", "Desert" })
         {
-            var map = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/" + name + ".prefab"));
+            var map = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/" + name + ".prefab"));
             var info = map.GetComponent<MapInfo>();
             foreach (var spawn in info.attackSpawnPoints.Concat(info.defendSpawnPoints))
             {
@@ -166,7 +166,7 @@ public static class SmokeOutlineVerification
         }
         foreach (string type in new[] { "Initiator", "Controller", "Sentinel", "Entry" })
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/" + type + "/" + type + ".prefab");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/" + type + "/" + type + ".prefab");
             Check(prefab != null, type + " gameplay prefab exists");
             var outlines = prefab.GetComponentsInChildren<Outline>(true);
             Check(outlines.Length > 0 && outlines.All(o => o.GetComponentInParent<PlayerOutline>() || o.GetComponentInChildren<PlayerOutline>(true)), type + " real outline linked to player concealment");

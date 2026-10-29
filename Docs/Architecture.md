@@ -6,20 +6,21 @@
 
 ## 코드를 찾는 위치
 
-자체 C# 코드는 `Assets/ProjectVector` 안에서 찾는다. `KSW`, `Prefab`, `Resources`에는 기존 모델, 이미지, 데이터, 프리팹을 유지한다. 에셋 패키지에 포함된 외부 코드는 이번 이동 대상이 아니다.
+자체 C# 코드는 `Assets/ProjectVector` 안에서 찾는다. 씬 전용 코드는 `Modules/<씬>/Scripts`, 공통 코드는 `Runtime`에 있다. 기존 `KSW`, `Prefab`, `Resources` 등 에셋도 씬 모듈, `Shared`, `Development`, `ThirdParty`로 정리했다. 자세한 위치와 팀 작업 규칙은 [폴더 안내](FolderLayout.md)를 따른다.
 
 | 경로 | 담당하는 내용 |
 | --- | --- |
 | `Runtime/Core` | Unity에 의존하지 않는 데이터 계약, 씬 분류, 구매 요청 상태, 장비 숨김 상태 |
-| `Runtime/Lobby/Login` | 로그인, 회원가입 화면 |
-| `Runtime/Lobby` | 로비 탐색, 매칭, 프로필, 커리어, 상점, 재화 |
-| `Runtime/Match` | 픽, 로딩, 라운드, 인게임 HUD, 구매, 디바이스, 관전, 결과 |
+| `Modules/Login/Scripts` | 로그인, 회원가입 화면 |
+| `Modules/Lobby/Scripts` | 로비 탐색, 매칭, 프로필, 커리어, 상점, 재화 |
+| `Modules/Match/Scripts` | 픽, 로딩, 라운드, 인게임 HUD, 구매, 디바이스, 관전 |
+| `Modules/Results/Scripts` | 결과와 랭크 결과 |
 | `Runtime/Characters` | 캐릭터별 스킬과 연출 |
 | `Runtime/Player` | 이동, 입력, 카메라, 사망, 장비 선택 |
 | `Runtime/Combat` | 무기, 명중, 피해, 리포트, 킬로그, 핑, 가시성 |
 | `Runtime/Networking` | 연결, 패킷 송수신, 재접속, 서버 확정 데이터 적용 |
 | `Runtime/Social` | 음성, 채팅, 친구 화면 |
-| `Runtime/Practice`, `Runtime/Tutorial` | 로컬 훈련장, 튜토리얼과 해당 씬에 연결된 기존 코드 |
+| `Modules/Practice/Scripts`, `Modules/Tutorial/Scripts` | 로컬 훈련장, 튜토리얼과 해당 씬에 연결된 기존 코드 |
 | `Runtime/Settings`, `Runtime/Shared` | 설정, 공통 UI와 씬 이동 |
 | `Editor` | 저장된 씬/프리팹 제작 도구, 빌드 검사, 캡처 도구 |
 | `Tests/Editor`, `Tests/Runtime` | 회귀 검사, 명시적으로 실행하는 시연/검증 코드 |
@@ -84,7 +85,7 @@ inventory.SetWeaponVisibility(true, this);
 - `RankedCaptureTestEditor.Build`: Build Settings의 활성 씬으로 실제 Windows 개발 빌드. `VECTOR_CAPTURE_ROOT`는 저장소 밖 출력 폴더로 지정.
 - 개발 빌드 `-verify-scene-transitions`: 로그인 → 로비 → 픽 진입 → 로비 → 결과 → 랭크 결과 → 훈련장 → 로비 → 로그인 반복 검사. 계정 로그인이나 보상 지급은 하지 않는다. 실제 매칭/6인 전투 검증을 대신하지 않는다.
 - `python Tools/run_scene_smoke.py --client <개발빌드.exe> --log <외부로그경로>`: 위 검사를 계정 데이터 없이 실행한다. 9000 포트에 응답 데이터를 만들지 않는 로컬 TCP 연결만 제공한다. 실제 서버가 포트를 점유하고 있으면 실행하지 않는다.
-- `SavedSceneInventory.Run`: `Assets/Scenes`, `Assets/KSW`의 저장 씬 전체를 열어 빌드 포함 여부, 연결된 기능, Missing Script 수를 외부 JSON에 기록한다. 기존 `SystemSample`의 `Enemy`가 참조하던 삭제된 PlayerHP GUID는 같은 클래스의 현행 스크립트로 다시 연결했다. 같은 누락이 있던 이전 `Player` 프리팹도 함께 복구했다.
+- `SavedSceneInventory.Run`: `Assets/ProjectVector` 아래 저장 씬 전체를 열어 빌드 포함 여부, 연결된 기능, Missing Script 수를 외부 JSON에 기록한다. 기존 `SystemSample`의 `Enemy`가 참조하던 삭제된 PlayerHP GUID는 같은 클래스의 현행 스크립트로 다시 연결했다. 같은 누락이 있던 이전 `Player` 프리팹도 함께 복구했다. 보관된 복구본은 원형을 보존하고 별도로 보고한다.
 - `SceneScriptReferenceBuildGuard`: 배포 씬에 불안정한 scene-local MonoScript가 들어가면 빌드 차단.
 
 Unity가 프로젝트를 열고 있으면 같은 프로젝트에 별도 batch 에디터를 띄우지 않는다. 검증 로그와 빌드는 저장소 밖에 둔다.

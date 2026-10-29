@@ -23,7 +23,7 @@ public static class EquipmentUIVerification
     public static void Run()
     {
         EquipmentIconsAuthoring.Run();
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var roots=scene.GetRootGameObjects();
         var catalog=AssetDatabase.LoadAssetAtPath<EquipmentIconCatalog>(EquipmentIconsAuthoring.CatalogPath);
         Check(catalog.weapons.Length==14 && catalog.weapons.Distinct().Count()==14,"14 distinct gun/knife sprites");

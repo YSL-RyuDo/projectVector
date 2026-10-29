@@ -11,7 +11,7 @@ using Object = UnityEngine.Object;
 
 public static class VectorCareerPresentationEditor
 {
-    const string Lobby = "Assets/Scenes/Lobby.unity";
+    const string Lobby = "Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity";
     static T Ref<T>(Object owner, string field) where T : Object =>
         new SerializedObject(owner).FindProperty(field).objectReferenceValue as T;
     static CareerPanelController Open()
@@ -118,10 +118,10 @@ public static class VectorCareerPresentationEditor
         var view = Ensure<CareerRankPresentation>(rank);
         Wire(controller, "_rankPresentation", view);
         view.rankSprites = new[] { "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master" }
-            .Select(n => Sprite("Assets/Resources/Rank/" + n + ".png")).ToArray();
+            .Select(n => Sprite("Assets/ProjectVector/Shared/Resources/Rank/" + n + ".png")).ToArray();
         view.characterSprites = Enumerable.Range(0, 4).Select(CareerRankingPrefabBuilder.LoadCharacterSprite).ToArray();
         var backdrop = Box(rank.transform, "CareerBackdrop", 0, 0, 1920, 1080, Color.white);
-        backdrop.sprite = Sprite("Assets/UI/VideoReference/NeutralBackground.png"); backdrop.transform.SetAsFirstSibling();
+        backdrop.sprite = Sprite("Assets/ProjectVector/Shared/UI/Surfaces/MatchFlow/NeutralBackground.png"); backdrop.transform.SetAsFirstSibling();
         var scenery = Rect(rank.transform, "CareerStage", 0, 0, 1920, 1080); scenery.SetSiblingIndex(1);
         Decoration(scenery, "Light", 0, 40, 520, 950, CareerStageGraphic.Shape.LightColumn, new Color(1, 1, 1, .56f));
         Decoration(scenery, "Podium", 0, -490, 1740, 240, CareerStageGraphic.Shape.Podium, new Color32(227, 228, 225, 255));
@@ -155,7 +155,7 @@ public static class VectorCareerPresentationEditor
             Box(pillar, "PillarCap", 0, 200, 110, 3, new Color(1, 1, 1, .7f));
             Pose(text.transform, 0, 235, 156, 96); Style(text, 22, Ink);
             var icon = pillar.GetComponentsInChildren<Image>(true).First(img => img != oldImage && img.name != "PillarCap");
-            preserved.AllowSpriteChange(icon); icon.sprite = Sprite("Assets/UI/VideoReference/" + art[i] + ".png");
+            preserved.AllowSpriteChange(icon); icon.sprite = Sprite("Assets/ProjectVector/Shared/UI/Surfaces/MatchFlow/" + art[i] + ".png");
             icon.preserveAspect = true; Pose(icon.transform, 0, 330, 78, 78);
             foreach (var effect in icon.GetComponents<Shadow>()) effect.enabled = false;
         }
@@ -186,7 +186,7 @@ public static class VectorCareerPresentationEditor
         EditorUtility.SetDirty(controller); preserved.Check();
         EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene);
         // The other authored lobby uses the same controller. Preserve its existing layout while migrating the selector.
-        var other = EditorSceneManager.OpenScene("Assets/KSW/Lobby2.unity");
+        var other = EditorSceneManager.OpenScene("Assets/ProjectVector/Development/Legacy/Scenes/Lobby2.unity");
         var otherController = other.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<CareerPanelController>(true)).Single();
         var otherPreserved = new VectorExperiencePolishEditor.Preservation(other); MigrateRanking(otherController); otherPreserved.Check();
         EditorSceneManager.MarkSceneDirty(other); EditorSceneManager.SaveScene(other);
@@ -197,7 +197,7 @@ public static class VectorCareerPresentationEditor
     static GameObject Overlay(Transform root, string name, string title, out Button close)
     {
         var image = Box(root, name, 0, 0, 1920, 1080, Color.white);
-        image.sprite = Sprite("Assets/UI/VideoReference/NeutralBackground.png"); image.raycastTarget = true;
+        image.sprite = Sprite("Assets/ProjectVector/Shared/UI/Surfaces/MatchFlow/NeutralBackground.png"); image.raycastTarget = true;
         Label(image.transform, "Title", title, -450, 310, 720, 70, 44, Ink);
         Box(image.transform, "Rule", 0, 257, 1640, 2, new Color(1, 1, 1, .8f));
         close = Button(image.transform, "Close", "닫기  ×", 715, 312, 210, 54);
@@ -249,7 +249,7 @@ public static class VectorCareerPresentationEditor
         var panel = Ref<GameObject>(controller, "_rankingPanel");
         if (panel.GetComponentsInChildren<Transform>(true).Any(t => t.name == "Career Ranking Character Selector")) return;
         var parent = Find(panel.transform, "Ranking List");
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Career/CareerRankingCharacterSelector.prefab");
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Modules/Lobby/Resources/Career/CareerRankingCharacterSelector.prefab");
         var selector = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
         selector.name = "Career Ranking Character Selector"; selector.SetActive(false);
         foreach (var img in panel.GetComponentsInChildren<Image>(true))
@@ -324,7 +324,7 @@ public static class VectorCareerPresentationEditor
         EditorUtility.SetDirty(view); PrefabUtility.RecordPrefabInstancePropertyModifications(view);
         EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene);
         // The authored selector in the alternate lobby shares the same character IDs.
-        var other = EditorSceneManager.OpenScene("Assets/KSW/Lobby2.unity");
+        var other = EditorSceneManager.OpenScene("Assets/ProjectVector/Development/Legacy/Scenes/Lobby2.unity");
         var otherController = other.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<CareerPanelController>(true)).Single();
         UpdateSelectorPortraits(Ref<GameObject>(otherController, "_rankingPanel").transform, Enumerable.Range(0, 4).Select(CareerRankingPrefabBuilder.LoadCharacterSprite).ToArray());
         EditorSceneManager.MarkSceneDirty(other); EditorSceneManager.SaveScene(other);

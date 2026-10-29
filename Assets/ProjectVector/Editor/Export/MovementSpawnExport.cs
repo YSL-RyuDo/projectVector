@@ -16,7 +16,7 @@ public static class MovementSpawnExport
         string F(float n) => n.ToString("0.#########",CultureInfo.InvariantCulture)+"f";
         foreach(string map in new[]{"TestMap","Desert","Construction"})
         {
-            var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Maps/{map}.prefab"));
+            var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Maps/Prefabs/{map}.prefab"));
             root.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
             var info=root.GetComponent<MapInfo>();
             for(byte side=0;side<2;side++) for(byte slot=0;slot<(side==0?info.attackSpawnPoints.Length:info.defendSpawnPoints.Length);slot++)

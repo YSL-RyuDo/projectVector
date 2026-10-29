@@ -21,9 +21,9 @@ public static class InitiatorBalanceVerification
         Object.DestroyImmediate(drone.gameObject);
         foreach(string name in new[]{"TestMap","Desert"}){
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-            var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Maps/{name}.prefab"));
+            var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Maps/Prefabs/{name}.prefab"));
             var info=map.GetComponent<MapInfo>();info.SetBarriersActive(false);Physics.SyncTransforms();
-            var fx=((GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Discharge/DischargeSequence.prefab"))).GetComponent<DischargeVfx>();
+            var fx=((GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Effects/Initiator/Discharge/DischargeSequence.prefab"))).GetComponent<DischargeVfx>();
             var spawn=info.attackSpawnPoints[0];fx.Begin(spawn.position,spawn.forward,18,2,.15f);
             fx.Advance(1.99f);
             Check(Field<float>(fx,"_finished")<0 && Field<LineRenderer>(fx,"_boundary").enabled,name+" warning remains visible for full 2 seconds");

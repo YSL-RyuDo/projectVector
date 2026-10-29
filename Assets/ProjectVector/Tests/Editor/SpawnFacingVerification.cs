@@ -20,7 +20,7 @@ public static class SpawnFacingVerification
         var report=new StringBuilder();int count=0;
         foreach(string map in new[]{"TestMap","Desert"})
         {
-            var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Maps/{map}.prefab"));
+            var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Maps/Prefabs/{map}.prefab"));
             root.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
             var info=root.GetComponent<MapInfo>();
             foreach(var points in new[]{info.attackSpawnPoints,info.defendSpawnPoints})
@@ -34,7 +34,7 @@ public static class SpawnFacingVerification
                         Check(Mathf.Abs(Vector3.Dot(spawn.forward,teammate.position-spawn.position))<.1f,map+" teammates stand in front instead of side by side");
                     foreach(string role in new[]{"Initiator","Controller","Sentinel","Entry"})
                     {
-                        var prefab=AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Character/{role}/{role}.prefab");
+                        var prefab=AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Characters/Prefabs/{role}/{role}.prefab");
                         Check(prefab!=null,"Missing role "+role);
                         var actor=(GameObject)PrefabUtility.InstantiatePrefab(prefab);
                         actor.transform.SetPositionAndRotation(spawn.position,spawn.rotation);

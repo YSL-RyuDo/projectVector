@@ -9,8 +9,8 @@ using Object=UnityEngine.Object;
 // Only swamp assets and the Q presentation references are authored here. No smoke or scene writes.
 public static class ControllerSwampAuthoring
 {
-    public const string Dir="Assets/Art/Controller/Swamp", Actor="Assets/Prefab/Character/Controller/Controller.prefab";
-    public const string Trap="Assets/Prefab/Character/Controller/Trap.prefab", Area="Assets/Prefab/Character/Controller/TrapArea.prefab";
+    public const string Dir="Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller/Swamp", Actor="Assets/ProjectVector/Shared/Characters/Prefabs/Controller/Controller.prefab";
+    public const string Trap="Assets/ProjectVector/Shared/Characters/Prefabs/Controller/Trap.prefab", Area="Assets/ProjectVector/Shared/Characters/Prefabs/Controller/TrapArea.prefab";
     static void Ref(Object o,string key,Object v){var s=new SerializedObject(o);s.FindProperty(key).objectReferenceValue=v;s.ApplyModifiedPropertiesWithoutUndo();}
     static T Add<T>(GameObject g) where T:Component { var c=g.GetComponent<T>();return c?c:g.AddComponent<T>(); }
     static Material Mat(string name,string shader,Color color)

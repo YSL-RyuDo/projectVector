@@ -31,7 +31,7 @@ public static class ScannerPolishVerification
     public static void Run()
     {
         Check(Application.isBatchMode,"isolated editor");EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);Lighting();
-        var scanner=Load("Assets/Prefab/Character/Initiator/Scanner.prefab");var fx=scanner.GetComponent<ScannerPresentation>();
+        var scanner=Load("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Scanner.prefab");var fx=scanner.GetComponent<ScannerPresentation>();
         Check(fx && Field<ScannerPresentation>(scanner.GetComponent<ScannerProjectile>(),"_presentation")==fx,"saved projectile presentation binding");
         Check(!scanner.transform.Find("Cube"),"legacy metre-wide placeholder removed");
         Check(scanner.GetComponentsInChildren<Renderer>(true).All(r=>r.sharedMaterial && r.sharedMaterial.shader.isSupported),"all scanner materials supported");
@@ -47,7 +47,7 @@ public static class ScannerPolishVerification
         fx.Advance(.25f);Check(beams.All(b=>!b.enabled),"confirmed impact trails expire");
         fx.End(false);fx.Advance(.23f);Check(!pulse.enabled && beams.All(b=>!b.enabled),"destroyed scanner clears all scan and hit lines");
         Object.DestroyImmediate(scanner);Object.DestroyImmediate(camera.gameObject);
-        var actor=Load("Assets/Prefab/Character/Initiator/Initiator.prefab");var rig=actor.GetComponent<ScannerCastRig>();
+        var actor=Load("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab");var rig=actor.GetComponent<ScannerCastRig>();
         var model=actor.transform.Find("CameraRoot/Controller Model_Riging (1)");var bones=model.GetComponentsInChildren<Transform>(true).Where(t=>t.name.StartsWith("mixamorig:")).ToArray();
         var original=bones.Select(t=>t.localPosition).ToArray();var rotations=bones.Select(t=>t.localRotation).ToArray();
         Check(rig && Field<ScannerCastRig>(actor.GetComponent<InitiatorSkill_C>(),"_rig")==rig,"saved actor rig binding");

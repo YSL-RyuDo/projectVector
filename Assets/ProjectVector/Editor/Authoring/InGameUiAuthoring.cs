@@ -10,7 +10,7 @@ using TMPro;
 
 public static class InGameUiAuthoring
 {
-    const string ScenePath="Assets/Scenes/Game_TestVersion.unity";
+    const string ScenePath="Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity";
     public const string Output="C:/Users/GCT/Documents/Vector-InGameUI-20261028";
     static TMP_FontAsset font; static Material fontMaterial,ink; static EquipmentIconCatalog icons;
     static Color Slate=new Color(.11f,.17f,.24f,.92f), Muted=new Color(.77f,.85f,.9f), Cyan=new Color(.62f,.87f,.95f);
@@ -247,7 +247,7 @@ public static class InGameUiAuthoring
 
     static void Preview(InGameScoreboardUI board,StorePanelUI store,InGameUIManager hud,InteractionPromptUI prompt)
     {
-        var map=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/TestMap.prefab"));map.name="UI preview TestMap";
+        var map=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/TestMap.prefab"));map.name="UI preview TestMap";
         foreach(var t in map.GetComponentsInChildren<Transform>(true))t.gameObject.layer=28;
         var spawn=map.GetComponentsInChildren<Transform>(true).First(t=>t.name=="AttackSpawnPoint 2");
         var lightObject=new GameObject("UI preview light");var light=lightObject.AddComponent<Light>();light.type=LightType.Directional;light.intensity=1.15f;light.cullingMask=1<<28;light.transform.rotation=Quaternion.Euler(45,-35,0);

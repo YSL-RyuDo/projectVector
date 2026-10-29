@@ -15,7 +15,7 @@ public static class LobbyCrashDiagnostics
     public static void ValidateScene()
     {
         SceneScriptReferenceBuildGuard.ValidateEnabledScenes();
-        var scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var components = scene.GetRootGameObjects()
             .SelectMany(g => g.GetComponentsInChildren<MonoBehaviour>(true)).ToArray();
         if (components.Any(c => c == null))

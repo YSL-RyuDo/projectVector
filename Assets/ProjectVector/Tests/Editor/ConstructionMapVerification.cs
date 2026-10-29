@@ -228,7 +228,7 @@ public static class ConstructionMapVerification
         productionRadius=productionStandingHeight=productionCrouchHeight=productionGravity=float.PositiveInfinity;productionJump=0;
         foreach(string name in new[]{"Entry","Initiator","Sentinel","Controller"})
         {
-            string path="Assets/Prefab/Character/"+name+"/"+name+".prefab";
+            string path="Assets/ProjectVector/Shared/Characters/Prefabs/"+name+"/"+name+".prefab";
             var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(path);Check(prefab!=null,"production capsule source exists "+path);
             var cc=prefab.GetComponentInChildren<CharacterController>(true);Check(cc!=null,name+" production CharacterController found");
             var movement=cc.GetComponent<PlayerMovement>();Check(movement!=null,name+" production movement source found");

@@ -26,7 +26,7 @@ public static partial class SpikePresentationAuthoring
     {
         foreach(string c in Characters)
         {
-            var root=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/"+c+"/"+c+".prefab"));
+            var root=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/"+c+"/"+c+".prefab"));
             foreach(string path in new[]{"Model","CameraRoot/Controller Model_Riging (1)"})
             {
                 var model=root.transform.Find(path);
@@ -41,7 +41,7 @@ public static partial class SpikePresentationAuthoring
     static void BuildAudioV2()
     {
         // Reuse the pack's recorded mechanical detail, under the authored connection cue.
-        var sample=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/KSW/Scifi Guns SFX Pack/Gun3_load.wav");
+        var sample=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ThirdParty/ScifiGunsAudio/Gun3_load.wav");
         if(!sample)throw new Exception("Missing equipment audio");
         sample.LoadAudioData();var source=new float[sample.samples*sample.channels];sample.GetData(source,0);
         const int rate=44100;
@@ -76,7 +76,7 @@ public static partial class SpikePresentationAuthoring
     {
         foreach(string character in Characters)
         {
-            var g=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/"+character+"/"+character+".prefab"));
+            var g=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/"+character+"/"+character+".prefab"));
             try
             {
                 foreach(var a in g.GetComponentsInChildren<Animator>(true))a.enabled=false;
@@ -169,7 +169,7 @@ public static partial class SpikePresentationAuthoring
     }
     static GameObject Machine(string asset, Transform parent, Vector3 position, Quaternion rotation, float scale)
     {
-        var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Sci-Fi Styled Modular Pack/Prefabs/Machines/"+asset+".prefab");
+        var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ThirdParty/Sci-Fi Styled Modular Pack/Prefabs/Machines/"+asset+".prefab");
         var g=Object.Instantiate(source,parent);g.name=asset+" module";
         g.transform.localPosition=position;g.transform.localRotation=rotation;g.transform.localScale=Vector3.one*scale;
         foreach(var c in g.GetComponentsInChildren<Collider>())Object.DestroyImmediate(c);

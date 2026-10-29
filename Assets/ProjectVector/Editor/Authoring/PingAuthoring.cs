@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 public static class PingAuthoring
 {
-    const string Folder="Assets/Art/Ping";
+    const string Folder="Assets/ProjectVector/Modules/Match/UI/Ping";
     public const string PrefabPath=Folder+"/TeamPingHUD.prefab";
     static Font font;
     static Color ink=new(.035f,.052f,.07f,.92f);
@@ -120,7 +120,7 @@ public static class PingAuthoring
         manager.statusText=Label(root.transform,"Status","",0,-260,600,32,20);manager.statusText.gameObject.SetActive(false);
         PrefabUtility.SaveAsPrefabAsset(root,PrefabPath);UnityEngine.Object.DestroyImmediate(root);
 
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var systems=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<PingSystem>(true)).ToArray();
         foreach(var old in systems)UnityEngine.Object.DestroyImmediate(old.gameObject);
         var instance=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath),scene);

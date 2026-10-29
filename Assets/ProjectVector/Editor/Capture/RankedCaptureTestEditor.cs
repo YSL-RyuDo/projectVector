@@ -27,7 +27,7 @@ public static class RankedCaptureTestEditor
         if (Environment.GetEnvironmentVariable("VECTOR_CAPTURE_OPT_IN") != "local-ranked-qa") throw new Exception("Explicit opt-in required");
         for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
             if (UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty) throw new Exception("Unsaved scene; refusing to replace it");
-        EditorSceneManager.OpenScene("Assets/Scenes/Login.unity");
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Login/Scenes/Login.unity");
         var gameView = EditorWindow.GetWindow(Type.GetType("UnityEditor.GameView,UnityEditor"));
         gameView.Show(); gameView.Focus();
         EditorApplication.isPlaying = true;

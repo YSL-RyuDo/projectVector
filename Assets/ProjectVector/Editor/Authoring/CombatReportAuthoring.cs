@@ -40,7 +40,7 @@ public static class CombatReportAuthoring
     {
         if(!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)throw new Exception("Editor batch only");
         Directory.CreateDirectory(Output);
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var source=UnityEngine.Object.FindObjectsByType<TMP_Text>(FindObjectsInactive.Include,FindObjectsSortMode.None).First(t=>t.font);
         font=source.font;fontMaterial=source.fontSharedMaterial;icons=AssetDatabase.LoadAssetAtPath<EquipmentIconCatalog>(EquipmentIconsAuthoring.CatalogPath);
         ink=AssetDatabase.LoadAssetAtPath<Material>(EquipmentIconsAuthoring.Folder+"/EquipmentInk.mat");
@@ -157,7 +157,7 @@ public static class CombatReportAuthoring
     public static void RefineSpectatorAndBuild()
     {
         if(!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)throw new Exception("Editor batch only");
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var source=UnityEngine.Object.FindObjectsByType<TMP_Text>(FindObjectsInactive.Include,FindObjectsSortMode.None).First(t=>t.font);
         font=source.font;fontMaterial=source.fontSharedMaterial;icons=AssetDatabase.LoadAssetAtPath<EquipmentIconCatalog>(EquipmentIconsAuthoring.CatalogPath);
         ink=AssetDatabase.LoadAssetAtPath<Material>(EquipmentIconsAuthoring.Folder+"/EquipmentInk.mat");

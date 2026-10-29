@@ -23,7 +23,7 @@ public static class PracticeRangeVideoRecorder
     public static void Run()
     {
         if(EditorApplication.isPlaying || UnityEngine.SceneManagement.SceneManager.GetActiveScene().isDirty)throw new Exception("Save/close existing work before recording");
-        EditorSceneManager.OpenScene("Assets/Scenes/WeaponTest.unity");
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity");
         UnityEngine.Object.FindFirstObjectByType<PracticeRangeController>().persistRecords=false;
         SessionState.SetBool(Active,true);SessionState.SetBool(Active+"Failed",false);
         deadline=EditorApplication.timeSinceStartup+600;EditorApplication.update-=Tick;EditorApplication.update+=Tick;

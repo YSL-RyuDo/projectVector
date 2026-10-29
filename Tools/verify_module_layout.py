@@ -26,7 +26,7 @@ def verify(pure_move=False):
     runtime = ROOT / 'Assets/ProjectVector/Runtime'
     core = json.loads((runtime/'Core/ProjectVector.Core.asmdef').read_text(encoding='utf-8'))
     assert core['noEngineReferences'] and not core['references'], 'Core must remain independent of Unity/UI'
-    for source in runtime.rglob('*.cs'):
+    for source in [*runtime.rglob('*.cs'), *(ROOT/'Assets/ProjectVector/Modules').rglob('*.cs')]:
         if source.name == 'SceneNavigation.cs':
             continue
         assert not re.search(rb'\bSceneManager\s*\.\s*LoadScene(?:Async)?\s*\(', source.read_bytes()), f'Scene navigation bypass: {source}'

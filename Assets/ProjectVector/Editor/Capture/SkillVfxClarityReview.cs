@@ -16,14 +16,14 @@ public static class SkillVfxClarityReview
     public static void After()=>Capture("after");
     static GameObject Actor(string name,Vector3 position,Vector3 forward)
     {
-        var a=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Character/{name}/{name}.prefab"));
+        var a=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Characters/Prefabs/{name}/{name}.prefab"));
         a.transform.SetPositionAndRotation(position,Quaternion.LookRotation(forward));
         foreach(Transform child in a.transform)if(child.name!="Model"&&child.name!="EMP"&&child.name!="ElectricStatusFX")child.gameObject.SetActive(false);
         var root=a.GetComponent<Renderer>();if(root)root.enabled=false;
         foreach(var c in a.GetComponentsInChildren<Camera>(true))c.enabled=false;
         var animator=a.transform.Find("Model").GetComponentInChildren<Animator>();
         string idle=name=="Sentinel"?"Sentinel_Lobby_Idle":name+"_Idle";
-        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>($"Assets/Character Animation/{name}/Lobby/{idle}.anim");
+        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>($"Assets/ProjectVector/Shared/Characters/Animations/{name}/Lobby/{idle}.anim");
         if(animator&&clip)clip.SampleAnimation(animator.gameObject,.3f);
         return a;
     }
@@ -35,7 +35,7 @@ public static class SkillVfxClarityReview
         foreach(string view in new[]{"Caster","Victim","Observer"})
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-            var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Maps/{mapName}.prefab"));
+            var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Maps/Prefabs/{mapName}.prefab"));
             var info=map.GetComponent<MapInfo>();if(info.barriers)info.barriers.SetActive(false);
             var spawn=info.GetSpawnPoint(0,0);Vector3 origin=spawn.position+Vector3.up*.04f;
             Vector3 forward=info.GetSpawnPoint(1,0).position-spawn.position;forward.y=0;forward.Normalize();
@@ -60,7 +60,7 @@ public static class SkillVfxClarityReview
             }
             RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Flat;RenderSettings.ambientLight=Color.white*.62f;
             var sun=new GameObject("CaptureSun").AddComponent<Light>();sun.type=LightType.Directional;sun.intensity=1.4f;sun.transform.rotation=Quaternion.Euler(45,-35,0);
-            var drone=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/Initiator/Drone.prefab"));
+            var drone=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Drone.prefab"));
             PrefabUtility.UnpackPrefabInstance(drone,PrefabUnpackMode.Completely,InteractionMode.AutomatedAction);
             foreach(var c in drone.GetComponentsInChildren<Camera>(true))c.enabled=false;
             drone.transform.position=origin+forward*1.8f+Vector3.up*1.6f-right*.65f;

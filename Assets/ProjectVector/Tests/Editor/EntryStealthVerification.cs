@@ -18,7 +18,7 @@ public static class EntryStealthVerification
     public static void Run()
     {
         Require(Application.isBatchMode, "Isolated batch editor required");
-        var root = PrefabUtility.LoadPrefabContents("Assets/Prefab/Character/Entry/Entry.prefab");
+        var root = PrefabUtility.LoadPrefabContents("Assets/ProjectVector/Shared/Characters/Prefabs/Entry/Entry.prefab");
         var skill = root.GetComponent<EntrySkill_E>();
         try
         {

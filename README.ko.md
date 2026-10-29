@@ -2,6 +2,8 @@
 
 [개발자용 코드 구조와 씬 수명 관리 안내](Docs/Architecture.md)
 
+[씬별 폴더 위치와 팀 작업 규칙](Docs/FolderLayout.md)
+
 <!-- portfolio-languages -->
 [![English](https://ysl-ryudo.github.io/assets/diagrams/language-en.svg)](README.md) [![한국어 (현재 언어)](https://ysl-ryudo.github.io/assets/diagrams/language-ko-current.svg)](README.ko.md) [![日本語](https://ysl-ryudo.github.io/assets/diagrams/language-ja.svg)](README.ja.md)
 <!-- /portfolio-languages -->

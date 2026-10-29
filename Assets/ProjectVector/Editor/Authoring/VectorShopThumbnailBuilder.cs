@@ -6,7 +6,7 @@ using UnityEngine;
 
 public static class VectorShopThumbnailBuilder
 {
-    private const string AtlasPath = "Assets/Resources/Shop/ShopRewardAtlas.png";
+    private const string AtlasPath = "Assets/ProjectVector/Modules/Lobby/Resources/Shop/ShopRewardAtlas.png";
     // Update only the replaced model's tile; preserve all sprite IDs, rewards and other artwork.
     public static void UpdateControllerThumbnail()
     {
@@ -43,7 +43,7 @@ public static class VectorShopThumbnailBuilder
     [MenuItem("Tools/Project Vector/Rebuild Shop Thumbnails")]
     public static void Build()
     {
-        var database = AssetDatabase.LoadAssetAtPath<WeaponSkinDatabase>("Assets/Prefab/Weapon/Weapon Skin Database.asset");
+        var database = AssetDatabase.LoadAssetAtPath<WeaponSkinDatabase>("Assets/ProjectVector/Shared/Weapons/Assets/Weapon Skin Database.asset");
         var entries = new List<(string name, GameObject prefab)>();
         foreach (var skin in database.skins)
             if (skin != null && skin.skinId > 0 && skin.baseWeapon != null && skin.visualModelPrefab != null)

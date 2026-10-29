@@ -11,7 +11,7 @@ using TMPro;
 public static class CombatHudAuthoring
 {
     public const string Output="C:/Users/GCT/Documents/Vector-CombatHUD-20261028";
-    const string ScenePath="Assets/Scenes/Game_TestVersion.unity";
+    const string ScenePath="Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity";
     static TMP_FontAsset font;static Material fontMaterial,ink;static EquipmentIconCatalog icons;
     static Color Dark=new(.035f,.061f,.09f,.85f),Ice=new(.64f,.88f,1),Muted=new(.77f,.83f,.89f),Red=new(1,.48f,.49f),Gold=new(1,.8f,.4f);
     static T Get<T>(UnityEngine.Object o,string f) where T:UnityEngine.Object=>InGameUiAuthoring.Get<T>(o,f);
@@ -68,7 +68,7 @@ public static class CombatHudAuthoring
     }
     static Sprite CircleMask()
     {
-        const string path="Assets/Sprites/HUD/MinimapCircle.png";
+        const string path="Assets/ProjectVector/Modules/Match/UI/Sprites/HUD/MinimapCircle.png";
         if(!File.Exists(path)) {
             Directory.CreateDirectory(Path.GetDirectoryName(path));var t=new Texture2D(512,512,TextureFormat.RGBA32,false);var pixels=new Color[512*512];
             for(int y=0;y<512;y++)for(int x=0;x<512;x++)pixels[y*512+x]=new Color(1,1,1,Mathf.Clamp01(255.5f-Vector2.Distance(new Vector2(x+.5f,y+.5f),new Vector2(256,256))));
@@ -222,7 +222,7 @@ public static class CombatHudAuthoring
     static void Preview(TopInfoUI top,InGameUIManager hud,MatchManager match,KillLogManager kill,CombatFeedbackUI feedback,InteractionPromptUI prompt,string mapName="TestMap")
     {
         var pick=UnityEngine.Object.FindFirstObjectByType<PickManager>(FindObjectsInactive.Include);
-        var canvas=top.GetComponentInParent<Canvas>().gameObject;var map=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/"+mapName+".prefab"));
+        var canvas=top.GetComponentInParent<Canvas>().gameObject;var map=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/"+mapName+".prefab"));
         map.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
         var savedCam=UnityEngine.Object.FindFirstObjectByType<MiniMapCamera>(FindObjectsInactive.Include);
         var mapCamGo=UnityEngine.Object.Instantiate(savedCam.gameObject);var mapCam=mapCamGo.GetComponent<Camera>();mapCam.enabled=false;

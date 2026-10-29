@@ -31,25 +31,25 @@ public static class EmpVisualReview
     }
     static GameObject Actor(string name,Vector3 position)
     {
-        var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Character/{name}/{name}.prefab"));root.transform.position=position;
+        var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Characters/Prefabs/{name}/{name}.prefab"));root.transform.position=position;
         foreach(Transform child in root.transform)if(child.name!="Model" && child.name!="EMP" && child.name!="ElectricStatusFX")child.gameObject.SetActive(false);
         var r=root.GetComponent<Renderer>();if(r)r.enabled=false;
         foreach(var c in root.GetComponentsInChildren<Camera>(true))c.enabled=false;
         var animator=root.transform.Find("Model")?.GetComponentInChildren<Animator>();
         string clipName=name=="Sentinel"?"Sentinel_Lobby_Idle":name+"_Idle";
-        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>($"Assets/Character Animation/{name}/Lobby/{clipName}.anim");if(animator&&clip)clip.SampleAnimation(animator.gameObject,.3f);
+        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>($"Assets/ProjectVector/Shared/Characters/Animations/{name}/Lobby/{clipName}.anim");if(animator&&clip)clip.SampleAnimation(animator.gameObject,.3f);
         return root;
     }
     public static void Run()
     {
         Check(Application.isBatchMode,"isolated batch");EmpPolishAuthoring.Run();
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);Light();
-        var device=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/EMP/WristEmitter.prefab"));
+        var device=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Effects/Initiator/EMP/WristEmitter.prefab"));
         Check(device.GetComponentsInChildren<Collider>().Length==0,"device cannot obstruct player collision or raycasts");
         Check(device.GetComponentsInChildren<Renderer>().All(r=>r.sharedMaterial && r.sharedMaterial.shader.isSupported),"device uses supported materials");
         var c=CameraAt(new Vector3(.34f,.38f,.45f),Vector3.zero);c.fieldOfView=37;Save(c,"Emitter-Model");
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);Light();
-        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/TestMap.prefab"));map.transform.position=Vector3.zero;
+        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/TestMap.prefab"));map.transform.position=Vector3.zero;
         var info=map.GetComponent<MapInfo>();if(info.barriers)info.barriers.SetActive(false);
         Vector3 origin=info.GetSpawnPoint(0,0).position;origin.y+=.05f;
         var caster=Actor("Initiator",origin);var target=Actor("Sentinel",origin+new Vector3(3.7f,0,2));var second=Actor("Entry",origin+new Vector3(-2,0,4));
@@ -66,7 +66,7 @@ public static class EmpVisualReview
         foreach(var p in caster.GetComponentsInChildren<ParticleSystem>())if(p.isPlaying)p.Simulate(.14f,false,true);
         c=CameraAt(origin+new Vector3(6,3.8f,-6),origin+new Vector3(0,1,1));Save(c,"Cast-ThirdPerson");
         // Display the saved HUD using a review camera, not an invented UI mockup.
-        var ui=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/EMP/ElectricStatusHUD.prefab"));
+        var ui=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Effects/Initiator/EMP/ElectricStatusHUD.prefab"));
         var canvas=ui.GetComponent<Canvas>();canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=c;canvas.planeDistance=.3f;
         ui.GetComponent<ElectricStatusUI>().Present(0,2.4f,3);Canvas.ForceUpdateCanvases();
         Check(ui.GetComponentsInChildren<Graphic>(true).All(g=>!g.raycastTarget),"status HUD cannot intercept input");

@@ -14,7 +14,7 @@ public static class PingVerification
     public static void Run()
     {
         Check(Application.isBatchMode,"Batch only");
-        EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var managers=UnityEngine.Object.FindObjectsByType<PingManager>(FindObjectsInactive.Include,FindObjectsSortMode.None);
         Check(managers.Length==1,"Exactly one local ping HUD required");var m=managers[0];
         Check(m.NetworkMode&&m.canvasRoot&&m.wheel&&m.hudMap&&m.fullMap&&m.mapCamera,"Saved scene bindings missing");

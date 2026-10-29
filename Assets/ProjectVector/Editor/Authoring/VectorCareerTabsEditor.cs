@@ -21,7 +21,7 @@ public static class VectorCareerTabsEditor
     static void Call(object o, string n, params object[] args) => o.GetType().GetMethod(n, BindingFlags.NonPublic | BindingFlags.Instance).Invoke(o, args);
     static T Ensure<T>(GameObject go) where T : Component { var c = go.GetComponent<T>(); return c != null ? c : go.AddComponent<T>(); }
     static Transform Find(Transform p, string n) => p.GetComponentsInChildren<Transform>(true).First(t => t.name == n);
-    static Sprite Art(string n) => AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/VideoReference/" + n + ".png");
+    static Sprite Art(string n) => AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/UI/Surfaces/MatchFlow/" + n + ".png");
     static void Pose(Transform t, float x, float y, float w, float h)
     {
         var r = (RectTransform)t; r.anchorMin = r.anchorMax = r.pivot = Vector2.one * .5f;
@@ -106,7 +106,7 @@ public static class VectorCareerTabsEditor
     public static void InstallAndVerify()
     {
         Guard(); font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Fonts/Pretendard-Black SDF.asset");
-        foreach (var path in new[] { "Assets/Scenes/Lobby.unity", "Assets/KSW/Lobby2.unity" })
+        foreach (var path in new[] { "Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity", "Assets/ProjectVector/Development/Legacy/Scenes/Lobby2.unity" })
         {
             var scene = EditorSceneManager.OpenScene(path); var controller = Controller(scene);
             var preservation = new VectorExperiencePolishEditor.Preservation(scene);
@@ -335,7 +335,7 @@ public static class VectorCareerTabsEditor
     public static void Verify()
     {
         VectorCareerPresentationEditor.Verify();
-        var scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity"); var c = Controller(scene);
+        var scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity"); var c = Controller(scene);
         var v = Ref<CareerTabsPresentation>(c, "_tabsPresentation"); Call(c, "Awake");
         var career = Ref<GameObject>(c, "_rankingPanel").transform.parent;
         int objects = career.GetComponentsInChildren<Transform>(true).Length, components = career.GetComponentsInChildren<Component>(true).Length;

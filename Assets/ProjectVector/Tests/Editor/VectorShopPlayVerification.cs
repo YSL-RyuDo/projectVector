@@ -30,7 +30,7 @@ public static class VectorShopPlayVerification
     public static void RunBatch()
     {
         SessionState.SetBool(Flag, true);
-        var scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity", OpenSceneMode.Single);
+        var scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity", OpenSceneMode.Single);
         var shop = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<VectorShopPanel>(true)).Single();
         VectorShopHierarchyInstaller.Validate(shop.transform);
         // Isolate the saved shop fixture from login/match controllers; never save this scene.

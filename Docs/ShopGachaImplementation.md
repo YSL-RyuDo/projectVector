@@ -69,7 +69,7 @@ Shader Graph로 같은 효과를 제작할 때: Universal Unlit Graph, Surface T
 
 ## 보상 상세 / 확률
 
-UI는 `Assets/Scenes/Lobby.unity`의 기존 `Store Panel` 아래에 저장됩니다. 플레이 전에도 하이어라키에서 패널을 켜고 배치·색상·폰트·버튼 연결을 편집할 수 있습니다. `VectorShopPanel`은 저장된 참조의 텍스트/상태만 갱신하며 런타임에 UI를 생성하거나 재배치하지 않습니다. `GachaManager` 역시 저장된 `GachaSequencePanel`을 사용합니다. 런타임 생성 대상은 미리보기 모델과 3D 연출용 임시 스테이지뿐입니다.
+UI는 `Assets/ProjectVector/Development/Legacy/Scenes/Lobby.unity`의 기존 `Store Panel` 아래에 저장됩니다. 플레이 전에도 하이어라키에서 패널을 켜고 배치·색상·폰트·버튼 연결을 편집할 수 있습니다. `VectorShopPanel`은 저장된 참조의 텍스트/상태만 갱신하며 런타임에 UI를 생성하거나 재배치하지 않습니다. `GachaManager` 역시 저장된 `GachaSequencePanel`을 사용합니다. 런타임 생성 대상은 미리보기 모델과 3D 연출용 임시 스테이지뿐입니다.
 
 - `RewardDetailsPanel`: 왼쪽 등급별 카드 목록, 중앙 `SelectedRewardModel`, 오른쪽 `RewardDescription`.
 - `DrawHistoryPanel`, `DetailedProbabilityPanel`, `DrawResultPanel`, `PurchaseConfirmPanel`: 저장된 팝업.

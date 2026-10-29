@@ -12,7 +12,7 @@ using Object = UnityEngine.Object;
 
 public static class VectorPickExperienceEditor
 {
-    const string ScenePath = "Assets/Scenes/Game_TestVersion.unity";
+    const string ScenePath = "Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity";
     static TMP_FontAsset font;
     static readonly Color White = new Color32(245, 243, 236, 255);
     static readonly Color Gold = new Color32(246, 208, 114, 255);
@@ -69,7 +69,7 @@ public static class VectorPickExperienceEditor
     }
     static Sprite ReferenceSurface(string name)
     {
-        string path = "Assets/UI/PickReference/" + name + ".png";
+        string path = "Assets/ProjectVector/Modules/Match/UI/Surfaces/" + name + ".png";
         var importer = (TextureImporter)AssetImporter.GetAtPath(path);
         importer.textureType = TextureImporterType.Sprite; importer.spriteImportMode = SpriteImportMode.Single;
         importer.mipmapEnabled = false; importer.textureCompression = TextureImporterCompression.Uncompressed;
@@ -125,7 +125,7 @@ public static class VectorPickExperienceEditor
             if (portrait == null) { portrait = slot.GetComponent<Image>(); Link(slot, "slotImage", portrait); }
             portrait.type = Image.Type.Simple; portrait.preserveAspect = true; portrait.raycastTarget = false;
             preserved.AllowSpriteChange(portrait);
-            portrait.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/VideoReference/EmptySeat.png");
+            portrait.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/UI/Surfaces/MatchFlow/EmptySeat.png");
             var name = Ref<TMP_Text>(slot, "nicknameText"); Pose(name.transform, 94, 5, 226, 36); TextStyle(name, 25, White);
             var so = new SerializedObject(slot); so.FindProperty("normalNicknameColor").colorValue = White; so.FindProperty("myNicknameColor").colorValue = Gold; so.ApplyModifiedPropertiesWithoutUndo();
             view.teammateStates[i] = Label(row, "PickStatus", "캐릭터를 고르는 중", 105, 63, 218, 28, 18, new Color32(205, 204, 198, 255));

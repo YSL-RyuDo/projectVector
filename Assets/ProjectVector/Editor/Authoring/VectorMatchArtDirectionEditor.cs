@@ -73,7 +73,7 @@ public static class VectorMatchArtDirectionEditor
     }
     static Sprite Cutout(string name)
     {
-        string path="Assets/UI/MatchFlow/Portraits/"+name+"Cutout.png";
+        string path="Assets/ProjectVector/Modules/Match/UI/MatchFlow/Portraits/"+name+"Cutout.png";
         var importer=(TextureImporter)AssetImporter.GetAtPath(path);importer.textureType=TextureImporterType.Sprite;
         importer.spriteImportMode=SpriteImportMode.Single;importer.alphaIsTransparency=true;importer.mipmapEnabled=false;
         importer.textureCompression=TextureImporterCompression.Uncompressed;importer.SaveAndReimport();
@@ -86,7 +86,7 @@ public static class VectorMatchArtDirectionEditor
         for(int i=0;i<UnityEngine.SceneManagement.SceneManager.sceneCount;i++)if(UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty)throw new Exception("Unsaved scene refused");
         font=AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Fonts/Pretendard-Black SDF.asset");
         var sentinel=Cutout("Sentinel");var duelist=Cutout("Duelist");
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");guard=new(scene);
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");guard=new(scene);
         var social=Object.FindFirstObjectByType<LobbySocialController>(FindObjectsInactive.Include);var p=social.readyPanel.transform;
         social.readyPanel.GetComponent<Image>().color=ink;Off(p,"Horizon");
         T(p,"Wordmark","VECTOR  /  MATCH",-620,449,460,32,19,muted);
@@ -106,7 +106,7 @@ public static class VectorMatchArtDirectionEditor
         Off(social.acceptReady.transform,"Accent");Off(social.declineReady.transform,"Accent");
         Motion(social.readyPanel);Save(scene);
 
-        scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");guard=new(scene);
+        scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");guard=new(scene);
         var pick=Object.FindFirstObjectByType<PickManager>(FindObjectsInactive.Include);var intro=Ref<MapIntroPresentation>(pick,"mapIntro");p=intro.overlay.transform;
         B(p,"TopLetterbox",0,505,1920,70,ink);
         T(p,"Wordmark","VECTOR  /  OPERATION",-628,505,530,38,19,paper);
@@ -150,7 +150,7 @@ public static class VectorMatchArtDirectionEditor
         T(p,"FooterBrand","PROJECT VECTOR",675,-475,330,34,18,muted,TextAlignmentOptions.Right);
         Save(scene);
 
-        scene=EditorSceneManager.OpenScene("Assets/Scenes/Result.unity");guard=new(scene);
+        scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Results/Scenes/Result.unity");guard=new(scene);
         var result=Object.FindFirstObjectByType<ResultVictorySequence>(FindObjectsInactive.Include);p=result.mvpSpotlight.transform;
         B(p,"SpotlightPanel",560,20,672,738,new Color(.045f,.06f,.067f,.95f));
         B(p,"GoldRule",225,20,3,738,gold);
@@ -170,7 +170,7 @@ public static class VectorMatchArtDirectionEditor
         VectorMatchFlowEditor.Verify();
         VectorVictorySequenceEditor.Verify();
         VerifyKeyframes();
-        foreach(string path in new[]{"Assets/Scenes/Lobby.unity","Assets/Scenes/Game_TestVersion.unity"})
+        foreach(string path in new[]{"Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity","Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity"})
         {
             var scene=EditorSceneManager.OpenScene(path);
             foreach(var c in scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<MatchIdentityCard>(true)))
@@ -188,7 +188,7 @@ public static class VectorMatchArtDirectionEditor
     }
     static void VerifyKeyframes()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var pick=Object.FindFirstObjectByType<PickManager>(FindObjectsInactive.Include);
         var intro=Ref<MapIntroPresentation>(pick,"mapIntro");var backdrop=Ref<PickMapBackdrop>(pick,"mapBackdrop");
         var original=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<Transform>(true)).ToArray();

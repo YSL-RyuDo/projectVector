@@ -40,7 +40,7 @@ public static class EmpGestureVerification
     {
         Check(Application.isBatchMode,"isolated editor");EmpPolishAuthoring.Run();
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-        var actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/Initiator/Initiator.prefab"));
+        var actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab"));
         var rig=actor.GetComponent<EmpGestureRig>();var skill=actor.GetComponent<InitiatorSkill_E>();
         var poses=(EmpGestureRig.Pose[])typeof(EmpGestureRig).GetField("_poses",Flags).GetValue(rig);
         Check(poses.Length==2 && poses.All(p=>p.bones.Length==4 && p.fingers.Length>5),"first and third person saved arm and open hand poses");
@@ -62,7 +62,7 @@ public static class EmpGestureVerification
         camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(.07f,.10f,.14f);
         var model=actor.transform.Find("CameraRoot/Controller Model_Riging (1)");
         var neutralShoulder=poses[0].shoulder.position+camera.transform.TransformVector(new Vector3(-.34f,-.10f,.13f));
-        var weaponIdle=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character(New)/Controller/Animation/AR.anim");
+        var weaponIdle=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Models/Controller/Animation/AR.anim");
         weaponIdle.SampleAnimation(model.gameObject,0);
         var shoulder=poses[0].shoulder.position;
         var motion=actor.GetComponent<FirstPersonSkillMotion>();
@@ -74,7 +74,7 @@ public static class EmpGestureVerification
             motion.Apply(kind,.16f,1);var authored=motionBones.Select(t=>t.localRotation).ToArray();
             motion.Restore(kind);
             Check(motionBones.Select((t,i)=>Quaternion.Angle(t.localRotation,baseRotations[i])<.03f && Vector3.Distance(t.localPosition,basePositions[i])<.0001f).All(v=>v),kind+" restores full firearm skeleton");
-            AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character(New)/Controller/Animation/Pistol.anim").SampleAnimation(model.gameObject,0);
+            AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Models/Controller/Animation/Pistol.anim").SampleAnimation(model.gameObject,0);
             motion.Apply(kind,.16f,1);
             Check(motionBones.Select((t,i)=>Quaternion.Angle(t.localRotation,authored[i])<.03f).All(v=>v),kind+" pose independent of rifle or pistol");
             motion.Restore(kind);
@@ -109,7 +109,7 @@ public static class EmpGestureVerification
         drone.SetPrepared(true);
         for(int i=0;i<100;i++)typeof(DroneLaunchRig).GetMethod("Advance",Flags).Invoke(drone,new object[]{1f/120});
         Save(camera,"Drone-Hand-GameplayFov");drone.ResetPresentation();
-        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/TestMap.prefab"));
+        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/TestMap.prefab"));
         var info=map.GetComponent<MapInfo>();if(info.barriers)info.barriers.SetActive(false);
         var spawn=info.GetSpawnPoint(0,0);actor.transform.SetPositionAndRotation(spawn.position,spawn.rotation);
         weaponIdle.SampleAnimation(model.gameObject,0);drone.SetPrepared(true);
@@ -118,7 +118,7 @@ public static class EmpGestureVerification
         rig.Begin();rig.Advance(.5f);Save(camera,"EMP-Authored-TestMap");rig.ResetPresentation();
         Object.DestroyImmediate(map);actor.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
         model.gameObject.SetActive(false);full.gameObject.SetActive(true);
-        var idle=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character Animation/Initiator/Lobby/Initiator_Idle.anim");var animator=full.GetComponentInChildren<Animator>();if(idle&&animator)idle.SampleAnimation(animator.gameObject,.3f);
+        var idle=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Animations/Initiator/Lobby/Initiator_Idle.anim");var animator=full.GetComponentInChildren<Animator>();if(idle&&animator)idle.SampleAnimation(animator.gameObject,.3f);
         rig.Begin();rig.Advance(.5f);
         camera.transform.position=actor.transform.position+new Vector3(2,1.6f,3);camera.transform.LookAt(actor.transform.position+Vector3.up*1.1f);camera.fieldOfView=45;
         Save(camera,"EMP-Hand-ThirdPerson");rig.ResetPresentation();

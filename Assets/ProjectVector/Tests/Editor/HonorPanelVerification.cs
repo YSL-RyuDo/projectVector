@@ -23,7 +23,7 @@ public static class HonorPanelVerification
     private static void Verify(bool install)
     {
         if (install) HonorHierarchyInstaller.Install();
-        var scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity", OpenSceneMode.Single);
+        var scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity", OpenSceneMode.Single);
         var source = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<MyPagePanelController>(true)).First();
         var canvasObject = new GameObject("HonorVerificationCanvas", typeof(Canvas), typeof(CanvasScaler));
         canvasObject.layer = 5;

@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 
 public static partial class SpikePresentationAuthoring
 {
-    public const string Folder = "Assets/Art/Spike";
+    public const string Folder = "Assets/ProjectVector/Modules/Match/Device/Art";
     public const string ModelPath = Folder + "/VectorSpike.prefab";
     public const string EffectPath = Folder + "/SpikeDetonation.prefab";
     static Material shell, dark, steel, light, warning, glass, fx;
@@ -22,7 +22,7 @@ public static partial class SpikePresentationAuthoring
     {
         foreach(string c in Characters)
         {
-            var r=PrefabUtility.LoadPrefabContents("Assets/Prefab/Character/"+c+"/"+c+".prefab");
+            var r=PrefabUtility.LoadPrefabContents("Assets/ProjectVector/Shared/Characters/Prefabs/"+c+"/"+c+".prefab");
             foreach(string path in new[]{"Model","CameraRoot/Controller Model_Riging (1)"})
             {
                 var model=r.transform.Find(path);
@@ -43,9 +43,9 @@ public static partial class SpikePresentationAuthoring
         BuildAssets();
         BuildAudioV2();
         BuildNetworkDevice(); BuildEffectV2();
-        UpgradeWorld("Assets/Resources/Prefabs/Spike/Spike.prefab", true);
-        UpgradeWorld("Assets/Resources/Prefabs/Spike/DroppedSpike.prefab", false);
-        foreach (string character in Characters) AuthorCharacter("Assets/Prefab/Character/" + character + "/" + character + ".prefab", character);
+        UpgradeWorld("Assets/ProjectVector/Modules/Match/Resources/Prefabs/Spike/Spike.prefab", true);
+        UpgradeWorld("Assets/ProjectVector/Modules/Match/Resources/Prefabs/Spike/DroppedSpike.prefab", false);
+        foreach (string character in Characters) AuthorCharacter("Assets/ProjectVector/Shared/Characters/Prefabs/" + character + "/" + character + ".prefab", character);
         AssetDatabase.SaveAssets();
         Verify();
         Debug.Log("SPIKE_AUTHOR_PASS");
@@ -266,7 +266,7 @@ public static partial class SpikePresentationAuthoring
         cylinder=AssetDatabase.LoadAssetAtPath<Mesh>(Folder+"/Prism.asset");
         foreach(var role in Characters)
         {
-            string path=$"Assets/Prefab/Character/{role}/{role}.prefab";
+            string path=$"Assets/ProjectVector/Shared/Characters/Prefabs/{role}/{role}.prefab";
             var root=PrefabUtility.LoadPrefabContents(path);
             try
             {
@@ -486,12 +486,12 @@ public static partial class SpikePresentationAuthoring
     {
         foreach(var c in Characters)
         {
-            var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/"+c+"/"+c+".prefab");var p=prefab.GetComponent<SpikeInteractionPresentation>();
+            var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/"+c+"/"+c+".prefab");var p=prefab.GetComponent<SpikeInteractionPresentation>();
             if(!p||!p.firstPerson.plant||!p.thirdPerson.defuse||p.firstPerson.device.activeSelf||p.thirdPerson.tool.activeSelf)throw new Exception("Spike bindings invalid: "+c);
             if(Mathf.Abs(p.firstPerson.plant.length-3)>.001f||Mathf.Abs(p.firstPerson.defuse.length-5)>.001f)throw new Exception("Gameplay duration changed");
             foreach(var rig in new[]{p.firstPerson,p.thirdPerson})if(rig.bones.Any(t=>!t))throw new Exception("Missing pose binding");
         }
-        var spike=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/Spike/Spike.prefab");
+        var spike=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Modules/Match/Resources/Prefabs/Spike/Spike.prefab");
         if(!spike.GetComponent<SpikePresentation>().detonationPrefab)throw new Exception("Missing detonation");
         VerifyRestore();
         Debug.Log("SPIKE_VERIFY_PASS: 4 characters, FP/TP bindings, 3s/5s clips, device, effect");

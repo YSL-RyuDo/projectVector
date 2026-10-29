@@ -51,7 +51,7 @@ public static class ConstructionMapSurvey
         foreach(var name in new[]{"TestMap","Desert"})
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);Lighting();
-            var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/"+name+".prefab"));
+            var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/"+name+".prefab"));
             map.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);var info=map.GetComponent<MapInfo>();info.SetBarriersActive(false);
             report.AppendLine(name+" all-render bounds "+BoundsOf(map));
             foreach(var p in info.attackSpawnPoints.Concat(info.defendSpawnPoints))report.AppendLine($"spawn {p.name}: {p.position:F3}, yaw {p.eulerAngles.y}");
@@ -62,7 +62,7 @@ public static class ConstructionMapSurvey
             Bounds b=rs[0].bounds;foreach(var r in rs.Skip(1))b.Encapsulate(r.bounds);report.AppendLine("filtered bounds "+b);
             Capture(name+"-top",b.center+Vector3.up*130,b.center,1000,1000,Mathf.Max(b.extents.x,b.extents.z)+4);
         }
-        foreach(var path in AssetDatabase.FindAssets("t:Prefab",new[]{"Assets/FPS_Bundle/FPS_Map5/Prefabs"}).Select(AssetDatabase.GUIDToAssetPath).OrderBy(s=>s))
+        foreach(var path in AssetDatabase.FindAssets("t:Prefab",new[]{"Assets/ThirdParty/FPS_Bundle/FPS_Map5/Prefabs"}).Select(AssetDatabase.GUIDToAssetPath).OrderBy(s=>s))
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);Lighting();
             var go=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(path));go.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
@@ -77,7 +77,7 @@ public static class ConstructionMapSurvey
     public static void Demo()
     {
         if(!Application.isBatchMode)throw new Exception("Batch only");
-        var scene=EditorSceneManager.OpenScene("Assets/FPS_Bundle/FPS_Map5/Scenes/LowPolyFPS6_Demo.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ThirdParty/FPS_Bundle/FPS_Map5/Scenes/LowPolyFPS6_Demo.unity");
         var b=new StringBuilder();
         foreach(var go in scene.GetRootGameObjects()){
             b.AppendLine(go.name+" "+BoundsOf(go));

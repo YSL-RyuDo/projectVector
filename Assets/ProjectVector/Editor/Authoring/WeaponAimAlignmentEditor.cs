@@ -13,7 +13,7 @@ public static class WeaponAimAlignmentEditor
         if(EditorApplication.isPlayingOrWillChangePlaymode || UnityEngine.SceneManagement.SceneManager.GetActiveScene().isDirty)throw new Exception("Unsaved scene/Play: refused");
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
         var folder=Path.Combine(Path.GetTempPath(),"VectorAim-before-"+DateTime.UtcNow.ToString("yyyyMMddHHmmss"));Directory.CreateDirectory(folder);
-        var weapons=AssetDatabase.FindAssets("t:WeaponData",new[]{"Assets/Prefab/Weapon"}).Select(g=>AssetDatabase.LoadAssetAtPath<WeaponData>(AssetDatabase.GUIDToAssetPath(g))).Where(w=>w!=null && w.weaponPrefab!=null).ToArray();
+        var weapons=AssetDatabase.FindAssets("t:WeaponData",new[]{"Assets/ProjectVector/Shared/Weapons/Assets"}).Select(g=>AssetDatabase.LoadAssetAtPath<WeaponData>(AssetDatabase.GUIDToAssetPath(g))).Where(w=>w!=null && w.weaponPrefab!=null).ToArray();
         int count=0;
         foreach(var weapon in weapons)
         {
@@ -41,7 +41,7 @@ public static class WeaponAimAlignmentEditor
         }
         foreach(string role in new[]{"Initiator","Controller","Sentinel","Entry"})
         {
-            string path="Assets/Prefab/Character/"+role+"/"+role+".prefab";File.Copy(path,Path.Combine(folder,"Character-"+role+".prefab"),true);
+            string path="Assets/ProjectVector/Shared/Characters/Prefabs/"+role+"/"+role+".prefab";File.Copy(path,Path.Combine(folder,"Character-"+role+".prefab"),true);
             var root=PrefabUtility.LoadPrefabContents(path);
             try
             {

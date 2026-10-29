@@ -47,9 +47,9 @@ public static class ControllerSwampCapture
     {
         if(!Application.isBatchMode)throw new Exception("Batch only");
         ControllerSwampAuthoring.Run();Directory.CreateDirectory(Output);
-        EditorSceneManager.OpenScene("Assets/Scenes/WeaponTest.unity");
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity");
         Object.FindFirstObjectByType<PracticeRangeController>().persistRecords=false;
-        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/TestMap.prefab"));
+        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/TestMap.prefab"));
         map.transform.position=new Vector3(1000,0,0);map.GetComponent<MapInfo>().SetBarriersActive(false);
         foreach(var b in map.GetComponentsInChildren<MonoBehaviour>(true))Object.DestroyImmediate(b);
         var actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(ControllerSwampAuthoring.Actor));actor.name="SwampTarget";
@@ -61,7 +61,7 @@ public static class ControllerSwampCapture
         foreach(var c in actor.GetComponentsInChildren<Camera>(true))c.enabled=false;
         foreach(var look in actor.GetComponentsInChildren<FPSCameraLook>(true))look.enabled=false;
         foreach(var r in actor.GetComponentsInChildren<Renderer>(true)){r.enabled=r.transform.IsChildOf(model);r.forceRenderingOff=false;}
-        AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character(New)/Controller/Animation/InGame/Pistol/Controller_Pistol_Idle.anim").SampleAnimation(model.gameObject,0);
+        AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Models/Controller/Animation/InGame/Pistol/Controller_Pistol_Idle.anim").SampleAnimation(model.gameObject,0);
         foreach(var a in actor.GetComponentsInChildren<Animator>(true))a.enabled=false;
         foreach(var a in actor.GetComponentsInChildren<AudioListener>(true))a.enabled=false;
         SessionState.SetBool(Key,true);EditorApplication.update-=Tick;EditorApplication.update+=Tick;deadline=EditorApplication.timeSinceStartup+600;EditorApplication.EnterPlaymode();

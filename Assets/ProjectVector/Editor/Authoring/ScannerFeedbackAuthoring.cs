@@ -12,7 +12,7 @@ using Object=UnityEngine.Object;
 
 public static class ScannerFeedbackAuthoring
 {
-    const string Hud="Assets/Art/EMP/ElectricStatusHUD.prefab";
+    const string Hud="Assets/ProjectVector/Shared/Characters/Effects/Initiator/EMP/ElectricStatusHUD.prefab";
     static readonly Color Cyan=new Color(.33f,.86f,1), Amber=new Color(1,.72f,.33f);
     internal static RectTransform Rect(Transform parent,string name,float x,float y,float w,float h)
     {
@@ -40,7 +40,7 @@ public static class ScannerFeedbackAuthoring
     internal static AudioSource Sound(Transform parent,string name,string clip,float volume,float pitch)
     {
         var source=Component<AudioSource>(Rect(parent,name,0,0,0,0).gameObject);source.playOnAwake=false;source.spatialBlend=0;source.volume=volume;source.pitch=pitch;
-        source.clip=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Drone/"+clip+".wav");return source;
+        source.clip=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ProjectVector/Shared/Audio/Drone/"+clip+".wav");return source;
     }
     public static void Run()
     {
@@ -53,7 +53,7 @@ public static class ScannerFeedbackAuthoring
             Bar(owner.transform,"Backing",0,0,230,34,new Color(.025f,.045f,.06f,.78f));
             Bar(owner.transform,"Accent",-114,0,2,34,Cyan);
             var icon=Bar(owner.transform,"ScannerIcon",-94,0,23,23,Cyan);
-            icon.sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Character/Initiator/Initiator_C.png");icon.preserveAspect=true;
+            icon.sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/Characters/Portraits/Initiator/Initiator_C.png");icon.preserveAspect=true;
             var label=Label(owner.transform,"DetectedCount","스캐너 감지  1명",14,0,190,32,19,Cyan);
             var victim=Group(root.transform,"ScannerVictimNotice",-174,210,30);
             Bar(victim.transform,"Backing",0,0,210,30,new Color(.06f,.04f,.025f,.75f));

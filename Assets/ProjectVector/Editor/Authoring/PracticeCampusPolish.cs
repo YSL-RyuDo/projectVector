@@ -10,7 +10,7 @@ using UnityEngine.Rendering.Universal;
 
 public static class PracticeCampusPolish
 {
-    const string Scene="Assets/Scenes/WeaponTest.unity", AssetsDir="Assets/Prefab/WeaponTest/";
+    const string Scene="Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity", AssetsDir="Assets/ProjectVector/Modules/Practice/Assets/";
     static Transform root, detail;
     static Material dark, pale, accent, stone, soil, grip, lamp;
     public static void Apply()
@@ -63,7 +63,7 @@ public static class PracticeCampusPolish
             var mats=renderer.sharedMaterials;
             for(int i=0;i<mats.Length;i++)
             {
-                var src=mats[i];if(src==null || !AssetDatabase.GetAssetPath(src).StartsWith("Assets/FPS_Bundle/"))continue;
+                var src=mats[i];if(src==null || !AssetDatabase.GetAssetPath(src).StartsWith("Assets/ThirdParty/FPS_Bundle/"))continue;
                 if(!cache.TryGetValue(src,out var copy))
                 {
                     copy=new Material(Shader.Find("Universal Render Pipeline/Lit"));
@@ -186,7 +186,7 @@ public static class PracticeCampusPolish
     }
     static void Lighting()
     {
-        var pipeline=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/PC_RPAsset.asset"));
+        var pipeline=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/ProjectVector/Shared/Rendering/Settings/PC_RPAsset.asset"));
         pipeline.name="HydroTrainingPipeline";
         var so=new SerializedObject(pipeline);so.FindProperty("m_MainLightShadowsSupported").boolValue=true;
         so.FindProperty("m_ShadowDistance").floatValue=95;so.FindProperty("m_MainLightShadowmapResolution").intValue=2048;
@@ -236,7 +236,7 @@ public static class PracticeCampusPolish
     }
     static void Prop(string relative,Transform parent,Vector3 pos,float scale,float yaw)
     {
-        var asset=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/FPS_Bundle/"+relative);if(asset==null)throw new Exception(relative);
+        var asset=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ThirdParty/FPS_Bundle/"+relative);if(asset==null)throw new Exception(relative);
         var obj=(GameObject)PrefabUtility.InstantiatePrefab(asset,parent);obj.transform.localScale*=scale;obj.transform.rotation=Quaternion.Euler(0,yaw,0);
         var rs=obj.GetComponentsInChildren<Renderer>();var b=rs[0].bounds;foreach(var r in rs)b.Encapsulate(r.bounds);
         obj.transform.position+=pos-new Vector3(b.center.x,b.min.y,b.center.z);

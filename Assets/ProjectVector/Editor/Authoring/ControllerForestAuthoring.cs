@@ -10,7 +10,7 @@ using Object=UnityEngine.Object;
 
 public static class ControllerForestAuthoring
 {
-    public const string Dir="Assets/Art/Controller/Forest", Actor="Assets/Prefab/Character/Controller/Controller.prefab", Area="Assets/Prefab/Character/Controller/DreamForestArea.prefab";
+    public const string Dir="Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller/Forest", Actor="Assets/ProjectVector/Shared/Characters/Prefabs/Controller/Controller.prefab", Area="Assets/ProjectVector/Shared/Characters/Prefabs/Controller/DreamForestArea.prefab";
     static void Ref(Object o,string key,Object v){var s=new SerializedObject(o);s.FindProperty(key).objectReferenceValue=v;s.ApplyModifiedPropertiesWithoutUndo();}
     static T Add<T>(GameObject g) where T:Component => g.GetComponent<T>()??g.AddComponent<T>();
     static Material Mat(string name,string shader){string p=Dir+"/"+name+".mat";var m=AssetDatabase.LoadAssetAtPath<Material>(p);if(!m){m=new Material(Shader.Find(shader));AssetDatabase.CreateAsset(m,p);}return m;}
@@ -33,7 +33,7 @@ public static class ControllerForestAuthoring
             PrefabUtility.SaveAsPrefabAsset(root,Area);
         }finally{PrefabUtility.UnloadPrefabContents(root);}
         Motion();
-        var data=AssetDatabase.LoadAssetAtPath<UniversalRendererData>("Assets/Settings/PC_Renderer.asset");
+        var data=AssetDatabase.LoadAssetAtPath<UniversalRendererData>("Assets/ProjectVector/Shared/Rendering/Settings/PC_Renderer.asset");
         var feature=data.rendererFeatures.OfType<DreamForestRendererFeature>().FirstOrDefault();
         if(!feature){feature=ScriptableObject.CreateInstance<DreamForestRendererFeature>();feature.name="DreamForestDepthFog";AssetDatabase.AddObjectToAsset(feature,data);data.rendererFeatures.Add(feature);}
         feature.passMaterial=Mat("ForestDepth","Vector/DreamForestDepth");feature.injectionPoint=FullScreenPassRendererFeature.InjectionPoint.BeforeRenderingPostProcessing;feature.requirements=ScriptableRenderPassInput.Depth;feature.fetchColorBuffer=true;feature.SetActive(true);

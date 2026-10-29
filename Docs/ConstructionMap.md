@@ -169,6 +169,6 @@ Valve의 Overpass 회고에서는 수비가 설치 전에 도착하도록 스폰
 
 ## 열기
 
-- `Assets/Scenes/Maps/Construction.unity`: 저장된 맵 확인 씬.
-- `Assets/Prefab/Maps/Construction.prefab`: 실제 매치에서 사용하는 맵.
+- `Assets/ProjectVector/Shared/Maps/Scenes/Construction.unity`: 저장된 맵 확인 씬.
+- `Assets/ProjectVector/Shared/Maps/Prefabs/Construction.prefab`: 실제 매치에서 사용하는 맵.
 - 새 서버와 클라이언트를 빌드한 뒤 사설방 규칙에서 공사장 선택. 과거 실행파일에는 반영되지 않는다.

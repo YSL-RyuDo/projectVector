@@ -12,7 +12,7 @@ using UnityEngine.UI;
 
 public static class RankResultSceneBuilder
 {
-    private const string ScenePath = "Assets/Scenes/RankResult.unity";
+    private const string ScenePath = "Assets/ProjectVector/Modules/Results/Scenes/RankResult.unity";
     private const string FontPath =
         "Assets/TextMesh Pro/Fonts/Pretendard-Black SDF.asset";
 
@@ -198,12 +198,12 @@ public static class RankResultSceneBuilder
     {
         string[] paths =
         {
-            "Assets/Resources/Rank/Bronze.png",
-            "Assets/Resources/Rank/Silver.png",
-            "Assets/Resources/Rank/Gold.png",
-            "Assets/Resources/Rank/Platinum.png",
-            "Assets/Resources/Rank/Diamond.png",
-            "Assets/Resources/Rank/Master.png"
+            "Assets/ProjectVector/Shared/Resources/Rank/Bronze.png",
+            "Assets/ProjectVector/Shared/Resources/Rank/Silver.png",
+            "Assets/ProjectVector/Shared/Resources/Rank/Gold.png",
+            "Assets/ProjectVector/Shared/Resources/Rank/Platinum.png",
+            "Assets/ProjectVector/Shared/Resources/Rank/Diamond.png",
+            "Assets/ProjectVector/Shared/Resources/Rank/Master.png"
         };
 
         return paths
@@ -389,7 +389,7 @@ public static class RankResultSceneBuilder
         else
         {
             int resultIndex = scenes.FindIndex(
-                scene => scene.path == "Assets/Scenes/Result.unity");
+                scene => scene.path == "Assets/ProjectVector/Modules/Results/Scenes/Result.unity");
             int insertIndex = resultIndex >= 0 ? resultIndex : scenes.Count;
             scenes.Insert(insertIndex, new EditorBuildSettingsScene(ScenePath, true));
         }

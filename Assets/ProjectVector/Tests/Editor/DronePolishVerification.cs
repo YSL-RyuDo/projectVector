@@ -31,7 +31,7 @@ public static class DronePolishVerification
         Check(DroneFlightSafety.Constrain(new Vector3(0,1,0),Vector3.down,8,.48f,self.transform).y<-.9f,"descent remains available below ceiling");
         Object.DestroyImmediate(ceiling);Object.DestroyImmediate(self);
         foreach(string map in new[]{"TestMap","Desert"}) {
-            var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Maps/{map}.prefab"));root.transform.position=Vector3.zero;Physics.SyncTransforms();
+            var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Maps/Prefabs/{map}.prefab"));root.transform.position=Vector3.zero;Physics.SyncTransforms();
             int count=0;
             foreach(var c in root.GetComponentsInChildren<Collider>()) {
                 if(c.isTrigger || !c.enabled || c.bounds.size.x<1.2f || c.bounds.size.z<1.2f)continue;
@@ -43,10 +43,10 @@ public static class DronePolishVerification
             }
             Check(count>0,map+" physical geometry fixtures");Object.DestroyImmediate(root);
         }
-        var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/Initiator/Drone.prefab");
+        var prefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Drone.prefab");
         var gun=prefab.GetComponent<TaserGun>();
         Check(Field<AudioClip>(gun,"_fireSound") && Field<AudioSource>(gun,"_audioSource") && Field<ParticleSystem>(gun,"_muzzleSpark") && Field<ParticleSystem>(gun,"_impactSpark"),"authored sound and muzzle/impact references");
-        var actor=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/Initiator/Initiator.prefab");
+        var actor=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab");
         Check(actor.GetComponent<DroneLaunchRig>() && Field<DroneLaunchRig>(actor.GetComponent<InitiatorSkill_Q>(),"_launchRig"),"authored forearm deployment rig");
         foreach(var visual in new[]{prefab.transform.Find("drone"),actor.GetComponentsInChildren<Transform>(true).First(t=>t.name=="DroneLaunchDevice")})
             foreach(var renderer in visual.GetComponentsInChildren<Renderer>(true))
@@ -59,7 +59,7 @@ public static class DronePolishVerification
         var neutralHand=neutralBones.First(t=>t.name=="mixamorig:LeftHand");
         var shoulderPosition=neutralUpper.position+actorInstance.GetComponentInChildren<Camera>(true).transform.TransformVector(new Vector3(-.34f,-.10f,.13f));
         float upperLength=Vector3.Distance(neutralUpper.position,neutralFore.position),foreLength=Vector3.Distance(neutralFore.position,neutralHand.position);
-        AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character(New)/Controller/Animation/AR.anim").SampleAnimation(weaponModel.gameObject,0);
+        AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Models/Controller/Animation/AR.anim").SampleAnimation(weaponModel.gameObject,0);
         var rig=actorInstance.GetComponent<DroneLaunchRig>();Call(rig,"Awake");
         var view=Field<Transform>(rig,"_viewModel");var restPosition=view.localPosition;
         var bones=Field<Transform[]>(rig,"_posedBones");var rotations=bones.Select(b=>b.localRotation).ToArray();
@@ -119,7 +119,7 @@ public static class DronePolishVerification
         for(int i=0;i<90;i++)Call(rig,"Advance",1f/120);
         Check(!rig.IsReturning && Vector3.Distance(view.localPosition,restPosition)<.0001f,"reconnected drone return captures and restores original rig");
         foreach(string character in new[]{"Initiator","Controller","Entry","Sentinel"}) {
-            var target=AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Character/{character}/{character}.prefab");
+            var target=AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Characters/Prefabs/{character}/{character}.prefab");
             Check(target.GetComponent<ElectricShock>() && Field<ParticleSystem>(target.GetComponent<ElectricShock>(),"_shockEffect"),character+" has authored server shock receiver and particles");
         }
         Object.DestroyImmediate(actorInstance);
@@ -135,7 +135,7 @@ public static class DronePolishVerification
         var panel=new GameObject("Panel");typeof(SettingsMenu).GetField("settingsPanel",Flags).SetValue(menu,panel);
         panel.SetActive(true);Check(DroneMovement.InputBlocked,"settings block drone look/move/fire");panel.SetActive(false);
         Object.DestroyImmediate(menu.gameObject);Object.DestroyImmediate(panel);
-        EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var hud=Object.FindFirstObjectByType<DroneHUDUI>(FindObjectsInactive.Include);
         Check(hud.gameObject.name=="DroneHUDController" && hud.gameObject.activeInHierarchy,"HUD controller survives hidden root");
         Call(hud,"Awake");hud.SetVisible(true);hud.SetTaserReady(false);hud.PlayTaserFireFeedback();
@@ -156,7 +156,7 @@ public static class DronePolishVerification
     {
         Directory.CreateDirectory(Output);
         foreach(string map in new[]{"TestMap","Desert"}) {
-            EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+            EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
             var hud=Object.FindFirstObjectByType<DroneHUDUI>(FindObjectsInactive.Include);
             var root=Field<GameObject>(hud,"_root");
             foreach(var go in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())go.SetActive(false);
@@ -165,7 +165,7 @@ public static class DronePolishVerification
             var scaler=canvas.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1920,1080);scaler.matchWidthOrHeight=.5f;
             root.transform.SetParent(canvas.transform,false);
             var rect=(RectTransform)root.transform;rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=rect.offsetMax=Vector2.zero;
-            var mapRoot=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Maps/{map}.prefab"));mapRoot.transform.position=Vector3.zero;
+            var mapRoot=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Maps/Prefabs/{map}.prefab"));mapRoot.transform.position=Vector3.zero;
             var info=mapRoot.GetComponent<MapInfo>();if(info.barriers)info.barriers.SetActive(false);
             var camera=new GameObject("ReviewCamera").AddComponent<Camera>();camera.fieldOfView=65;camera.nearClipPlane=.03f;camera.farClipPlane=400;
             var start=info.GetSpawnPoint(0,0);camera.transform.position=start.position+Vector3.up*2;

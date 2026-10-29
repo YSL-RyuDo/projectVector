@@ -18,7 +18,7 @@ public static class SentinelVideoCapture
 {
     const string Key="Vector.SentinelVideo", Folder="C:/Users/USER/Documents/SentinelVideos-20261023";
     const string Encoder="C:/Users/USER/AppData/Local/Temp/SentinelCaptureDeps/imageio_ffmpeg/binaries/ffmpeg-win-x86_64-v7.1.exe";
-    const string Prefabs="Assets/Prefab/Character/Sentinel/";
+    const string Prefabs="Assets/ProjectVector/Shared/Characters/Prefabs/Sentinel/";
     static Camera camera;static SentinelCNetworkManager manager;static SentinelFeedbackUI ui;static NetworkManager network;
     static GameObject enemy;static Transform model;static AnimationClip idle;
     static RenderTexture rt;static Texture2D pixels;static System.Diagnostics.Process encoder;static FileStream sound;
@@ -34,7 +34,7 @@ public static class SentinelVideoCapture
     {
         if(!Application.isBatchMode)throw new Exception("Batch only; do not run in the user's editor.");
         Directory.CreateDirectory(Folder);EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/TestMap.prefab"));
+        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/TestMap.prefab"));
         map.GetComponent<MapInfo>().SetBarriersActive(false);
         foreach(var behaviour in map.GetComponentsInChildren<MonoBehaviour>(true))Object.DestroyImmediate(behaviour);
         var cam=new GameObject("CaptureCamera").AddComponent<Camera>();cam.tag="MainCamera";cam.fieldOfView=48;cam.nearClipPlane=.05f;cam.farClipPlane=250;cam.gameObject.AddComponent<AudioListener>();
@@ -45,9 +45,9 @@ public static class SentinelVideoCapture
         var owner=new GameObject("CaptureOwner").AddComponent<PlayerIdentity>();owner.PlayerId=1;owner.Team=0;owner.transform.position=new Vector3(-33,0,5);
         var mgr=new GameObject("SentinelNetworkPresentation").AddComponent<SentinelCNetworkManager>();
         foreach(var item in new[]{("trapPrefab","Sentinel_Trap"),("qTrapPrefab","SlowTrap"),("eTrapPrefab","TrapDevice"),("xAreaPrefab","X_Area")})ScannerFeedbackAuthoring.Ref(mgr,item.Item1,AssetDatabase.LoadAssetAtPath<GameObject>(Prefabs+item.Item2+".prefab"));
-        var hud=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/EMP/ElectricStatusHUD.prefab"));
+        var hud=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Effects/Initiator/EMP/ElectricStatusHUD.prefab"));
         var canvas=hud.GetComponent<Canvas>();canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=cam;canvas.planeDistance=.5f;
-        var actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/Controller/Controller.prefab"));actor.name="CaptureEnemy";
+        var actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/Controller/Controller.prefab"));actor.name="CaptureEnemy";
         var body=actor.transform.Find("Model");body.gameObject.SetActive(true);
         foreach(var b in actor.GetComponentsInChildren<MonoBehaviour>(true))if(!(b is PlayerIdentity)&&!(b is Outline))Object.DestroyImmediate(b);
         foreach(var c in actor.GetComponentsInChildren<Camera>(true))c.enabled=false;
@@ -61,7 +61,7 @@ public static class SentinelVideoCapture
     static void Initialize()
     {
         camera=GameObject.Find("CaptureCamera").GetComponent<Camera>();manager=Object.FindFirstObjectByType<SentinelCNetworkManager>();ui=Object.FindFirstObjectByType<SentinelFeedbackUI>();network=Object.FindFirstObjectByType<NetworkManager>();
-        enemy=GameObject.Find("CaptureEnemy");model=enemy.transform.Find("Model");idle=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character(New)/Controller/Animation/InGame/Pistol/Controller_Pistol_Idle.anim");
+        enemy=GameObject.Find("CaptureEnemy");model=enemy.transform.Find("Model");idle=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Models/Controller/Animation/InGame/Pistol/Controller_Pistol_Idle.anim");
         listener=new TcpListener(IPAddress.Loopback,0);listener.Start();client=Get<NetworkClient>(network,"client");client.Connect("127.0.0.1",((IPEndPoint)listener.LocalEndpoint).Port);peer=listener.AcceptTcpClient();
         Field(network,"myPlayerId",1u);Field(network,"<IsAuthenticated>k__BackingField",true);
         Physics.SyncTransforms();ground=new Vector3(-33,0,5);

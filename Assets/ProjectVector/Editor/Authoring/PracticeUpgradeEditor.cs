@@ -12,13 +12,13 @@ using UnityEngine.UI;
 
 public static class PracticeUpgradeEditor
 {
-    const string Scene="Assets/Scenes/WeaponTest.unity";
+    const string Scene="Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity";
     static TMP_FontAsset font;
     static readonly Color Paper=new Color32(229,227,213,249),Ink=new Color32(43,49,44,255),Dark=new Color32(58,63,56,255);
     public static void Author()
     {
         if(EditorApplication.isPlaying || UnityEngine.SceneManagement.SceneManager.GetActiveScene().isDirty)throw new Exception("Unsaved scene or Play mode");
-        EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var manager=UnityEngine.Object.FindFirstObjectByType<MatchManager>();
         var refs=new SerializedObject(manager).FindProperty("characterPrefabs");
         var prefabs=Enumerable.Range(0,refs.arraySize).Select(i=>(GameObject)refs.GetArrayElementAtIndex(i).objectReferenceValue).ToArray();
@@ -53,7 +53,7 @@ public static class PracticeUpgradeEditor
             go.transform.position=range.distanceStation.position;
             if(i!=0)go.SetActive(false);
         }
-        loadout.weapons=AssetDatabase.FindAssets("t:WeaponData",new[]{"Assets/Prefab/Weapon"})
+        loadout.weapons=AssetDatabase.FindAssets("t:WeaponData",new[]{"Assets/ProjectVector/Shared/Weapons/Assets"})
             .Select(g=>AssetDatabase.LoadAssetAtPath<WeaponData>(AssetDatabase.GUIDToAssetPath(g)))
             .Where(w=>w!=null && w.weaponPrefab!=null).OrderBy(w=>w.weaponId).ToArray();
         if(loadout.weapons.Length!=14 || loadout.weapons.Select(w=>w.weaponId).Distinct().Count()!=14)throw new Exception("Expected 14 canonical weapons");
@@ -143,13 +143,13 @@ public static class PracticeUpgradeEditor
     {
         var campus=GameObject.Find("HydroTrainingCampus").transform;
         var root=new GameObject("AuthoredArmoryAndWayfinding").transform;root.SetParent(campus,false);
-        var steel=AssetDatabase.LoadAssetAtPath<Material>("Assets/Prefab/WeaponTest/FinishCharcoal.mat");
-        var ochre=AssetDatabase.LoadAssetAtPath<Material>("Assets/Prefab/WeaponTest/CampusSafetyOchre.mat");
+        var steel=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Modules/Practice/Assets/FinishCharcoal.mat");
+        var ochre=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Modules/Practice/Assets/CampusSafetyOchre.mat");
         for(int i=0;i<4;i++)
         {
             float x=200+i*32;
-            Prop(root,"Assets/FPS_Bundle/FPS_Map4/Prefabs/Props/Bench_01.prefab",new Vector3(x-10,0,-3),90);
-            Prop(root,"Assets/FPS_Bundle/FPS_Map3/Prefabs/Props/Box_01.prefab",new Vector3(x-10,0,-.8f),0);
+            Prop(root,"Assets/ThirdParty/FPS_Bundle/FPS_Map4/Prefabs/Props/Bench_01.prefab",new Vector3(x-10,0,-3),90);
+            Prop(root,"Assets/ThirdParty/FPS_Bundle/FPS_Map3/Prefabs/Props/Box_01.prefab",new Vector3(x-10,0,-.8f),0);
             for(int n=0;n<5;n++) Box(root,"PromenadeSafetyStripe",new Vector3(x-2+n,.014f,-5.7f),new Vector3(.6f,.015f,.22f),ochre);
             var board=Box(root,"BayDirectory",new Vector3(x+9,1.55f,-2.4f),new Vector3(2.4f,1.25f,.10f),steel);
             var sign=new GameObject("BayInstructions",typeof(TextMeshPro));sign.transform.SetParent(board.transform,false);
@@ -229,7 +229,7 @@ public static class PracticeUpgradeEditor
         }
         if(root.Find("ArmoryTitle")==null)
         {
-            var ochre=AssetDatabase.LoadAssetAtPath<Material>("Assets/Prefab/WeaponTest/CampusSafetyOchre.mat");
+            var ochre=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Modules/Practice/Assets/CampusSafetyOchre.mat");
             Box(root,"ArmoryTrim",new Vector3(190,3.02f,-7),new Vector3(.23f,.08f,5.05f),ochre);
             foreach(float z in new[]{-9f,-5f})Box(root,"ArmoryFoot",new Vector3(190,.18f,z),new Vector3(.6f,.36f,.25f),ochre);
             var go=new GameObject("ArmoryTitle",typeof(TextMeshPro));go.transform.SetParent(root,false);

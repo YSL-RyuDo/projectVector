@@ -21,9 +21,9 @@ public static class VectorShopHierarchyInstaller
     public static void Install()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play mode before editing scene UI.");
-        var scene = SceneManager.GetSceneByPath("Assets/Scenes/Lobby.unity");
+        var scene = SceneManager.GetSceneByPath("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         bool opened = !scene.IsValid() || !scene.isLoaded;
-        if (opened) scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity", OpenSceneMode.Additive);
+        if (opened) scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity", OpenSceneMode.Additive);
         if (scene.isDirty) throw new InvalidOperationException("Lobby has unsaved edits. Save it before installing shop panels.");
         try
         {
@@ -33,7 +33,7 @@ public static class VectorShopHierarchyInstaller
             buttonTemplate = weapon.Find("Gacha Button").GetComponent<Button>();
             font = weapon.Find("Weapon Name Text").GetComponent<TMP_Text>().font;
             var shop = store.gameObject.AddComponent<VectorShopPanel>();
-            shop.skins = AssetDatabase.LoadAssetAtPath<WeaponSkinDatabase>("Assets/Prefab/Weapon/Weapon Skin Database.asset");
+            shop.skins = AssetDatabase.LoadAssetAtPath<WeaponSkinDatabase>("Assets/ProjectVector/Shared/Weapons/Assets/Weapon Skin Database.asset");
             shop.sequence = store.gameObject.AddComponent<GachaManager>();
 
             // Keep the original store main/profile/exchange sections and all their serialized references.
@@ -131,9 +131,9 @@ public static class VectorShopHierarchyInstaller
     // One-time repair of presentation order on an existing saved hierarchy. No screen replacement.
     public static void RepairSavedPresentation()
     {
-        var scene = SceneManager.GetSceneByPath("Assets/Scenes/Lobby.unity");
+        var scene = SceneManager.GetSceneByPath("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         bool opened = !scene.IsValid() || !scene.isLoaded;
-        if (opened) scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity", OpenSceneMode.Additive);
+        if (opened) scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity", OpenSceneMode.Additive);
         if (scene.isDirty) throw new InvalidOperationException("Save unsaved Lobby edits first.");
         try
         {

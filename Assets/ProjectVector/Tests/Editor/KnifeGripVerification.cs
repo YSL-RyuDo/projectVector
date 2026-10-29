@@ -10,14 +10,14 @@ public static class KnifeGripVerification
 {
     public static void AuthorAndCapture()
     {
-        const string knifePath="Assets/Prefab/Weapon/Knife/Knife.prefab";
+        const string knifePath="Assets/ProjectVector/Shared/Weapons/Assets/Knife/Knife.prefab";
         var prefab=PrefabUtility.LoadPrefabContents(knifePath);
         if(!prefab.GetComponent<FirstPersonKnifeGrip>())prefab.AddComponent<FirstPersonKnifeGrip>();
         PrefabUtility.SaveAsPrefabAsset(prefab,knifePath);PrefabUtility.UnloadPrefabContents(prefab);AssetDatabase.SaveAssets();
         UnityEditor.SceneManagement.EditorSceneManager.NewScene(UnityEditor.SceneManagement.NewSceneSetup.EmptyScene);
         var light=new GameObject("Grip verification light").AddComponent<Light>();light.type=LightType.Directional;light.transform.rotation=Quaternion.Euler(35,-25,0);light.intensity=1.2f;RenderSettings.ambientLight=Color.gray;
         foreach(string role in new[]{"Initiator","Controller","Sentinel","Entry"}) {
-            var actor=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Character/{role}/{role}.prefab"));
+            var actor=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Characters/Prefabs/{role}/{role}.prefab"));
             var movement=actor.GetComponent<PlayerMovement>();var arms=(GameObject)new SerializedObject(movement).FindProperty("firstPersonArmModel").objectReferenceValue;
             var holder=(Transform)new SerializedObject(actor.GetComponent<PlayerItem>()).FindProperty("itemHolder").objectReferenceValue;
             foreach(var r in actor.GetComponentsInChildren<Renderer>(true))r.enabled=false;
@@ -38,7 +38,7 @@ public static class KnifeGripVerification
     {
         var result=new StringBuilder();
         foreach(string role in new[]{"Initiator","Controller","Sentinel","Entry"}) {
-            string path=$"Assets/Prefab/Character/{role}/{role}.prefab";var root=PrefabUtility.LoadPrefabContents(path);
+            string path=$"Assets/ProjectVector/Shared/Characters/Prefabs/{role}/{role}.prefab";var root=PrefabUtility.LoadPrefabContents(path);
             var movement=root.GetComponent<PlayerMovement>();var arms=(GameObject)new SerializedObject(movement).FindProperty("firstPersonArmModel").objectReferenceValue;
             var holder=(Transform)new SerializedObject(root.GetComponent<PlayerItem>()).FindProperty("itemHolder").objectReferenceValue;
             var cam=root.GetComponentInChildren<Camera>(true);var anim=arms.GetComponent<Animator>();

@@ -81,7 +81,7 @@ public static class ControllerSmokePlayerCapture
         var scaler=copy.AddComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1920,1080);
         foreach(var animator in copy.GetComponentsInChildren<UIAnimator>(true))animator.enabled=false;
         var group=copy.GetComponent<CanvasGroup>();if(group)group.alpha=1;
-        var practiceScene=EditorSceneManager.OpenScene("Assets/Scenes/WeaponTest.unity",OpenSceneMode.Additive);
+        var practiceScene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity",OpenSceneMode.Additive);
         SceneManager.MoveGameObjectToScene(copy,practiceScene);EditorSceneManager.CloseScene(source,true);SceneManager.SetActiveScene(practiceScene);
         var minimap=new GameObject("CaptureMiniMapCamera").AddComponent<Camera>();minimap.enabled=false;minimap.orthographic=true;minimap.orthographicSize=32;minimap.nearClipPlane=.1f;minimap.farClipPlane=300;minimap.cullingMask=savedMapMask;
         var ui=new GameObject("CaptureOverlayCamera").AddComponent<Camera>();ui.enabled=false;ui.clearFlags=CameraClearFlags.Depth;ui.cullingMask=1<<5;
@@ -99,7 +99,7 @@ public static class ControllerSmokePlayerCapture
     static void Prepare(string name,int mapIndex)
     {
         var holder=new GameObject("SmokePlayer_"+name);
-        var map=Load("Assets/Prefab/Maps/"+name+".prefab");map.transform.SetParent(holder.transform);
+        var map=Load("Assets/ProjectVector/Shared/Maps/Prefabs/"+name+".prefab");map.transform.SetParent(holder.transform);
         map.transform.SetPositionAndRotation(new Vector3(1000+mapIndex*1000,0,0),Quaternion.identity);
         var info=map.GetComponent<MapInfo>();info.SetBarriersActive(false);Physics.SyncTransforms();
         Vector3 center=default,forward=default;bool found=false;
@@ -145,7 +145,7 @@ public static class ControllerSmokePlayerCapture
         foreach(var b in actor.GetComponentsInChildren<MonoBehaviour>(true))if(!(b is PlayerOutline)&&!(b is Outline))Object.DestroyImmediate(b);
         foreach(var c in actor.GetComponentsInChildren<Camera>(true))c.gameObject.SetActive(false);
         foreach(var r in actor.GetComponentsInChildren<Renderer>(true)){r.enabled=r.transform.IsChildOf(model);r.forceRenderingOff=false;}
-        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character(New)/Controller/Animation/InGame/Pistol/Controller_Pistol_Idle.anim");clip.SampleAnimation(model.gameObject,0);
+        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Models/Controller/Animation/InGame/Pistol/Controller_Pistol_Idle.anim");clip.SampleAnimation(model.gameObject,0);
         foreach(var a in actor.GetComponentsInChildren<Animator>(true))a.enabled=false;
         foreach(var listener in actor.GetComponentsInChildren<AudioListener>(true))listener.enabled=false;
     }

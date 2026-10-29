@@ -19,14 +19,14 @@ public static class DroneAltitudeVerification
     {
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
         foreach(string character in new[]{"Initiator","Controller","Entry","Sentinel"}){
-            var actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Character/{character}/{character}.prefab"));
+            var actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Characters/Prefabs/{character}/{character}.prefab"));
             var cc=actor.GetComponent<CharacterController>();
             var renderers=actor.transform.Find("Model").GetComponentsInChildren<SkinnedMeshRenderer>(true);
             if(renderers.Length>0){var bounds=renderers[0].bounds;foreach(var r in renderers.Skip(1))bounds.Encapsulate(r.bounds);Debug.Log($"DRONE_CHARACTER_SIZE {character} modelHeight={bounds.size.y:F3} capsule={cc.height*actor.transform.lossyScale.y:F3}");}
             Object.DestroyImmediate(actor);
         }
         foreach(string mapName in new[]{"TestMap","Desert"}){
-            var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Maps/{mapName}.prefab"));Physics.SyncTransforms();
+            var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Maps/Prefabs/{mapName}.prefab"));Physics.SyncTransforms();
             foreach(var group in map.GetComponentsInChildren<Collider>().Where(c=>!c.isTrigger&&c.enabled&&c.bounds.size.y>.5f&&c.bounds.size.x>.3f&&c.bounds.size.z>.3f).GroupBy(c=>c.name))
                 Debug.Log($"DRONE_COVER_SIZE {mapName} {group.Key} count={group.Count()} height={string.Join("/",group.Select(c=>c.bounds.size.y.ToString("F2")).Distinct())}");
             Object.DestroyImmediate(map);
@@ -44,7 +44,7 @@ public static class DroneAltitudeVerification
         Check(DroneFlightSafety.TryGetGroundClearance(Vector3.up*4,null,out float clearance)&&Mathf.Abs(clearance-4)<.001f,"ground reading ignores player and trigger beneath drone");
         Check(!DroneFlightSafety.TryGetGroundClearance(new Vector3(100,4,100),null,out clearance)&&float.IsNaN(clearance),"no ground reports unavailable, not zero or launch-relative height");
         Object.DestroyImmediate(person);Object.DestroyImmediate(trigger);Object.DestroyImmediate(floor);
-        var drone=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/Initiator/Drone.prefab"));
+        var drone=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Drone.prefab"));
         var movement=drone.GetComponent<DroneMovement>();Call(movement,"Awake");Set(movement,"_ceiling",100f);
         Check(Field<float>(movement,"_verticalSpeed")==2 && Field<float>(movement,"_moveSpeed")==8,"serialized vertical 2m/s, horizontal remains 8m/s");
         foreach(float direction in new[]{1f,-1f}){
@@ -58,13 +58,13 @@ public static class DroneAltitudeVerification
         }
         Object.DestroyImmediate(drone);
         foreach(string mapName in new[]{"TestMap","Desert"}){
-            var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Maps/{mapName}.prefab"));
+            var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Maps/Prefabs/{mapName}.prefab"));
             var info=map.GetComponent<MapInfo>();info.SetBarriersActive(false);
             foreach(var spawn in info.attackSpawnPoints.Concat(info.defendSpawnPoints)){
-                var actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/Initiator/Initiator.prefab"));
+                var actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab"));
                 actor.transform.SetPositionAndRotation(spawn.position,spawn.rotation);
                 var weapon=actor.transform.Find("CameraRoot/Controller Model_Riging (1)");
-                AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character(New)/Controller/Animation/AR.anim").SampleAnimation(weapon.gameObject,0);
+                AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Models/Controller/Animation/AR.anim").SampleAnimation(weapon.gameObject,0);
                 var rig=actor.GetComponent<DroneLaunchRig>();Call(rig,"Awake");rig.SetPrepared(true);
                 for(int i=0;i<90;i++)Call(rig,"Advance",1f/120);
                 Check(rig.TryGetReleasePosition(out var release),mapName+" ready launch endpoint");

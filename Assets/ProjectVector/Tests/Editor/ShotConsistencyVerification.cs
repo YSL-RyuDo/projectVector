@@ -113,7 +113,7 @@ public static class ShotConsistencyVerification
             foreach(string map in new[]{"TestMap","Desert"})
             {
                 EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-                var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/"+map+".prefab"));
+                var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/"+map+".prefab"));
                 root.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
                 var info=root.GetComponent<MapInfo>();if(info.barriers!=null)info.barriers.SetActive(false);
                 int checks=0;
@@ -146,7 +146,7 @@ public static class ShotConsistencyVerification
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         foreach (string role in new[] { "Controller", "Entry", "Initiator", "Sentinel" })
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Character/{role}/{role}.prefab");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Characters/Prefabs/{role}/{role}.prefab");
             var parts = prefab.GetComponentsInChildren<HitCollider>(true);
             foreach (HitPart part in Enum.GetValues(typeof(HitPart)))
                 Check(parts.Any(p => p.Part == part), role + " missing authored " + part);
@@ -165,7 +165,7 @@ public static class ShotConsistencyVerification
                 hit.collider == region.GetComponent<Collider>(), "Movement capsule masked an authored hitbox");
         }
         var wall = Box("Cover", new Vector3(0, 0, 2), Vector3.one);
-        foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefab/Weapon" }))
+        foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/ProjectVector/Shared/Weapons/Assets" }))
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid));
             foreach (var weapon in prefab.GetComponentsInChildren<Weapon>(true))

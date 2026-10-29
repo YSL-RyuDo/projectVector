@@ -21,7 +21,7 @@ public static class VectorVoiceAuthoring
         string[] paths = { "Login", "Lobby", "Game_TestVersion", "RankResult", "Result" };
         foreach (string name in paths)
         {
-            var scene = EditorSceneManager.OpenScene("Assets/Scenes/" + name + ".unity");
+            var scene = EditorSceneManager.OpenScene(ProjectEditorPaths.Scene(name));
             var roots = scene.GetRootGameObjects();
             foreach (var network in roots.SelectMany(r => r.GetComponentsInChildren<NetworkManager>(true)))
                 if (network.GetComponent<VectorVoiceChat>() == null) network.gameObject.AddComponent<VectorVoiceChat>();

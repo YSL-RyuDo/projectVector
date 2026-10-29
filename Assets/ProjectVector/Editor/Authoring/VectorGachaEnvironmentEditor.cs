@@ -13,14 +13,14 @@ public static class VectorGachaEnvironmentEditor
             for (int i=0;i<10;++i)
             {
                 var module=new GameObject($"CorridorModule_{i:00}");module.transform.SetParent(root.transform,false);
-                var instance=Spawn("Assets/Sci-Fi Styled Modular Pack/Prefabs/Corridors/Corridor_I.prefab",module.transform);
+                var instance=Spawn("Assets/ThirdParty/Sci-Fi Styled Modular Pack/Prefabs/Corridors/Corridor_I.prefab",module.transform);
                 var bounds=BoundsOf(instance);
                 instance.transform.position-=bounds.center;
                 module.transform.localScale=new Vector3(15/bounds.size.x,15/bounds.size.y,12/bounds.size.z);
                 module.transform.localPosition=new Vector3(0,0,i*12+6);
             }
             var enclosure=new GameObject("Sealed Walls and Service Bays");enclosure.transform.SetParent(root.transform,false);
-            const string sci="Assets/Sci-Fi Styled Modular Pack/Prefabs/";
+            const string sci="Assets/ThirdParty/Sci-Fi Styled Modular Pack/Prefabs/";
             for(int bay=0;bay<10;++bay)
             {
                 float z=6+bay*12;
@@ -44,16 +44,16 @@ public static class VectorGachaEnvironmentEditor
             for(int bay=0;bay<6;++bay)
             {
                 float z=12+bay*18;
-                Prop(staging.transform,"Assets/FPS_Bundle/FPS_Map3/Prefabs/Props/Rack_01.prefab",new Vector3(-5.0f,-5.8f,z),4.5f,20);
-                Prop(staging.transform,"Assets/FPS_Bundle/FPS_Map4/Prefabs/Props/Generator_01.prefab",new Vector3(5.1f,-5.8f,z+1),3.3f,-25);
-                Prop(staging.transform,"Assets/FPS_Bundle/FPS_Map3/Prefabs/Props/Pallet_01.prefab",new Vector3(-3.5f,-5.8f,z-1),.28f,8);
-                Prop(staging.transform,"Assets/FPS_Bundle/FPS_Weapon0/Prefabs/Loot/BigAmoBox_01.prefab",new Vector3(-3.5f,-5.5f,z-1),1.15f,8);
-                Prop(staging.transform,"Assets/FPS_Bundle/FPS_Weapon0/Prefabs/Loot/BigAmoBox_02.prefab",new Vector3(-3.5f,-4.35f,z-1),.85f,-6);
-                Prop(staging.transform,"Assets/FPS_Bundle/FPS_Map3/Prefabs/Props/Barrel_03.prefab",new Vector3(3.6f,-5.8f,z),1.85f,0);
-                Prop(staging.transform,"Assets/FPS_Bundle/FPS_Map3/Prefabs/Props/Box_01.prefab",new Vector3(4.3f,-5.8f,z+3),1.4f,-12);
+                Prop(staging.transform,"Assets/ThirdParty/FPS_Bundle/FPS_Map3/Prefabs/Props/Rack_01.prefab",new Vector3(-5.0f,-5.8f,z),4.5f,20);
+                Prop(staging.transform,"Assets/ThirdParty/FPS_Bundle/FPS_Map4/Prefabs/Props/Generator_01.prefab",new Vector3(5.1f,-5.8f,z+1),3.3f,-25);
+                Prop(staging.transform,"Assets/ThirdParty/FPS_Bundle/FPS_Map3/Prefabs/Props/Pallet_01.prefab",new Vector3(-3.5f,-5.8f,z-1),.28f,8);
+                Prop(staging.transform,"Assets/ThirdParty/FPS_Bundle/FPS_Weapon0/Prefabs/Loot/BigAmoBox_01.prefab",new Vector3(-3.5f,-5.5f,z-1),1.15f,8);
+                Prop(staging.transform,"Assets/ThirdParty/FPS_Bundle/FPS_Weapon0/Prefabs/Loot/BigAmoBox_02.prefab",new Vector3(-3.5f,-4.35f,z-1),.85f,-6);
+                Prop(staging.transform,"Assets/ThirdParty/FPS_Bundle/FPS_Map3/Prefabs/Props/Barrel_03.prefab",new Vector3(3.6f,-5.8f,z),1.85f,0);
+                Prop(staging.transform,"Assets/ThirdParty/FPS_Bundle/FPS_Map3/Prefabs/Props/Box_01.prefab",new Vector3(4.3f,-5.8f,z+3),1.4f,-12);
             }
             foreach(Transform child in root.GetComponentsInChildren<Transform>(true)) child.gameObject.layer=31;
-            PrefabUtility.SaveAsPrefabAsset(root,"Assets/Resources/Shop/GachaCorridor.prefab");
+            PrefabUtility.SaveAsPrefabAsset(root,"Assets/ProjectVector/Modules/Lobby/Resources/Shop/GachaCorridor.prefab");
             AssetDatabase.SaveAssets();
             Debug.Log("[GACHA ASSET] Saved sealed corridor, 20 service panels, 20 wall lamps and 42 FPS Bundle props; source materials preserved.");
         }

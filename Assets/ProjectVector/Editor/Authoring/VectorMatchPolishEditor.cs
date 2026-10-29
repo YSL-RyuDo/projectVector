@@ -15,7 +15,7 @@ public static partial class VectorMatchLayoutEditor
         if(sprite==null)
         {
             EnsureArtFolder();
-            string copy="Assets/UI/MatchAuthored/"+System.IO.Path.GetFileName(path)+".png";
+            string copy="Assets/ProjectVector/Modules/Match/UI/MatchAuthored/"+System.IO.Path.GetFileName(path)+".png";
             if(!System.IO.File.Exists(copy))System.IO.File.Copy("Assets/"+path+".png",copy);
             AssetDatabase.ImportAsset(copy,ImportAssetOptions.ForceSynchronousImport);
             var importer=(TextureImporter)AssetImporter.GetAtPath(copy);importer.textureType=TextureImporterType.Sprite;importer.spriteImportMode=SpriteImportMode.Single;importer.mipmapEnabled=false;importer.alphaIsTransparency=true;importer.SaveAndReimport();
@@ -26,16 +26,16 @@ public static partial class VectorMatchLayoutEditor
     }
     static void EnsureArtFolder()
     {
-        if(!AssetDatabase.IsValidFolder("Assets/UI"))AssetDatabase.CreateFolder("Assets","UI");
-        if(!AssetDatabase.IsValidFolder("Assets/UI/MatchAuthored"))AssetDatabase.CreateFolder("Assets/UI","MatchAuthored");
+
+        ProjectEditorPaths.EnsureFolder("Assets/ProjectVector/Modules/Match/UI/MatchAuthored");
     }
     static Sprite ReferenceSlice(string name,float x,float y,float w,float h)
     {
         EnsureArtFolder();
-        const string image="Assets/UI/MatchAuthored/StrinovaMatchReference.png";
+        const string image="Assets/ProjectVector/Modules/Match/UI/MatchAuthored/StrinovaMatchReference.png";
         if(!System.IO.File.Exists(image))System.IO.File.Copy("C:/Users/GCT/AppData/Local/Temp/codex-clipboard-31ccbb3c-fcd7-41ca-86cf-a4cecbc5e969.png",image);
         AssetDatabase.ImportAsset(image,ImportAssetOptions.ForceSynchronousImport);
-        string asset="Assets/UI/MatchAuthored/"+name+".asset";
+        string asset="Assets/ProjectVector/Modules/Match/UI/MatchAuthored/"+name+".asset";
         var sprite=AssetDatabase.LoadAssetAtPath<Sprite>(asset);if(sprite!=null)return sprite;
         var texture=AssetDatabase.LoadAssetAtPath<Texture2D>(image);
         // Sprite rectangles retain the untouched reference screenshot; replace this asset later.
@@ -52,7 +52,7 @@ public static partial class VectorMatchLayoutEditor
         button.image.sprite=null;
         RemoveChild(button.transform,"AngledAssetTrim");
         var trim=Box(button.transform,"AngledAssetTrim",0,0,1,1,new Color(1,1,1,.22f));
-        trim.sprite=Art("Sprites/Result/LeaveButton");Stretch(trim.transform);trim.transform.SetAsFirstSibling();
+        trim.sprite=Art("ProjectVector/Modules/Results/UI/Sprites/LeaveButton");Stretch(trim.transform);trim.transform.SetAsFirstSibling();
     }
     static void RemoveChild(Transform parent,string name)
     {
@@ -61,10 +61,10 @@ public static partial class VectorMatchLayoutEditor
     [MenuItem("Project Vector/UI/Polish Saved Match UI")]
     public static void Polish()
     {
-        var existing=UnityEngine.SceneManagement.SceneManager.GetSceneByPath("Assets/Scenes/Lobby.unity");
+        var existing=UnityEngine.SceneManagement.SceneManager.GetSceneByPath("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         if(EditorApplication.isPlayingOrWillChangePlaymode||(existing.IsValid()&&existing.isDirty))throw new Exception("Save and stop editing first");
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
-        System.IO.File.Copy("Assets/Scenes/Lobby.unity",System.IO.Path.Combine(System.IO.Path.GetTempPath(),"Lobby-before-match-polish-"+DateTime.Now.ToString("yyyyMMddHHmmss")+".unity"));
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
+        System.IO.File.Copy("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity",System.IO.Path.Combine(System.IO.Path.GetTempPath(),"Lobby-before-match-polish-"+DateTime.Now.ToString("yyyyMMddHHmmss")+".unity"));
         var c=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<GamePanelController>(true)).Single();
         var game=Ref<GameObject>(c,"gamePanel").transform;
         font=Ref<Button>(c,"normalGameButton").GetComponentInChildren<TMP_Text>().font;
@@ -85,11 +85,11 @@ public static partial class VectorMatchLayoutEditor
         PolishRoom(Ref<RoomPanelUI>(c,"roomPanelUI"));
         foreach(var b in browser.GetComponentsInChildren<Button>(true))
             if(!b.name.StartsWith("RoomRow"))AssetButton(b);
-        var table=browser.Find("TableHeader").GetComponent<Image>();table.sprite=Art("Sprites/Result/TabImage");table.color=dark;
+        var table=browser.Find("TableHeader").GetComponent<Image>();table.sprite=Art("ProjectVector/Modules/Results/UI/Sprites/TabImage");table.color=dark;
         var rows=browser.GetComponent<VectorRoomBrowser>().rows;
         for(int i=0;i<rows.Length;i++)
         {
-            var row=rows[i];row.GetComponent<Image>().sprite=Art("Sprites/Result/TabImage");
+            var row=rows[i];row.GetComponent<Image>().sprite=Art("ProjectVector/Modules/Results/UI/Sprites/TabImage");
             RemoveChild(row.transform,"RowAccent");Box(row.transform,"RowAccent",0,8,3,46,new Color32(92,183,206,255));
         }
         foreach(var mode in new[]{"normalGameButton","rankGameButton","customRoomButton"})AssetButton(Ref<Button>(c,mode));
@@ -121,11 +121,11 @@ public static partial class VectorMatchLayoutEditor
         for(int i=0;i<3;i++)
         {
             float x=new[]{810,430,1190}[i];
-            var dock=p.Find("TeamPosition"+i);Place(dock,x-15,766,330,64);dock.GetComponent<Image>().sprite=Art("Sprites/Game/CharacterSelect");dock.GetComponent<Image>().color=new Color32(103,124,143,255);
+            var dock=p.Find("TeamPosition"+i);Place(dock,x-15,766,330,64);dock.GetComponent<Image>().sprite=Art("ProjectVector/Modules/Match/UI/Sprites/CharacterSelect");dock.GetComponent<Image>().color=new Color32(103,124,143,255);
             var wait=dock.Find("Waiting").GetComponent<TMP_Text>();Place(wait.transform,25,5,280,48);wait.text=i==0?"":"팀원 매칭 대기";wait.fontSize=23;
             RemoveChild(dock,"DockEdge");Box(dock,"DockEdge",18,61,294,3,new Color32(101,191,217,255));
             RemoveChild(dock,"DockReflection");
-            var dockReflection=Decor(dock,"DockReflection",0,92,330,28,"Sprites/Game/CharacterSelect",new Color(1,1,1,.16f));
+            var dockReflection=Decor(dock,"DockReflection",0,92,330,28,"ProjectVector/Modules/Match/UI/Sprites/CharacterSelect",new Color(1,1,1,.16f));
             dockReflection.transform.localScale=new Vector3(1,-1,1);
             var dockFade=dockReflection.gameObject.AddComponent<VectorUIFade>();dockFade.top=new Color(1,1,1,0);dockFade.bottom=Color.white;
             var slot=(TempGamePlayerSlotUI)arr.GetArrayElementAtIndex(i).objectReferenceValue;
@@ -133,22 +133,22 @@ public static partial class VectorMatchLayoutEditor
                 PrefabUtility.UnpackPrefabInstance(slot.gameObject,PrefabUnpackMode.Completely,InteractionMode.AutomatedAction);
             Place(slot.transform,x,230,300,594);
             RemoveChild(slot.transform,"FloorReflection");RemoveChild(slot.transform,"CardMetalwork");RemoveChild(slot.transform,"CardFoot");
-            var frame=Ref<Image>(slot,"borderImage");frame.color=new Color32(33,43,55,255);frame.sprite=Art("Resources/IconBorder/border");
-            var card=Ref<Image>(slot,"iconImage");Place(card.transform,18,35,264,536);card.sprite=Art("Resources/IconCard/icon"+i+"_card");card.color=Color.white;card.enabled=true;
+            var frame=Ref<Image>(slot,"borderImage");frame.color=new Color32(33,43,55,255);frame.sprite=Art("ProjectVector/Shared/Resources/IconBorder/border");
+            var card=Ref<Image>(slot,"iconImage");Place(card.transform,18,35,264,536);card.sprite=Art("ProjectVector/Shared/Resources/IconCard/icon"+i+"_card");card.color=Color.white;card.enabled=true;
             var metal=Rect(slot.transform,"CardMetalwork",0,0,300,594);metal.SetAsFirstSibling();
             Box(metal,"OuterBezel",0,0,300,594,new Color32(40,51,65,255));
             Box(metal,"SilverInset",5,5,290,584,new Color32(160,180,195,255));
             Box(metal,"InnerBezel",12,12,276,570,new Color32(40,51,65,255));
-            Decor(metal,"TopCap",0,0,300,32,"Sprites/Game/CharacterSelect",Color.white);
+            Decor(metal,"TopCap",0,0,300,32,"ProjectVector/Modules/Match/UI/Sprites/CharacterSelect",Color.white);
             Box(metal,"LeftEdge",4,34,3,534,new Color32(109,185,209,255));
             Box(metal,"RightEdge",293,34,3,534,new Color32(109,185,209,255));
             var left=Box(metal,"ReferenceFrameLeft",0,28,18,545,Color.white);left.sprite=ReferenceSlice("ReferenceFrameLeft",870,307,19,637);
             var right=Box(metal,"ReferenceFrameRight",282,28,18,545,Color.white);right.sprite=ReferenceSlice("ReferenceFrameRight",1170,307,19,637);
-            var foot=Decor(slot.transform,"CardFoot",0,570,300,24,"Sprites/Game/CharacterSelect",Color.white);foot.sprite=ReferenceSlice("ReferenceFrameFoot",870,929,319,24);
+            var foot=Decor(slot.transform,"CardFoot",0,570,300,24,"ProjectVector/Modules/Match/UI/Sprites/CharacterSelect",Color.white);foot.sprite=ReferenceSlice("ReferenceFrameFoot",870,929,319,24);
             Box(slot.transform.Find("CardFoot"),"LightStrip",30,17,240,3,new Color32(96,199,225,255));
             var nick=Ref<TMP_Text>(slot,"nicknameText");var label=nick.transform.parent;Place(label,14,53,272,42);label.GetComponent<Image>().color=new Color32(22,30,39,242);Stretch(nick.transform);nick.text="닉네임";nick.fontSize=25;nick.color=new Color32(255,220,121,255);
-            var leader=label.Find("LeaderImage");Place(leader,78,-104,116,30);leader.GetComponent<Image>().sprite=Art("Sprites/Game/Timer");leader.GetComponent<Image>().color=new Color32(44,55,67,255);var title=leader.GetComponentInChildren<TMP_Text>(true);Stretch(title.transform);title.text="팀 리더";title.fontSize=20;
-            var rank=Ref<Image>(slot,"rankImage");Place(rank.transform,120,-22,60,60);rank.sprite=Art("Resources/Rank/Bronze");rank.color=Color.white;rank.preserveAspect=true;
+            var leader=label.Find("LeaderImage");Place(leader,78,-104,116,30);leader.GetComponent<Image>().sprite=Art("ProjectVector/Modules/Match/UI/Sprites/Timer");leader.GetComponent<Image>().color=new Color32(44,55,67,255);var title=leader.GetComponentInChildren<TMP_Text>(true);Stretch(title.transform);title.text="팀 리더";title.fontSize=20;
+            var rank=Ref<Image>(slot,"rankImage");Place(rank.transform,120,-22,60,60);rank.sprite=Art("ProjectVector/Shared/Resources/Rank/Bronze");rank.color=Color.white;rank.preserveAspect=true;
             AddReflection(slot.transform);
             slot.gameObject.SetActive(i==0);
         }
@@ -180,8 +180,8 @@ public static partial class VectorMatchLayoutEditor
     static void PolishRoom(RoomPanelUI ui)
     {
         var p=ui.transform;var info=p.Find("RoomInfo");Place(info,110,188,1700,94);
-        info.GetComponent<Image>().sprite=Art("Sprites/Result/TabImage");info.GetComponent<Image>().color=dark;
-        var mode=info.Find("MapImage");Place(mode,0,0,260,94);mode.GetComponent<Image>().sprite=Art("Sprites/Game/OurTeamList");mode.GetComponent<Image>().color=Color.white;
+        info.GetComponent<Image>().sprite=Art("ProjectVector/Modules/Results/UI/Sprites/TabImage");info.GetComponent<Image>().color=dark;
+        var mode=info.Find("MapImage");Place(mode,0,0,260,94);mode.GetComponent<Image>().sprite=Art("ProjectVector/Modules/Match/UI/Sprites/OurTeamList");mode.GetComponent<Image>().color=Color.white;
         var modeText=mode.GetComponentInChildren<TMP_Text>();Stretch(modeText.transform);modeText.text="CUSTOM / 3대3";modeText.fontSize=25;
         Place(info.Find("RoomNameText"),290,12,670,36);Place(info.Find("MapNameText"),290,51,670,30);
         ui.roomCodeText.transform.SetParent(info,false);Place(ui.roomCodeText.transform,1000,20,390,54);ui.roomCodeText.color=new Color32(255,221,141,255);ui.roomCodeText.fontSize=27;ui.roomCodeText.alignment=TextAlignmentOptions.Center;ui.roomCodeText.text="방 번호  —";
@@ -190,18 +190,18 @@ public static partial class VectorMatchLayoutEditor
         for(int team=0;team<3;team++)
         {
             float x=new[]{110,705,1300}[team],w=team==2?510:550;
-            var head=p.Find(heads[team]);Place(head,x,328,w,50);head.GetComponent<Image>().sprite=Art(team==0?"Sprites/Game/EnemyTeamList":team==1?"Sprites/Game/OurTeamList":"Sprites/Result/TabImage");head.GetComponent<Image>().color=team==2?dark:Color.white;
+            var head=p.Find(heads[team]);Place(head,x,328,w,50);head.GetComponent<Image>().sprite=Art(team==0?"ProjectVector/Modules/Match/UI/Sprites/EnemyTeamList":team==1?"ProjectVector/Modules/Match/UI/Sprites/OurTeamList":"ProjectVector/Modules/Results/UI/Sprites/TabImage");head.GetComponent<Image>().color=team==2?dark:Color.white;
             var label=head.GetComponentInChildren<TMP_Text>();Place(label.transform,22,0,w-44,50);label.alignment=TextAlignmentOptions.MidlineLeft;label.fontSize=25;
             var arr=new SerializedObject(ui).FindProperty(groups[team]);
             for(int i=0;i<arr.arraySize;i++)
             {
                 var slot=(RoomPlayerSlotUI)arr.GetArrayElementAtIndex(i).objectReferenceValue;Place(slot.transform,x,394+i*150,w,134);
-                var bg=slot.GetComponent<Image>();bg.sprite=Art("Sprites/Result/TabImage");bg.color=new Color32(100,115,133,235);
+                var bg=slot.GetComponent<Image>();bg.sprite=Art("ProjectVector/Modules/Results/UI/Sprites/TabImage");bg.color=new Color32(100,115,133,235);
                 RemoveChild(slot.transform,"SeatTrim");var trim=Rect(slot.transform,"SeatTrim",0,0,w,134);trim.SetAsFirstSibling();
                 var accent=team==0?new Color32(206,64,79,255):team==1?new Color32(85,138,215,255):new Color32(173,190,205,255);
                 Box(trim,"TeamStripe",0,0,5,134,accent);Box(trim,"TopEdge",8,0,w-16,1,new Color(1,1,1,.35f));
                 Box(trim,"BottomEdge",8,133,w-16,1,new Color(0,0,0,.16f));
-                var socket=Decor(trim,"PortraitSocket",15,12,110,110,"Sprites/Game/CharacterSelect",new Color32(87,101,119,180));
+                var socket=Decor(trim,"PortraitSocket",15,12,110,110,"ProjectVector/Modules/Match/UI/Sprites/CharacterSelect",new Color32(87,101,119,180));
                 Text(socket.transform,"SeatNumber",(i+1).ToString("00"),0,0,110,110,38,new Color(1,1,1,.27f)).alignment=TextAlignmentOptions.Center;
                 Place(Ref<Image>(slot,"image").transform,19,16,102,102);
                 Place(Ref<TMP_Text>(slot,"nicknameText").transform,149,28,w-220,38);Place(Ref<TMP_Text>(slot,"levelText").transform,149,78,240,30);
@@ -217,7 +217,7 @@ public static partial class VectorMatchLayoutEditor
     public static void ValidatePolish()
     {
         ValidateSaved();
-        var scene=UnityEngine.SceneManagement.SceneManager.GetSceneByPath("Assets/Scenes/Lobby.unity");
+        var scene=UnityEngine.SceneManagement.SceneManager.GetSceneByPath("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var c=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<GamePanelController>(true)).Single();
         var p=Ref<GameObject>(c,"tempGameRoomPanel");var refs=p.GetComponentsInChildren<VectorCardReflection>(true);
         if(refs.Length!=3||refs.Any(r=>r.sources.Length==0||r.sources.Length!=r.reflections.Length||r.sources.Any(i=>i==null)||r.reflections.Any(i=>i==null)))throw new Exception("Missing saved reflection references");

@@ -11,8 +11,8 @@ using Object=UnityEngine.Object;
 
 public static class DronePolishAuthoring
 {
-    const string Dir="Assets/Audio/Drone";
-    const string Scene="Assets/Scenes/Game_TestVersion.unity";
+    const string Dir="Assets/ProjectVector/Shared/Audio/Drone";
+    const string Scene="Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity";
     static readonly Color Ink=new Color(.025f,.05f,.065f,.83f), Cyan=new Color(.35f,.91f,1), White=new Color(.87f,.94f,.95f);
     static TMP_FontAsset font;
     static T Component<T>(GameObject go) where T:UnityEngine.Component {var c=go.GetComponent<T>();return c?c:go.AddComponent<T>();}
@@ -67,7 +67,7 @@ public static class DronePolishAuthoring
             Image(content,"OpticalEdge",side*879,vertical*410,1,23,new Color(.8f,1,1,.4f));
         }
         var droneIcon=Image(content,"DroneSkillIcon",0,-360,47,47,White);
-        droneIcon.sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Character/Initiator/Initiator_Q.png");droneIcon.preserveAspect=true;
+        droneIcon.sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/Characters/Portraits/Initiator/Initiator_Q.png");droneIcon.preserveAspect=true;
         var hp=Text(content,"Integrity","100",-145,-369,75,40,32,White);
         hp.fontStyle=FontStyles.Bold;
         Text(content,"IntegrityLabel","내구도",-145,-402,80,24,15,new Color(.86f,.9f,.9f,.8f));
@@ -136,7 +136,7 @@ public static class DronePolishAuthoring
     }
     static void AuthorDrone(AudioClip motor)
     {
-        string path="Assets/Prefab/Character/Initiator/Drone.prefab";
+        string path="Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Drone.prefab";
         var root=PrefabUtility.LoadPrefabContents(path);
         try {
             root.transform.localScale=Vector3.one;
@@ -149,7 +149,7 @@ public static class DronePolishAuthoring
             var source=Component<AudioSource>(root);source.playOnAwake=false;source.spatialBlend=1;source.minDistance=2;source.maxDistance=25;
             var rotor=root.transform.Find("RotorAudio");if(!rotor){rotor=new GameObject("RotorAudio").transform;rotor.SetParent(root.transform,false);}
             var loop=Component<AudioSource>(rotor.gameObject);loop.clip=motor;loop.loop=true;loop.playOnAwake=true;loop.volume=.08f;loop.spatialBlend=1;loop.minDistance=2;loop.maxDistance=18;Ref(presentation,"_motor",loop);
-            var gun=root.GetComponent<TaserGun>();Ref(gun,"_audioSource",source);Ref(gun,"_fireSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/KSW/Scifi Guns SFX Pack/Gun2_1.wav"));
+            var gun=root.GetComponent<TaserGun>();Ref(gun,"_audioSource",source);Ref(gun,"_fireSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ThirdParty/ScifiGunsAudio/Gun2_1.wav"));
             var spark=root.transform.Find("MuzzleSpark").GetComponent<ParticleSystem>();spark.transform.localPosition=new Vector3(0,.02f,.48f);
             ConfigureSpark(spark,24,.2f);Ref(gun,"_muzzleSpark",spark);
             var impact=root.transform.Find("ImpactSpark");if(!impact){impact=new GameObject("ImpactSpark").transform;impact.SetParent(root.transform,false);}
@@ -167,7 +167,7 @@ public static class DronePolishAuthoring
     }
     static void AuthorArm()
     {
-        string path="Assets/Prefab/Character/Initiator/Initiator.prefab";
+        string path="Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab";
         var root=PrefabUtility.LoadPrefabContents(path);
         try {
             var rig=Component<DroneLaunchRig>(root);
@@ -175,7 +175,7 @@ public static class DronePolishAuthoring
             var upper=fore.parent;
             var device=fore.Find("DroneLaunchDevice");
             if(!device) {
-                var go=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/KSW/Drone/prefab/drone.prefab"),fore);
+                var go=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ThirdParty/Drone/prefab/drone.prefab"),fore);
                 go.name="DroneLaunchDevice";device=go.transform;
             }
             device.localPosition=new Vector3(-.12f,0,.08f);device.localRotation=Quaternion.Euler(0,0,90);device.localScale=Vector3.one*.065f;

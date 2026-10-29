@@ -23,7 +23,7 @@ public static class SpikePresentationReview
         Output="C:/Users/GCT/Documents/Vector-Spike-20261027/V5";
         SpikePresentationAuthoring.Verify();
         Setup();
-        var dropped=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/Spike/DroppedSpike.prefab"));dropped.transform.position=origin;
+        var dropped=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Modules/Match/Resources/Prefabs/Spike/DroppedSpike.prefab"));dropped.transform.position=origin;
         foreach(var b in dropped.GetComponentsInChildren<MonoBehaviour>(true))b.enabled=false;
         var idleVisual=dropped.GetComponentInChildren<SpikeDeviceVisual>();SpikeDetonation release=null;
         Capture("device-states",20,t=>{
@@ -67,7 +67,7 @@ public static class SpikePresentationReview
     }
     static void PrepareIdle(string character)
     {
-        string path=character=="Controller"?"Assets/Character(New)/Controller/Animation/InGame/LongGun/Controller_LongGun_Idle.anim":"Assets/Character Animation/"+character+"/InGame/"+(character=="Initiator"?"Long Gun":"LongGun")+"/"+character+"_LongGun_Idle.anim";
+        string path=character=="Controller"?"Assets/ProjectVector/Shared/Characters/Models/Controller/Animation/InGame/LongGun/Controller_LongGun_Idle.anim":"Assets/ProjectVector/Shared/Characters/Animations/"+character+"/InGame/"+(character=="Initiator"?"Long Gun":"LongGun")+"/"+character+"_LongGun_Idle.anim";
         var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);if(!clip)throw new Exception("Missing review idle: "+path);
         var model=actor.transform.Find("Model");var position=model.localPosition;var rotation=model.localRotation;
         clip.SampleAnimation(model.gameObject,0);model.localPosition=position;model.localRotation=rotation;
@@ -121,7 +121,7 @@ public static class SpikePresentationReview
         {int i=c*cloth.rows+r;lines.Add(cloth.nodes[i].name+"="+actor.transform.InverseTransformPoint(cloth.nodes[i].position).ToString("F4")+" rest="+cloth.restPoints[i].ToString("F4"));}
         File.WriteAllLines(Output+"/coat-nodes.txt",lines);
         var renderer=actor.transform.Find("Model").GetComponentsInChildren<SkinnedMeshRenderer>().First(r=>r.name=="HeadUV");
-        renderer.sharedMesh=AssetDatabase.LoadAllAssetsAtPath("Assets/Character(New)/Controller/Controller Model_Riging (1).fbx").OfType<Mesh>().First(m=>m.name=="HeadUV");
+        renderer.sharedMesh=AssetDatabase.LoadAllAssetsAtPath("Assets/ProjectVector/Shared/Characters/Models/Controller/Controller Model_Riging (1).fbx").OfType<Mesh>().First(m=>m.name=="HeadUV");
         Still("coat-original-kneel");
         SpikeInteractionPresentation.Sample(pose.thirdPerson,0,0);Still("coat-original-stand");
         UnityEngine.Debug.Log("COAT_SCALE "+actor.transform.lossyScale+" "+string.Join(";",renderer.bones.Where(b=>b.name.EndsWith("Hips")||b.name.EndsWith("Spine")).Select(b=>b.name+"="+(b.position-actor.transform.position))));
@@ -202,7 +202,7 @@ public static class SpikePresentationReview
     {
         Directory.CreateDirectory(Output);
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/TestMap.prefab"));
+        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/TestMap.prefab"));
         foreach(var behaviour in map.GetComponentsInChildren<MonoBehaviour>(true))behaviour.enabled=false;
         RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.64f,.72f,.82f);RenderSettings.ambientEquatorColor=new Color(.42f,.48f,.55f);RenderSettings.ambientGroundColor=new Color(.22f,.25f,.28f);RenderSettings.fog=false;
         var sun=new GameObject("Review sunlight").AddComponent<Light>();sun.type=LightType.Directional;sun.intensity=1.3f;sun.transform.rotation=Quaternion.Euler(45,-30,0);sun.shadows=LightShadows.Soft;
@@ -212,7 +212,7 @@ public static class SpikePresentationReview
         var data=camera.GetUniversalAdditionalCameraData();data.renderPostProcessing=false;data.antialiasing=AntialiasingMode.SubpixelMorphologicalAntiAliasing;
         target=new RenderTexture(W,H,24,RenderTextureFormat.ARGB32);target.antiAliasing=4;target.Create();camera.targetTexture=target;
         pixels=new Texture2D(W,H,TextureFormat.RGB24,false);
-        device=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/Spike/Spike.prefab"));device.transform.position=origin;
+        device=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Modules/Match/Resources/Prefabs/Spike/Spike.prefab"));device.transform.position=origin;
         foreach(var b in device.GetComponentsInChildren<MonoBehaviour>(true))b.enabled=false;
         spike=device.GetComponent<SpikePresentation>();
         SetActor("Initiator");
@@ -238,7 +238,7 @@ public static class SpikePresentationReview
     static void SetActor(string character)
     {
         if(actor)Object.DestroyImmediate(actor);
-        actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/"+character+"/"+character+".prefab"));
+        actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/"+character+"/"+character+".prefab"));
         actor.transform.position=origin-Vector3.forward*PlayerSpike.PlantForwardOffset;
         viewRootRotation=actor.transform.Find("CameraRoot").localRotation;
         foreach(var b in actor.GetComponentsInChildren<MonoBehaviour>(true))b.enabled=false;
@@ -392,7 +392,7 @@ public static class SpikePresentationReview
             });
         }
         Setup();
-        var dropped=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/Spike/DroppedSpike.prefab"));dropped.transform.position=origin;
+        var dropped=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Modules/Match/Resources/Prefabs/Spike/DroppedSpike.prefab"));dropped.transform.position=origin;
         foreach(var b in dropped.GetComponentsInChildren<MonoBehaviour>(true))b.enabled=false;
         var idleVisual=dropped.GetComponentInChildren<SpikeDeviceVisual>();
         SpikeDetonation release=null;
@@ -432,7 +432,7 @@ public static class SpikePresentationReview
         Setup();SetActor("Controller");device.SetActive(false);
         var model=actor.transform.Find("Model");model.gameObject.SetActive(true);actor.transform.Find("CameraRoot").gameObject.SetActive(false);
         var originalPosition=model.localPosition;var originalRotation=model.localRotation;
-        string folder="Assets/Character(New)/Controller/Animation/InGame/LongGun/";
+        string folder="Assets/ProjectVector/Shared/Characters/Models/Controller/Animation/InGame/LongGun/";
         AnimationClip Clip(string name)=>AssetDatabase.LoadAssetAtPath<AnimationClip>(folder+"Controller_LongGun_"+name+".anim");
         var idle=Clip("Idle");var walk=Clip("Walk");var crouch=Clip("Crouch_Idle");var crouchWalk=Clip("Crouch_Walk");
         if(!idle||!walk||!crouch||!crouchWalk)throw new Exception("Missing controller locomotion clips");

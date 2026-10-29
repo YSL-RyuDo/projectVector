@@ -10,7 +10,7 @@ using Object=UnityEngine.Object;
 
 public static class SentinelPolishAuthoring
 {
-    const string Art="Assets/Art/Sentinel", Prefabs="Assets/Prefab/Character/Sentinel/", Hud="Assets/Art/EMP/ElectricStatusHUD.prefab";
+    const string Art="Assets/ProjectVector/Shared/Characters/Effects/Sentinel/Sentinel", Prefabs="Assets/ProjectVector/Shared/Characters/Prefabs/Sentinel/", Hud="Assets/ProjectVector/Shared/Characters/Effects/Initiator/EMP/ElectricStatusHUD.prefab";
     static Material armor,purple,gold,glow;
     static T Ensure<T>(GameObject go) where T:Component {var c=go.GetComponent<T>();return c?c:go.AddComponent<T>();}
     static void Ref(Object target,string field,Object value)=>ScannerFeedbackAuthoring.Ref(target,field,value);
@@ -54,7 +54,7 @@ public static class SentinelPolishAuthoring
     {
         var t=Node(parent,name);var s=Ensure<AudioSource>(t.gameObject);s.playOnAwake=false;s.spatialBlend=1;s.volume=volume;s.pitch=pitch;
         s.minDistance=1;s.maxDistance=18;s.rolloffMode=AudioRolloffMode.Linear;s.dopplerLevel=0;
-        s.clip=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Drone/"+clip+".wav");return s;
+        s.clip=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ProjectVector/Shared/Audio/Drone/"+clip+".wav");return s;
     }
     static void Device(string name,int kind,GameObject wave)
     {
@@ -170,7 +170,7 @@ public static class SentinelPolishAuthoring
             Check(p.GetComponentsInChildren<Renderer>(true).All(r=>r.sharedMaterial && r.sharedMaterial.shader && r.sharedMaterial.shader.name!="Hidden/InternalErrorShader"),name+" materials resolved");
         }
         Check(!File.ReadAllText("Assets/ProjectVector/Runtime/Characters/Sentinel/TrapDevice.cs").Contains("ApplyStunFromServer"),"E no longer uses stun");
-        string guid=AssetDatabase.AssetPathToGUID(Hud);Check(File.ReadAllText("Assets/Scenes/Game_TestVersion.unity").Contains(guid),"authored HUD linked in actual game scene");
+        string guid=AssetDatabase.AssetPathToGUID(Hud);Check(File.ReadAllText("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity").Contains(guid),"authored HUD linked in actual game scene");
         Debug.Log("SENTINEL_VERIFY_PASS");
     }
     public static void Render()

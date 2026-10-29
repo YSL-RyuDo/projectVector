@@ -19,7 +19,7 @@ public static class ChipCraftHierarchyInstaller
     [MenuItem("Project Vector/UI/Install Chip Craft Hierarchy")]
     public static void Install()
     {
-        const string path = "Assets/Scenes/Lobby.unity";
+        const string path = "Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity";
         Scene scene = SceneManager.GetSceneByPath(path);
         bool opened = !scene.IsValid() || !scene.isLoaded;
         if (opened) scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
@@ -108,7 +108,7 @@ public static class ChipCraftHierarchyInstaller
             changed = true;
         }
         Image image = art.GetComponent<Image>();
-        Sprite artSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/IconCard/icon0_card.png");
+        Sprite artSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/Resources/IconCard/icon0_card.png");
         if (image.sprite != artSprite || image.preserveAspect || image.raycastTarget)
         {
             image.sprite = artSprite; image.preserveAspect = false; image.raycastTarget = false; changed = true;
@@ -126,7 +126,7 @@ public static class ChipCraftHierarchyInstaller
         if (border != null)
         {
             Image frame = border.GetComponent<Image>();
-            Sprite frameSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/IconBorder/border.png");
+            Sprite frameSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/Resources/IconBorder/border.png");
             if (frame.sprite != frameSprite || frame.color != Color.white || frame.raycastTarget)
             {
                 frame.sprite = frameSprite; frame.color = Color.white; frame.raycastTarget = false; changed = true;
@@ -200,7 +200,7 @@ public static class ChipCraftHierarchyInstaller
         Fix(preview, new Vector2(0, -12), new Vector2(360, 820));
         Image art = UI("ChipCraftPreviewArt", preview.transform, Color.white).GetComponent<Image>();
         Fix(art.gameObject, Vector2.zero, new Vector2(342, 800));
-        art.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/IconCard/icon0_card.png");
+        art.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/Resources/IconCard/icon0_card.png");
         art.raycastTarget = false;
         for (int i = 0; i < 3; ++i)
         {
@@ -213,7 +213,7 @@ public static class ChipCraftHierarchyInstaller
         }
         Image border = UI("ChipCraftPreviewCase", preview.transform, Color.white).GetComponent<Image>();
         Stretch(border.GetComponent<RectTransform>());
-        border.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/IconBorder/border.png");
+        border.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/Resources/IconBorder/border.png");
         border.raycastTarget = false;
         Text("ChipCraftMedalCount", panel.transform, "훈장 수  0 / 1", 18, new Vector2(0, -450), new Vector2(280, 35));
 
@@ -262,7 +262,7 @@ public static class ChipCraftHierarchyInstaller
                 new Vector2(130, 195), Option, new Vector2(0, 1));
             Image art = UI("ChipCraftCardOption" + i + "Art", option.transform, Color.white).GetComponent<Image>();
             Fix(art.gameObject, new Vector2(0, 13), new Vector2(115, 160));
-            art.sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Resources/IconCard/icon{i}_card.png");
+            art.sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/ProjectVector/Shared/Resources/IconCard/icon{i}_card.png");
             art.raycastTarget = false;
             Text("ChipCraftCardOption" + i + "Label", option.transform, $"카드 {i + 1}", 16,
                 new Vector2(0, -83), new Vector2(110, 27));
@@ -277,7 +277,7 @@ public static class ChipCraftHierarchyInstaller
             new Vector2(135, 200), Option, new Vector2(0, 1));
         Image art = UI("ChipCraftCaseOption0Art", option.transform, Color.white).GetComponent<Image>();
         Fix(art.gameObject, new Vector2(0, 11), new Vector2(115, 160));
-        art.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/IconBorder/border.png");
+        art.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/Resources/IconBorder/border.png");
         art.raycastTarget = false;
         Text("ChipCraftCaseOption0Label", option.transform, "기본 케이스", 16,
             new Vector2(0, -85), new Vector2(120, 28));
@@ -296,7 +296,7 @@ public static class ChipCraftHierarchyInstaller
                 Option, new Vector2(0, 1));
             Image art = UI("ChipCraftMedalOption" + i + "Art", option.transform, Color.white).GetComponent<Image>();
             Fix(art.gameObject, new Vector2(0, 10), new Vector2(105, 105));
-            art.sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Resources/Rank/{ranks[i]}.png");
+            art.sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/ProjectVector/Shared/Resources/Rank/{ranks[i]}.png");
             art.preserveAspect = true; art.raycastTarget = false;
             Text("ChipCraftMedalOption" + i + "Label", option.transform, ranks[i], 16,
                 new Vector2(0, -62), new Vector2(110, 24));

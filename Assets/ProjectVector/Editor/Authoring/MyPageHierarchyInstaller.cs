@@ -107,7 +107,7 @@ public static class MyPageHierarchyInstaller
     [MenuItem("Project Vector/UI/Rebuild My Page Reference Layout")]
     public static void RebuildReferenceLayout()
     {
-        Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity", OpenSceneMode.Single);
+        Scene scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity", OpenSceneMode.Single);
         GameObject existing = FindInScene(scene, "MyPagePanel");
         if (existing != null) UnityEngine.Object.DestroyImmediate(existing);
         Install();
@@ -150,7 +150,7 @@ public static class MyPageHierarchyInstaller
 
     public static void ValidateEntryPoint()
     {
-        Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity", OpenSceneMode.Single);
+        Scene scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity", OpenSceneMode.Single);
         GameObject icon = GameObject.Find("PlayerIcon");
         GameObject panel = GameObject.Find("MyPagePanel");
         if (icon == null || panel == null) throw new InvalidOperationException("PlayerIcon or MyPagePanel is missing.");
@@ -234,7 +234,7 @@ public static class MyPageHierarchyInstaller
     [MenuItem("Project Vector/UI/Repair Career Dropdown Layout")]
     public static void RepairCareerDropdownLayout()
     {
-        const string lobbyPath = "Assets/Scenes/Lobby.unity";
+        const string lobbyPath = "Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity";
         Scene scene = SceneManager.GetSceneByPath(lobbyPath);
         bool closeWhenDone = !scene.IsValid() || !scene.isLoaded;
         if (closeWhenDone) scene = EditorSceneManager.OpenScene(lobbyPath, OpenSceneMode.Additive);
@@ -277,7 +277,7 @@ public static class MyPageHierarchyInstaller
 
     public static void RepairViewportMasks()
     {
-        Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity", OpenSceneMode.Single);
+        Scene scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity", OpenSceneMode.Single);
         GameObject root = GameObject.Find("MyPagePanel");
         if (root == null) throw new InvalidOperationException("MyPagePanel is missing.");
 
@@ -309,7 +309,7 @@ public static class MyPageHierarchyInstaller
         sectionRect.anchoredPosition = new Vector2(729, -84);
         GameObject left = PanelBox(section.transform, "ProfileInfoBox", new Vector2(-400, -5), new Vector2(490, 195));
         Image image = ImageObject("ProfileIconImage", left.transform, new Vector2(-175, 0), new Vector2(155, 155));
-        image.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/PlayerIcon/0.jpg"); image.preserveAspect = true;
+        image.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/Resources/PlayerIcon/0.jpg"); image.preserveAspect = true;
         Text("ProfileNicknameText", left.transform, "Nickname", 27, TextAlignmentOptions.Left, Color.white, new Vector2(30, 60), new Vector2(250, 40));
         Text("ProfileIdText", left.transform, "ID: ----", 18, TextAlignmentOptions.Left, Color.white, new Vector2(30, 20), new Vector2(250, 30));
         Text("ProfileLevelText", left.transform, "Lv.1", 20, TextAlignmentOptions.Left, Color.white, new Vector2(30, -18), new Vector2(250, 30));
@@ -343,7 +343,7 @@ public static class MyPageHierarchyInstaller
         cardBorder.transform.SetAsFirstSibling();
         Text("CardTitle", card.transform, "PLAYER CARD", 18, TextAlignmentOptions.Center, new Color32(120,220,255,255), new Vector2(0, 395), new Vector2(310, 32));
         Image cardIcon = ImageObject("CardIconImage", card.transform, new Vector2(0, 80), new Vector2(325, 810));
-        cardIcon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/IconCard/icon0_card.png"); cardIcon.preserveAspect = false;
+        cardIcon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/Resources/IconCard/icon0_card.png"); cardIcon.preserveAspect = false;
         Text("CardNicknameText", card.transform, "Nickname", 29, TextAlignmentOptions.Center, new Color32(255,215,90,255), new Vector2(0, 85), new Vector2(330, 48));
         Text("CardLevelText", card.transform, "1", 24, TextAlignmentOptions.Center, Color.white, new Vector2(0, 30), new Vector2(160, 40));
     }
@@ -360,7 +360,7 @@ public static class MyPageHierarchyInstaller
         {
             GameObject box = PanelBox(section.transform, "RankBox"+i, new Vector2(xs[i], -15), new Vector2(385, 300));
             Image rank = ImageObject(imageNames[i], box.transform, new Vector2(0, 38), new Vector2(i==1?165:125, i==1?165:125));
-            rank.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/Rank/Bronze.png"); rank.preserveAspect = true;
+            rank.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/Resources/Rank/Bronze.png"); rank.preserveAspect = true;
             Text(textNames[i], box.transform, labels[i], 18, TextAlignmentOptions.Center, Color.white, new Vector2(0,-87), new Vector2(310,70));
         }
     }
@@ -376,7 +376,7 @@ public static class MyPageHierarchyInstaller
             float x=-465+i*310;
             GameObject card=PanelBox(section.transform,"CharacterCard"+i,new Vector2(x,-20),new Vector2(290,205));
             Image image=ImageObject("Character"+i+"Image",card.transform,new Vector2(-92,2),new Vector2(105,145));
-            image.sprite=AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Sprites/Character/Image/Char{i}.png"); image.preserveAspect=true; image.color=new Color(.35f,.38f,.43f,.45f);
+            image.sprite=AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/ProjectVector/Shared/Characters/Portraits/Image/Char{i}.png"); image.preserveAspect=true; image.color=new Color(.35f,.38f,.43f,.45f);
             Text("Character"+i+"NameText",card.transform,characters[i],18,TextAlignmentOptions.Left,Color.white,new Vector2(50,50),new Vector2(160,34));
             Text("Character"+i+"RoleText",card.transform,roles[i],13,TextAlignmentOptions.Left,new Color32(105,215,240,255),new Vector2(50,15),new Vector2(160,26));
             Text("Character"+i+"StatsText",card.transform,"플레이 기록 없음",14,TextAlignmentOptions.Left,new Color32(210,218,225,255),new Vector2(50,-42),new Vector2(160,72));
@@ -521,7 +521,7 @@ public static class MyPageHierarchyInstaller
     [MenuItem("Project Vector/UI/Install My Page Career Data")]
     public static void InstallCareerData()
     {
-        Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity", OpenSceneMode.Single);
+        Scene scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity", OpenSceneMode.Single);
         GameObject root = FindInScene(scene, "MyPagePanel");
         if (root == null)
         {
@@ -562,7 +562,7 @@ public static class MyPageHierarchyInstaller
         Text("CareerSelectedCharacterNameText", left.transform, "Casual1", 20,
             TextAlignmentOptions.Left, Color.white, new Vector2(-175, 320), new Vector2(190, 34));
         Image portrait = ImageObject("CareerCharacterImage", left.transform, new Vector2(0, 126), new Vector2(500, 350));
-        portrait.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Character/Image/Char0.png");
+        portrait.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/Characters/Portraits/Image/Char0.png");
         portrait.preserveAspect = true;
         GameObject scoreBox = UI("CareerPerformanceScoreBox", left.transform, new Color32(73, 82, 94, 235));
         Fixed(scoreBox, new Vector2(0, -67), new Vector2(530, 92));
@@ -644,7 +644,7 @@ public static class MyPageHierarchyInstaller
                 new Vector2(0, 205 - i * 135), new Vector2(510, 118), new Color32(112, 122, 134, 255));
             Image image = ImageObject("CareerCharacterOption" + i + "Image", row.transform,
                 new Vector2(-195, 0), new Vector2(92, 100));
-            image.sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Sprites/Character/Image/Char{i}.png");
+            image.sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/ProjectVector/Shared/Characters/Portraits/Image/Char{i}.png");
             image.preserveAspect = true;
             Text("CareerCharacterOption" + i + "NameText", row.transform,
                 new[] { "Casual1", "PicoChan", "UnityChan", "UnityChanSSU" }[i], 20,

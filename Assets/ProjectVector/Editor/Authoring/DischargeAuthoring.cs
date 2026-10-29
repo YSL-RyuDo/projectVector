@@ -10,9 +10,9 @@ using UI=ScannerFeedbackAuthoring;
 
 public static class DischargeAuthoring
 {
-    public const string Dir="Assets/Art/Discharge";
-    public const string Actor="Assets/Prefab/Character/Initiator/Initiator.prefab";
-    public const string Hud="Assets/Art/EMP/ElectricStatusHUD.prefab";
+    public const string Dir="Assets/ProjectVector/Shared/Characters/Effects/Initiator/Discharge";
+    public const string Actor="Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab";
+    public const string Hud="Assets/ProjectVector/Shared/Characters/Effects/Initiator/EMP/ElectricStatusHUD.prefab";
     static readonly Color Cyan=new(.12f,.72f,.92f), Amber=new(.95f,.48f,.12f);
     static Transform Child(Transform p,string n){var t=new GameObject(n).transform;t.SetParent(p,false);return t;}
     static void Refs(Object target,string field,IEnumerable<Object> values)
@@ -42,7 +42,7 @@ public static class DischargeAuthoring
     }
     static LineRenderer Line(Transform p,string name,Color color,float width)
     {
-        var line=Child(p,name).gameObject.AddComponent<LineRenderer>();line.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Drone/EnergyBeam.mat");
+        var line=Child(p,name).gameObject.AddComponent<LineRenderer>();line.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Shared/Characters/Effects/Initiator/Drone/Materials/EnergyBeam.mat");
         line.useWorldSpace=true;line.positionCount=0;line.enabled=false;line.widthCurve=AnimationCurve.Constant(0,1,1);line.widthMultiplier=width;line.numCapVertices=2;line.numCornerVertices=2;
         line.startColor=line.endColor=color;line.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;return line;
     }
@@ -52,12 +52,12 @@ public static class DischargeAuthoring
         var m=ps.main;m.playOnAwake=false;m.loop=false;m.duration=.4f;m.startLifetime=new ParticleSystem.MinMaxCurve(.08f,.24f);m.startSpeed=new ParticleSystem.MinMaxCurve(1,4);m.startSize=new ParticleSystem.MinMaxCurve(.012f,.025f);m.startColor=Cyan;m.maxParticles=32;m.simulationSpace=ParticleSystemSimulationSpace.World;
         var e=ps.emission;e.rateOverTime=0;e.SetBursts(new[]{new ParticleSystem.Burst(0,22)});var sh=ps.shape;sh.shapeType=ParticleSystemShapeType.Sphere;sh.radius=.08f;
         var colors=ps.colorOverLifetime;colors.enabled=true;var gradient=new Gradient();gradient.SetKeys(new[]{new GradientColorKey(Cyan,0),new GradientColorKey(Cyan,1)},new[]{new GradientAlphaKey(1,0),new GradientAlphaKey(0,1)});colors.color=gradient;
-        var r=ps.GetComponent<ParticleSystemRenderer>();r.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Drone/EnergyParticle.mat");r.renderMode=ParticleSystemRenderMode.Stretch;r.lengthScale=2;r.velocityScale=.04f;return ps;
+        var r=ps.GetComponent<ParticleSystemRenderer>();r.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Shared/Characters/Effects/Initiator/Drone/Materials/EnergyParticle.mat");r.renderMode=ParticleSystemRenderMode.Stretch;r.lengthScale=2;r.velocityScale=.04f;return ps;
     }
     static GameObject Device()
     {
         var black=Mat("Graphite",new Color(.035f,.05f,.07f));var metal=Mat("MachinedTitanium",new Color(.32f,.40f,.46f));var cyan=Mat("Emitter",Cyan,true);var amber=Mat("Copper",Amber);
-        var core=AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Art/Scanner/BeveledSensorCore.asset");if(!core)throw new Exception("Missing existing sensor mesh");var wing=Wing();
+        var core=AssetDatabase.LoadAssetAtPath<Mesh>("Assets/ProjectVector/Shared/Characters/Effects/Initiator/Scanner/BeveledSensorCore.asset");if(!core)throw new Exception("Missing existing sensor mesh");var wing=Wing();
         var root=new GameObject("DischargeRelay");
         MeshPart(root.transform,"ArmoredCore",core,black,Vector3.zero,new Vector3(1.4f,1.7f,1.9f),Quaternion.identity);
         MeshPart(root.transform,"EmitterBelow",core,cyan,new Vector3(0,-.12f,0),new Vector3(.6f,.3f,.6f),Quaternion.identity);

@@ -20,11 +20,11 @@ public static class SkillVfxClarityAuthoring
     public static void Run()
     {
         if(!Application.isBatchMode)throw new Exception("Isolated batch only");
-        const string path="Assets/Materials/Drone/ReadableEnergy.mat";
+        const string path="Assets/ProjectVector/Shared/Characters/Effects/Initiator/Drone/Materials/ReadableEnergy.mat";
         var shader=Shader.Find("Vector/SkillReadableEnergy");if(!shader)throw new Exception("Missing readable energy shader");
         var material=AssetDatabase.LoadAssetAtPath<Material>(path);
         if(!material){material=new Material(shader);AssetDatabase.CreateAsset(material,path);}else{material.shader=shader;EditorUtility.SetDirty(material);}
-        string dronePath="Assets/Prefab/Character/Initiator/Drone.prefab";
+        string dronePath="Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Drone.prefab";
         var drone=PrefabUtility.LoadPrefabContents(dronePath);
         try{
             Line(drone.transform,"CombatFX/DischargeCore",material);Line(drone.transform,"CombatFX/ConfirmedImpactRing",material);
@@ -40,7 +40,7 @@ public static class SkillVfxClarityAuthoring
             PrefabUtility.SaveAsPrefabAsset(drone,dronePath);
         }finally{PrefabUtility.UnloadPrefabContents(drone);}
         foreach(string name in new[]{"Initiator","Controller","Entry","Sentinel"}){
-            string actorPath=$"Assets/Prefab/Character/{name}/{name}.prefab";var actor=PrefabUtility.LoadPrefabContents(actorPath);
+            string actorPath=$"Assets/ProjectVector/Shared/Characters/Prefabs/{name}/{name}.prefab";var actor=PrefabUtility.LoadPrefabContents(actorPath);
             try{
                 Burst(actor.transform,"ElectricStatusFX/StunDischarge",14,.045f,.28f,new Color(.78f,.7f,1));
                 if(name=="Initiator"){

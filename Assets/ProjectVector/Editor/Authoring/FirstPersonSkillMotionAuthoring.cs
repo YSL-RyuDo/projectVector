@@ -8,8 +8,8 @@ using Object=UnityEngine.Object;
 
 public static class FirstPersonSkillMotionAuthoring
 {
-    const string Path="Assets/Prefab/Character/Initiator/Initiator.prefab";
-    const string Folder="Assets/Character Animation/Initiator/FirstPerson";
+    const string Path="Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab";
+    const string Folder="Assets/ProjectVector/Shared/Characters/Animations/Initiator/FirstPerson";
     public static void Run()
     {
         if(!Application.isBatchMode)throw new Exception("Use an isolated batch editor");

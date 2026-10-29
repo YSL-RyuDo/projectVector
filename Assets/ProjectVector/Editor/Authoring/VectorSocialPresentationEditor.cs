@@ -67,7 +67,7 @@ public static class VectorSocialPresentationEditor
     }
     static Sprite Sprite(string name)
     {
-        string path = "Assets/UI/VideoReference/" + name + ".png";
+        string path = "Assets/ProjectVector/Shared/UI/Surfaces/MatchFlow/" + name + ".png";
         AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
         var importer = (TextureImporter)AssetImporter.GetAtPath(path);
         importer.textureType = TextureImporterType.Sprite; importer.spriteImportMode = SpriteImportMode.Single;
@@ -81,7 +81,7 @@ public static class VectorSocialPresentationEditor
         if (EditorApplication.isPlayingOrWillChangePlaymode) throw new Exception("Stop Play before installing");
         for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; ++i)
             if (UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty) throw new Exception("Unsaved scene; installation refused");
-        var scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var all = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Transform>(true)).ToArray();
         var originalObjects = all.Select(t => t.gameObject).ToArray();
         var originalRefs = new List<(UnityEngine.Object owner, string field, UnityEngine.Object target)>();
@@ -92,7 +92,7 @@ public static class VectorSocialPresentationEditor
                 if (property.propertyType == SerializedPropertyType.ObjectReference && property.objectReferenceValue != null)
                     originalRefs.Add((behaviour, property.propertyPath, property.objectReferenceValue));
         }
-        File.Copy("Assets/Scenes/Lobby.unity", Path.Combine(Path.GetTempPath(), "Vector-Lobby-before-social-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + ".unity"));
+        File.Copy("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity", Path.Combine(Path.GetTempPath(), "Vector-Lobby-before-social-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss") + ".unity"));
         var game = all.Select(t => t.GetComponent<GamePanelController>()).First(c => c != null);
         var friends = all.Select(t => t.GetComponent<FriendPanelController>()).First(c => c != null);
         var ready = Ref<GameObject>(game, "tempGameRoomPanel");
@@ -179,7 +179,7 @@ public static class VectorSocialPresentationEditor
 
     public static void VerifySaved()
     {
-        var scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var all = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Transform>(true)).ToArray();
         var ui = all.Select(t => t.GetComponent<LobbySocialController>()).Single(c => c != null);
         if (ui.readyCards.Length != 6 || ui.inviteSlots.Length != 2 || ui.friends == null) throw new Exception("Saved social references missing");
@@ -216,7 +216,7 @@ public static class VectorSocialPresentationEditor
 
     static void EditFriendPrefab()
     {
-        const string path = "Assets/Resources/Friend/FriendListItem.prefab";
+        const string path = "Assets/ProjectVector/Shared/Resources/Friend/FriendListItem.prefab";
         var root = PrefabUtility.LoadPrefabContents(path);
         try
         {
@@ -235,7 +235,7 @@ public static class VectorSocialPresentationEditor
 
     public static void Capture()
     {
-        var scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var ui = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<LobbySocialController>(true)).Single();
         var canvas = new GameObject("PreviewCanvas", typeof(Canvas)).GetComponent<Canvas>(); canvas.gameObject.layer = 5;
         canvas.renderMode = RenderMode.WorldSpace; ((RectTransform)canvas.transform).sizeDelta = new Vector2(1920, 1080);

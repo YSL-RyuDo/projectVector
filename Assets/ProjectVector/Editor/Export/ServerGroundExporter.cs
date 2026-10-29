@@ -45,7 +45,7 @@ public class ServerGroundExporter
             }
         }
 
-        string path = Application.dataPath + "/../ServerGround.csv";
+        string path = ServerExportPaths.FilePath("ServerGround.csv");
         File.WriteAllText(path, sb.ToString());
 
         Debug.Log($"ServerGround exported: {hitCount} points");

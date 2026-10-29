@@ -38,8 +38,8 @@ public static class ControllerForestCapture
     public static void Run()
     {
         if(!Application.isBatchMode)throw new Exception("Batch only");Directory.CreateDirectory(Output);
-        EditorSceneManager.OpenScene("Assets/Scenes/WeaponTest.unity");Object.FindFirstObjectByType<PracticeRangeController>().persistRecords=false;
-        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/TestMap.prefab"));map.transform.position=new Vector3(1000,0,0);map.GetComponent<MapInfo>().SetBarriersActive(false);
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity");Object.FindFirstObjectByType<PracticeRangeController>().persistRecords=false;
+        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/TestMap.prefab"));map.transform.position=new Vector3(1000,0,0);map.GetComponent<MapInfo>().SetBarriersActive(false);
         foreach(var b in map.GetComponentsInChildren<MonoBehaviour>(true))Object.DestroyImmediate(b);
         Target("NearOpponent",new Vector3(965.7f,0,8.7f),101,1);Target("FarOpponent",new Vector3(969,0,14),102,1);
         SessionState.SetBool(Key,true);EditorApplication.update-=Tick;EditorApplication.update+=Tick;deadline=EditorApplication.timeSinceStartup+600;EditorApplication.EnterPlaymode();
@@ -52,7 +52,7 @@ public static class ControllerForestCapture
         foreach(var b in a.GetComponentsInChildren<MonoBehaviour>(true))if(!(b is PlayerIdentity)&&!(b is PlayerOutline)&&!(b is Outline))Object.DestroyImmediate(b);
         foreach(var c in a.GetComponentsInChildren<Camera>(true))c.enabled=false;
         foreach(var r in a.GetComponentsInChildren<Renderer>(true)){r.enabled=r.transform.IsChildOf(model);r.forceRenderingOff=false;}
-        AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character(New)/Controller/Animation/InGame/Pistol/Controller_Pistol_Idle.anim").SampleAnimation(model.gameObject,0);
+        AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Models/Controller/Animation/InGame/Pistol/Controller_Pistol_Idle.anim").SampleAnimation(model.gameObject,0);
         foreach(var anim in a.GetComponentsInChildren<Animator>(true))anim.enabled=false;
         foreach(var listen in a.GetComponentsInChildren<AudioListener>(true))listen.enabled=false;
         a.GetComponent<PlayerIdentity>().PlayerId=id;a.GetComponent<PlayerIdentity>().Team=team;

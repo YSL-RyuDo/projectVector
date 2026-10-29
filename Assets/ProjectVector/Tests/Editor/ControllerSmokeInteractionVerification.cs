@@ -72,7 +72,7 @@ public static class ControllerSmokeInteractionVerification
         controller.SetTarget(skill.transform);
         foreach(string mapName in new[]{"TestMap","Desert"})
         {
-            var level=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/"+mapName+".prefab"));
+            var level=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/"+mapName+".prefab"));
             level.transform.position=new Vector3(6000,0,6000);
             var refs=level.GetComponentInChildren<MiniMapWorldReferences>(true);
             var center=(Transform)typeof(MiniMapWorldReferences).GetField("fullMapCenter",Fields).GetValue(refs);

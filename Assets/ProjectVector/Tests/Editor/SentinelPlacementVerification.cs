@@ -13,7 +13,7 @@ public static class SentinelPlacementVerification
     public static void Run()
     {
         if(!Application.isBatchMode)throw new Exception("Isolated batch only; never replace an interactive scene.");
-        string gameScene=File.ReadAllText("Assets/Scenes/Game_TestVersion.unity");
+        string gameScene=File.ReadAllText("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         foreach(string field in new[]{"trapPrefab","qTrapPrefab","eTrapPrefab"}){
             var match=Regex.Match(gameScene,@"\b"+field+@": \{fileID: (-?\d+), guid: ([a-f0-9]+), type: 3\}");
             if(!match.Success)throw new Exception("Game scene device reference missing: "+field);

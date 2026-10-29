@@ -14,7 +14,7 @@ public static class ShopReadabilityAuthoring
     static TMP_FontAsset font;static Material fontMaterial,ink;static EquipmentIconCatalog icons;
     public static Sprite SolidFill()
     {
-        const string path="Assets/Sprites/HUD/SolidFill.png";
+        const string path="Assets/ProjectVector/Modules/Match/UI/Sprites/HUD/SolidFill.png";
         if(!File.Exists(path)){
             var texture=new Texture2D(4,4,TextureFormat.RGBA32,false);texture.SetPixels(Enumerable.Repeat(Color.white,16).ToArray());texture.Apply();File.WriteAllBytes(path,texture.EncodeToPNG());UnityEngine.Object.DestroyImmediate(texture);AssetDatabase.ImportAsset(path);
         }
@@ -36,7 +36,7 @@ public static class ShopReadabilityAuthoring
     public static void Run()
     {
         if(!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)throw new Exception("Batch only");
-        Directory.CreateDirectory(Output);var scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        Directory.CreateDirectory(Output);var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var source=UnityEngine.Object.FindObjectsByType<TMP_Text>(FindObjectsInactive.Include,FindObjectsSortMode.None).First(t=>t.font);
         font=source.font;fontMaterial=source.fontSharedMaterial;icons=AssetDatabase.LoadAssetAtPath<EquipmentIconCatalog>(EquipmentIconsAuthoring.CatalogPath);ink=AssetDatabase.LoadAssetAtPath<Material>(EquipmentIconsAuthoring.Folder+"/EquipmentInk.mat");
         var store=UnityEngine.Object.FindFirstObjectByType<StorePanelUI>(FindObjectsInactive.Include);var hud=UnityEngine.Object.FindFirstObjectByType<InGameUIManager>(FindObjectsInactive.Include);
@@ -156,7 +156,7 @@ public static class ShopReadabilityAuthoring
     }
     static void Preview(StorePanelUI store,InGameUIManager hud)
     {
-        var map=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/TestMap.prefab"));map.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
+        var map=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/TestMap.prefab"));map.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
         foreach(var t in map.GetComponentsInChildren<Transform>(true))t.gameObject.layer=28;
         var spawn=map.GetComponent<MapInfo>().attackSpawnPoints[0];
         var light=new GameObject("Preview light").AddComponent<Light>();light.type=LightType.Directional;light.intensity=1.2f;light.transform.rotation=Quaternion.Euler(45,-25,0);RenderSettings.ambientLight=Color.gray;RenderSettings.fog=false;

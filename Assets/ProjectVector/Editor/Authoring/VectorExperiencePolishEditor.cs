@@ -21,7 +21,7 @@ public static class VectorExperiencePolishEditor
     static T Ensure<T>(GameObject go) where T : Component { var c=go.GetComponent<T>(); return c==null?go.AddComponent<T>():c; }
     static Sprite VideoArt(string name)
     {
-        string path="Assets/UI/VideoReference/"+name+".png";
+        string path="Assets/ProjectVector/Shared/UI/Surfaces/MatchFlow/"+name+".png";
         AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceSynchronousImport);
         var importer=(TextureImporter)AssetImporter.GetAtPath(path);
         if(importer.textureType!=TextureImporterType.Sprite) { importer.textureType=TextureImporterType.Sprite; importer.spriteImportMode=SpriteImportMode.Single; importer.mipmapEnabled=false; importer.SaveAndReimport(); }
@@ -131,7 +131,7 @@ public static class VectorExperiencePolishEditor
     }
     static void InstallLobby()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity"); var snapshot=new Preservation(scene);
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity"); var snapshot=new Preservation(scene);
         var all=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<Transform>(true)).ToArray();
         var profile=all.Select(t=>t.GetComponent<MyPagePanelController>()).First(c=>c!=null);
         VideoBackdrop(profile.transform);
@@ -259,7 +259,7 @@ public static class VectorExperiencePolishEditor
     }
     static void InstallResult()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Result.unity"); var snapshot=new Preservation(scene);
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Results/Scenes/Result.unity"); var snapshot=new Preservation(scene);
         var result=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<ResultUI>(true)).Single();
         var root=result.GetComponent<Canvas>().transform;
         var host=Rect(root,"MatchPresentation",0,0,1920,1080); Stretch(host);
@@ -318,7 +318,7 @@ public static class VectorExperiencePolishEditor
         ui.continueLabel=ui.continueButton.GetComponentInChildren<TMP_Text>();
         var serialized=new SerializedObject(result); var sprites=serialized.FindProperty("characterSprites");
         ui.characters=Enumerable.Range(0,sprites.arraySize).Select(i=>(Sprite)sprites.GetArrayElementAtIndex(i).objectReferenceValue).ToArray();
-        ui.spotlightCharacters=Enumerable.Range(0,4).Select(i=>AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Sprites/Character/Image/Char{i}.png")).ToArray();
+        ui.spotlightCharacters=Enumerable.Range(0,4).Select(i=>AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/ProjectVector/Shared/Characters/Portraits/Image/Char{i}.png")).ToArray();
         var parent=Ref<Transform>(result,"allRowParent");
         foreach(string team in new[]{"Blue","Red"})
         {
@@ -340,7 +340,7 @@ public static class VectorExperiencePolishEditor
     }
     static void InstallRank()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/RankResult.unity"); var snapshot=new Preservation(scene);
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Results/Scenes/RankResult.unity"); var snapshot=new Preservation(scene);
         var controller=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<RankResultController>(true)).Single();
         var rankCanvas=controller.GetComponentInParent<Canvas>();
         Find(rankCanvas.transform,"Background").GetComponent<Image>().color=paper;
@@ -385,7 +385,7 @@ public static class VectorExperiencePolishEditor
     }
     static void VerifyRank()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/RankResult.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Results/Scenes/RankResult.unity");
         var controller=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<RankResultController>(true)).Single();
         var flags=BindingFlags.Instance|BindingFlags.NonPublic;
         MatchResultCache.rankPointDelta=25; MatchResultCache.rankExpectedWinRatePermille=420; MatchResultCache.rankModifierFlags=1;
@@ -398,7 +398,7 @@ public static class VectorExperiencePolishEditor
     }
     public static void VerifyResult()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Result.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Results/Scenes/Result.unity");
         var result=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<ResultUI>(true)).Single();
         var ui=result.GetComponentInChildren<MatchResultPresentation>(true);
         int Count()=>scene.GetRootGameObjects().Sum(r=>r.GetComponentsInChildren<Transform>(true).Length);
@@ -443,7 +443,7 @@ public static class VectorExperiencePolishEditor
     }
     static void CaptureLobby()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var profile=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<MyPagePanelController>(true)).Single();
         var group=profile.GetComponent<CanvasGroup>(); group.alpha=1; group.interactable=group.blocksRaycasts=true; profile.gameObject.SetActive(true);
         foreach(var other in new[]{"BattleCustomPanel","SkinCustomPanel","RecentVisitorsPopup"}) Find(profile.transform,other).gameObject.SetActive(false);

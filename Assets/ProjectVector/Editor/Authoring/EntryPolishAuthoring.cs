@@ -9,7 +9,7 @@ using Object=UnityEngine.Object;
 // Explicit batch authoring only. All UI and hand attachments are saved before Play.
 public static class EntryPolishAuthoring
 {
-    const string Art="Assets/Art/Entry", Prefab="Assets/Prefab/Character/Entry/Entry.prefab";
+    const string Art="Assets/ProjectVector/Shared/Characters/Effects/Entry/Entry", Prefab="Assets/ProjectVector/Shared/Characters/Prefabs/Entry/Entry.prefab";
     static Material white,cyan,graphite;
     static Mesh bladeMesh;
     static T Ensure<T>(GameObject go) where T:Component {var c=go.GetComponent<T>();return c?c:go.AddComponent<T>();}
@@ -69,7 +69,7 @@ public static class EntryPolishAuthoring
         foreach(Transform child in parent.Cast<Transform>().ToArray())if(child.name!=name)Object.DestroyImmediate(child.gameObject);
         var t=parent.Find(name);
         if(!t){
-            var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/FPS_Bundle/FPS_Weapon1/Prefabs/Accessories/Grenade_02.prefab");
+            var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ThirdParty/FPS_Bundle/FPS_Weapon1/Prefabs/Accessories/Grenade_02.prefab");
             if(!source)throw new Exception("Bundled grenade mesh missing");
             var obj=(GameObject)PrefabUtility.InstantiatePrefab(source);t=obj.transform;t.SetParent(parent,false);t.name=name;
             PrefabUtility.UnpackPrefabInstance(obj,PrefabUnpackMode.Completely,InteractionMode.AutomatedAction);
@@ -198,8 +198,8 @@ public static class EntryPolishAuthoring
             foreach(string old in new[]{"WhiteCapsule","CyanSeal"}){var child=held.Find(old);if(child)Object.DestroyImmediate(child.gameObject);}SmokeDevice(held);
             held.gameObject.SetActive(false);motion.Restore(FirstPersonSkillMotion.Motion.Emp);Ref(rig,"heldSmoke",held.gameObject);
             Ref(rig,"dashWake",Particles(root.transform,"EntryDashWake",true));Ref(rig,"phaseFlash",Particles(camera,"EntryPhaseFlash",false));Ref(rig,"audioSource",Audio(root.transform));
-            Ref(rig,"dashSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Art/Controller/Decoy/DecoyThrow.wav"));Ref(rig,"smokeSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Art/Controller/Swamp/SwampThrow.wav"));
-            Ref(rig,"phaseSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Art/EMP/MagneticPulse.wav"));Ref(rig,"bladeSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Art/Controller/Decoy/DecoyLatch.wav"));
+            Ref(rig,"dashSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller/Decoy/DecoyThrow.wav"));Ref(rig,"smokeSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller/Swamp/SwampThrow.wav"));
+            Ref(rig,"phaseSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ProjectVector/Shared/Characters/Effects/Initiator/EMP/MagneticPulse.wav"));Ref(rig,"bladeSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller/Decoy/DecoyLatch.wav"));
             Ref(root.GetComponent<EntrySkill_Q>(),"_playerCamera",camera.GetComponent<Camera>());Ref(root.GetComponent<EntrySkill_E>(),"_localFirstPersonRoot",model.parent.gameObject);
             var stealth=new SerializedObject(root.GetComponent<EntrySkill_E>());stealth.FindProperty("_debugStealthTeam").boolValue=false;stealth.ApplyModifiedPropertiesWithoutUndo();Hud(root.transform,rig);
             var projectile=new GameObject("EntryCyanClawProjectile");Claw(projectile.transform,"Claw");projectile.AddComponent<Entry_Toenail>();
@@ -218,18 +218,18 @@ public static class EntryPolishAuthoring
     }
     static void Smoke()
     {
-        const string path="Assets/KSW/Prefabs/Effect/Smoke Effect.prefab";var root=PrefabUtility.LoadPrefabContents(path);
+        const string path="Assets/ProjectVector/Shared/Characters/Effects/Entry/LegacySmoke/Smoke Effect.prefab";var root=PrefabUtility.LoadPrefabContents(path);
         try{
-            var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Controller/ControllerSmoke.prefab");var so=new SerializedObject(source.GetComponent<ControllerSmokeVfx>());var template=so.FindProperty("_volume").objectReferenceValue as Renderer;
+            var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller/ControllerSmoke.prefab");var so=new SerializedObject(source.GetComponent<ControllerSmokeVfx>());var template=so.FindProperty("_volume").objectReferenceValue as Renderer;
             if(!template)throw new Exception("Controller smoke volume missing");
             string matPath=Art+"/EntrySmoke.mat";var m=AssetDatabase.LoadAssetAtPath<Material>(matPath);if(!m){m=new Material(template.sharedMaterial);AssetDatabase.CreateAsset(m,matPath);}
             m.SetColor("_Deep",new Color(.13f,.14f,.15f));m.SetColor("_Light",new Color(.54f,.55f,.56f));m.SetColor("_Accent",new Color(.28f,.48f,.50f));m.SetColor("_CloudShadow",new Color(.30f,.31f,.32f));m.SetColor("_CloudBody",new Color(.70f,.71f,.72f));m.SetColor("_CloudHighlight",new Color(.92f,.93f,.94f));m.SetFloat("_PatternStrength",.88f);m.SetFloat("_InteriorMist",.045f);m.SetFloat("_EdgeMist",.2f);EditorUtility.SetDirty(m);
             foreach(var ps in root.GetComponentsInChildren<ParticleSystem>(true)){ps.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);var e=ps.emission;e.enabled=false;var r=ps.GetComponent<Renderer>();if(r)r.enabled=false;}
             var volume=Shape(root.transform,"EntryRollingSmoke",PrimitiveType.Sphere,Vector3.zero,Vector3.one*2,m);volume.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;volume.receiveShadows=false;
-            var fx=Ensure<ControllerSmokeVfx>(root);Ref(fx,"_volume",volume);var sound=Audio(root.transform);sound.clip=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Art/Controller/SmokeBloom.wav");sound.volume=.5f;Ref(fx,"_audio",sound);
+            var fx=Ensure<ControllerSmokeVfx>(root);Ref(fx,"_volume",volume);var sound=Audio(root.transform);sound.clip=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller/SmokeBloom.wav");sound.volume=.5f;Ref(fx,"_audio",sound);
             Ensure<SmokeOutlineOccluder>(root);PrefabUtility.SaveAsPrefabAsset(root,path);Debug.Log("ENTRY_Q_SMOKE_PASS: Controller volume reused; Entry gameplay components retained");
         }finally{PrefabUtility.UnloadPrefabContents(root);}
-        const string grenadePath="Assets/Prefab/Character/Entry/Smoke Grenade.prefab";var grenade=PrefabUtility.LoadPrefabContents(grenadePath);
+        const string grenadePath="Assets/ProjectVector/Shared/Characters/Prefabs/Entry/Smoke Grenade.prefab";var grenade=PrefabUtility.LoadPrefabContents(grenadePath);
         try{var device=Node(grenade.transform,"EntrySmokeDevice");foreach(var r in grenade.GetComponentsInChildren<Renderer>(true))if(!r.transform.IsChildOf(device))r.enabled=false;
             var scale=grenade.transform.lossyScale;device.localScale=new Vector3(1/Mathf.Abs(scale.x),1/Mathf.Abs(scale.y),1/Mathf.Abs(scale.z));SmokeDevice(device);PrefabUtility.SaveAsPrefabAsset(grenade,grenadePath);}
         finally{PrefabUtility.UnloadPrefabContents(grenade);}
@@ -237,7 +237,7 @@ public static class EntryPolishAuthoring
     public static void AuthorAndVerify()
     {
         if(!Application.isBatchMode)throw new Exception("Run only in an isolated batch editor");
-        if(!AssetDatabase.IsValidFolder(Art))AssetDatabase.CreateFolder("Assets/Art","Entry");white=Mat("PearlWhite",new Color(.86f,.91f,.93f));cyan=Mat("CyanEdge",new Color(.08f,.75f,.88f),true);graphite=Mat("Graphite",new Color(.045f,.06f,.07f));
+        ProjectEditorPaths.EnsureFolder(Art);white=Mat("PearlWhite",new Color(.86f,.91f,.93f));cyan=Mat("CyanEdge",new Color(.08f,.75f,.88f),true);graphite=Mat("Graphite",new Color(.045f,.06f,.07f));
         CreateMesh();Player();Smoke();AssetDatabase.SaveAssets();VerifySavedHandUsage();Debug.Log("ENTRY_AUTHORING_COMPLETE");
     }
     public static void VerifySavedHandUsage()
@@ -284,7 +284,7 @@ public static class EntryPolishAuthoring
             foreach(var r in world.GetComponentsInChildren<SkinnedMeshRenderer>(true))Debug.Log("ENTRY_WORLD_SKIN "+AnimationUtility.CalculateTransformPath(r.transform,root.transform)+" active="+r.gameObject.activeInHierarchy+" root="+r.rootBone+" bones="+string.Join(";",r.bones.Where(b=>b&&b.name.EndsWith("Hand")).Select(b=>AnimationUtility.CalculateTransformPath(b,root.transform))));
             var rig=new SerializedObject(root.GetComponent<EntrySkillPresentation>());var p=rig.FindProperty("worldArmBones");
             for(int i=0;i<p.arraySize;i++){var t=(Transform)p.GetArrayElementAtIndex(i).objectReferenceValue;Debug.Log("ENTRY_WORLD_REF "+i+" "+AnimationUtility.CalculateTransformPath(t,root.transform)+" active="+t.gameObject.activeInHierarchy+" position="+root.transform.InverseTransformPoint(t.position));}
-            var other=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/Initiator/Initiator.prefab");
+            var other=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab");
             if(other)foreach(var m in other.transform.Find("Model").GetComponentsInChildren<Renderer>(true).SelectMany(r=>r.sharedMaterials).Where(m=>m).Distinct())Debug.Log("ENTRY_DEPTH_MATERIAL "+m.name+" shader="+m.shader.name+" queue="+m.renderQueue+" path="+AssetDatabase.GetAssetPath(m));
         }finally{PrefabUtility.UnloadPrefabContents(root);}
     }
@@ -293,7 +293,7 @@ public static class EntryPolishAuthoring
         if(!Application.isBatchMode)throw new Exception("Batch only");
         var folder="C:/Users/USER/AppData/Local/Temp/EntryPreview";System.IO.Directory.CreateDirectory(folder);
         UnityEditor.SceneManagement.EditorSceneManager.NewScene(UnityEditor.SceneManagement.NewSceneSetup.EmptyScene,UnityEditor.SceneManagement.NewSceneMode.Single);
-        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/TestMap.prefab"));map.GetComponent<MapInfo>().SetBarriersActive(false);
+        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/TestMap.prefab"));map.GetComponent<MapInfo>().SetBarriersActive(false);
         var actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Prefab));actor.transform.position=new Vector3(-33,1,5);
         var camera=actor.GetComponent<PlayerCameraController>().PlayerCamera;camera.enabled=true;camera.gameObject.SetActive(true);camera.fieldOfView=70;camera.nearClipPlane=.03f;
         foreach(var r in actor.transform.Find("Model").GetComponentsInChildren<Renderer>(true))r.forceRenderingOff=true;

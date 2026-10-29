@@ -37,7 +37,7 @@ public static class InGameUiVerification
     public static void VerifySaved()
     {
         checks=0;
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");var roots=scene.GetRootGameObjects();
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");var roots=scene.GetRootGameObjects();
         var hud=roots.SelectMany(r=>r.GetComponentsInChildren<InGameUIManager>(true)).First();
         var store=roots.SelectMany(r=>r.GetComponentsInChildren<StorePanelUI>(true)).First();
         var board=roots.SelectMany(r=>r.GetComponentsInChildren<InGameScoreboardUI>(true)).First();
@@ -150,7 +150,7 @@ public static class InGameUiVerification
             var hidden=Field<Image>(columns[0],won?"enemyTeamResultIcon":"ourTeamResultIcon");
             var expected=Field<Sprite>(history,(won?"ourTeam":"enemyTeam")+entry.Item2);
             Check(expected && shown.sprite==expected && shown.enabled && !hidden.enabled,"correct supplied icon for result and winner");
-            Check(AssetDatabase.GetAssetPath(shown.sprite).StartsWith("Assets/Sprites/GameBoardIcon/"),"original supplied icon asset retained");
+            Check(AssetDatabase.GetAssetPath(shown.sprite).StartsWith("Assets/ProjectVector/Modules/Match/UI/Sprites/GameBoardIcon/"),"original supplied icon asset retained");
             Check(!Field<TMP_Text>(columns[0],"reasonText").enabled,"icon replaces paragraph of reason text");
         }
         var rulesBody=new byte[8];BitConverter.GetBytes((uint)7).CopyTo(rulesBody,0);BitConverter.GetBytes((ushort)12).CopyTo(rulesBody,4);BitConverter.GetBytes((ushort)12).CopyTo(rulesBody,6);

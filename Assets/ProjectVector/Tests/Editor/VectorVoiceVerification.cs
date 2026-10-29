@@ -31,12 +31,12 @@ public static class VectorVoiceVerification
         Require(VectorVoiceChat.ParticipantPreferenceKey("a", "b", "Volume") != VectorVoiceChat.ParticipantPreferenceKey("c", "b", "Volume"), "Per-listener isolation");
         Require(VectorVoiceChat.ParticipantPreferenceKey("a", "b", "Volume") != VectorVoiceChat.ParticipantPreferenceKey("a", "c", "Volume"), "Per-peer isolation");
         Debug.Log("VOICE_VERIFY: PASS input policy: PTT/release/re-entry/automatic/mute/focus/modal/missing mic");
-        var scene = EditorSceneManager.OpenScene("Assets/Scenes/Login.unity");
+        var scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Login/Scenes/Login.unity");
         var network = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<NetworkManager>(true)).Single();
         Require(network.GetComponent<VectorVoiceChat>() != null, "Missing persistent voice service");
         foreach (string name in new[] { "Lobby", "Game_TestVersion", "Result", "RankResult" })
         {
-            scene = EditorSceneManager.OpenScene("Assets/Scenes/" + name + ".unity");
+            scene = EditorSceneManager.OpenScene(ProjectEditorPaths.Scene(name));
             var ui = scene.GetRootGameObjects().Single(r => r.name == "VoiceUI").GetComponent<VectorVoicePanel>();
             Require(ui != null && !ui.panel.activeSelf, name + ": default modal must be closed");
             Require(ui.openButton && ui.closeButton && ui.modeButton && ui.microphoneButton && ui.inputDeviceButton && ui.outputDeviceButton, "Missing authored buttons");
@@ -55,7 +55,7 @@ public static class VectorVoiceVerification
             Debug.Log("VOICE_VERIFY: saved UI references valid: " + name);
         }
         // Only clone the authored voice UI into an empty editor scene for a deterministic preview.
-        scene = EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var source = scene.GetRootGameObjects().Single(r => r.name == "VoiceUI");
         var preview = UnityEngine.Object.Instantiate(source);
         UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(preview,

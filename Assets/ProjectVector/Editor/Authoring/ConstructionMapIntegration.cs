@@ -10,7 +10,7 @@ using Object=UnityEngine.Object;
 
 public static class ConstructionMapIntegration
 {
-    const string PresentationPath="Assets/Prefab/Maps/ConstructionPresentation.prefab";
+    const string PresentationPath="Assets/ProjectVector/Shared/Maps/Prefabs/ConstructionPresentation.prefab";
     static T Ref<T>(Object o,string name) where T:Object=>new SerializedObject(o).FindProperty(name).objectReferenceValue as T;
     static void Set(Object o,string name,Object value){var s=new SerializedObject(o);s.FindProperty(name).objectReferenceValue=value;s.ApplyModifiedPropertiesWithoutUndo();}
     static void Append(Object o,string name,Object value)
@@ -43,7 +43,7 @@ public static class ConstructionMapIntegration
     {
         if(!Application.isBatchMode)throw new Exception("Batch only; preserve user's open scene");
         BuildPresentationPrefab();
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var rules=All<RoomRulesPanelUI>().Single();var a=Ref<Button>(rules,"testMapButton");var b=Ref<Button>(rules,"desertButton");
         var c=Ref<Button>(rules,"constructionButton");
         if(!c)
@@ -63,7 +63,7 @@ public static class ConstructionMapIntegration
             Set(rules,"constructionButton",c);
         }
         rules.ApplySelectedMap("TestMap");EditorSceneManager.SaveScene(scene);
-        scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var match=All<MatchManager>().Single();Append(match,"maps",AssetDatabase.LoadAssetAtPath<GameObject>(ConstructionMapAuthoring.MapPath));
         var pick=All<PickManager>().Single();var backdrop=All<PickMapBackdrop>().Single();
         var preview=Preview(backdrop.stageRoot.transform,Ref<Transform>(pick,"previewSpawnPoint").position);
@@ -76,7 +76,7 @@ public static class ConstructionMapIntegration
             if(i==0)intro.startPoses[2]=pose;else intro.endPoses[2]=pose;
         }
         backdrop.ApplyMap("TestMap");EditorUtility.SetDirty(backdrop);EditorUtility.SetDirty(intro);EditorSceneManager.SaveScene(scene);
-        foreach(string path in new[]{"Assets/Scenes/Result.unity","Assets/Scenes/RankResult.unity"}){
+        foreach(string path in new[]{"Assets/ProjectVector/Modules/Results/Scenes/Result.unity","Assets/ProjectVector/Modules/Results/Scenes/RankResult.unity"}){
             scene=EditorSceneManager.OpenScene(path);var stage=All<ResultCharacterStage>().FirstOrDefault();if(!stage)continue;
             var parent=stage.maps[0].transform.parent;var map=Preview(parent,stage.transform.position);
             Array.Resize(ref stage.maps,3);stage.maps[2]=map;stage.SelectMap("TestMap");EditorUtility.SetDirty(stage);EditorSceneManager.SaveScene(scene);

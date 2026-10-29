@@ -20,10 +20,10 @@ public static class SpikeRuntimeVerification
         var net=new GameObject("NetworkFixture").AddComponent<NetworkManager>();NetworkManager.Instance=net;
         Set(net,"myPlayerId",99u);
         var spawner=new GameObject("SpawnerFixture").AddComponent<SpikeSpawner>();Call(spawner,"Awake");
-        spawner.spikePrefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/Spike/Spike.prefab");
+        spawner.spikePrefab=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Modules/Match/Resources/Prefabs/Spike/Spike.prefab");
         foreach(string role in new[]{"Initiator","Controller","Sentinel","Entry"})
         {
-            var actor=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Character/{role}/{role}.prefab"));
+            var actor=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Characters/Prefabs/{role}/{role}.prefab"));
             var identity=actor.GetComponent<PlayerIdentity>();identity.PlayerId=1;
             var hp=actor.GetComponent<PlayerHP>();hp.SetHp(100);
             var ps=actor.GetComponent<PlayerSpike>();ps.hasSpike=false;

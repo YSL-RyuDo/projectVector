@@ -9,7 +9,7 @@ using Object = UnityEngine.Object;
 
 public static class VectorPickMapEditor
 {
-    const string ScenePath = "Assets/Scenes/Game_TestVersion.unity";
+    const string ScenePath = "Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity";
     static T Ref<T>(Object owner, string field) where T : Object => new SerializedObject(owner).FindProperty(field).objectReferenceValue as T;
     static void SetRef(Object owner, string field, Object target)
     {
@@ -52,7 +52,7 @@ public static class VectorPickMapEditor
             var map = root.transform.Find(name)?.gameObject;
             if (map == null)
             {
-                map = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/" + name + ".prefab"), root.transform);
+                map = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/" + name + ".prefab"), root.transform);
                 map.name = name;
                 VectorVictorySequenceEditor.Isolate(map);
                 var info = map.GetComponent<MapInfo>();

@@ -7,8 +7,8 @@ using UnityEngine;
 // Targeted authoring: preserve the existing Sentinel prefab, HUD, hitboxes and animator.
 public static class SentinelArmMotionAuthoring
 {
-    const string Prefab="Assets/Prefab/Character/Sentinel/Sentinel.prefab";
-    const string Clip="Assets/Art/Sentinel/Sentinel_Deploy_FP.anim";
+    const string Prefab="Assets/ProjectVector/Shared/Characters/Prefabs/Sentinel/Sentinel.prefab";
+    const string Clip="Assets/ProjectVector/Shared/Characters/Effects/Sentinel/Sentinel/Sentinel_Deploy_FP.anim";
     public static void AuthorVerifyAndBuild()
     {
         if(!Application.isBatchMode)throw new Exception("Isolated batch only");

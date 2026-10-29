@@ -10,8 +10,8 @@ using UnityEngine.UI;
 // Surgical authoring repair: no runtime layout creation and no account writes.
 public static class VectorLobbyRegressionFixEditor
 {
-    const string ScenePath = "Assets/Scenes/Lobby.unity";
-    const string FriendPath = "Assets/Resources/Friend/FriendListItem.prefab";
+    const string ScenePath = "Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity";
+    const string FriendPath = "Assets/ProjectVector/Shared/Resources/Friend/FriendListItem.prefab";
     static readonly string[] MenuFields = { "memoButton", "messageButton", "profileButton", "careerButton", "deleteButton", "blockButton", "inviteButton", "contextCloseButton" };
     static T Ref<T>(UnityEngine.Object owner, string field) where T : UnityEngine.Object =>
         (T)new SerializedObject(owner).FindProperty(field).objectReferenceValue;

@@ -27,7 +27,7 @@ public static class ScannerOcclusionExport
         var checks=new List<string>();
         foreach(string mapName in new[]{"TestMap","Desert","Construction"})
         {
-            var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Maps/{mapName}.prefab"));
+            var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Maps/Prefabs/{mapName}.prefab"));
             root.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
             var info=root.GetComponent<MapInfo>();info.SetBarriersActive(true);Physics.SyncTransforms();
             int count=0;

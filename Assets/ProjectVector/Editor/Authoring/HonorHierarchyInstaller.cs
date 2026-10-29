@@ -21,7 +21,7 @@ public static class HonorHierarchyInstaller
     [MenuItem("Project Vector/UI/Install Honor Hierarchy")]
     public static void Install()
     {
-        const string scenePath = "Assets/Scenes/Lobby.unity";
+        const string scenePath = "Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity";
         Scene scene = SceneManager.GetSceneByPath(scenePath);
         bool opened = !scene.IsValid() || !scene.isLoaded;
         if (opened) scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Additive);
@@ -248,12 +248,12 @@ public static class HonorHierarchyInstaller
             Image free = Box($"HonorReward{grade}FreeIcon", reward.transform,
                 Color.white, 30, 29, 75, 75).GetComponent<Image>();
             free.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(
-                "Assets/Resources/LevelRewards/Currency0Ticket.png");
+                "Assets/ProjectVector/Modules/Lobby/Resources/LevelRewards/Currency0Ticket.png");
             free.preserveAspect = true;
             Image victory = Box($"HonorReward{grade}VictoryIcon", reward.transform,
                 Color.white, 175, 29, 75, 75).GetComponent<Image>();
             victory.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(
-                "Assets/Resources/LevelRewards/Currency1Crystal.png");
+                "Assets/ProjectVector/Modules/Lobby/Resources/LevelRewards/Currency1Crystal.png");
             victory.preserveAspect = true;
             Text($"HonorReward{grade}Free", reward.transform,
                 grade == 5 ? "×1,000" : "×1,500", 18, 15, 113, 132, 36, Color.white, true);

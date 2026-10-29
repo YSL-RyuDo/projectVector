@@ -13,7 +13,7 @@ using UnityEditor.Build.Reporting;
 
 public static class PracticeRangeEditor
 {
-    const string ScenePath = "Assets/Scenes/WeaponTest.unity";
+    const string ScenePath = "Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity";
     static TMP_FontAsset font;
     static Color Ink = new Color32(35, 38, 37, 255), Paper = new Color32(236, 233, 221, 248);
     public static void Install()
@@ -29,25 +29,25 @@ public static class PracticeRangeEditor
         range.player = range.inventory.transform;
         range.originalStation = Point(root.transform, "OriginalStation", range.player.position);
         range.distanceStation = Point(root.transform, "DistanceStation", new Vector3(40,1,0));
-        range.rifle = AssetDatabase.LoadAssetAtPath<WeaponData>("Assets/Prefab/Weapon/AR/M416/M416.asset");
-        range.pistol = AssetDatabase.LoadAssetAtPath<WeaponData>("Assets/Prefab/Weapon/Pistol/P92/P92.asset");
+        range.rifle = AssetDatabase.LoadAssetAtPath<WeaponData>("Assets/ProjectVector/Shared/Weapons/Assets/AR/M416/M416.asset");
+        range.pistol = AssetDatabase.LoadAssetAtPath<WeaponData>("Assets/ProjectVector/Shared/Weapons/Assets/Pistol/P92/P92.asset");
         var inv = new SerializedObject(range.inventory); inv.FindProperty("secondary").objectReferenceValue = range.pistol; inv.ApplyModifiedPropertiesWithoutUndo();
         range.spawner.distanceTargets = new Transform[3];
         for (int i=0;i<3;++i) range.spawner.distanceTargets[i] = Point(root.transform, $"Distance{(i+1)*10}m", new Vector3(40,1,(i+1)*10));
         range.spawner.mode = 1;
         range.player.position = range.distanceStation.position;
-        const string floor = "Assets/FPS_Bundle/FPS_Map4/Prefabs/Buildings/Floor_01.prefab";
+        const string floor = "Assets/ThirdParty/FPS_Bundle/FPS_Map4/Prefabs/Buildings/Floor_01.prefab";
         for (int x=0;x<3;++x) for (int z=0;z<9;++z) Prop(floor,root.transform,new Vector3(35+x*5,-.1f,-5+z*5),Quaternion.identity);
         for (int z=0;z<9;++z) foreach(float x in new[]{32.5f,47.5f}) Prop(floor,root.transform,new Vector3(x,2.4f,-5+z*5),Quaternion.Euler(0,0,90));
         for(int x=0;x<3;++x) Prop(floor,root.transform,new Vector3(35+x*5,2.4f,37.5f),Quaternion.Euler(90,0,0));
         foreach(float x in new[]{35f,45f})
         {
-            Prop("Assets/FPS_Bundle/FPS_Map0/Prefabs/Barrier_01.prefab",root.transform,new Vector3(x,0,2),Quaternion.identity);
-            Prop("Assets/FPS_Bundle/FPS_Map0/Prefabs/Box_01.prefab",root.transform,new Vector3(x,.46f,-4),Quaternion.identity);
+            Prop("Assets/ThirdParty/FPS_Bundle/FPS_Map0/Prefabs/Barrier_01.prefab",root.transform,new Vector3(x,0,2),Quaternion.identity);
+            Prop("Assets/ThirdParty/FPS_Bundle/FPS_Map0/Prefabs/Box_01.prefab",root.transform,new Vector3(x,.46f,-4),Quaternion.identity);
         }
         var target = range.spawner.enemyObject;
         foreach (var r in target.GetComponents<Renderer>()) r.enabled=false;
-        Prop("Assets/FPS_Bundle/FPS_Map3/Prefabs/Props/ShootingTarget_01.prefab",target.transform,Vector3.zero,Quaternion.identity).transform.localPosition = new Vector3(0,-1,0);
+        Prop("Assets/ThirdParty/FPS_Bundle/FPS_Map3/Prefabs/Props/ShootingTarget_01.prefab",target.transform,Vector3.zero,Quaternion.identity).transform.localPosition = new Vector3(0,-1,0);
         target.transform.position = range.spawner.distanceTargets[0].position;
         for(int i=0;i<3;++i)
         {
@@ -81,7 +81,7 @@ public static class PracticeRangeEditor
         var input=range.player.gameObject.AddComponent<PracticeWeaponInput>();input.inventory=range.inventory;input.range=range;input.aimCamera=range.player.GetComponentInChildren<Camera>();input.ammo=ammo;input.hitMarker=hit;input.sound=range.player.gameObject.AddComponent<AudioSource>();input.sound.playOnAwake=false;
         EditorSceneManager.MarkSceneDirty(scene);EditorSceneManager.SaveScene(scene);
         if(!EditorBuildSettings.scenes.Any(s=>s.path==ScenePath)) EditorBuildSettings.scenes=EditorBuildSettings.scenes.Concat(new[]{new EditorBuildSettingsScene(ScenePath,true)}).ToArray();
-        var lobby=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var lobby=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var training=lobby.GetRootGameObjects().SelectMany(g=>g.GetComponentsInChildren<Button>(true)).Single(b=>b.name=="TrainingButton");
         var entry=training.gameObject.AddComponent<PracticeEntry>();entry.button=training;UnityEventTools.AddPersistentListener(training.onClick,entry.Enter);
         EditorSceneManager.MarkSceneDirty(lobby);EditorSceneManager.SaveScene(lobby);
@@ -138,7 +138,7 @@ public static class PracticeRangeEditor
         {
             var marks=Point(root,"LaneMarkings",Vector3.zero);
             var yellow=new Material(Shader.Find("Universal Render Pipeline/Lit"));yellow.color=new Color32(232,170,43,255);
-            AssetDatabase.CreateAsset(yellow,"Assets/Prefab/WeaponTest/PracticeLaneYellow.mat");
+            AssetDatabase.CreateAsset(yellow,"Assets/ProjectVector/Modules/Practice/Assets/PracticeLaneYellow.mat");
             foreach(float x in new[]{37.5f,42.5f}) Mark(marks,new Vector3(x,.012f,16),new Vector3(.07f,.025f,38),yellow);
             foreach(int z in new[]{0,10,20,30})Mark(marks,new Vector3(40,.012f,z),new Vector3(5,.025f,.10f),yellow);
         }
@@ -163,7 +163,7 @@ public static class PracticeRangeEditor
         var concrete=RangeMaterial("Concrete",new Color32(172,163,142,255));
         var wall=RangeMaterial("Wall",new Color32(111,115,101,255));
         var dark=RangeMaterial("Steel",new Color32(55,60,54,255));
-        var amber=AssetDatabase.LoadAssetAtPath<Material>("Assets/Prefab/WeaponTest/PracticeLaneYellow.mat");
+        var amber=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Modules/Practice/Assets/PracticeLaneYellow.mat");
         foreach(Transform t in root) if(t.name=="Floor_01")
             foreach(var renderer in t.GetComponentsInChildren<Renderer>())renderer.sharedMaterial=t.position.y<0 ? concrete : wall;
         foreach(float x in new[]{33f,47f})foreach(float z in new[]{-5f,5f})
@@ -175,8 +175,8 @@ public static class PracticeRangeEditor
             foreach(float x in new[]{33f,47f})Solid(architecture,"WallRib",new Vector3(x,2.1f,z),new Vector3(.2f,4.2f,.4f),dark);
         }
         foreach(float x in new[]{34.5f,45.5f})
-            Prop("Assets/FPS_Bundle/FPS_Map3/Prefabs/Props/Sand_01.prefab",architecture,new Vector3(x,0,33),Quaternion.identity);
-        Prop("Assets/FPS_Bundle/FPS_Map1/Prefabs/Props/Table_01.prefab",architecture,new Vector3(43,0,-1.5f),Quaternion.Euler(0,90,0));
+            Prop("Assets/ThirdParty/FPS_Bundle/FPS_Map3/Prefabs/Props/Sand_01.prefab",architecture,new Vector3(x,0,33),Quaternion.identity);
+        Prop("Assets/ThirdParty/FPS_Bundle/FPS_Map1/Prefabs/Props/Table_01.prefab",architecture,new Vector3(43,0,-1.5f),Quaternion.Euler(0,90,0));
         foreach(var light in UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None))if(light.type==LightType.Directional)
         {light.intensity=1.6f;light.color=new Color(1,.94f,.84f);light.transform.rotation=Quaternion.Euler(48,-35,0);}
         UnityEngine.RenderSettings.ambientLight=new Color(.65f,.64f,.58f);
@@ -220,7 +220,7 @@ public static class PracticeRangeEditor
     }
     static Material RangeMaterial(string name,Color color)
     {
-        string path="Assets/Prefab/WeaponTest/Practice"+name+".mat";
+        string path="Assets/ProjectVector/Modules/Practice/Assets/Practice"+name+".mat";
         var material=AssetDatabase.LoadAssetAtPath<Material>(path);if(material!=null)return material;
         material=new Material(Shader.Find("Universal Render Pipeline/Lit")){color=color};AssetDatabase.CreateAsset(material,path);return material;
     }
@@ -242,7 +242,7 @@ public static class PracticeRangeEditor
     public static void UseGamePlayer()
     {
         if(EditorApplication.isPlaying || UnityEngine.SceneManagement.SceneManager.GetActiveScene().isDirty)throw new Exception("Unsaved scene or Play mode");
-        var game=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        var game=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var manager=UnityEngine.Object.FindFirstObjectByType<MatchManager>();
         var source=new SerializedObject(manager).FindProperty("characterPrefabs").GetArrayElementAtIndex(0).objectReferenceValue as GameObject;
         if(source==null)throw new Exception("Game character prefab missing");
@@ -306,7 +306,7 @@ public static class PracticeRangeEditor
         font=AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Fonts/Pretendard-Black SDF.asset");
         if(range.transform.Find("CharacterPracticeTarget")==null)
         {
-            var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/Initiator/Initiator.prefab");
+            var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab");
             var cc=source.GetComponent<CharacterController>();
             var target=new GameObject("CharacterPracticeTarget");target.transform.SetParent(range.transform,false);
             var model=UnityEngine.Object.Instantiate(source.transform.Find("Model").gameObject,target.transform);
@@ -314,7 +314,7 @@ public static class PracticeRangeEditor
             foreach(var script in model.GetComponentsInChildren<MonoBehaviour>(true))UnityEngine.Object.DestroyImmediate(script);
             foreach(var collider in model.GetComponentsInChildren<Collider>(true))UnityEngine.Object.DestroyImmediate(collider);
             foreach(var animator in model.GetComponentsInChildren<Animator>(true))animator.enabled=false;
-            var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character Animation/Initiator/InGame/Long Gun/Initiator_LongGun_Idle.anim");
+            var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Animations/Initiator/InGame/Long Gun/Initiator_LongGun_Idle.anim");
             clip.SampleAnimation(model,0);
             foreach(var renderer in model.GetComponentsInChildren<Renderer>(true)){renderer.enabled=true;renderer.gameObject.layer=0;}
             // Same capsule dimensions as the gameplay prefab, partitioned into body/head for training.
@@ -330,9 +330,9 @@ public static class PracticeRangeEditor
         if(range.peekCover==null)
         {
             var cover=new GameObject("PeekTrainingCover");cover.transform.SetParent(range.transform,false);range.peekCover=cover;
-            var material=AssetDatabase.LoadAssetAtPath<Material>("Assets/Prefab/WeaponTest/PracticeSteel.mat");
+            var material=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Modules/Practice/Assets/PracticeSteel.mat");
             Solid(cover.transform,"CoverWall",new Vector3(40,1.2f,3),new Vector3(2.8f,2.4f,.35f),material);
-            var yellow=AssetDatabase.LoadAssetAtPath<Material>("Assets/Prefab/WeaponTest/PracticeLaneYellow.mat");
+            var yellow=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Modules/Practice/Assets/PracticeLaneYellow.mat");
             foreach(float x in new[]{38.57f,41.43f})Solid(cover.transform,"CoverEdge",new Vector3(x,1.2f,2.80f),new Vector3(.06f,2.4f,.05f),yellow);
             cover.SetActive(false);
         }
@@ -418,13 +418,13 @@ public static class PracticeRangeEditor
     }
     public static void Inspect()
     {
-        var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/Initiator/Initiator.prefab");
+        var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab");
         var sample=UnityEngine.Object.Instantiate(source);
         foreach(var t in sample.GetComponentsInChildren<Transform>(true))
             if(t.parent==sample.transform || t.GetComponent<Renderer>()!=null || t.GetComponent<Collider>()!=null)
                 Debug.Log($"TARGET_INSPECT {t.name} pos={t.position} scale={t.lossyScale} renderer={(t.GetComponent<Renderer>() != null ? t.GetComponent<Renderer>().bounds.ToString() : "none")} collider={(t.GetComponent<Collider>() != null ? t.GetComponent<Collider>().GetType().Name : "none")}");
         UnityEngine.Object.DestroyImmediate(sample);
-        EditorSceneManager.OpenScene("Assets/Scenes/WeaponTest.unity");
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity");
         foreach (var root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
         {
             var renderers = root.GetComponentsInChildren<Renderer>(true);
@@ -432,7 +432,7 @@ public static class PracticeRangeEditor
             foreach (var renderer in renderers) bounds.Encapsulate(renderer.bounds);
             Debug.Log($"PRACTICE_ROOT {root.name} pos={root.transform.position} bounds={bounds} scripts={string.Join(",",root.GetComponents<MonoBehaviour>().Select(x=>x?x.GetType().Name:"MISSING"))}");
         }
-        foreach (var path in new[] {"Assets/FPS_Bundle/FPS_Map3/Prefabs/Props/ShootingTarget_01.prefab", "Assets/FPS_Bundle/FPS_Map0/Prefabs/Barrier_01.prefab", "Assets/FPS_Bundle/FPS_Map0/Prefabs/Box_01.prefab", "Assets/FPS_Bundle/FPS_Map4/Prefabs/Buildings/Floor_01.prefab"})
+        foreach (var path in new[] {"Assets/ThirdParty/FPS_Bundle/FPS_Map3/Prefabs/Props/ShootingTarget_01.prefab", "Assets/ThirdParty/FPS_Bundle/FPS_Map0/Prefabs/Barrier_01.prefab", "Assets/ThirdParty/FPS_Bundle/FPS_Map0/Prefabs/Box_01.prefab", "Assets/ThirdParty/FPS_Bundle/FPS_Map4/Prefabs/Buildings/Floor_01.prefab"})
         {
             var obj = PrefabUtility.LoadPrefabContents(path);
             var renderers = obj.GetComponentsInChildren<Renderer>(true);
@@ -444,7 +444,7 @@ public static class PracticeRangeEditor
     }
     public static void InspectGameCharacterSizes()
     {
-        EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var manager=UnityEngine.Object.FindFirstObjectByType<MatchManager>();
         var prefabs=new SerializedObject(manager).FindProperty("characterPrefabs");
         for(int i=0;i<prefabs.arraySize;i++)
@@ -460,7 +460,7 @@ public static class PracticeRangeEditor
     public static void SyncPracticeCharacterSizes()
     {
         if(EditorApplication.isPlaying || UnityEngine.SceneManagement.SceneManager.GetActiveScene().isDirty)throw new Exception("Unsaved scene or Play mode");
-        EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var manager=UnityEngine.Object.FindFirstObjectByType<MatchManager>();
         var refs=new SerializedObject(manager).FindProperty("characterPrefabs");
         var sources=Enumerable.Range(0,refs.arraySize).Select(i=>(GameObject)refs.GetArrayElementAtIndex(i).objectReferenceValue).ToArray();

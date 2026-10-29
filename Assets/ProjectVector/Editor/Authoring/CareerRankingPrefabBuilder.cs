@@ -9,8 +9,8 @@ using UnityEngine.UI;
 
 public static class CareerRankingPrefabBuilder
 {
-    private const string LobbyScenePath = "Assets/Scenes/Lobby.unity";
-    private const string PrefabFolder = "Assets/Resources/Career";
+    private const string LobbyScenePath = "Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity";
+    private const string PrefabFolder = "Assets/ProjectVector/Modules/Lobby/Resources/Career";
     private const string RowPrefabPath =
         PrefabFolder + "/CareerRankingRow.prefab";
     private const string SelectorPrefabPath =
@@ -302,7 +302,7 @@ public static class CareerRankingPrefabBuilder
         string[] names = { "Initiator", "Controller", "Sentinel", "Duelist" };
         if (characterId < 0 || characterId >= names.Length) return null;
         var data = AssetDatabase.LoadAssetAtPath<CharacterPickSO>(
-            "Assets/CharacterPickData/" + names[characterId] + ".asset");
+            "Assets/ProjectVector/Modules/Match/Data/Characters/" + names[characterId] + ".asset");
         return data != null ? data.characterIcon : null;
     }
 

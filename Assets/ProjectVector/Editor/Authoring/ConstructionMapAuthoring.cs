@@ -13,9 +13,9 @@ using Object=UnityEngine.Object;
 // Offline authoring only. All architecture, gameplay references and markers are saved assets.
 public static class ConstructionMapAuthoring
 {
-    public const string MapPath="Assets/Prefab/Maps/Construction.prefab";
-    const string Art="Assets/Art/Maps/Construction";
-    const string Pack="Assets/FPS_Bundle/FPS_Map5/Prefabs/";
+    public const string MapPath="Assets/ProjectVector/Shared/Maps/Prefabs/Construction.prefab";
+    const string Art="Assets/ProjectVector/Shared/Maps/Art/Construction";
+    const string Pack="Assets/ThirdParty/FPS_Bundle/FPS_Map5/Prefabs/";
     internal static Transform root,geometry,detail;
     internal static Material concrete,dark,steel,amber,blue,white;
     static readonly Dictionary<Material,Material> converted=new();
@@ -197,7 +197,7 @@ public static class ConstructionMapAuthoring
         var refs=points.gameObject.AddComponent<MiniMapWorldReferences>();var sr=new SerializedObject(refs);
         sr.FindProperty("zoneAPosition").objectReferenceValue=root.Find("SpikePlantZoneA");sr.FindProperty("zoneBPosition").objectReferenceValue=root.Find("SpikePlantZoneB");sr.FindProperty("fullMapCenter").objectReferenceValue=Point("MiniMapCenter",Vector3.zero,0,points);sr.FindProperty("fullMapSize").floatValue=52;sr.FindProperty("hudSize").floatValue=28;sr.FindProperty("fullMapHeight").floatValue=100;sr.ApplyModifiedPropertiesWithoutUndo();
         string pipelinePath=Art+"/ConstructionPipeline.asset";
-        if(!AssetDatabase.LoadAssetAtPath<RenderPipelineAsset>(pipelinePath))AssetDatabase.CopyAsset("Assets/Settings/PC_RPAsset.asset",pipelinePath);
+        if(!AssetDatabase.LoadAssetAtPath<RenderPipelineAsset>(pipelinePath))AssetDatabase.CopyAsset("Assets/ProjectVector/Shared/Rendering/Settings/PC_RPAsset.asset",pipelinePath);
         var pipeline=AssetDatabase.LoadAssetAtPath<RenderPipelineAsset>(pipelinePath);var rp=new SerializedObject(pipeline);
         rp.FindProperty("m_MainLightShadowsSupported").boolValue=true;rp.FindProperty("m_ShadowDistance").floatValue=130;rp.FindProperty("m_MSAA").intValue=4;rp.ApplyModifiedPropertiesWithoutUndo();
         root.gameObject.AddComponent<ConstructionMapEnvironment>().pipeline=pipeline;
@@ -205,7 +205,7 @@ public static class ConstructionMapAuthoring
         // Saved inspection scene shares the actual gameplay prefab, not a screenshot-only duplicate.
         Object.DestroyImmediate(root.gameObject);root=((GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(MapPath))).transform;root.GetComponent<MapInfo>().SetBarriersActive(false);
         ConstructionMapSurvey.Lighting();root.GetComponent<ConstructionMapEnvironment>().Apply();var camera=new GameObject("Overview Camera").AddComponent<Camera>();camera.transform.SetPositionAndRotation(new Vector3(83,76,-94),Quaternion.LookRotation(new Vector3(0,0,4)-new Vector3(83,76,-94)));camera.farClipPlane=400;camera.backgroundColor=new Color(.6f,.72f,.84f);camera.clearFlags=CameraClearFlags.SolidColor;
-        Directory.CreateDirectory("Assets/Scenes/Maps");EditorSceneManager.SaveScene(scene,"Assets/Scenes/Maps/Construction.unity");
+        Directory.CreateDirectory("Assets/ProjectVector/Shared/Maps/Scenes");EditorSceneManager.SaveScene(scene,"Assets/ProjectVector/Shared/Maps/Scenes/Construction.unity");
         ConstructionMapSurvey.Capture("Construction-overview",new Vector3(83,76,-94),new Vector3(0,0,4),1600,1000);
         ConstructionMapSurvey.Capture("Construction-top",new Vector3(0,125,0),Vector3.zero,1200,1200,52);
         ConstructionMapSurvey.Capture("Construction-A",new Vector3(-39,1.35f,8),new Vector3(-29,1.8f,23));

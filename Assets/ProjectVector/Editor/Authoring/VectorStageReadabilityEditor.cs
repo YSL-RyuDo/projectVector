@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 public static class VectorStageReadabilityEditor
 {
-    const string Folder = "Assets/UI/ResultSequence";
+    const string Folder = "Assets/ProjectVector/Modules/Results/UI/ResultSequence";
     static T Ref<T>(UnityEngine.Object owner, string field) where T : UnityEngine.Object =>
         new SerializedObject(owner).FindProperty(field).objectReferenceValue as T;
     static string Path(Transform t) => t.parent == null ? t.name : Path(t.parent) + "/" + t.name;
@@ -66,7 +66,7 @@ public static class VectorStageReadabilityEditor
         if(EditorApplication.isPlayingOrWillChangePlaymode) throw new Exception("Stop Play first");
         for(int i=0;i<UnityEngine.SceneManagement.SceneManager.sceneCount;i++)
             if(UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty) throw new Exception("Unsaved scene: refused");
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var preserved=new VectorExperiencePolishEditor.Preservation(scene);
         var pick=UnityEngine.Object.FindFirstObjectByType<PickManager>(FindObjectsInactive.Include);
         var backdrop=Ref<PickMapBackdrop>(pick,"mapBackdrop");
@@ -108,7 +108,7 @@ public static class VectorStageReadabilityEditor
         preserved.Check(); Save(scene);
         CapturePicks(pick,backdrop,camera);
 
-        scene=EditorSceneManager.OpenScene("Assets/Scenes/Result.unity");
+        scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Results/Scenes/Result.unity");
         preserved=new VectorExperiencePolishEditor.Preservation(scene);
         var stage=UnityEngine.Object.FindFirstObjectByType<ResultCharacterStage>(FindObjectsInactive.Include);
         foreach (var map in stage.maps) RestoreMapPresentation(map);
@@ -147,7 +147,7 @@ public static class VectorStageReadabilityEditor
     }
     public static void Inspect()
     {
-        var scene = EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        var scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var pick = UnityEngine.Object.FindFirstObjectByType<PickManager>(FindObjectsInactive.Include);
         var panel = Ref<GameObject>(pick, "characterInfoPanel");
         foreach(var g in panel.GetComponentsInParent<CanvasGroup>(true)) Debug.Log($"STAGE_GROUP {Path(g.transform)} alpha={g.alpha}");

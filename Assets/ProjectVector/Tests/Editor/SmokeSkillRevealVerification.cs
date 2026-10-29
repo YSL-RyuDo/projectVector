@@ -73,7 +73,7 @@ public static class SmokeSkillRevealVerification
         float savedTimeScale = Time.timeScale;
         try
         {
-            foreach (var path in new[] { "Assets/Art/Controller/ControllerSmoke.prefab", "Assets/KSW/Prefabs/Effect/Smoke Effect.prefab" })
+            foreach (var path in new[] { "Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller/ControllerSmoke.prefab", "Assets/ProjectVector/Shared/Characters/Effects/Entry/LegacySmoke/Smoke Effect.prefab" })
             {
                 string name = path.Contains("ControllerSmoke") ? "Controller" : "Entry";
                 var smoke = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path), new Vector3(0, 1, -3), Quaternion.identity);
@@ -106,7 +106,7 @@ public static class SmokeSkillRevealVerification
                 Object.DestroyImmediate(smoke);
             }
 
-            var blocker = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Controller/ControllerSmoke.prefab"), new Vector3(0, 1, -3), Quaternion.identity);
+            var blocker = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller/ControllerSmoke.prefab"), new Vector3(0, 1, -3), Quaternion.identity);
             blocker.transform.localScale = Vector3.one * 2;
             // Real wall-clock expiry, including while local time is paused.
             Time.timeScale = 0;

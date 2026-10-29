@@ -13,7 +13,7 @@ public static class ControllerSmokeTextureExport
         int result = 1;
         try
         {
-            string source = File.ReadAllText("Assets/Shaders/ControllerSmoke.shader");
+            string source = File.ReadAllText("Assets/ProjectVector/Shared/Characters/Effects/Controller/Shaders/ControllerSmoke.shader");
             int uniforms = source.IndexOf("CBUFFER_START", StringComparison.Ordinal);
             int attributes = source.IndexOf("struct Attributes", StringComparison.Ordinal);
             int functions = source.IndexOf("float hash(", StringComparison.Ordinal);
@@ -36,7 +36,7 @@ public static class ControllerSmokeTextureExport
                 ENDHLSL } } }";
             Shader shader = ShaderUtil.CreateShaderAsset(shaderSource, false);
             if (ShaderUtil.ShaderHasError(shader)) throw new Exception("Export shader compilation failed");
-            var original = AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Controller/SmokeVolume.mat");
+            var original = AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller/SmokeVolume.mat");
             var material = new Material(shader);
             material.CopyPropertiesFromMaterial(original);
             // Capture video second 10: the smoke had already settled for one second.

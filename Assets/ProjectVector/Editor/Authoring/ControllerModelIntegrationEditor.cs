@@ -10,10 +10,10 @@ using UnityEngine.UI;
 
 public static class ControllerModelIntegrationEditor
 {
-    const string GamePrefab = "Assets/Prefab/Character/Controller/Controller.prefab";
-    const string LobbyPrefab = "Assets/Resources/LobbyCharacter/Controller.prefab";
-    const string NewModel = "Assets/Character(New)/Controller/Controller Model_Riging (1).fbx";
-    static readonly string[] Scenes = { "Assets/Scenes/Lobby.unity", "Assets/Scenes/Game_TestVersion.unity", "Assets/Scenes/Result.unity", "Assets/Scenes/WeaponTest.unity" };
+    const string GamePrefab = "Assets/ProjectVector/Shared/Characters/Prefabs/Controller/Controller.prefab";
+    const string LobbyPrefab = "Assets/ProjectVector/Modules/Lobby/Resources/LobbyCharacter/Controller.prefab";
+    const string NewModel = "Assets/ProjectVector/Shared/Characters/Models/Controller/Controller Model_Riging (1).fbx";
+    static readonly string[] Scenes = { "Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity", "Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity", "Assets/ProjectVector/Modules/Results/Scenes/Result.unity", "Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity" };
     static string Hierarchy(Transform t) => t.parent == null ? t.name : Hierarchy(t.parent) + "/" + t.name;
     static T[] All<T>(Scene s) where T : Component => s.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<T>(true)).ToArray();
     public static void Audit()
@@ -63,7 +63,7 @@ public static class ControllerModelIntegrationEditor
         model.transform.localScale = Vector3.one;
         VectorVictorySequenceEditor.Isolate(model);
         var animator = model.GetComponentInChildren<Animator>(true);
-        animator.runtimeAnimatorController = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>("Assets/UI/ResultSequence/Result_Controller.controller");
+        animator.runtimeAnimatorController = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>("Assets/ProjectVector/Modules/Results/UI/ResultSequence/Result_Controller.controller");
         animator.applyRootMotion = false; animator.updateMode = AnimatorUpdateMode.UnscaledTime; animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
         animator.Rebind(); animator.Play("Idle",0,0); animator.Update(0);
         anchor.localScale = Vector3.one * (height / Skeleton(model).size.y);
@@ -169,7 +169,7 @@ public static class ControllerModelIntegrationEditor
     }
     public static void AuditADS()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/WeaponTest.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity");
         var range=All<PracticeRangeController>(scene).Single();
         foreach(var actor in range.loadout.players)
         {

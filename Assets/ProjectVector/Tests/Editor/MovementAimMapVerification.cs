@@ -35,7 +35,7 @@ public static class MovementAimMapVerification
         var report = new StringBuilder();
         foreach (string map in new[] { "TestMap", "Desert" })
         {
-            string path = "Assets/Prefab/Maps/" + map + ".prefab";
+            string path = "Assets/ProjectVector/Shared/Maps/Prefabs/" + map + ".prefab";
             var root = PrefabUtility.LoadPrefabContents(path);
             try
             {
@@ -112,7 +112,7 @@ public static class MovementAimMapVerification
         var keyboard = InputSystem.AddDevice<Keyboard>();
         foreach (string role in new[] { "Initiator", "Controller", "Sentinel", "Entry" })
         {
-            var actor = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/" + role + "/" + role + ".prefab"));
+            var actor = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/" + role + "/" + role + ".prefab"));
             var movement = actor.GetComponent<PlayerMovement>();
             var cc = actor.GetComponent<CharacterController>();
             foreach (var collider in actor.GetComponentsInChildren<Collider>(true)) if (collider != cc) collider.enabled = false;
@@ -181,7 +181,7 @@ public static class MovementAimMapVerification
         foreach (string map in new[] { "TestMap", "Desert" })
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            var root = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/" + map + ".prefab"));
+            var root = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/" + map + ".prefab"));
             // Match MatchManager.SpawnMap, not the prefab asset's stored root position.
             root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             var refs = root.GetComponentInChildren<MiniMapWorldReferences>(true);
@@ -251,7 +251,7 @@ public static class MovementAimMapVerification
         var report = new StringBuilder();
         foreach (string map in new[] { "TestMap", "Desert" })
         {
-            var root = PrefabUtility.LoadPrefabContents("Assets/Prefab/Maps/" + map + ".prefab");
+            var root = PrefabUtility.LoadPrefabContents("Assets/ProjectVector/Shared/Maps/Prefabs/" + map + ".prefab");
             try
             {
                 report.AppendLine("MAP " + map);

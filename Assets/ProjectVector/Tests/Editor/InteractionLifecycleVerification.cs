@@ -53,7 +53,7 @@ public static class InteractionLifecycleVerification
         var round = new GameObject("RoundFixture").AddComponent<RoundManager>(); Call(round, "Awake");
         foreach (string map in new[] { "TestMap", "Desert" })
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Maps/{map}.prefab");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Maps/Prefabs/{map}.prefab");
             var root = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             var info = root.GetComponent<MapInfo>(); Check(info != null && info.barriers != null, map + " authored barriers");
             round.SetMapInfo(info); round.OnServerPrepareStarted(); Check(round.IsBuyPhase && info.barriers.activeSelf, map + " prepare barrier");

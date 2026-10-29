@@ -17,7 +17,7 @@ public static class CombatHudVerification
     {
         CombatHudAuthoring.Run();
         InGameUiVerification.VerifySaved();
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         T Find<T>() where T:Component=>scene.GetRootGameObjects().SelectMany(g=>g.GetComponentsInChildren<T>(true)).First();
         var hud=Find<InGameUIManager>();var read=Find<CombatHudReadout>();var top=Find<TopInfoUI>();var feed=Find<KillLogManager>();var pick=Find<PickManager>();
         int count=scene.GetRootGameObjects().Sum(g=>g.GetComponentsInChildren<Transform>(true).Length);

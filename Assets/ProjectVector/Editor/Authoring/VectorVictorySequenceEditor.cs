@@ -13,7 +13,7 @@ using Object = UnityEngine.Object;
 // Explicit, offline authoring. Never executes during Play or against dirty scenes.
 public static class VectorVictorySequenceEditor
 {
-    const string Folder = "Assets/UI/ResultSequence";
+    const string Folder = "Assets/ProjectVector/Modules/Results/UI/ResultSequence";
     static readonly Color red = new Color32(186, 24, 55, 255);
     static TMP_FontAsset font;
     static T Ensure<T>(GameObject go) where T:Component { var c=go.GetComponent<T>(); return c==null?go.AddComponent<T>():c; }
@@ -56,9 +56,9 @@ public static class VectorVictorySequenceEditor
         if(EditorApplication.isPlayingOrWillChangePlaymode) throw new Exception("Stop Play first");
         for(int i=0;i<UnityEngine.SceneManagement.SceneManager.sceneCount;i++)
             if(UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty) throw new Exception("Unsaved scene: refused");
-        if(!AssetDatabase.IsValidFolder(Folder)) AssetDatabase.CreateFolder("Assets/UI","ResultSequence");
+        ProjectEditorPaths.EnsureFolder(Folder);
         font=AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Fonts/Pretendard-Black SDF.asset");
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Result.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Results/Scenes/Result.unity");
         var preserved=new VectorExperiencePolishEditor.Preservation(scene);
         var result=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<ResultUI>(true)).Single();
         var canvas=result.GetComponent<Canvas>();
@@ -105,7 +105,7 @@ public static class VectorVictorySequenceEditor
         ui.rank=rankRoot.GetComponentInChildren<RankResultController>(true);
         if(ui.rank==null)
         {
-            var rankScene=EditorSceneManager.OpenScene("Assets/Scenes/RankResult.unity",OpenSceneMode.Additive);
+            var rankScene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Results/Scenes/RankResult.unity",OpenSceneMode.Additive);
             var source=rankScene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<RankResultController>(true)).Single();
             ui.rank=Object.Instantiate(source.gameObject,rankRoot,false).GetComponent<RankResultController>();
             ui.rank.name="AuthoredRankPresentation";
@@ -247,8 +247,8 @@ public static class VectorVictorySequenceEditor
             {
                 if(controller==null) controller=AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
                 if(controller.layers.Length==0) controller.AddLayer("Base Layer");
-                string prefix="Assets/Character Animation/"+roles[i]+"/Lobby/"+roles[i]+(i==2?"_Lobby":"");
-                if(i==1) prefix="Assets/Resources/LobbyCharacter/Animation/Controller/Lobby/Controller";
+                string prefix="Assets/ProjectVector/Shared/Characters/Animations/"+roles[i]+"/Lobby/"+roles[i]+(i==2?"_Lobby":"");
+                if(i==1) prefix="Assets/ProjectVector/Modules/Lobby/Resources/LobbyCharacter/Animation/Controller/Lobby/Controller";
                 var idle=controller.layers[0].stateMachine.AddState("Idle"); idle.motion=AssetDatabase.LoadAssetAtPath<AnimationClip>(prefix+"_Idle.anim");
                 var celebrate=controller.layers[0].stateMachine.AddState("Celebrate");
                 celebrate.motion=AssetDatabase.LoadAssetAtPath<AnimationClip>(prefix+"_Greeting.anim");
@@ -264,7 +264,7 @@ public static class VectorVictorySequenceEditor
             if(i==0)
             {
                 var state=controller.layers[0].stateMachine.states.First(s=>s.state.name=="Celebrate").state;
-                state.motion=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character Animation/Initiator/Lobby/Initiator_Greeting.anim");
+                state.motion=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Animations/Initiator/Lobby/Initiator_Greeting.anim");
                 EditorUtility.SetDirty(state); AssetDatabase.SaveAssets();
             }
             parent.transform.localPosition=Vector3.zero; parent.transform.localScale=Vector3.one;
@@ -284,7 +284,7 @@ public static class VectorVictorySequenceEditor
             var map=environments.transform.Find(mapName)?.gameObject;
             if(map==null)
             {
-                map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/"+mapName+".prefab"),environments.transform);
+                map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/"+mapName+".prefab"),environments.transform);
                 map.name=mapName; Isolate(map);
                 var info=map.GetComponent<MapInfo>();
                 var point=info.attackSpawnPoints[0];
@@ -318,7 +318,7 @@ public static class VectorVictorySequenceEditor
     }
     public static void Verify()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Result.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Results/Scenes/Result.unity");
         var ui=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<ResultVictorySequence>(true)).Single();
         var result=ui.GetComponentInParent<ResultUI>();
         int count=scene.GetRootGameObjects().Sum(r=>r.GetComponentsInChildren<Transform>(true).Length);

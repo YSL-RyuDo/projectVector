@@ -13,8 +13,8 @@ using UnityEngine.Rendering;
 // Explicit, offline authoring only. Never runs when the game starts.
 public static class PracticeCampusEditor
 {
-    const string ScenePath = "Assets/Scenes/WeaponTest.unity";
-    const string Bundle = "Assets/FPS_Bundle/";
+    const string ScenePath = "Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity";
+    const string Bundle = "Assets/ThirdParty/FPS_Bundle/";
     static readonly string[] Samples = {
         "FPS_Map0/Prefabs/Rock_01.prefab", "FPS_Map0/Prefabs/Tree_01.prefab",
         "FPS_Map0/Prefabs/Tree_02.prefab", "FPS_Map3/Prefabs/Building/Wall_01.prefab",
@@ -259,7 +259,7 @@ public static class PracticeCampusEditor
     }
     static Material Mat(string name,Color color)
     {
-        string path="Assets/Prefab/WeaponTest/Campus"+name+".mat";
+        string path="Assets/ProjectVector/Modules/Practice/Assets/Campus"+name+".mat";
         var m=AssetDatabase.LoadAssetAtPath<Material>(path);if(m!=null)return m;
         m=new Material(Shader.Find("Universal Render Pipeline/Lit")){color=color};m.SetFloat("_Smoothness",.18f);
         AssetDatabase.CreateAsset(m,path);return m;
@@ -346,7 +346,7 @@ public static class PracticeCampusEditor
         var scene=EditorSceneManager.OpenScene(ScenePath);
         var root=GameObject.Find("HydroTrainingCampus");
         if(root.transform.Find("ContinuousCampusGround")==null)
-            Block(root.transform,"ContinuousCampusGround",new Vector3(248,-.3f,12),new Vector3(140,.5f,65),AssetDatabase.LoadAssetAtPath<Material>("Assets/Prefab/WeaponTest/CampusConcrete.mat"));
+            Block(root.transform,"ContinuousCampusGround",new Vector3(248,-.3f,12),new Vector3(140,.5f,65),AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Modules/Practice/Assets/CampusConcrete.mat"));
         foreach(var text in root.GetComponentsInChildren<TextMeshPro>())
         {
             text.textWrappingMode=TextWrappingModes.NoWrap;text.enableAutoSizing=true;

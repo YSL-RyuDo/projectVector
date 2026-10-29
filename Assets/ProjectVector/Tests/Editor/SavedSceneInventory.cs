@@ -25,7 +25,7 @@ public static class SavedSceneInventory
         if (string.IsNullOrEmpty(output) || !Directory.Exists(output)) throw new InvalidOperationException("External report folder required");
         var enabled = new HashSet<string>(EditorBuildSettings.scenes.Where(scene => scene.enabled).Select(scene => scene.path));
         var report = new Report();
-        foreach (string path in AssetDatabase.FindAssets("t:Scene", new[] { "Assets/Scenes", "Assets/KSW" })
+        foreach (string path in AssetDatabase.FindAssets("t:Scene", new[] { "Assets/ProjectVector" })
             .Select(AssetDatabase.GUIDToAssetPath).OrderBy(value => value))
         {
             var scene = EditorSceneManager.OpenScene(path);
@@ -43,7 +43,7 @@ public static class SavedSceneInventory
                 }
             var modules = objects.SelectMany(value => value.GetComponents<MonoBehaviour>()).Where(value => value)
                 .Select(value => MonoScript.FromMonoBehaviour(value)).Where(value => value)
-                .Select(AssetDatabase.GetAssetPath).Where(value => value.StartsWith("Assets/ProjectVector/Runtime/"))
+                .Select(AssetDatabase.GetAssetPath).Where(value => value.StartsWith("Assets/ProjectVector/Runtime/") || value.StartsWith("Assets/ProjectVector/Modules/"))
                 .Select(value => value.Split('/')[3]).Distinct().OrderBy(value => value).ToArray();
             report.scenes.Add(new Entry { path = path, inBuild = enabled.Contains(path), objects = objects.Length, missingScripts = missing, modules = modules });
             Debug.Log("SAVED_SCENE_CHECK " + path + " objects=" + objects.Length + " missing=" + missing + " build=" + enabled.Contains(path));

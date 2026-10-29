@@ -19,7 +19,7 @@ public static class SkillVfxClarityVerification
     {
         Check(Application.isBatchMode,"isolated batch");EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
         foreach(var name in new[]{"Initiator","Controller","Entry","Sentinel"}){
-            var prefab=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Character/{name}/{name}.prefab"));
+            var prefab=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Characters/Prefabs/{name}/{name}.prefab"));
             var view=prefab.GetComponent<PlayerWeaponViewController>();
             var fp=Field<GameObject>(view,"firstPersonWeaponHolder");var tp=Field<GameObject>(view,"thirdPersonWeaponHolder");
             Check(fp && tp && fp!=tp && tp.transform.IsChildOf(prefab.transform.Find("Model")),name+" has separate authored FP/TP holders");
@@ -33,7 +33,7 @@ public static class SkillVfxClarityVerification
             Check(prefab.GetComponentsInChildren<Transform>(true).Length==hierarchy,name+" view changes create no extra holder");
             Object.DestroyImmediate(prefab);
         }
-        var drone=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/Initiator/Drone.prefab"));
+        var drone=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Drone.prefab"));
         var fx=drone.GetComponent<DroneCombatVfx>();var core=Field<LineRenderer>(fx,"_core");var halo=Field<LineRenderer>(fx,"_halo");var impact=Field<LineRenderer>(fx,"_impactRing");
         int objects=drone.GetComponentsInChildren<Transform>(true).Length;
         foreach(var direction in new[]{Vector3.forward,Vector3.up,new Vector3(-3,1,7)}){
@@ -51,7 +51,7 @@ public static class SkillVfxClarityVerification
         typeof(DroneCombatVfx).GetMethod("OnDisable",Flags).Invoke(fx,null);
         Check(!core.enabled&&!impact.enabled&&!Field<ParticleSystem>(fx,"_impact").IsAlive(true),"disable clears lines and confirmed particles");
         Object.DestroyImmediate(drone);
-        var actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Character/Initiator/Initiator.prefab"));
+        var actor=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab"));
         var handLines=actor.GetComponentsInChildren<LineRenderer>(true).Where(l=>l.name=="EMPHandCharge").ToArray();
         Check(handLines.Length==2 && handLines.All(l=>!l.enabled && l.positionCount==0 && l.widthMultiplier<=.0041f),"idle hand charge has no default metre-wide geometry");
         var death=actor.GetComponent<PlayerDeathController>();

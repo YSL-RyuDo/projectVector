@@ -36,7 +36,7 @@ public static class EntryDashVerification
         buffer.Push(new RemoteMotionBuffer.Pose { time = 12, position = Vector3.right * 30 }, 22);
         buffer.Sample(22, out var respawn); Require(respawn.position.x == 30, "Respawn incorrectly interpolated");
 
-        var root = PrefabUtility.LoadPrefabContents("Assets/Prefab/Character/Entry/Entry.prefab");
+        var root = PrefabUtility.LoadPrefabContents("Assets/ProjectVector/Shared/Characters/Prefabs/Entry/Entry.prefab");
         try {
             var movement = root.GetComponent<PlayerMovement>();
             typeof(PlayerHP).GetMethod("Awake", Flags).Invoke(root.GetComponent<PlayerHP>(), null);

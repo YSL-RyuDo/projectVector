@@ -11,9 +11,9 @@ using Object=UnityEngine.Object;
 // Edit-time authoring only. Everything is saved in inspectable prefab hierarchies.
 public static class ScannerPolishAuthoring
 {
-    const string Dir="Assets/Art/Scanner";
-    const string ActorPath="Assets/Prefab/Character/Initiator/Initiator.prefab";
-    const string ProjectilePath="Assets/Prefab/Character/Initiator/Scanner.prefab";
+    const string Dir="Assets/ProjectVector/Shared/Characters/Effects/Initiator/Scanner";
+    const string ActorPath="Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab";
+    const string ProjectilePath="Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Scanner.prefab";
     public const string Output="C:/Users/GCT/Downloads/Vector_Scanner_20261022";
     static readonly Color Cyan=new Color(.14f,.74f,.88f);
     static void Ref(Object target,string field,Object value){var s=new SerializedObject(target);s.FindProperty(field).objectReferenceValue=value;s.ApplyModifiedPropertiesWithoutUndo();}
@@ -82,7 +82,7 @@ public static class ScannerPolishAuthoring
     }
     static LineRenderer Line(Transform p,string name)
     {
-        var l=Child(p,name).gameObject.AddComponent<LineRenderer>();l.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Drone/EnergyBeam.mat");
+        var l=Child(p,name).gameObject.AddComponent<LineRenderer>();l.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Shared/Characters/Effects/Initiator/Drone/Materials/EnergyBeam.mat");
         l.useWorldSpace=true;l.positionCount=0;l.enabled=false;l.widthCurve=AnimationCurve.Constant(0,1,1);l.widthMultiplier=.014f;l.numCapVertices=2;l.numCornerVertices=2;
         l.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;l.receiveShadows=false;return l;
     }
@@ -92,7 +92,7 @@ public static class ScannerPolishAuthoring
         var m=ps.main;m.playOnAwake=false;m.loop=false;m.duration=.5f;m.startLifetime=new ParticleSystem.MinMaxCurve(.1f,.3f);m.startSpeed=new ParticleSystem.MinMaxCurve(.8f,3.5f);m.startSize=new ParticleSystem.MinMaxCurve(.008f,.022f);m.startColor=Cyan;m.simulationSpace=ParticleSystemSimulationSpace.World;m.maxParticles=48;
         var e=ps.emission;e.rateOverTime=0;e.SetBursts(new[]{new ParticleSystem.Burst(0,(short)count)});var s=ps.shape;s.shapeType=ParticleSystemShapeType.Sphere;s.radius=.05f;
         var colors=ps.colorOverLifetime;colors.enabled=true;var grad=new Gradient();grad.SetKeys(new[]{new GradientColorKey(Cyan,0),new GradientColorKey(Cyan,1)},new[]{new GradientAlphaKey(1,0),new GradientAlphaKey(0,1)});colors.color=grad;
-        var r=ps.GetComponent<ParticleSystemRenderer>();r.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Drone/EnergyParticle.mat");r.renderMode=ParticleSystemRenderMode.Stretch;r.lengthScale=2;r.velocityScale=.03f;r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;return ps;
+        var r=ps.GetComponent<ParticleSystemRenderer>();r.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Shared/Characters/Effects/Initiator/Drone/Materials/EnergyParticle.mat");r.renderMode=ParticleSystemRenderMode.Stretch;r.lengthScale=2;r.velocityScale=.03f;r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;return ps;
     }
     static void Projectile()
     {
@@ -106,7 +106,7 @@ public static class ScannerPolishAuthoring
             Ref(fx,"_pulse",Line(p,"DetectionPulse"));Refs(fx,"_beams",Enumerable.Range(0,3).Select(i=>Line(p,"ConfirmedDischarge_"+i)));Refs(fx,"_impacts",Enumerable.Range(0,3).Select(i=>Line(p,"ConfirmedImpact_"+i)));
             Refs(fx,"_sparks",Enumerable.Range(0,3).Select(i=>Sparks(p,"ImpactSparks_"+i,16)));Ref(fx,"_breakSparks",Sparks(p,"DestroyedSparks",28));
             var audio=Child(p,"SpatialAudio").gameObject.AddComponent<AudioSource>();audio.playOnAwake=false;audio.spatialBlend=1;audio.minDistance=1;audio.maxDistance=18;audio.rolloffMode=AudioRolloffMode.Linear;
-            Ref(fx,"_audio",audio);Ref(fx,"_deploySound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Drone/Unfold.wav"));Ref(fx,"_zapSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Drone/Confirmed.wav"));Ref(fx,"_endSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Drone/Interrupted.wav"));
+            Ref(fx,"_audio",audio);Ref(fx,"_deploySound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ProjectVector/Shared/Audio/Drone/Unfold.wav"));Ref(fx,"_zapSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ProjectVector/Shared/Audio/Drone/Confirmed.wav"));Ref(fx,"_endSound",AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ProjectVector/Shared/Audio/Drone/Interrupted.wav"));
             Ref(root.GetComponent<ScannerProjectile>(),"_presentation",fx);
             var box=root.GetComponent<BoxCollider>();box.size=new Vector3(.42f,.26f,.42f);box.center=new Vector3(0,.05f,0);
             var rb=root.GetComponent<Rigidbody>();rb.mass=.25f;rb.useGravity=true;rb.constraints=RigidbodyConstraints.FreezeRotation;
@@ -136,7 +136,7 @@ public static class ScannerPolishAuthoring
             }
             samples[s]=bones.Select(t=>t.localRotation).ToArray();samplePositions[s]=bones.Select(t=>t.localPosition).ToArray();
         }
-        Reset();string clipName=ultimate?"Ultimate_Command_FP":"Scanner_Throw_FP";string path="Assets/Character Animation/Initiator/FirstPerson/"+clipName+".anim";var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);bool create=!clip;if(create)clip=new AnimationClip();else clip.ClearCurves();
+        Reset();string clipName=ultimate?"Ultimate_Command_FP":"Scanner_Throw_FP";string path="Assets/ProjectVector/Shared/Characters/Animations/Initiator/FirstPerson/"+clipName+".anim";var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(path);bool create=!clip;if(create)clip=new AnimationClip();else clip.ClearCurves();
         clip.name=clipName;clip.frameRate=60;clip.wrapMode=WrapMode.ClampForever;
         for(int i=0;i<bones.Length;i++)for(int axis=0;axis<4;axis++){
             string bonePath=AnimationUtility.CalculateTransformPath(bones[i],model);var curve=new AnimationCurve();
@@ -174,7 +174,7 @@ public static class ScannerPolishAuthoring
                 int layer=first?LayerMask.NameToLayer("FirstPersonArms"):0;foreach(var t in g.GetComponentsInChildren<Transform>(true))t.gameObject.layer=layer;
                 g.SetActive(false);Ref(rig,first?"_firstDevice":"_worldDevice",g);
             }
-            var line=root.GetComponent<LineRenderer>();line.enabled=false;line.positionCount=0;line.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Drone/EnergyBeam.mat");line.startColor=line.endColor=new Color(.2f,.75f,.9f,.45f);line.widthCurve=AnimationCurve.Constant(0,1,1);line.widthMultiplier=.018f;
+            var line=root.GetComponent<LineRenderer>();line.enabled=false;line.positionCount=0;line.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Shared/Characters/Effects/Initiator/Drone/Materials/EnergyBeam.mat");line.startColor=line.endColor=new Color(.2f,.75f,.9f,.45f);line.widthCurve=AnimationCurve.Constant(0,1,1);line.widthMultiplier=.018f;
             PrefabUtility.SaveAsPrefabAsset(root,ActorPath);
         }finally{PrefabUtility.UnloadPrefabContents(root);}
     }

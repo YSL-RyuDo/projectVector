@@ -47,9 +47,9 @@ public static class ControllerDecoyCapture
     {
         if(!Application.isBatchMode)throw new Exception("Batch only");
         Directory.CreateDirectory(Output);
-        EditorSceneManager.OpenScene("Assets/Scenes/WeaponTest.unity");
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity");
         Object.FindFirstObjectByType<PracticeRangeController>().persistRecords=false;
-        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/TestMap.prefab"));
+        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/TestMap.prefab"));
         map.transform.position=new Vector3(1000,0,0);map.GetComponent<MapInfo>().SetBarriersActive(false);
         foreach(var b in map.GetComponentsInChildren<MonoBehaviour>(true))Object.DestroyImmediate(b);
         SessionState.SetBool(Key,true);EditorApplication.update-=Tick;EditorApplication.update+=Tick;deadline=EditorApplication.timeSinceStartup+600;EditorApplication.EnterPlaymode();
@@ -115,7 +115,7 @@ public static class ControllerDecoyCapture
         var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(ControllerDecoyAuthoring.Area);
         var gun=prefab.GetComponent<AudioSource>();
         Check(!gun.playOnAwake&&!gun.loop&&gun.spatialBlend==1,"spatial one-shot gun audio");
-        Check(Private<AudioClip>(prefab.GetComponent<DecoyTrapArea>(),"_gunfireClip")==AssetDatabase.LoadAssetAtPath<WeaponData>("Assets/Prefab/Weapon/Pistol/P92/P92.asset").gunSound,"real P92 sound");
+        Check(Private<AudioClip>(prefab.GetComponent<DecoyTrapArea>(),"_gunfireClip")==AssetDatabase.LoadAssetAtPath<WeaponData>("Assets/ProjectVector/Shared/Weapons/Assets/Pistol/P92/P92.asset").gunSound,"real P92 sound");
         // Cancel before release must not send or leave input/prop restrictions.
         skill.SendMessage("UseSkill");Check(skill.IsCasting,"C starts with purchase");
         Check(!GameplayActionPolicy.CanAct(range.player.GetComponent<PlayerItem>(),GameplayAction.WeaponChange),"weapon change locked");

@@ -42,7 +42,7 @@ public static class ControllerSmokeVerification
         BoundaryPixels();
         foreach(string mapName in new[]{"TestMap","Desert"}){
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);Light();
-            var map=Load("Assets/Prefab/Maps/"+mapName+".prefab");var info=map.GetComponent<MapInfo>();info.SetBarriersActive(false);
+            var map=Load("Assets/ProjectVector/Shared/Maps/Prefabs/"+mapName+".prefab");var info=map.GetComponent<MapInfo>();info.SetBarriersActive(false);
             var spawn=info.attackSpawnPoints[0];Vector3 position=spawn.position+spawn.forward*6;
             Physics.SyncTransforms();if(Physics.Raycast(position+Vector3.up*12,Vector3.down,out var ground,40,~0,QueryTriggerInteraction.Ignore))position=ground.point;
             var smoke=Load(ControllerSmokeAuthoring.Dir+"/ControllerSmoke.prefab");smoke.transform.position=position;smoke.transform.localScale=Vector3.one*4.5f;smoke.GetComponent<ControllerSmokeVfx>().Begin(18);smoke.GetComponent<ControllerSmokeVfx>().Advance(1);
@@ -72,7 +72,7 @@ public static class ControllerSmokeVerification
         var preview=Object.Instantiate(model.gameObject);Object.DestroyImmediate(actor);
         preview.transform.SetPositionAndRotation(position,rotation);preview.SetActive(true);
         foreach(var r in preview.GetComponentsInChildren<Renderer>(true)){r.enabled=true;r.forceRenderingOff=false;}
-        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Character(New)/Controller/Animation/InGame/Pistol/Controller_Pistol_Idle.anim");
+        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/ProjectVector/Shared/Characters/Models/Controller/Animation/InGame/Pistol/Controller_Pistol_Idle.anim");
         if(clip)clip.SampleAnimation(preview,0);
         return preview;
     }
@@ -136,7 +136,7 @@ public static class ControllerSmokeVerification
         var clone=Object.Instantiate(view.gameObject);
         clone.transform.SetParent(null);var overlay=clone.GetComponent<SmokeTargetingView>();
         var roots=scene.GetRootGameObjects();foreach(var root in roots)if(root!=clone)root.SetActive(false);
-        var map=Load("Assets/Prefab/Maps/Desert.prefab");var info=map.GetComponent<MapInfo>();info.SetBarriersActive(false);Light();
+        var map=Load("Assets/ProjectVector/Shared/Maps/Prefabs/Desert.prefab");var info=map.GetComponent<MapInfo>();info.SetBarriersActive(false);Light();
         var bounds=new Bounds(info.attackSpawnPoints[0].position,Vector3.one);foreach(var spawn in info.attackSpawnPoints.Concat(info.defendSpawnPoints))bounds.Encapsulate(spawn.position);
         var mapCamera=CameraAt(bounds.center+Vector3.up*100,bounds.center);mapCamera.orthographic=true;mapCamera.orthographicSize=50;mapCamera.aspect=1;var texture=new RenderTexture(1024,1024,24);mapCamera.targetTexture=texture;mapCamera.Render();overlay.Map.GetComponent<RawImage>().texture=texture;
         var uiCamera=CameraAt(new Vector3(0,0,-200),Vector3.zero);uiCamera.cullingMask=1<<5;uiCamera.orthographic=true;uiCamera.orthographicSize=540;
@@ -153,12 +153,12 @@ public static class ControllerSmokeVerification
     {
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);Light();
         var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.transform.position=new Vector3(0,-.15f,0);floor.transform.localScale=new Vector3(40,.3f,30);Physics.SyncTransforms();
-        var swamp=Load("Assets/Prefab/Character/Controller/TrapArea.prefab");swamp.transform.position=new Vector3(-5,.03f,0);
+        var swamp=Load("Assets/ProjectVector/Shared/Characters/Prefabs/Controller/TrapArea.prefab");swamp.transform.position=new Vector3(-5,.03f,0);
         var visual=swamp.GetComponentInChildren<SwampGroundMeshVisual>();Check(visual,"swamp ground visual retained");visual.Init(3,visual.GetComponent<Renderer>().sharedMaterial,~0);
-        var trap=Load("Assets/Prefab/Character/Controller/Trap.prefab");trap.transform.position=new Vector3(-5,.5f,0);
-        var decoy=Load("Assets/Prefab/Character/Controller/DecoyTrap.prefab");decoy.transform.position=new Vector3(0,.5f,0);
-        var ultimate=Load("Assets/Prefab/Character/Controller/DreamForestArea.prefab");ultimate.transform.position=new Vector3(6,0,0);ultimate.transform.localScale=Vector3.one*4;
-        Check(ultimate.transform.Find("Sphere").GetComponent<Renderer>().sharedMaterial.shader==AssetDatabase.LoadAssetAtPath<Shader>("Assets/Prefab/Character/Controller/DreamForestShader.shadergraph"),"ultimate uses controller palette graph, not legacy KSW duplicate");
+        var trap=Load("Assets/ProjectVector/Shared/Characters/Prefabs/Controller/Trap.prefab");trap.transform.position=new Vector3(-5,.5f,0);
+        var decoy=Load("Assets/ProjectVector/Shared/Characters/Prefabs/Controller/DecoyTrap.prefab");decoy.transform.position=new Vector3(0,.5f,0);
+        var ultimate=Load("Assets/ProjectVector/Shared/Characters/Prefabs/Controller/DreamForestArea.prefab");ultimate.transform.position=new Vector3(6,0,0);ultimate.transform.localScale=Vector3.one*4;
+        Check(ultimate.transform.Find("Sphere").GetComponent<Renderer>().sharedMaterial.shader==AssetDatabase.LoadAssetAtPath<Shader>("Assets/ProjectVector/Shared/Characters/Prefabs/Controller/DreamForestShader.shadergraph"),"ultimate uses controller palette graph, not legacy KSW duplicate");
         Save(CameraAt(new Vector3(1,10,-17),new Vector3(1,1,0)),"Controller-skill-palette");
         foreach(var r in new[]{swamp,trap,decoy,ultimate}.SelectMany(g=>g.GetComponentsInChildren<Renderer>(true)))foreach(var m in r.sharedMaterials)Check(m&&m.shader.isSupported,"controller material supported "+r.name);
     }

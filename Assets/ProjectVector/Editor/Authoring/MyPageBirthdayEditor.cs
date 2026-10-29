@@ -65,7 +65,7 @@ public static class MyPageBirthdayEditor
         if (EditorApplication.isPlayingOrWillChangePlaymode) throw new Exception("Stop Play first.");
         for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; ++i)
             if (UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty) throw new Exception("Unsaved scene: refused.");
-        var scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var preserved = new VectorExperiencePolishEditor.Preservation(scene);
         var profile = Profile(scene);
         font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Fonts/Pretendard-Black SDF.asset");
@@ -95,7 +95,7 @@ public static class MyPageBirthdayEditor
     }
     public static void Verify()
     {
-        var scene = EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity"); var profile = Profile(scene);
+        var scene = EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity"); var profile = Profile(scene);
         var view = profile.GetComponent<MyPageBirthdayController>(); Require(view != null, "authored component missing");
         var group = profile.GetComponent<CanvasGroup>(); group.alpha = 1; group.interactable = group.blocksRaycasts = true; profile.gameObject.SetActive(true);
         foreach (string n in new[] { "BattleCustomPanel", "SkinCustomPanel", "RecentVisitorsPopup" }) Find(profile.transform, n).gameObject.SetActive(false);

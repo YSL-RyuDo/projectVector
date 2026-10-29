@@ -10,7 +10,7 @@ using Object=UnityEngine.Object;
 // Saved modular environmental art, never runtime geometry or a capture-only overlay.
 public static class ConstructionMapArtPass
 {
-    const string Art="Assets/Art/Maps/Construction/";
+    const string Art="Assets/ProjectVector/Shared/Maps/Art/Construction/";
     static Material cream,brick,glass,rubber;
     public static Material Cream=>cream;
     public static void InitializeMaterials()

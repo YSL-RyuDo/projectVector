@@ -16,7 +16,7 @@ public static class PlantZoneExport
         string F(float v) { string s=v.ToString("G9", CultureInfo.InvariantCulture); return s+(s.Contains(".") || s.Contains("E") ? "f" : ".0f"); }
         foreach (string name in new[] { "TestMap", "Desert", "Construction" })
         {
-            var root = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Maps/{name}.prefab"));
+            var root = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Maps/Prefabs/{name}.prefab"));
             root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             var zones = root.GetComponentsInChildren<SpikePlantZone>(true);
             if (zones.Length == 0) throw new Exception(name + ": missing plant zones");

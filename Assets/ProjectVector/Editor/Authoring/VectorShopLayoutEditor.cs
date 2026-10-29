@@ -19,8 +19,8 @@ public static class VectorShopLayoutEditor
     public static void Apply()
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play mode first.");
-        var scene=SceneManager.GetSceneByPath("Assets/Scenes/Lobby.unity"); bool opened=!scene.IsValid() || !scene.isLoaded;
-        if(opened) scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity",OpenSceneMode.Additive);
+        var scene=SceneManager.GetSceneByPath("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity"); bool opened=!scene.IsValid() || !scene.isLoaded;
+        if(opened) scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity",OpenSceneMode.Additive);
         if(scene.isDirty) throw new InvalidOperationException("Save your unsaved Lobby edits first.");
         try
         {
@@ -167,8 +167,8 @@ public static class VectorShopLayoutEditor
     public static void RefinePresentation()
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play mode first.");
-        var scene=SceneManager.GetSceneByPath("Assets/Scenes/Lobby.unity");
-        if(!scene.IsValid() || !scene.isLoaded) scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity",OpenSceneMode.Single);
+        var scene=SceneManager.GetSceneByPath("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
+        if(!scene.IsValid() || !scene.isLoaded) scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity",OpenSceneMode.Single);
         if(scene.isDirty) throw new InvalidOperationException("Save your Lobby edits first.");
         var shop=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<VectorShopPanel>(true)).Single();
         var root=shop.transform; var draw=root.Find("Weapon Skin Gacha Panel");
@@ -226,8 +226,8 @@ public static class VectorShopLayoutEditor
     public static void Polish()
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play mode first.");
-        var scene=SceneManager.GetSceneByPath("Assets/Scenes/Lobby.unity");
-        if(!scene.IsValid() || !scene.isLoaded) scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity",OpenSceneMode.Single);
+        var scene=SceneManager.GetSceneByPath("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
+        if(!scene.IsValid() || !scene.isLoaded) scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity",OpenSceneMode.Single);
         if(scene.isDirty) throw new InvalidOperationException("Save your Lobby edits first.");
         var shop=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<VectorShopPanel>(true)).Single();
         var content=shop.transform.Find("Main Panel/RecommendationScroll/Content");

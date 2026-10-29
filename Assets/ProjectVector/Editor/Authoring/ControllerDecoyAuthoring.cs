@@ -8,8 +8,8 @@ using Object=UnityEngine.Object;
 
 public static class ControllerDecoyAuthoring
 {
-    public const string Dir="Assets/Art/Controller/Decoy", Actor="Assets/Prefab/Character/Controller/Controller.prefab";
-    public const string Trap="Assets/Prefab/Character/Controller/DecoyTrap.prefab", Area="Assets/Prefab/Character/Controller/DecoyTrapArea.prefab";
+    public const string Dir="Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller/Decoy", Actor="Assets/ProjectVector/Shared/Characters/Prefabs/Controller/Controller.prefab";
+    public const string Trap="Assets/ProjectVector/Shared/Characters/Prefabs/Controller/DecoyTrap.prefab", Area="Assets/ProjectVector/Shared/Characters/Prefabs/Controller/DecoyTrapArea.prefab";
     static void Ref(Object o,string key,Object v){var s=new SerializedObject(o);s.FindProperty(key).objectReferenceValue=v;s.ApplyModifiedPropertiesWithoutUndo();}
     static void ArrayRef(Object o,string key,Object[] values){var s=new SerializedObject(o);var a=s.FindProperty(key);a.arraySize=values.Length;for(int i=0;i<values.Length;i++)a.GetArrayElementAtIndex(i).objectReferenceValue=values[i];s.ApplyModifiedPropertiesWithoutUndo();}
     static T Add<T>(GameObject g) where T:Component {var c=g.GetComponent<T>();return c?c:g.AddComponent<T>();}
@@ -26,7 +26,7 @@ public static class ControllerDecoyAuthoring
         if(!Application.isBatchMode)throw new Exception("Batch only");
         Directory.CreateDirectory(Dir);AssetDatabase.Refresh();
         // Existing controller throw foley, shared sound family; no swamp asset writes.
-        if(!AssetDatabase.LoadAssetAtPath<AudioClip>(Dir+"/DecoyThrow.wav"))AssetDatabase.CopyAsset("Assets/Art/Controller/Swamp/SwampThrow.wav",Dir+"/DecoyThrow.wav");
+        if(!AssetDatabase.LoadAssetAtPath<AudioClip>(Dir+"/DecoyThrow.wav"))AssetDatabase.CopyAsset("Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller/Swamp/SwampThrow.wav",Dir+"/DecoyThrow.wav");
         AttachSound();
         var silver=Mat("Shell","Universal Render Pipeline/Lit",new Color(.86f,.89f,.98f));
         var dark=Mat("Speaker","Universal Render Pipeline/Lit",new Color(.10f,.14f,.24f));
@@ -95,7 +95,7 @@ public static class ControllerDecoyAuthoring
             Ref(fx,"_landing",Burst(root.transform));
             var attach=new GameObject("MagneticLatchSound");attach.transform.SetParent(root.transform,false);Ref(fx,"_attachSound",Audio(attach,"DecoyLatch",true));
             var gun=Add<AudioSource>(root);gun.playOnAwake=false;gun.loop=false;gun.clip=null;gun.spatialBlend=1;gun.rolloffMode=AudioRolloffMode.Logarithmic;gun.minDistance=3;gun.maxDistance=80;gun.dopplerLevel=0;gun.volume=.42f;
-            var area=root.GetComponent<DecoyTrapArea>();Ref(area,"_audioSource",gun);Ref(area,"_gunfireClip",AssetDatabase.LoadAssetAtPath<WeaponData>("Assets/Prefab/Weapon/Pistol/P92/P92.asset").gunSound);Ref(area,"_muzzleFlash",null);Ref(area,"_vfx",fx);
+            var area=root.GetComponent<DecoyTrapArea>();Ref(area,"_audioSource",gun);Ref(area,"_gunfireClip",AssetDatabase.LoadAssetAtPath<WeaponData>("Assets/ProjectVector/Shared/Weapons/Assets/Pistol/P92/P92.asset").gunSound);Ref(area,"_muzzleFlash",null);Ref(area,"_vfx",fx);
             var s=new SerializedObject(area);s.FindProperty("_duration").floatValue=6;s.ApplyModifiedPropertiesWithoutUndo();
             PrefabUtility.SaveAsPrefabAsset(root,Area);
         }finally{PrefabUtility.UnloadPrefabContents(root);}
@@ -107,7 +107,7 @@ public static class ControllerDecoyAuthoring
         var m=ps.main;m.loop=false;m.playOnAwake=false;m.duration=.3f;m.startLifetime=.23f;m.startSpeed=.7f;m.startSize=.035f;m.startColor=new Color(.8f,.88f,1,.6f);m.maxParticles=20;
         var e=ps.emission;e.rateOverTime=0;e.SetBursts(new[]{new ParticleSystem.Burst(0,12)});
         var sh=ps.shape;sh.shapeType=ParticleSystemShapeType.Cone;sh.angle=70;sh.radius=.1f;
-        ps.GetComponent<ParticleSystemRenderer>().sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Controller/Swamp/SwampMist.mat");return ps;
+        ps.GetComponent<ParticleSystemRenderer>().sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller/Swamp/SwampMist.mat");return ps;
     }
     static AudioSource Audio(GameObject g,string name,bool spatial)
     {

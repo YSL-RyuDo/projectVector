@@ -11,8 +11,8 @@ using Object=UnityEngine.Object;
 
 public static class ControllerSmokeAuthoring
 {
-    public const string Dir="Assets/Art/Controller", Actor="Assets/Prefab/Character/Controller/Controller.prefab";
-    public const string ScenePath="Assets/Scenes/Game_TestVersion.unity";
+    public const string Dir="Assets/ProjectVector/Shared/Characters/Effects/Controller/Controller", Actor="Assets/ProjectVector/Shared/Characters/Prefabs/Controller/Controller.prefab";
+    public const string ScenePath="Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity";
     static readonly Color Navy=new Color(.08f,.12f,.20f), Sky=new Color(.25f,.68f,.88f), Silver=new Color(.79f,.85f,.94f);
     static void Ref(Object o,string key,Object value){var s=new SerializedObject(o);s.FindProperty(key).objectReferenceValue=value;s.ApplyModifiedPropertiesWithoutUndo();}
     static T Add<T>(GameObject g) where T:Component { var c=g.GetComponent<T>();return c?c:g.AddComponent<T>(); }
@@ -135,7 +135,7 @@ public static class ControllerSmokeAuthoring
             Text(root,"ControlKey"+i,keys[i],new Vector2(x-57,-419),new Vector2(85,35),17,Sky);Text(root,"ControlText"+i,labels[i],new Vector2(x+45,-419),new Vector2(112,35),18,Silver);
         }
         Frame(root,"StatusPanel",new Vector2(455,50),new Vector2(350,346),new Color(.04f,.065f,.11f,.88f));
-        var icon=Panel(root,"SkillIcon",new Vector2(454,137),new Vector2(74,74),Silver);icon.sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Character/Comtroller/Controller_E.png");icon.preserveAspect=true;
+        var icon=Panel(root,"SkillIcon",new Vector2(454,137),new Vector2(74,74),Silver);icon.sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/Characters/Portraits/Comtroller/Controller_E.png");icon.preserveAspect=true;
         Panel(root,"StatusRule",new Vector2(455,76),new Vector2(290,1),new Color(.35f,.58f,.72f,.6f));
         var status=Text(root,"Status","투하할 위치를 선택하세요",new Vector2(465,28),new Vector2(310,65),23,Silver);
         var distance=Text(root,"Distance","좌클릭  위치 선택",new Vector2(465,-61),new Vector2(310,42),17,Sky);
@@ -154,7 +154,7 @@ public static class ControllerSmokeAuthoring
     {
         // Duplicate materials before retinting: controller palette must not recolor other characters.
         foreach(string name in new[]{"Trap","TrapArea","DecoyTrap","DecoyTrapArea","DreamForestArea"}) {
-            string path="Assets/Prefab/Character/Controller/"+name+".prefab";var root=PrefabUtility.LoadPrefabContents(path);
+            string path="Assets/ProjectVector/Shared/Characters/Prefabs/Controller/"+name+".prefab";var root=PrefabUtility.LoadPrefabContents(path);
             try {
                 foreach(var ps in root.GetComponentsInChildren<ParticleSystem>(true)){
                     var main=ps.main;float alpha=main.startColor.color.a;main.startColor=new Color(.46f,.58f,.73f,alpha);
@@ -167,7 +167,7 @@ public static class ControllerSmokeAuthoring
                         // The legacy material points to a duplicate KSW shader graph.
                         // Bind the controller-owned graph so this palette does not alter that shared asset.
                         if(name=="DreamForestArea" && source.name.Contains("DreamForestMaterial"))
-                            mat.shader=AssetDatabase.LoadAssetAtPath<Shader>("Assets/Prefab/Character/Controller/DreamForestShader.shadergraph");
+                            mat.shader=AssetDatabase.LoadAssetAtPath<Shader>("Assets/ProjectVector/Shared/Characters/Prefabs/Controller/DreamForestShader.shadergraph");
                         if(mat.HasProperty("_BaseColor"))mat.SetColor("_BaseColor",name.Contains("Area")?new Color(.18f,.43f,.62f,.72f):Silver);
                         if(mat.HasProperty("_Color"))mat.SetColor("_Color",name.Contains("Area")?Sky:Silver);
                         if(mat.HasProperty("_EmissionColor"))mat.SetColor("_EmissionColor",Sky*.18f);

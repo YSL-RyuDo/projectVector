@@ -47,10 +47,10 @@ public static class VectorMatchFlowEditor
         view.medals=new Image[3];for(int i=0;i<3;i++)view.medals[i]=Box(view.card.transform,"Medal"+i,0,0,40,40,Color.white);
         view.border=Box(root,"EquippedFrame",0,0,w,h,Color.white);view.border.sprite=Resources.Load<Sprite>("IconBorder/border");
         view.border.enabled=false;
-        Box(root,"MetalLeft",-w*.5f+4,0,8,h,new Color32(109,140,163,255)).sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/MatchAuthored/ReferenceFrameLeft.asset");
-        Box(root,"MetalRight",w*.5f-4,0,8,h,new Color32(109,140,163,255)).sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/MatchAuthored/ReferenceFrameRight.asset");
-        Box(root,"MetalTop",0,h*.5f-12,w,24,Color.white).sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/VideoReference/CardCrown.png");
-        Box(root,"MetalFoot",0,-h*.5f+7,w,14,Color.white).sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/MatchAuthored/ReferenceFrameFoot.asset");
+        Box(root,"MetalLeft",-w*.5f+4,0,8,h,new Color32(109,140,163,255)).sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Modules/Match/UI/MatchAuthored/ReferenceFrameLeft.asset");
+        Box(root,"MetalRight",w*.5f-4,0,8,h,new Color32(109,140,163,255)).sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Modules/Match/UI/MatchAuthored/ReferenceFrameRight.asset");
+        Box(root,"MetalTop",0,h*.5f-12,w,24,Color.white).sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/UI/Surfaces/MatchFlow/CardCrown.png");
+        Box(root,"MetalFoot",0,-h*.5f+7,w,14,Color.white).sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Modules/Match/UI/MatchAuthored/ReferenceFrameFoot.asset");
         var concealed=Box(root,"Concealed",0,0,w-14,h-14,new Color32(52,60,72,255));view.concealed=concealed.gameObject;
         Text(concealed.transform,"WaitingMark","◇",0,15,w,70,48,muted);
         Box(root,"NameBand",0,-h*.29f,w-18,48,new Color(0,0,0,.8f));
@@ -66,8 +66,8 @@ public static class VectorMatchFlowEditor
         if(EditorApplication.isPlayingOrWillChangePlaymode)throw new Exception("Stop Play first");
         for(int i=0;i<UnityEngine.SceneManagement.SceneManager.sceneCount;i++)if(UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty)throw new Exception("Unsaved scene refused");
         foreach(string name in new[]{"Lobby","Game_TestVersion","Result"})
-            System.IO.File.Copy("Assets/Scenes/"+name+".unity",System.IO.Path.Combine(System.IO.Path.GetTempPath(),name+"-before-flow-"+DateTime.Now.ToString("yyyyMMddHHmmssfff")+".unity"));
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");var preserved=new VectorExperiencePolishEditor.Preservation(scene);
+            System.IO.File.Copy(ProjectEditorPaths.Scene(name),System.IO.Path.Combine(System.IO.Path.GetTempPath(),name+"-before-flow-"+DateTime.Now.ToString("yyyyMMddHHmmssfff")+".unity"));
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");var preserved=new VectorExperiencePolishEditor.Preservation(scene);
         var social=Object.FindFirstObjectByType<LobbySocialController>(FindObjectsInactive.Include);font=social.readyProgress.font;
         var ready=Ensure<ReadyMatchPresentation>(social.readyPanel);social.readyPresentation=ready;ready.cards=new MatchIdentityCard[6];
         var modalCanvas=Ensure<Canvas>(social.readyPanel);modalCanvas.overrideSorting=true;
@@ -81,14 +81,14 @@ public static class VectorMatchFlowEditor
         }
         Save(scene,preserved);
 
-        scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");preserved=new VectorExperiencePolishEditor.Preservation(scene);
+        scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");preserved=new VectorExperiencePolishEditor.Preservation(scene);
         var pick=Object.FindFirstObjectByType<PickManager>(FindObjectsInactive.Include);
         var backdrop=Ref<PickMapBackdrop>(pick,"mapBackdrop");var pickPanel=backdrop.transform;var canvas=pickPanel.GetComponentInParent<Canvas>();
         var intro=Ensure<MapIntroPresentation>(pick.gameObject);Set(pick,"mapIntro",intro);
         var overlay=Rect(canvas.transform,"AuthoredMapIntroduction",0,0,1920,1080);intro.overlay=overlay.gameObject;
         var cameraRoot=Child(backdrop.stageRoot.transform,"MapOverviewCamera");intro.overviewCamera=Ensure<Camera>(cameraRoot.gameObject);
         var camera=intro.overviewCamera;camera.cullingMask=1<<31;camera.clearFlags=CameraClearFlags.Skybox;camera.fieldOfView=62;camera.nearClipPlane=.1f;camera.farClipPlane=500;camera.allowHDR=false;
-        const string rtPath="Assets/UI/ResultSequence/MapIntroduction.renderTexture";
+        const string rtPath="Assets/ProjectVector/Modules/Results/UI/ResultSequence/MapIntroduction.renderTexture";
         var rt=AssetDatabase.LoadAssetAtPath<RenderTexture>(rtPath);
         if(rt==null){rt=new RenderTexture(1920,1080,24){name="MapIntroduction",antiAliasing=2};AssetDatabase.CreateAsset(rt,rtPath);}
         camera.targetTexture=rt;camera.enabled=false;
@@ -140,7 +140,7 @@ public static class VectorMatchFlowEditor
         loader.useMatchBriefing=true;loader.briefingStatus=loadingView.status;
         Save(scene,preserved);
 
-        scene=EditorSceneManager.OpenScene("Assets/Scenes/Result.unity");preserved=new VectorExperiencePolishEditor.Preservation(scene);
+        scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Results/Scenes/Result.unity");preserved=new VectorExperiencePolishEditor.Preservation(scene);
         var result=Object.FindFirstObjectByType<ResultVictorySequence>(FindObjectsInactive.Include);
         var mvp=Rect(result.overlay.transform,"AuthoredMvpSpotlight",0,0,1920,1080);result.mvpSpotlight=mvp.gameObject;result.mvpReveal=Ensure<CanvasGroup>(mvp.gameObject);
         mvp.SetSiblingIndex(result.next.transform.GetSiblingIndex());
@@ -158,7 +158,7 @@ public static class VectorMatchFlowEditor
     }
     public static void Verify()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var social=Object.FindFirstObjectByType<LobbySocialController>(FindObjectsInactive.Include);
         int Count()=>scene.GetRootGameObjects().Sum(r=>r.GetComponentsInChildren<Transform>(true).Length);
         int before=Count();var ids=new uint[]{1,2,3,4,5,6};var names=new[]{"LYS","KSW","JJY","KSH","KDH","CJU"};
@@ -169,7 +169,7 @@ public static class VectorMatchFlowEditor
         VectorExperiencePolishEditor.CaptureCanvas(canvas,"VectorFlow-Ready.png");
         social.ReceiveReady(12,2,0,6,3,true);if(social.readyPanel.activeSelf)throw new Exception("Cancelled readiness stayed open");
         if(before!=Count())throw new Exception("Runtime constructed readiness objects");
-        scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var pick=Object.FindFirstObjectByType<PickManager>(FindObjectsInactive.Include);var intro=Ref<MapIntroPresentation>(pick,"mapIntro");var backdrop=Ref<PickMapBackdrop>(pick,"mapBackdrop");
         canvas=backdrop.GetComponentInParent<Canvas>();
         for(int i=0;i<2;i++)
@@ -183,7 +183,7 @@ public static class VectorMatchFlowEditor
         var loading=Ref<MatchLoadingPanelUI>(pick,"matchLoadingPanelUI");var data=new MatchLoadingInfoData();
         for(int i=0;i<6;i++)(i<3?data.attackMembers:data.defenseMembers).Add(new MatchLoadingMemberData{playerId=ids[i],nickname=names[i],characterId=i%4});
         loading.Show(data);VectorExperiencePolishEditor.CaptureCanvas(canvas,"VectorFlow-Loading.png");
-        scene=EditorSceneManager.OpenScene("Assets/Scenes/Result.unity");
+        scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Results/Scenes/Result.unity");
         var result=Object.FindFirstObjectByType<ResultVictorySequence>(FindObjectsInactive.Include);
         MatchResultCache.Clear();MatchResultCache.mapName="TestMap";MatchResultCache.matchType=1;MatchResultCache.winnerTeam=0;MatchResultCache.scoreA=6;MatchResultCache.scoreB=3;
         for(int i=0;i<6;i++)MatchResultCache.members.Add(new MatchResultMemberData{playerId=ids[i],nickname=names[i],characterId=i%4,team=(byte)(i/3),isMvp=i==1,kills=i==1?18:3,appearance=appearances[ids[i]]});

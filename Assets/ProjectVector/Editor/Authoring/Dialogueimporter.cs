@@ -8,7 +8,7 @@ using UnityEditor;
 [CustomEditor(typeof(DialogueData))]
 public class DialogueDataEditor : Editor
 {
-    private string csvPath = "Assets/Resources/Dialogue/dialogue.csv";
+    private string csvPath = "Assets/ProjectVector/Modules/Lobby/Resources/Dialogue/dialogue.csv";
 
     public override void OnInspectorGUI()
     {

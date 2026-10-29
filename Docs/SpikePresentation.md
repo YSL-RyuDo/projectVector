@@ -68,7 +68,7 @@
 
 기존 컨트롤러는 망토 전용 뼈가 없고 아래쪽 옷자락이 다리 뼈를 따라 변형되어 앉으면 판처럼 펼쳐졌다. V4는 원본 FBX를 보존하고 코트에 해당하는 연결된 메시 2,138개 정점만 전용 뼈에 연결한 메시 사본을 저장한다. 머리, 몸, 다리와 팔의 기존 정점 및 연결은 유지한다. 위쪽은 Spine에 연결하고 아래쪽은 낮은 자세에서만 접힌다. 상시 천 시뮬레이션은 사용하지 않는다.
 
-`ControllerCoatMotion`은 Animator와 디바이스 동작 뒤에 적용된다. 충돌 계산을 위해 게임 콜라이더를 추가하지 않으므로 총알과 이동 판정을 가로막지 않는다. 접촉 보정량을 다음 프레임의 관성으로 누적하지 않아 옷판이 몸 반대편으로 튀지 않게 한다. 원본 아트는 유지하고 `Assets/Art/ControllerCoat`에 사본을 저장한다. 일반 동작 검토는 `controller-coat-motion.mp4`로 별도 제공한다. 임의의 모든 자세와 지형에서 관통이 없다고 보장하는 검증은 아니다.
+`ControllerCoatMotion`은 Animator와 디바이스 동작 뒤에 적용된다. 충돌 계산을 위해 게임 콜라이더를 추가하지 않으므로 총알과 이동 판정을 가로막지 않는다. 접촉 보정량을 다음 프레임의 관성으로 누적하지 않아 옷판이 몸 반대편으로 튀지 않게 한다. 원본 아트는 유지하고 `Assets/ProjectVector/Shared/Art/ControllerCoat`에 사본을 저장한다. 일반 동작 검토는 `controller-coat-motion.mp4`로 별도 제공한다. 임의의 모든 자세와 지형에서 관통이 없다고 보장하는 검증은 아니다.
 
 V3에서는 아래쪽으로 3.5cm의 여유를 추가하고 폭과 굽힘을 유지하는 힘, 허벅지와 종아리 간격을 조정했다. 앉아서 허리가 내려갈 때 남는 길이는 바닥 바깥쪽으로 퍼지도록 하며, 한 지점에 과하게 말려들거나 본이 뒤집히는 변형을 제한한다.
 
@@ -112,4 +112,4 @@ V3에서는 아래쪽으로 3.5cm의 여유를 추가하고 폭과 굽힘을 유
 
 1:37부터 컨트롤러의 걷기, 방향 전환, 앉기, 앉아서 이동, 정지 후 옷자락 움직임을 추가했다. 최종 길이는 약 1분 57초다. `Unity-validation.log`에 네 캐릭터의 발/손 위치 및 취소 복구 검사, 네 영상 생성, 600프레임 옷자락 동작 검사의 결과를 보관했다.
 
-아트 원본은 `Assets/Art/Spike`, 설치된 장치는 기존 `Assets/Resources/Prefabs/Spike/Spike.prefab`을 유지한다. 외부 결과물은 `C:/Users/GCT/Documents/Vector-Spike-20261027`에 저장한다.
+아트 원본은 `Assets/ProjectVector/Shared/Art/Spike`, 설치된 장치는 기존 `Assets/ProjectVector/Modules/Match/Resources/Prefabs/Spike/Spike.prefab`을 유지한다. 외부 결과물은 `C:/Users/GCT/Documents/Vector-Spike-20261027`에 저장한다.

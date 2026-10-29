@@ -12,9 +12,9 @@ using Object=UnityEngine.Object;
 
 public static class EmpPolishAuthoring
 {
-    const string Dir="Assets/Art/EMP";
+    const string Dir="Assets/ProjectVector/Shared/Characters/Effects/Initiator/EMP";
     const string DevicePath=Dir+"/WristEmitter.prefab";
-    const string ScenePath="Assets/Scenes/Game_TestVersion.unity";
+    const string ScenePath="Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity";
     public const string Output="C:/Users/GCT/Downloads/Vector_EMP_20261022";
     static readonly Color Cyan=new Color(.13f,.8f,1);
     static void Ref(Object target,string field,Object value){var s=new SerializedObject(target);s.FindProperty(field).objectReferenceValue=value;s.ApplyModifiedPropertiesWithoutUndo();}
@@ -85,7 +85,7 @@ public static class EmpPolishAuthoring
     }
     static LineRenderer Line(Transform parent,string name,bool world,bool loop)
     {
-        var l=Component<LineRenderer>(Child(parent,name));l.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Drone/EnergyBeam.mat");l.useWorldSpace=world;l.loop=loop;l.enabled=false;
+        var l=Component<LineRenderer>(Child(parent,name));l.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Shared/Characters/Effects/Initiator/Drone/Materials/EnergyBeam.mat");l.useWorldSpace=world;l.loop=loop;l.enabled=false;
         l.widthCurve=AnimationCurve.Constant(0,1,1);l.numCapVertices=2;l.numCornerVertices=2;l.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;l.receiveShadows=false;return l;
     }
     static ParticleSystem Sparks(Transform parent,string name,int count)
@@ -95,7 +95,7 @@ public static class EmpPolishAuthoring
         var e=p.emission;e.rateOverTime=0;e.SetBursts(new[]{new ParticleSystem.Burst(0,(short)count)});
         var s=p.shape;s.shapeType=ParticleSystemShapeType.Sphere;s.radius=.18f;
         var colors=p.colorOverLifetime;colors.enabled=true;var grad=new Gradient();grad.SetKeys(new[]{new GradientColorKey(Cyan,0),new GradientColorKey(Cyan,1)},new[]{new GradientAlphaKey(1,0),new GradientAlphaKey(0,1)});colors.color=grad;
-        var r=p.GetComponent<ParticleSystemRenderer>();r.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Drone/EnergyParticle.mat");r.renderMode=ParticleSystemRenderMode.Stretch;r.lengthScale=2;r.velocityScale=.025f;r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;return p;
+        var r=p.GetComponent<ParticleSystemRenderer>();r.sharedMaterial=AssetDatabase.LoadAssetAtPath<Material>("Assets/ProjectVector/Shared/Characters/Effects/Initiator/Drone/Materials/EnergyParticle.mat");r.renderMode=ParticleSystemRenderMode.Stretch;r.lengthScale=2;r.velocityScale=.025f;r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;return p;
     }
     static AudioClip Sound()
     {
@@ -107,7 +107,7 @@ public static class EmpPolishAuthoring
     static void AuthorActors(AudioClip cast)
     {
         foreach(string name in new[]{"Initiator","Controller","Entry","Sentinel"}){
-            string path=$"Assets/Prefab/Character/{name}/{name}.prefab";var root=PrefabUtility.LoadPrefabContents(path);
+            string path=$"Assets/ProjectVector/Shared/Characters/Prefabs/{name}/{name}.prefab";var root=PrefabUtility.LoadPrefabContents(path);
             try{
                 var receiver=Component<ElectricStatusVfx>(root.transform);var group=Child(root.transform,"ElectricStatusFX");Ref(receiver,"_status",root.GetComponent<ElectricShock>());
                 Refs(receiver,"_arcs",new[]{Line(group,"StunHelixA",false,false),Line(group,"StunHelixB",false,false)});
@@ -118,7 +118,7 @@ public static class EmpPolishAuthoring
                     Refs(fx,"_targetArcs",Enumerable.Range(0,8).Select(i=>Line(parent,"ConfirmedArc_"+i,true,false)));
                     Ref(fx,"_burst",Sparks(parent,"CastSparks",36));Ref(root.GetComponent<InitiatorSkill_E>(),"_presentation",fx);
                     var castAudio=Component<AudioSource>(Child(parent,"PulseAudio"));castAudio.playOnAwake=false;castAudio.clip=cast;castAudio.spatialBlend=1;castAudio.minDistance=2;castAudio.maxDistance=22;castAudio.volume=.6f;Ref(fx,"_castAudio",castAudio);
-                    var hit=Component<AudioSource>(Child(parent,"ConfirmedAudio"));hit.playOnAwake=false;hit.clip=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Drone/Confirmed.wav");hit.spatialBlend=1;hit.minDistance=1;hit.maxDistance=10;hit.volume=.28f;Ref(fx,"_hitAudio",hit);
+                    var hit=Component<AudioSource>(Child(parent,"ConfirmedAudio"));hit.playOnAwake=false;hit.clip=AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ProjectVector/Shared/Audio/Drone/Confirmed.wav");hit.spatialBlend=1;hit.minDistance=1;hit.maxDistance=10;hit.volume=.28f;Ref(fx,"_hitAudio",hit);
                     foreach(var old in root.GetComponentsInChildren<Transform>(true).Where(t=>t.name=="EMPWristEmitter").ToArray())Object.DestroyImmediate(old.gameObject);
                     Refs(fx,"_vents",Array.Empty<Transform>());Refs(fx,"_devices",Array.Empty<GameObject>());Refs(fx,"_cores",Array.Empty<Renderer>());
                     AuthorGesture(root);
@@ -191,7 +191,7 @@ public static class EmpPolishAuthoring
         var scaler=root.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1920,1080);scaler.matchWidthOrHeight=.5f;
         var ui=root.AddComponent<ElectricStatusUI>();var panel=Rect(root.transform,"LocalStatus",0,-230,228,53);
         Image(panel,"Backing",0,0,228,53,new Color(.025f,.045f,.055f,.86f));Image(panel,"Accent",-112,0,3,53,Cyan);
-        var icon=Image(panel,"SkillIcon",-81,0,32,32,Cyan);icon.sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Character/Initiator/Initiator_E.png");icon.preserveAspect=true;
+        var icon=Image(panel,"SkillIcon",-81,0,32,32,Cyan);icon.sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Shared/Characters/Portraits/Initiator/Initiator_E.png");icon.preserveAspect=true;
         var label=Text(panel,"Status","기절  2.0초",15,6,160,28,22);
         var stacks=Enumerable.Range(0,3).Select(i=>Image(panel,"Stack_"+(i+1),-35+i*43,-15,36,3,new Color(.22f,.28f,.32f))).ToArray();
         var fill=Image(panel,"Remaining",0,-26,228,3,Cyan);fill.type=UnityEngine.UI.Image.Type.Filled;fill.fillMethod=UnityEngine.UI.Image.FillMethod.Horizontal;fill.fillOrigin=0;

@@ -15,7 +15,7 @@ public sealed class PracticeCampusBuildSupport : IPreprocessBuildWithReport, IPo
     static PracticeCampusBuildSupport(){EditorApplication.update+=RestoreAfterFailedBuild;}
     public void OnPreprocessBuild(BuildReport report)
     {
-        if(!EditorBuildSettings.scenes.Any(s=>s.enabled && s.path=="Assets/Scenes/WeaponTest.unity"))return;
+        if(!EditorBuildSettings.scenes.Any(s=>s.enabled && s.path=="Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity"))return;
         var settings=GraphicsSettings.GetRenderPipelineSettings<IncludeAdditionalRPAssets>();
         if(settings==null)throw new BuildFailedException("URP build inclusion settings unavailable for the training pipeline.");
         SessionState.SetBool(Previous,settings.includeReferencedInScenes);SessionState.SetBool(Active,true);
@@ -31,7 +31,7 @@ public sealed class PracticeCampusBuildSupport : IPreprocessBuildWithReport, IPo
         settings.includeReferencedInScenes=SessionState.GetBool(Previous,false);
         SessionState.SetBool(Active,false);
         // Only this settings asset may have been serialized by Unity during the build.
-        var asset=AssetDatabase.LoadAssetAtPath<UnityEngine.Object>("Assets/Settings/UniversalRenderPipelineGlobalSettings.asset");
+        var asset=AssetDatabase.LoadAssetAtPath<UnityEngine.Object>("Assets/ProjectVector/Shared/Rendering/Settings/UniversalRenderPipelineGlobalSettings.asset");
         if(asset!=null)AssetDatabase.SaveAssetIfDirty(asset);
     }
 }

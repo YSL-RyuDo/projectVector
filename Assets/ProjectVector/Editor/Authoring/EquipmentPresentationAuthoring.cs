@@ -18,7 +18,7 @@ public static class EquipmentPresentationAuthoring
         var report=new StringBuilder();
         foreach(var role in SpikePresentationAuthoring.Characters)
         {
-            var actor=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefab/Character/{role}/{role}.prefab"));
+            var actor=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Characters/Prefabs/{role}/{role}.prefab"));
             foreach(var a in actor.GetComponentsInChildren<Animator>(true))a.enabled=false;
             var rig=actor.GetComponent<SpikeInteractionPresentation>().firstPerson;
             SpikeInteractionPresentation.Sample(rig,1,.65f);

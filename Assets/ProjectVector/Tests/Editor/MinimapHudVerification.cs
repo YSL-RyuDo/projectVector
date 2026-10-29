@@ -18,12 +18,12 @@ public static class MinimapHudVerification
     public static void Inspect()
     {
         var log=new StringBuilder();
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var saved=UnityEngine.Object.FindFirstObjectByType<MiniMapCamera>(FindObjectsInactive.Include);
         var prototype=UnityEngine.Object.Instantiate(saved.gameObject);
         foreach(string name in new[]{"TestMap","Desert"})
         {
-            var map=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/"+name+".prefab"));
+            var map=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/"+name+".prefab"));
             map.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
             var refs=map.GetComponentInChildren<MiniMapWorldReferences>(true);var info=map.GetComponent<MapInfo>();
             var cam=prototype.GetComponent<Camera>();var controller=prototype.GetComponent<MiniMapCamera>();

@@ -23,12 +23,12 @@ public static partial class VectorMatchLayoutEditor
     public static void Apply()
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode)throw new Exception("Stop play mode first");
-        var scene=UnityEngine.SceneManagement.SceneManager.GetSceneByPath("Assets/Scenes/Lobby.unity");if(scene.IsValid()&&scene.isDirty)throw new Exception("Save existing scene edits first");
-        if(!scene.IsValid()||!scene.isLoaded)scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var scene=UnityEngine.SceneManagement.SceneManager.GetSceneByPath("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");if(scene.IsValid()&&scene.isDirty)throw new Exception("Save existing scene edits first");
+        if(!scene.IsValid()||!scene.isLoaded)scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var controller=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<GamePanelController>(true)).Single();
         var game=Ref<GameObject>(controller,"gamePanel").transform;
         if(game.GetComponentInChildren<VectorRoomBrowser>(true)!=null)throw new Exception("Already authored. Edit saved hierarchy.");
-        System.IO.File.Copy("Assets/Scenes/Lobby.unity",System.IO.Path.Combine(System.IO.Path.GetTempPath(),"Lobby-before-match-rework-"+DateTime.Now.ToString("yyyyMMddHHmmss")+".unity"));
+        System.IO.File.Copy("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity",System.IO.Path.Combine(System.IO.Path.GetTempPath(),"Lobby-before-match-rework-"+DateTime.Now.ToString("yyyyMMddHHmmss")+".unity"));
         font=Ref<Button>(controller,"normalGameButton").GetComponentInChildren<TMP_Text>().font;
         Stretch(game);
         var so=new SerializedObject(controller);so.FindProperty("selectedModeButtonColor").colorValue=red;so.FindProperty("unselectedModeButtonColor").colorValue=dark;so.ApplyModifiedPropertiesWithoutUndo();
@@ -95,7 +95,7 @@ public static partial class VectorMatchLayoutEditor
     }
     public static void CaptureSaved()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var c=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<GamePanelController>(true)).Single();
         var game=Ref<GameObject>(c,"gamePanel");
         var host=new GameObject("PreviewCanvas",typeof(Canvas));host.layer=5;var canvas=host.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;host.GetComponent<RectTransform>().sizeDelta=new Vector2(1920,1080);
@@ -137,7 +137,7 @@ public static partial class VectorMatchLayoutEditor
     }
     public static void ValidateSaved()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");var c=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<GamePanelController>(true)).Single();
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");var c=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<GamePanelController>(true)).Single();
         var browser=Ref<GameObject>(c,"roomListPanel").GetComponent<VectorRoomBrowser>();if(browser.rows.Length!=8||browser.rows.Any(r=>r==null)||browser.search==null||browser.join==null)throw new Exception("Saved browser missing references");
         var room=Ref<RoomPanelUI>(c,"roomPanelUI");if(room.GetComponentsInChildren<RoomPlayerSlotUI>(true).Any(s=>s.emptyLabel==null))throw new Exception("Saved empty seat reference missing");
         foreach(var key in new[]{"aTeamSlots","bTeamSlots","observerSlots"})if(new SerializedObject(room).FindProperty(key).arraySize!=(key=="observerSlots"?2:3))throw new Exception("Saved team capacity mismatch");
@@ -152,7 +152,7 @@ public static partial class VectorMatchLayoutEditor
     }
     public static void Inspect()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var all=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<Transform>(true)).ToArray();
         var report=new StringBuilder();
         foreach(var c in all.SelectMany(t=>t.GetComponents<MonoBehaviour>()).Where(c=>c!=null&&(c is GamePanelController||c is RoomPanelUI||c is RoomRulesPanelUI||c is RoomCreateButton)))

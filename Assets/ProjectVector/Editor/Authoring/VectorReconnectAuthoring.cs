@@ -14,7 +14,7 @@ public static class VectorReconnectAuthoring
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode) throw new Exception("Stop Play first");
         for(int i=0;i<SceneManager.sceneCount;i++) if(SceneManager.GetSceneAt(i).isDirty) throw new Exception("Unsaved scene");
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var panel=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<MatchLoadingPanelUI>(true)).Single();
         var so=new SerializedObject(panel);
         var root=(GameObject)so.FindProperty("rootPanel").objectReferenceValue;

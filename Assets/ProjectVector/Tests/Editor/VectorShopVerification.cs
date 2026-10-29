@@ -26,7 +26,7 @@ public static class VectorShopVerification
         }
         foreach (string name in new[] { "InitiatorIcon", "ControllerIcon", "SentinelIcon", "DuelistIcon" })
             Require(Resources.Load<Sprite>("Sprites/" + name) != null, "Missing icon " + name);
-        var database = AssetDatabase.LoadAssetAtPath<WeaponSkinDatabase>("Assets/Prefab/Weapon/Weapon Skin Database.asset");
+        var database = AssetDatabase.LoadAssetAtPath<WeaponSkinDatabase>("Assets/ProjectVector/Shared/Weapons/Assets/Weapon Skin Database.asset");
         Require(database != null, "Missing skin database");
         int models = 0;
         foreach (var skin in database.skins.Where(s => s != null && s.skinId > 0))

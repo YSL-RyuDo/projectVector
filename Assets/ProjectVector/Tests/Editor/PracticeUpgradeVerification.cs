@@ -24,7 +24,7 @@ public static class PracticeUpgradeVerification
     public static void Run()
     {
         if(EditorApplication.isPlaying || UnityEngine.SceneManagement.SceneManager.GetActiveScene().isDirty)throw new Exception("Unsaved scene");
-        EditorSceneManager.OpenScene("Assets/Scenes/WeaponTest.unity");SessionState.SetBool(Key,true);
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity");SessionState.SetBool(Key,true);
         deadline=EditorApplication.timeSinceStartup+150;EditorApplication.update-=Tick;EditorApplication.update+=Tick;EditorApplication.EnterPlaymode();
     }
     static void State(PlayModeStateChange value)

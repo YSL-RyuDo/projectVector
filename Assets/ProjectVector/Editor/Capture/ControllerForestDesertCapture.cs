@@ -39,8 +39,8 @@ public static class ControllerForestDesertCapture
     public static void Run()
     {
         if(!Application.isBatchMode)throw new Exception("Batch only");Directory.CreateDirectory(Output);
-        EditorSceneManager.OpenScene("Assets/Scenes/WeaponTest.unity");Object.FindFirstObjectByType<PracticeRangeController>().persistRecords=false;
-        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/Desert.prefab"));map.transform.position=new Vector3(1000,0,0);var info=map.GetComponent<MapInfo>();info.SetBarriersActive(false);Physics.SyncTransforms();
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity");Object.FindFirstObjectByType<PracticeRangeController>().persistRecords=false;
+        var map=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/Desert.prefab"));map.transform.position=new Vector3(1000,0,0);var info=map.GetComponent<MapInfo>();info.SetBarriersActive(false);Physics.SyncTransforms();
         FindRoute(map,info);
         Target("ForestCaster",new Vector3(-1.3f,0,1.1f),101,0);Target("VisitorAlly",new Vector3(.15f,0,2.4f),102,1);Target("FarCasterAlly",new Vector3(1.3f,0,6.5f),103,0);
         foreach(var b in map.GetComponentsInChildren<MonoBehaviour>(true))Object.DestroyImmediate(b);

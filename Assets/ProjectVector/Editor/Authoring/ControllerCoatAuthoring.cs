@@ -8,17 +8,17 @@ using Object=UnityEngine.Object;
 
 public static class ControllerCoatAuthoring
 {
-    const string Folder="Assets/Art/ControllerCoat";
+    const string Folder="Assets/ProjectVector/Shared/Characters/Effects/Controller/ControllerCoat";
     const float Top=1f,Bottom=.12f;
     public static void Run()
     {
         System.IO.Directory.CreateDirectory(Folder);AssetDatabase.Refresh();
-        var root=PrefabUtility.LoadPrefabContents("Assets/Prefab/Character/Controller/Controller.prefab");
+        var root=PrefabUtility.LoadPrefabContents("Assets/ProjectVector/Shared/Characters/Prefabs/Controller/Controller.prefab");
         try
         {
             var model=root.transform.Find("Model");
             var renderer=model.GetComponentsInChildren<SkinnedMeshRenderer>(true).First(r=>r.name=="HeadUV");
-            var source=AssetDatabase.LoadAllAssetsAtPath("Assets/Character(New)/Controller/Controller Model_Riging (1).fbx").OfType<Mesh>().First(m=>m.name=="HeadUV");
+            var source=AssetDatabase.LoadAllAssetsAtPath("Assets/ProjectVector/Shared/Characters/Models/Controller/Controller Model_Riging (1).fbx").OfType<Mesh>().First(m=>m.name=="HeadUV");
             // Start from the untouched import every time, never from yesterday's generated weights.
             var sourceBones=renderer.bones.Take(source.bindposes.Length).ToArray();
             renderer.sharedMesh=source;renderer.bones=sourceBones;
@@ -128,7 +128,7 @@ public static class ControllerCoatAuthoring
             foreach(int i in mask){var w=weights[i];var v=vertices[i];var p=generated[w.boneIndex0].MultiplyPoint3x4(v)*w.weight0+generated[w.boneIndex1].MultiplyPoint3x4(v)*w.weight1+generated[w.boneIndex2].MultiplyPoint3x4(v)*w.weight2+generated[w.boneIndex3].MultiplyPoint3x4(v)*w.weight3;error=Mathf.Max(error,Vector3.Distance(p,world[i]));}
             if(error>.001f)throw new Exception("Standing coat differs from original by "+error+"m");
             Debug.Log("COAT_ORIGINAL_SILHOUETTE_PASS max error="+error.ToString("F6")+"m");
-            PrefabUtility.SaveAsPrefabAsset(root,"Assets/Prefab/Character/Controller/Controller.prefab");
+            PrefabUtility.SaveAsPrefabAsset(root,"Assets/ProjectVector/Shared/Characters/Prefabs/Controller/Controller.prefab");
             AssetDatabase.SaveAssets();Debug.Log("COAT_AUTHOR_PASS: "+mask.Count+" cloth vertices, source body preserved, "+nodes.Length+" secondary bones, 2 fitted shoe contacts");
         }
         finally{PrefabUtility.UnloadPrefabContents(root);}

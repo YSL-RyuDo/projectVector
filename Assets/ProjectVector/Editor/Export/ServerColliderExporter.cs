@@ -26,7 +26,9 @@ public class ServerColliderExporter
             lines.Add($"{min.x},{min.z},{max.x},{max.z}");
         }
 
-        File.WriteAllLines("Map_Colliders.txt", lines);
+        string path = ServerExportPaths.FilePath("Map_Colliders.txt");
+        File.WriteAllLines(path, lines);
+        Debug.Log($"Path: {path}");
         Debug.Log("Server collider export complete");
     }
 }

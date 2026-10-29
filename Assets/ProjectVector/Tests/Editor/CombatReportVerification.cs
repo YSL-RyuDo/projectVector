@@ -24,7 +24,7 @@ public static class CombatReportVerification
     public static void Run()
     {
         checks=0;Directory.CreateDirectory(CombatReportAuthoring.Output);
-        EditorSceneManager.OpenScene("Assets/Scenes/Game_TestVersion.unity");
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Match/Scenes/Game_TestVersion.unity");
         var report=UnityEngine.Object.FindFirstObjectByType<ReportUI>(FindObjectsInactive.Include);
         Check(report!=null,"existing author report retained");
         var root=ShopReadabilityAuthoring.Get<GameObject>(report,"rootPanel");Check(!root.activeSelf,"report hidden in saved scene");
@@ -92,7 +92,7 @@ public static class CombatReportVerification
         spectate.Present(null,null,0,false);Check(spectate.playerName.text=="생존한 아군 없음" && !spectate.weapon.enabled,"no living targets");
         spectate.Present(target,snapshot,1,true);Check(spectate.state.text=="드론 시점" && spectate.controls.text=="","one target drone state");
         spectate.Present(target,snapshot,2,false);
-        var map=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefab/Maps/TestMap.prefab"));
+        var map=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Shared/Maps/Prefabs/TestMap.prefab"));
         foreach(var t in map.GetComponentsInChildren<Transform>(true))t.gameObject.layer=28;
         var spawn=map.GetComponent<MapInfo>().attackSpawnPoints[0];
         var light=new GameObject("CaptureLight").AddComponent<Light>();light.type=LightType.Directional;light.intensity=1.2f;light.transform.rotation=Quaternion.Euler(45,-25,0);RenderSettings.ambientLight=Color.gray;RenderSettings.fog=false;

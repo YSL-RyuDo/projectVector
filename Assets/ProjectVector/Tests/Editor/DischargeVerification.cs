@@ -33,12 +33,12 @@ public static class DischargeVerification
     }
     static GameObject ActorAt(string type,Vector3 p)
     {
-        var actor=Load($"Assets/Prefab/Character/{type}/{type}.prefab");actor.transform.position=p;
+        var actor=Load($"Assets/ProjectVector/Shared/Characters/Prefabs/{type}/{type}.prefab");actor.transform.position=p;
         foreach(Transform child in actor.transform)if(child.name!="Model")child.gameObject.SetActive(false);
         var rootR=actor.GetComponent<Renderer>();if(rootR)rootR.enabled=false;
         var model=actor.transform.Find("Model");var animator=model.GetComponentInChildren<Animator>();
         string clipName=type=="Sentinel"?"Sentinel_Lobby_Idle":type+"_Idle";
-        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>($"Assets/Character Animation/{type}/Lobby/{clipName}.anim");if(clip && animator)clip.SampleAnimation(animator.gameObject,.3f);
+        var clip=AssetDatabase.LoadAssetAtPath<AnimationClip>($"Assets/ProjectVector/Shared/Characters/Animations/{type}/Lobby/{clipName}.anim");if(clip && animator)clip.SampleAnimation(animator.gameObject,.3f);
         return actor;
     }
     public static void Run()
@@ -52,7 +52,7 @@ public static class DischargeVerification
         foreach(string mapName in new[]{"TestMap","Desert"})
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);Light();
-            var map=Load($"Assets/Prefab/Maps/{mapName}.prefab");map.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);var info=map.GetComponent<MapInfo>();info.SetBarriersActive(false);Physics.SyncTransforms();
+            var map=Load($"Assets/ProjectVector/Shared/Maps/Prefabs/{mapName}.prefab");map.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);var info=map.GetComponent<MapInfo>();info.SetBarriersActive(false);Physics.SyncTransforms();
             var effect=Load(DischargeAuthoring.Dir+"/DischargeSequence.prefab").GetComponent<DischargeVfx>();
             int samples=0;bool elevated=false;
             foreach(var spawn in info.attackSpawnPoints.Concat(info.defendSpawnPoints))for(int angle=0;angle<360;angle+=45)

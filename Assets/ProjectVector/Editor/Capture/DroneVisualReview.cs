@@ -7,9 +7,9 @@ using UnityEditor.SceneManagement;
 using System.Reflection;
 public static class DroneVisualReview
 {
-    const string ActorPath="Assets/Prefab/Character/Initiator/Initiator.prefab";
-    const string DronePath="Assets/Prefab/Character/Initiator/Drone.prefab";
-    const string Materials="Assets/Materials/Drone";
+    const string ActorPath="Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab";
+    const string DronePath="Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Drone.prefab";
+    const string Materials="Assets/ProjectVector/Shared/Characters/Effects/Initiator/Drone/Materials";
     public static void PrepareCaptureBuild()
     {
         AuthorPose();
@@ -19,7 +19,7 @@ public static class DroneVisualReview
     {
         var source=AssetDatabase.LoadAssetAtPath<GameObject>(DronePath).transform.Find("ImpactSpark").GetComponent<ParticleSystem>();
         foreach(string character in new[]{"Initiator","Controller","Entry","Sentinel"}) {
-            string path=$"Assets/Prefab/Character/{character}/{character}.prefab";
+            string path=$"Assets/ProjectVector/Shared/Characters/Prefabs/{character}/{character}.prefab";
             var actor=PrefabUtility.LoadPrefabContents(path);
             try {
                 var shock=actor.GetComponent<ElectricShock>();if(!shock)shock=actor.AddComponent<ElectricShock>();
@@ -102,8 +102,8 @@ public static class DroneVisualReview
     }
     public static void AuthorPose()
     {
-        Compatible(AssetDatabase.LoadAssetAtPath<Material>("Assets/KSW/Drone/Art/material/Red.mat"));
-        Compatible(AssetDatabase.LoadAssetAtPath<Material>("Assets/KSW/Drone/Art/material/White.mat"));
+        Compatible(AssetDatabase.LoadAssetAtPath<Material>("Assets/ThirdParty/Drone/Art/material/Red.mat"));
+        Compatible(AssetDatabase.LoadAssetAtPath<Material>("Assets/ThirdParty/Drone/Art/material/White.mat"));
         var actor=PrefabUtility.LoadPrefabContents(ActorPath);
         try {
             var model=actor.transform.Find("CameraRoot/Controller Model_Riging (1)");
@@ -174,7 +174,7 @@ public static class DroneVisualReview
     }
     public static void Inspect()
     {
-        var actor=PrefabUtility.LoadPrefabContents("Assets/Prefab/Character/Initiator/Initiator.prefab");
+        var actor=PrefabUtility.LoadPrefabContents("Assets/ProjectVector/Shared/Characters/Prefabs/Initiator/Initiator.prefab");
         try {
             foreach(var t in actor.GetComponentsInChildren<Transform>(true).Where(t=>t.name.Contains("Left") || t.name.Contains("Camera")))
                 Debug.Log($"RIG {AnimationUtility.CalculateTransformPath(t,actor.transform)} local={t.localPosition} world={t.position} scale={t.lossyScale} rotation={t.eulerAngles}");

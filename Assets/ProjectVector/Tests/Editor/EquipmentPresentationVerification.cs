@@ -27,7 +27,7 @@ public static class EquipmentPresentationVerification
     public static void Run()
     {
         if(!Application.isBatchMode)throw new Exception("Batch only");
-        EditorSceneManager.OpenScene("Assets/Scenes/WeaponTest.unity");SessionState.SetBool(Key,true);EditorApplication.EnterPlaymode();
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity");SessionState.SetBool(Key,true);EditorApplication.EnterPlaymode();
     }
     public static void Finish(Exception error=null)
     {
@@ -126,7 +126,7 @@ public sealed class EquipmentPresentationProbe : MonoBehaviour
             range.loadout.Confirm();range.EquipRifle();range.FreePractice();yield return Pause(1);
             Check(transition&&transition.model,"saved transition missing");
             var spike=range.player.GetComponent<PlayerSpike>();spike.hasSpike=true;
-            item.GiveSpike(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/Spike/Spike.prefab"));
+            item.GiveSpike(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ProjectVector/Modules/Match/Resources/Prefabs/Spike/Spike.prefab"));
             if(role==1)StartVideo();
             yield return Select(Key.Digit2,1);yield return Select(Key.Digit3,2);Capture("Knife");
             Keys(Key.W,Key.Space);yield return Pause(.3f);Keys();

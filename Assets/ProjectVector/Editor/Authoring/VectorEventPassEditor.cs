@@ -13,7 +13,7 @@ public static class VectorEventPassEditor
     static TMP_FontAsset font;
     public static void PolishAndCapture()
     {
-        var scene=EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var scene=EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var all=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<Transform>(true)).ToArray();
         var pass=all.Select(t=>t.GetComponent<VectorEventPass>()).First(p=>p!=null);
         font=pass.levelLabel.font;
@@ -21,7 +21,7 @@ public static class VectorEventPassEditor
         foreach(var label in pass.rewardLabels)label.color=Ink;
         var promo=all.Select(t=>t.GetComponent<VectorLobbyPromotion>()).First(p=>p!=null);
         var store=all.First(t=>t.name=="Store Panel");
-        var hero=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Login/Wallpaper_Summer_Music_Festival.jpg");
+        var hero=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/ProjectVector/Modules/Login/UI/Sprites/Wallpaper_Summer_Music_Festival.jpg");
         var profile=Resources.Load<Sprite>("Sprites/InitiatorSprite");
         if(hero==null)throw new InvalidOperationException("Shop hero artwork missing");
         pass.GetComponent<Image>().sprite=hero;
@@ -84,9 +84,9 @@ public static class VectorEventPassEditor
     public static void Install()
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Exit play mode first.");
-        var existing=UnityEngine.SceneManagement.SceneManager.GetSceneByPath("Assets/Scenes/Lobby.unity");
+        var existing=UnityEngine.SceneManagement.SceneManager.GetSceneByPath("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         if(existing.IsValid() && existing.isDirty)throw new InvalidOperationException("Save the Lobby scene first.");
-        var scene=existing.IsValid()&&existing.isLoaded?existing:EditorSceneManager.OpenScene("Assets/Scenes/Lobby.unity");
+        var scene=existing.IsValid()&&existing.isLoaded?existing:EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Lobby/Scenes/Lobby.unity");
         var all=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<Transform>(true)).ToArray();
         var root=all.First(t=>t.name=="Game Pass Panel");
         if(root.GetComponent<VectorEventPass>()!=null)throw new InvalidOperationException("Already installed; edit the saved objects directly.");

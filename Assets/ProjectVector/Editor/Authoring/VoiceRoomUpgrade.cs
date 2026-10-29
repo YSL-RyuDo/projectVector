@@ -16,7 +16,7 @@ public static class VoiceRoomUpgrade
             if (UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty) throw new Exception("Unsaved scene; refusing overwrite");
         foreach (string name in new[] { "Lobby", "Game_TestVersion", "Result", "RankResult" })
         {
-            var scene = EditorSceneManager.OpenScene("Assets/Scenes/" + name + ".unity");
+            var scene = EditorSceneManager.OpenScene(ProjectEditorPaths.Scene(name));
             var roots = scene.GetRootGameObjects();
             var ui = roots.SelectMany(r => r.GetComponentsInChildren<VectorVoicePanel>(true)).Single();
             ui.openButton.gameObject.SetActive(false);

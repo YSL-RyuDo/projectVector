@@ -26,7 +26,7 @@ public static class PracticeRangePlayVerification
     public static void Run()
     {
         if(EditorApplication.isPlaying || UnityEngine.SceneManagement.SceneManager.GetActiveScene().isDirty)throw new Exception("Save scene first");
-        EditorSceneManager.OpenScene("Assets/Scenes/WeaponTest.unity");
+        EditorSceneManager.OpenScene("Assets/ProjectVector/Modules/Practice/Scenes/WeaponTest.unity");
         SessionState.SetBool(Active,true);deadline=EditorApplication.timeSinceStartup+90;
         EditorApplication.update-=Tick;EditorApplication.update+=Tick;EditorApplication.EnterPlaymode();
     }

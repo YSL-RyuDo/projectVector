@@ -11,7 +11,7 @@ public static class SpikeAssetAudit
 {
     public static void CoatMesh()
     {
-        var root=PrefabUtility.LoadPrefabContents("Assets/Prefab/Character/Controller/Controller.prefab");
+        var root=PrefabUtility.LoadPrefabContents("Assets/ProjectVector/Shared/Characters/Prefabs/Controller/Controller.prefab");
         var lines=new System.Collections.Generic.List<string>{"mesh,index,x,y,z,bone,weight"};
         foreach(var r in root.transform.Find("Model").GetComponentsInChildren<SkinnedMeshRenderer>(true))
         {
@@ -32,7 +32,7 @@ public static class SpikeAssetAudit
     {
         foreach(string c in SpikePresentationAuthoring.Characters)
         {
-            var root=PrefabUtility.LoadPrefabContents("Assets/Prefab/Character/"+c+"/"+c+".prefab");
+            var root=PrefabUtility.LoadPrefabContents("Assets/ProjectVector/Shared/Characters/Prefabs/"+c+"/"+c+".prefab");
             foreach(var b in root.transform.Find("Model").GetComponentsInChildren<SkinnedMeshRenderer>(true).SelectMany(r=>r.bones).Where(b=>b).Distinct())
                 if(b.name.Contains("Leg")||b.name.Contains("Thigh")||b.name.Contains("Foot")||b.name.Contains("Hips")||b.name.Contains("Spine")||b.name.Contains("Calf"))Debug.Log("LEG_AUDIT "+c+" "+b.name+" "+b.position.ToString("F3")+" parents="+b.parent.name+"/"+b.parent.parent.name+"/"+b.parent.parent.parent.name);
             var pose=root.GetComponent<SpikeInteractionPresentation>();
@@ -72,7 +72,7 @@ public static class SpikeAssetAudit
         var light=new GameObject("Key").AddComponent<Light>();light.type=LightType.Directional;light.intensity=1.4f;light.transform.rotation=Quaternion.Euler(40,-35,0);
         var cam=new GameObject("Camera").AddComponent<Camera>();cam.clearFlags=CameraClearFlags.SolidColor;cam.backgroundColor=new Color(.08f,.105f,.14f);cam.fieldOfView=35;cam.nearClipPlane=.01f;
         var rt=new RenderTexture(768,768,24);rt.antiAliasing=4;cam.targetTexture=rt;var tex=new Texture2D(768,768,TextureFormat.RGB24,false);
-        var paths=new[]{"Assets/FPS_Bundle/FPS_Weapon0/Prefabs/Grenade/C4.prefab","Assets/FPS_Bundle/FPS_Weapon0/Prefabs/Grenade/C4_2.prefab","Assets/FPS_Bundle/FPS_Weapon0/Prefabs/Grenade/C4_3.prefab","Assets/Sci-Fi Styled Modular Pack/Prefabs/Machines/shield_generator.prefab","Assets/Sci-Fi Styled Modular Pack/Prefabs/Machines/Shield Core.prefab","Assets/Sci-Fi Styled Modular Pack/Prefabs/Machines/generator.prefab","Assets/Sci-Fi Styled Modular Pack/Prefabs/Machines/rotor.prefab"};
+        var paths=new[]{"Assets/ThirdParty/FPS_Bundle/FPS_Weapon0/Prefabs/Grenade/C4.prefab","Assets/ThirdParty/FPS_Bundle/FPS_Weapon0/Prefabs/Grenade/C4_2.prefab","Assets/ThirdParty/FPS_Bundle/FPS_Weapon0/Prefabs/Grenade/C4_3.prefab","Assets/ThirdParty/Sci-Fi Styled Modular Pack/Prefabs/Machines/shield_generator.prefab","Assets/ThirdParty/Sci-Fi Styled Modular Pack/Prefabs/Machines/Shield Core.prefab","Assets/ThirdParty/Sci-Fi Styled Modular Pack/Prefabs/Machines/generator.prefab","Assets/ThirdParty/Sci-Fi Styled Modular Pack/Prefabs/Machines/rotor.prefab"};
         foreach(var path in paths)
         {
             var g=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path));foreach(var b in g.GetComponentsInChildren<MonoBehaviour>())b.enabled=false;
