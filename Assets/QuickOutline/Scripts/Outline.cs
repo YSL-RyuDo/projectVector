@@ -118,11 +118,14 @@ public class Outline : MonoBehaviour {
     if (!camera || camera.cameraType != CameraType.Game) return;
     if (!smokeTarget) smokeTarget = GetComponentInParent<PlayerOutline>();
     if (!smokeTarget) smokeTarget = GetComponentInChildren<PlayerOutline>(true);
-    bool hide = smokeTarget && smokeTarget.IsOccludedBySmoke(camera);
+    bool revealed = smokeTarget && smokeTarget.HasConfirmedSkillReveal;
+    if (!isActiveAndEnabled) return; // Expiry may restore a disabled concealment state.
+    // Expiration can restore the normal depth mode just before this camera renders.
+    if (needsUpdate) { needsUpdate = false; UpdateMaterialProperties(); }
+    bool hide = smokeTarget && !revealed && smokeTarget.IsOccludedBySmoke(camera);
     if (hide == smokeSuppressed) return;
     smokeSuppressed = hide;
-    // Keep enabled/color/mode intact: reveal skills cannot override smoke, and
-    // leaving it restores their current state rather than a stale cached color.
+    // Only a live, team-authorized skill reveal bypasses smoke concealment.
     SetOutlineMaterials(!hide);
   }
 

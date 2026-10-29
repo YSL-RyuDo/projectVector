@@ -14,6 +14,7 @@ public static class GameplayActionPolicy
     public static bool CanAct(Component owner, GameplayAction action, bool includeMenus = true)
     {
         if (owner == null || (includeMenus && MenuBlocksInput)) return false;
+        if (includeMenus && Game.Pings.PingSystem.WheelOpen && action != GameplayAction.Move && action != GameplayAction.Look) return false;
         var practice = PracticePlayerContext.For(owner);
         if (includeMenus && practice != null && practice.range.MenuOpen) return false;
         if (owner.GetComponentInParent<PlayerHP>()?.IsDead == true ||

@@ -42,6 +42,7 @@ public sealed class SpikeInteractionPresentation : MonoBehaviour
     PlayerSpike spike;
     PlayerItem inventory;
     public bool IsPresenting { get; private set; }
+    public bool IsRecovering => recovering;
     void Awake() { spike = GetComponent<PlayerSpike>(); inventory = GetComponent<PlayerItem>(); }
     void Update() { Restore(firstPerson); Restore(thirdPerson); }
     void LateUpdate()
@@ -50,15 +51,17 @@ public sealed class SpikeInteractionPresentation : MonoBehaviour
         bool local = spike.IsLocalPlayer();
         byte action = local ? (spike.IsPlanting ? (byte)1 : spike.IsDefusing ? (byte)2 : (byte)0) : remoteAction;
         bool interrupted = GetComponent<PlayerHP>()?.IsDead == true || GetComponent<PlayerDeathController>()?.IsDead == true ||
-            (RoundManager.Instance && (RoundManager.Instance.currentState == RoundManager.RoundState.RoundEnd ||
-            RoundManager.Instance.currentState == RoundManager.RoundState.Preparation || RoundManager.Instance.currentState == RoundManager.RoundState.GameOver));
-        if(interrupted){action=0;recovering=false;}
+            (RoundManager.Instance && (RoundManager.Instance.currentState == RoundManager.RoundState.Preparation || RoundManager.Instance.currentState == RoundManager.RoundState.GameOver));
+        if(interrupted){action=0;remoteAction=0;recovering=false;}
+        // A successful defuse is immediately followed by RoundEnd. Finish the
+        // lower-body return there; only death/respawn hard-reset the pose.
+        if(RoundManager.Instance && RoundManager.Instance.currentState == RoundManager.RoundState.RoundEnd)action=0;
         if (!local && Time.unscaledTime - remoteStarted > 8) action = 0;
         float elapsed = local ? (action == 1 ? spike.PlantProgress * spike.plantTime : spike.DefuseProgress * 5) : Time.unscaledTime - remoteStarted;
         if (action != 0)
         {
             recovering=false;
-            if (!shown && source && equipSound) source.PlayOneShot(equipSound, .5f);
+            if (!shown && source && equipSound && NetworkManager.Instance?.ReconnectBusy != true) source.PlayOneShot(equipSound, .5f);
             inventory?.SetWeaponVisibility(false);
             if(action==1)
             {
@@ -191,14 +194,21 @@ public sealed class SpikeInteractionPresentation : MonoBehaviour
             { p.remoteAction = 2; p.remoteStarted = Time.unscaledTime - (half ? 2.5f : 0); }
         }
     }
-    public static void StopAll()
+    public static void StopAll(bool immediate = true)
     {
         foreach (var p in FindObjectsByType<SpikeInteractionPresentation>(FindObjectsSortMode.None))
         {
-            p.remoteAction=0;p.recovering=false;p.suppressRecovery=true;p.IsPresenting=false;
+            p.remoteAction=0;p.IsPresenting=false;
+            if(immediate){p.recovering=false;p.suppressRecovery=true;}
             // Preserve shown until LateUpdate restores weapon visibility.
             Hide(p.firstPerson);Hide(p.thirdPerson);
         }
     }
-    void OnDisable() { Hide(firstPerson); Hide(thirdPerson); remoteAction=0; recovering=false;suppressRecovery=false;lastInput=-1; shown = false; IsPresenting = false; }
+    void OnDisable()
+    {
+        Hide(firstPerson); Hide(thirdPerson);
+        if(shown && inventory && GetComponent<PlayerHP>()?.IsDead != true && GetComponent<PlayerDeathController>()?.IsDead != true)
+            inventory.SetWeaponVisibility(true);
+        remoteAction=0; recovering=false;suppressRecovery=false;lastInput=-1; shown=false;IsPresenting=false;
+    }
 }

@@ -5,6 +5,7 @@ using UnityEngine.UI;
 public class InGameUIManager : MonoBehaviour
 {
     public static InGameUIManager Instance;
+    [SerializeField] private CombatHudReadout combatReadout;
 
     [Header("Player Info")]
     [SerializeField] private Image charImage;
@@ -28,9 +29,15 @@ public class InGameUIManager : MonoBehaviour
     [SerializeField] private Image qSkillGauge;
     [SerializeField] private Image eSkillGauge;
     [SerializeField] private Image xSkillGauge;
+    [SerializeField] private TMP_Text ultimatePointText;
     [SerializeField] private Color availableGaugeColor = new Color(0.25f, 0.9f, 0.8f, 1f);
 
     [Header("Weapon Info")]
+    [SerializeField] private EquipmentIconCatalog equipmentIcons;
+    [SerializeField] private GameObject spikeSlotRoot;
+    [SerializeField] private Image[] weaponSlotBackgrounds = new Image[4];
+    [SerializeField] private Color slotColor = new Color(.22f,.28f,.36f,.9f);
+    [SerializeField] private Color selectedSlotColor = new Color(.36f,.47f,.57f,.95f);
     [SerializeField] private Image mainWeaponImage;
     [SerializeField] private Image subWeaponImage;
     [SerializeField] private Image knifeImage;
@@ -68,11 +75,11 @@ public class InGameUIManager : MonoBehaviour
 
         if (spikeImage != null)
         {
-            cachedSpikeSprite = defaultSpikeSprite != null
+            cachedSpikeSprite = equipmentIcons && equipmentIcons.device ? equipmentIcons.device : defaultSpikeSprite != null
                 ? defaultSpikeSprite
                 : spikeImage.sprite;
 
-            spikeImage.gameObject.SetActive(false);
+            (spikeSlotRoot ? spikeSlotRoot : spikeImage.gameObject).SetActive(false);
         }
     }
 
@@ -98,6 +105,13 @@ public class InGameUIManager : MonoBehaviour
                 "Inspector의 Crosshair Object에 직접 연결하세요."
             );
         }
+    }
+
+    public void SetSelectedWeaponSlot(int inventorySlot)
+    {
+        int row = inventorySlot == 4 ? 3 : inventorySlot;
+        for (int i=0;i<weaponSlotBackgrounds.Length;i++)
+            if (weaponSlotBackgrounds[i]) weaponSlotBackgrounds[i].color = i==row ? selectedSlotColor : slotColor;
     }
 
     public void SetCrosshairVisible(bool visible)
@@ -148,6 +162,7 @@ public class InGameUIManager : MonoBehaviour
         Sprite characterSprite,
         PickCharacterData characterData)
     {
+        SkillInventoryState.SetCharacter(characterData);
         SetCharacterImage(characterSprite);
         SetSkillIcons(characterData);
 
@@ -202,6 +217,10 @@ public class InGameUIManager : MonoBehaviour
         SetSkillStateVisual(qSkillImage, qSkillGauge, SkillSlot.Q);
         SetSkillStateVisual(eSkillImage, eSkillGauge, SkillSlot.E);
         SetSkillStateVisual(xSkillImage, xSkillGauge, SkillSlot.X);
+        if (combatReadout) combatReadout.PresentSkills();
+        else if (ultimatePointText) ultimatePointText.text = SkillInventoryState.HasUltimateState ?
+            (SkillInventoryState.IsUsed(SkillSlot.X) ? "사용 완료" : SkillInventoryState.CanUse(SkillSlot.X) ? "준비 완료" : SkillInventoryState.UltimatePoints+" / "+SkillInventoryState.UltimateRequired) : "\u2014";
+        if (xSkillGauge && SkillInventoryState.HasUltimateState) { xSkillGauge.fillAmount=(float)SkillInventoryState.UltimatePoints/SkillInventoryState.UltimateRequired; xSkillGauge.color=SkillInventoryState.IsUsed(SkillSlot.X)?usedSkillColor:availableGaugeColor; }
     }
 
     private void SetSkillStateVisual(
@@ -258,6 +277,7 @@ public class InGameUIManager : MonoBehaviour
     }
     public void SetHpBarrier(int hp, int barrier, int maxHpValue, int maxBarrierValue)
     {
+        combatReadout?.PresentHealth(hp,barrier,maxHpValue,maxBarrierValue);
         currentHp = Mathf.Clamp(hp, 0, Mathf.Max(1, maxHpValue));
         currentBarrier = Mathf.Clamp(barrier, 0, 100);
 
@@ -268,7 +288,7 @@ public class InGameUIManager : MonoBehaviour
         int maxTotal = maxHp + maxBarrier;
 
         if (hpText != null)
-            hpText.text = $"{currentTotal} / {maxTotal}";
+            hpText.text = currentHp.ToString();
 
         if (hpBar != null)
         {
@@ -279,7 +299,7 @@ public class InGameUIManager : MonoBehaviour
         if (barrierBar != null)
         {
             barrierBar.fillAmount =
-                Mathf.Clamp01((float)currentBarrier / 100f);
+                Mathf.Clamp01(maxBarrier > 0 ? currentBarrier / (float)maxBarrier : 0);
         }
     }
 
@@ -296,26 +316,29 @@ public class InGameUIManager : MonoBehaviour
     private void InitializeWeaponUI()
     {
         SetMainWeapon(null);
-        SetSubWeapon(defaultPistolSprite);
-        SetKnife(defaultKnifeSprite);
+        SetSubWeapon(equipmentIcons ? equipmentIcons.Weapon(0) : defaultPistolSprite);
+        SetKnife(equipmentIcons ? equipmentIcons.Weapon(13) : defaultKnifeSprite);
         SetThrowWeapon(defaultThrowWeaponSprite);
-        SetSpike(defaultSpikeSprite);
+        SetSpike(equipmentIcons && equipmentIcons.device ? equipmentIcons.device : defaultSpikeSprite);
     }
 
-    public void SetMainWeapon(WeaponData weaponData)
+    public Sprite ResolveWeaponIcon(WeaponData data)
     {
-        if (mainWeaponImage == null)
-            return;
+        if (!data) return null;
+        var sprite = equipmentIcons ? equipmentIcons.Weapon(data.weaponId) : null;
+        return sprite ? sprite : data.weaponIcon;
+    }
 
-        if (weaponData == null || weaponData.weaponIcon == null)
-        {
-            mainWeaponImage.sprite = null;
-            mainWeaponImage.enabled = false;
-            return;
-        }
+    public void SetMainWeapon(WeaponData data) => SetWeaponImage(mainWeaponImage, ResolveWeaponIcon(data));
+    public void SetSubWeaponData(WeaponData data) => SetSubWeapon(ResolveWeaponIcon(data));
+    public void SetKnifeData(WeaponData data) => SetKnife(ResolveWeaponIcon(data));
 
-        mainWeaponImage.sprite = weaponData.weaponIcon;
-        mainWeaponImage.enabled = true;
+    static void SetWeaponImage(Image target, Sprite sprite)
+    {
+        if (!target) return;
+        target.sprite = sprite;
+        target.preserveAspect = true;
+        target.enabled = sprite != null;
     }
 
     public void SetSubWeapon(Sprite sprite)
@@ -323,8 +346,7 @@ public class InGameUIManager : MonoBehaviour
         if (subWeaponImage == null)
             return;
 
-        subWeaponImage.sprite = sprite;
-        subWeaponImage.enabled = sprite != null;
+        SetWeaponImage(subWeaponImage, sprite);
     }
 
     public void SetKnife(Sprite sprite)
@@ -332,8 +354,7 @@ public class InGameUIManager : MonoBehaviour
         if (knifeImage == null)
             return;
 
-        knifeImage.sprite = sprite;
-        knifeImage.enabled = sprite != null;
+        SetWeaponImage(knifeImage, sprite);
     }
 
     public void SetThrowWeapon(Sprite sprite)
@@ -359,7 +380,8 @@ public class InGameUIManager : MonoBehaviour
         if (bulletText == null)
             return;
 
-        bulletText.text = $"{currentAmmo} / {reserveAmmo}";
+        bulletText.text = currentAmmo.ToString();
+        combatReadout?.PresentAmmo(currentAmmo, reserveAmmo);
     }
 
     public void SetSpectatorPlayerUI(
@@ -402,6 +424,10 @@ public class InGameUIManager : MonoBehaviour
             reserveAmmo
         );
 
+        SetMainWeapon(null);
+        SetSubWeapon(null);
+        SetKnife(null);
+
         if (WeaponDropSpawner.Instance != null &&
             weaponId >= 0)
         {
@@ -415,15 +441,11 @@ public class InGameUIManager : MonoBehaviour
                 switch (weaponData.weaponType)
                 {
                     case WeaponData.WeaponType.Pistol:
-                        SetSubWeapon(
-                            weaponData.weaponIcon
-                        );
+                        SetSubWeaponData(weaponData);
                         break;
 
                     case WeaponData.WeaponType.Knife:
-                        SetKnife(
-                            weaponData.weaponIcon
-                        );
+                        SetKnifeData(weaponData);
                         break;
 
                     default:
@@ -449,6 +471,7 @@ public class InGameUIManager : MonoBehaviour
 
         if (hasSpike)
         {
+            if (equipmentIcons && equipmentIcons.device) spikeImage.sprite = equipmentIcons.device;
             if (spikeImage.sprite == null)
             {
                 spikeImage.sprite = defaultSpikeSprite != null
@@ -458,12 +481,13 @@ public class InGameUIManager : MonoBehaviour
 
             spikeImage.enabled = true;
             spikeImage.gameObject.SetActive(true);
+            (spikeSlotRoot ? spikeSlotRoot : spikeImage.gameObject).SetActive(true);
 
             Debug.Log("[SPIKE UI] 스파이크 보유 아이콘 표시");
         }
         else
         {
-            spikeImage.gameObject.SetActive(false);
+            (spikeSlotRoot ? spikeSlotRoot : spikeImage.gameObject).SetActive(false);
 
             Debug.Log("[SPIKE UI] 스파이크 보유 아이콘 숨김");
         }

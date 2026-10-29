@@ -48,8 +48,7 @@ public class Sentinel_Trap : MonoBehaviour
     private Coroutine scanCoroutine;
     private Coroutine scanVisualCoroutine;
 
-    private readonly Dictionary<Outline, OutlineBackup> outlineBackups = new();
-    private readonly Dictionary<Outline,float> revealEnds = new();
+    private readonly HashSet<PlayerOutline> revealedPlayers = new();
     private readonly HashSet<uint> localWaveVisited = new();
     private readonly Dictionary<LineRenderer,Vector3[]> waveLines = new();
 
@@ -57,14 +56,6 @@ public class Sentinel_Trap : MonoBehaviour
     public uint OwnerPlayerId => ownerPlayerId;
     public int OwnerTeam => ownerTeam;
     public bool IsPlaced => isPlaced;
-
-    private struct OutlineBackup
-    {
-        public bool enabled;
-        public Color color;
-        public float width;
-        public Outline.Mode mode;
-    }
 
     private void Awake()
     {
@@ -102,8 +93,6 @@ public class Sentinel_Trap : MonoBehaviour
 
     private void Update()
     {
-        foreach(var outline in new List<Outline>(revealEnds.Keys))
-            if(!outline || Time.time>=revealEnds[outline]){RestoreOutline(outline);revealEnds.Remove(outline);}
         if (isDestroyed)
             return;
 
@@ -536,27 +525,18 @@ public class Sentinel_Trap : MonoBehaviour
     public void ApplyConfirmedReveal(uint playerId,float duration)
     {
         var local=NetworkManager.Instance?NetworkManager.Instance.MyPlayer:null;
-        if(!local||isDestroyed)return;
+        if(!local || isDestroyed || !isActiveAndEnabled || ownerTeam < 0 || ownerTeam > 1 ||
+           !float.IsFinite(duration) || duration <= 0 || duration > 2.5f)return;
         foreach(var identity in FindObjectsByType<PlayerIdentity>(FindObjectsSortMode.None)){
             if(identity.PlayerId!=playerId || identity.Team==ownerTeam || identity.Team<0 || identity.Team>1 || identity.GetComponent<PlayerHP>()?.IsDead==true)continue;
             if(local.PlayerId==playerId)SentinelFeedbackUI.Instance?.Notice("위치 노출",duration);
             if(local.Team!=ownerTeam)return;
 
-            Outline outline = identity.GetComponent<Outline>();
-
-            if (outline == null)
-                outline = identity.GetComponentInChildren<Outline>(true);
-
-            if (outline == null)
-                continue;
-
-            BackupOutline(outline);
-
-            outline.enabled = true;
-            outline.OutlineMode = Outline.Mode.OutlineAndSilhouette;
-            outline.OutlineColor = Color.yellow;
-            outline.OutlineWidth = 5f;
-            revealEnds[outline]=Time.time+duration;
+            var playerOutline = identity.GetComponent<PlayerOutline>();
+            if (!playerOutline) playerOutline = identity.GetComponentInChildren<PlayerOutline>(true);
+            if (!playerOutline) continue;
+            playerOutline.BeginConfirmedSkillReveal(this, duration);
+            revealedPlayers.Add(playerOutline);
         }
     }
 
@@ -716,62 +696,16 @@ public class Sentinel_Trap : MonoBehaviour
         );
     }
 
-    private void BackupOutline(Outline outline)
-    {
-        if (outline == null)
-            return;
-
-        if (outlineBackups.ContainsKey(outline))
-            return;
-
-        outlineBackups.Add(
-            outline,
-            new OutlineBackup
-            {
-                enabled = outline.enabled,
-                color = outline.OutlineColor,
-                width = outline.OutlineWidth,
-                mode = outline.OutlineMode
-            }
-        );
-    }
-
-    private void RestoreOutline(Outline outline)
-    {
-        if (outline == null)
-            return;
-
-        if (!outlineBackups.TryGetValue(outline, out OutlineBackup backup))
-            return;
-
-        outline.enabled = backup.enabled;
-        outline.OutlineColor = backup.color;
-        outline.OutlineWidth = backup.width;
-        outline.OutlineMode = backup.mode;
-
-        PlayerOutline playerOutline = outline.GetComponent<PlayerOutline>();
-
-        if (playerOutline == null)
-            playerOutline = outline.GetComponentInParent<PlayerOutline>();
-
-        if (playerOutline == null)
-            playerOutline = outline.GetComponentInChildren<PlayerOutline>(true);
-
-        if (playerOutline != null)
-            playerOutline.RefreshOutline();
-
-        outlineBackups.Remove(outline);
-    }
-
     private void RestoreAllOutlines()
     {
-        List<Outline> targets = new(outlineBackups.Keys);
+        foreach (var player in revealedPlayers)
+            if (player) player.EndConfirmedSkillReveal(this);
+        revealedPlayers.Clear();
+    }
 
-        foreach (Outline outline in targets)
-            RestoreOutline(outline);
-
-        outlineBackups.Clear();
-        revealEnds.Clear();
+    private void OnDisable()
+    {
+        RestoreAllOutlines();
     }
 
     private Vector3 GetTargetCenter(PlayerIdentity identity)

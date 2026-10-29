@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class RoundHistoryUI : MonoBehaviour
 {
@@ -31,77 +32,76 @@ public class RoundHistoryUI : MonoBehaviour
     [SerializeField] private Sprite enemyTeamTimeOutIcon;
 
     [Header("Round Setting")]
-    [SerializeField] private int firstHalfRoundCount = 2;
-    [SerializeField] private int secondHalfRoundCount = 2;
+    [SerializeField] private int firstHalfRoundCount = 5;
+    [SerializeField] private int secondHalfRoundCount = 5;
 
-    private readonly Dictionary<int, RoundHistoryColumnUI> columns = new();
-
-    private byte myTeam = 0;
+    [SerializeField] private RoundHistoryColumnUI[] authoredColumns;
+    private readonly Dictionary<int, (byte winner, RoundWinReason reason)> results = new();
+    public const int VisibleRoundCount = 10;
+    [SerializeField] private TMP_Text historyPhaseText;
+    [SerializeField] private Button previousPageButton, nextPageButton;
+    private int page;
+    private bool followLatest = true;
+    public int PageIndex => page;
+    private int LatestPage => (Mathf.Max(1,current)-1)/VisibleRoundCount;
+    [SerializeField] private TMP_Text historyRangeText;
+    private byte myTeam;
+    private int current = 1;
+    [SerializeField] private TMP_Text currentRoundText;
 
     public void Init(byte myTeamValue)
+    { myTeam=myTeamValue; ClearAll();SetRole(1);SetScore(0,0); }
+    public void SetRoundResult(byte currentRound,byte winnerTeam,RoundWinReason reason,byte scoreA,byte scoreB)
     {
-        myTeam = myTeamValue;
-        ClearAll();
-        SetRole(1);
-        SetScore(0, 0);
+        results[currentRound]=(winnerTeam,reason);
+        SetCurrentRound((byte)(currentRound+1));SetScore(scoreA,scoreB);
     }
-
-    public void SetRoundResult(
-        byte currentRound,
-        byte winnerTeam,
-        RoundWinReason reason,
-        byte scoreA,
-        byte scoreB)
-    {
-        RoundHistoryColumnUI column = GetOrCreateColumn(currentRound);
-
-        bool ourTeamWin = winnerTeam == myTeam;
-        Sprite icon = GetReasonSprite(reason, ourTeamWin);
-
-        column.SetResult(ourTeamWin, icon);
-
-        SetCurrentRound((byte)(currentRound + 1));
-        SetScore(scoreA, scoreB);
-        SetRole((byte)(currentRound + 1));
-    }
-
     public void SetCurrentRound(byte currentRound)
+    { current=currentRound;RefreshColumns();SetRole(currentRound); }
+    public void ApplyRoundRules(int firstHalf,int secondHalf)
     {
-        foreach (var pair in columns)
+        if(firstHalf<1 || secondHalf<1 || firstHalf+secondHalf>=255)return;
+        if(firstHalfRoundCount==firstHalf && secondHalfRoundCount==secondHalf)return;
+        firstHalfRoundCount=firstHalf;secondHalfRoundCount=secondHalf;
+        RefreshColumns();SetRole((byte)current);
+    }
+    public void ShowLatestPage()
+    { followLatest=true;page=LatestPage;RefreshColumns(); }
+    public void PreviousPage() => MovePage(-1);
+    public void NextPage() => MovePage(1);
+    private void MovePage(int offset)
+    {
+        page=Mathf.Clamp(page+offset,0,LatestPage);
+        followLatest=page==LatestPage;
+        RefreshColumns();
+    }
+    private void RefreshColumns()
+    {
+        int normal=firstHalfRoundCount+secondHalfRoundCount;
+        if(currentRoundText)currentRoundText.text=current<=normal?"라운드 "+current:"연장 "+(current-normal)+" / 라운드 "+current;
+        if(authoredColumns==null)return;
+        int visible=Mathf.Min(VisibleRoundCount,authoredColumns.Length);
+        if(followLatest)page=LatestPage;
+        page=Mathf.Clamp(page,0,LatestPage);
+        int first=page*VisibleRoundCount+1;
+        if(historyPhaseText)historyPhaseText.text=first+visible-1<=normal?"정규전":first>normal?"연장전":"정규/연장";
+        if(previousPageButton)previousPageButton.interactable=page>0;
+        if(nextPageButton)nextPageButton.interactable=page<LatestPage;
+        if(historyRangeText)historyRangeText.text=first+" - "+(first+visible-1)+"R";
+        for(int i=0;i<authoredColumns.Length;i++)
         {
-            pair.Value.SetCurrent(pair.Key == currentRound);
+            var column=authoredColumns[i];if(!column)continue;
+            int round=first+i;
+            column.gameObject.SetActive(i<visible);
+            column.SetEmpty();column.SetRoundNumber(round);
+            if(results.TryGetValue(round,out var result))
+            {
+                bool won=result.winner==myTeam;
+                bool attacking=result.winner==0?IsATeamAttackRound((byte)round):!IsATeamAttackRound((byte)round);
+                column.SetResult(won,attacking,result.reason,GetReasonSprite(result.reason,won));
+            }
+            column.SetCurrent(round==current && !results.ContainsKey(round));
         }
-
-        GetOrCreateColumn(currentRound).SetCurrent(true);
-        SetRole(currentRound);
-    }
-
-    private RoundHistoryColumnUI GetOrCreateColumn(int round)
-    {
-        if (columns.TryGetValue(round, out RoundHistoryColumnUI column))
-            return column;
-
-        Transform parent = GetGroupByRound(round);
-
-        RoundHistoryColumnUI created =
-            Instantiate(roundColumnPrefab, parent);
-
-        created.SetEmpty();
-
-        columns[round] = created;
-
-        return created;
-    }
-
-    private Transform GetGroupByRound(int round)
-    {
-        if (round <= firstHalfRoundCount)
-            return firstHalfGroup;
-
-        if (round <= firstHalfRoundCount + secondHalfRoundCount)
-            return secondHalfGroup;
-
-        return overtimeGroup;
     }
 
     private void SetScore(byte scoreA, byte scoreB)
@@ -136,13 +136,12 @@ public class RoundHistoryUI : MonoBehaviour
 
     private bool IsATeamAttackRound(byte currentRound)
     {
-        if (currentRound <= 2)
+        if (currentRound <= firstHalfRoundCount)
             return true;
-
-        if (currentRound <= 4)
+        int normal=firstHalfRoundCount+secondHalfRoundCount;
+        if (currentRound <= normal)
             return false;
-
-        return ((currentRound - 5) % 2) == 0;
+        return ((currentRound - normal - 1) % 2) == 0;
     }
 
     private Sprite GetReasonSprite(RoundWinReason reason, bool ourTeamWin)
@@ -168,13 +167,5 @@ public class RoundHistoryUI : MonoBehaviour
     }
 
     private void ClearAll()
-    {
-        foreach (var pair in columns)
-        {
-            if (pair.Value != null)
-                Destroy(pair.Value.gameObject);
-        }
-
-        columns.Clear();
-    }
+    { results.Clear();current=1;page=0;followLatest=true;RefreshColumns(); }
 }

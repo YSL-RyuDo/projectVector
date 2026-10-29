@@ -10,6 +10,8 @@ public class StoreSkillButton : MonoBehaviour
     [SerializeField] private Button button;
     [SerializeField] private TMP_Text label;
 
+    [SerializeField] private Image skillIcon;
+    [SerializeField] private TMP_Text keyLabel, priceLabel, stateLabel;
     private int currentCredits;
     private bool buyPhase;
     private bool listenerRegistered;
@@ -60,20 +62,20 @@ public class StoreSkillButton : MonoBehaviour
         bool purchased = SkillInventoryState.IsPurchased(slot);
         bool used = SkillInventoryState.IsUsed(slot);
 
-        if (label != null)
-        {
-            if (used)
-                label.text = $"{slot}  사용 완료";
-            else if (purchased)
-                label.text = $"{slot}  보유";
-            else
-                label.text = $"{slot} 스킬  {price}";
-        }
+        var data = SkillInventoryState.Skill(slot);
+        if (keyLabel) keyLabel.text = slot.ToString();
+        if (skillIcon) { skillIcon.sprite = data?.skillIcon; skillIcon.enabled = skillIcon.sprite; }
+        if (label) label.text = data != null ? data.skillName : slot == SkillSlot.X ? "궁극기" : "스킬 " + slot;
+        if (priceLabel) priceLabel.text = used ? "사용 완료" : purchased ? (slot == SkillSlot.X ? "준비 완료" : "보유") :
+            slot == SkillSlot.X && !SkillInventoryState.HasUltimateState ? "—" : price.ToString();
+        if (stateLabel) stateLabel.text = slot == SkillSlot.X ?
+            (SkillInventoryState.HasUltimateState ? SkillInventoryState.UltimatePoints+" / "+SkillInventoryState.UltimateRequired+" 충전" : "충전 확인 중") :
+            (used ? "다음 라운드 구매" : purchased ? "사용 가능" : "1회 사용");
 
         if (button != null)
         {
             button.interactable =
-                buyPhase &&
+                buyPhase && (slot != SkillSlot.X || SkillInventoryState.HasUltimateState) &&
                 !purchased &&
                 currentCredits >= price;
         }
@@ -83,7 +85,7 @@ public class StoreSkillButton : MonoBehaviour
     {
         int price = SkillInventoryState.GetPrice(slot);
 
-        if (!buyPhase ||
+        if (!buyPhase || (slot == SkillSlot.X && !SkillInventoryState.HasUltimateState) ||
             SkillInventoryState.IsPurchased(slot) ||
             currentCredits < price ||
             NetworkManager.Instance == null)

@@ -54,6 +54,7 @@ public static class ControllerSmokeInteractionVerification
         Object.DestroyImmediate(remote.gameObject);Object.DestroyImmediate(go);Object.DestroyImmediate(ui);Object.DestroyImmediate(camera.gameObject);Object.DestroyImmediate(floor);
         VerifyPlacementMapMarkers();
         var effect=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(ControllerSmokeAuthoring.Dir+"/ControllerSmoke.prefab"));
+        typeof(SmokeOutlineOccluder).GetMethod("OnEnable",Fields).Invoke(effect.GetComponent<SmokeOutlineOccluder>(),null);
         effect.transform.position=new Vector3(3000,1,0);effect.transform.localScale=Vector3.one*4.5f;
         effect.GetComponent<ControllerSmokeVfx>().Begin(2);effect.GetComponent<ControllerSmokeVfx>().Advance(1.8f);
         Check(SmokeOutlineOccluder.BlocksOutline(new Vector3(3000,1,-10),new Bounds(new Vector3(3000,1,10),Vector3.one)),"new smoke stays occluding during expiry presentation");
@@ -66,6 +67,8 @@ public static class ControllerSmokeInteractionVerification
     {
         var texture=new RenderTexture(256,256,24);camera.targetTexture=texture;
         var controller=camera.gameObject.AddComponent<MiniMapCamera>();controller.enabled=false;
+        // Ordinary MonoBehaviours do not receive Awake in this edit-mode fixture.
+        typeof(MiniMapCamera).GetMethod("Awake",Fields).Invoke(controller,null);
         controller.SetTarget(skill.transform);
         foreach(string mapName in new[]{"TestMap","Desert"})
         {
@@ -94,7 +97,13 @@ public static class ControllerSmokeInteractionVerification
                     Check(Physics.Raycast(ray,out var ground,1000,~0,QueryTriggerInteraction.Ignore),"map targeting ground exists");
                     var local=Rect.NormalizedToPoint(map.rect,new Vector2(uvGround.x,uvGround.y));
                     var screen=RectTransformUtility.WorldToScreenPoint(null,map.TransformPoint(local));
-                    Check(skill.SelectAt(screen),"rotated map click accepted");
+                    bool accepted=skill.SelectAt(screen);
+                    if(!accepted) {
+                        object[] args={screen,Vector2.zero};var inside=(bool)typeof(ControllerSkill_E).GetMethod("TryMapPoint",Fields).Invoke(skill,args);
+                        object[] pointArgs={args[1],Vector3.zero};var validGround=(bool)typeof(ControllerSkill_E).GetMethod("TryGroundPoint",Fields).Invoke(skill,pointArgs);
+                        Debug.LogError($"SMOKE_SELECTION_DIAGNOSTIC screen={screen} local={args[1]} rect={map.rect} inside={inside} validGround={validGround} hit={ground.collider.name} normal={ground.normal} selecting={typeof(ControllerSkill_E).GetField("_selecting",Fields).GetValue(skill)}");
+                    }
+                    Check(accepted,"rotated map click accepted");
                     var selected=(Vector3)typeof(ControllerSkill_E).GetField("_selectedWorld",Fields).GetValue(skill);
                     Check(Vector3.Distance(selected,ground.point)<.03f,"rotated click preserves world drop position");
                     skill.transform.rotation=Quaternion.Euler(0,angle+31,0);

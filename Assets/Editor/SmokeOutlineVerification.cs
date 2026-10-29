@@ -13,6 +13,7 @@ public static class SmokeOutlineVerification
     const string Prefab = "Assets/KSW/Prefabs/Effect/Smoke Effect.prefab";
     static double deadline;
     static bool ran, passed;
+    static System.Collections.IEnumerator revealChecks;
     static Camera camera;
     static GameObject target;
     static PlayerOutline player;
@@ -61,11 +62,16 @@ public static class SmokeOutlineVerification
     }
     static void Tick()
     {
-        if (!SessionState.GetBool(Key, false) || ran) return;
+        if (!SessionState.GetBool(Key, false)) return;
         if (!EditorApplication.isPlaying) { if (EditorApplication.timeSinceStartup > deadline) EditorApplication.Exit(1); return; }
-        ran = true;
-        try { Verify(); passed = true; Debug.Log("SMOKE_OUTLINE_PASS checks=" + checks); }
-        catch (Exception ex) { Debug.LogException(ex); passed = false; }
+        try {
+            if (!ran) { ran = true; Verify(); revealChecks = SmokeSkillRevealVerification.Verify(); }
+            if (EditorApplication.timeSinceStartup > deadline) throw new Exception("Smoke reveal verification timed out");
+            if (revealChecks.MoveNext()) return;
+            passed = true; Debug.Log("SMOKE_OUTLINE_PASS checks=" + checks);
+        }
+        catch (Exception ex) { Debug.LogException(ex); passed = false; (revealChecks as IDisposable)?.Dispose(); }
+        EditorApplication.update -= Tick;
         EditorApplication.ExitPlaymode();
     }
     static void Verify()
@@ -113,7 +119,7 @@ public static class SmokeOutlineVerification
         smoke.transform.localScale = Vector3.one; camera.transform.position = new Vector3(0, 1, -10);
         smoke.transform.position = new Vector3(0, 1, -5);
         outline.OutlineColor = Color.yellow; outline.OutlineWidth = 5; outline.enabled = false; outline.enabled = true;
-        RenderCheck(true, "reveal cannot override smoke");
+        RenderCheck(true, "unconfirmed style changes cannot bypass smoke");
         smoke.SetActive(false); RenderCheck(false, "disable immediately restores render passes");
         Check(outline.OutlineColor == Color.yellow && outline.OutlineWidth == 5, "reveal style preserved");
         smoke.SetActive(true);

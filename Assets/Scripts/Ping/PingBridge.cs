@@ -26,19 +26,35 @@ namespace Game.Pings
         private bool previousConnected;
         private uint previousPlayerId;
         private float nextLookup;
+        private RoundManager.RoundState previousRoundState;
+
+        private void SendPing(PingRequest request) => previousNetwork?.SendTeamPing(request);
+        private void ReceivePing(ConfirmedPing ping)
+        {
+            if (previousNetwork == null || previousNetwork.ReconnectBusy || localPlayer == null) return;
+            var round = RoundManager.Instance;
+            if (round == null || !round.CanAttack) return;
+            manager.SetLocalTeam(localPlayer.Team <= 1 ? localPlayer.Team : -1);
+            manager.ReceiveConfirmed(ping);
+        }
 
         private void Awake()
         {
             pings = GetComponent<PingSystem>(); manager = GetComponent<PingManager>();
-            // 무기/팔/미니맵/선택용 모델이 에임 레이에 끼어들지 않도록 프로젝트 레이어 제외.
-            pings.ExcludeHitLayers(LayerMask.GetMask("Ignore Raycast", "UI", "MiniMap",
+            // MiniMap은 TestMap의 실제 바닥/벽도 사용하므로 제외하지 않습니다.
+            // 무기/팔/선택용 모델만 에임 레이에서 제외합니다.
+            pings.ExcludeHitLayers(LayerMask.GetMask("Ignore Raycast", "UI",
                 "LocalPlayer", "FirstPersonArms", "SelectModel", "Bullet",
                 "AK47 01", "M416 01", "UMP 01", "AWM 01", "P92 01",
                 "AK47 01 (Rotate)", "M416 01 (Rotate)", "UMP 01 (Rotate)",
                 "AWM 01 (Rotate)", "P92 01 (Rotate)"));
         }
 
-        private void OnEnable() => pings.SetInputGate(CanRequest);
+        private void OnEnable()
+        {
+            pings.SetInputGate(CanRequest);
+            manager.PingRequested += SendPing;
+        }
         private bool CanRequest() => isActiveAndEnabled && canRequest;
         private void Update() => RefreshContext();
         private void LateUpdate() => RefreshContext();
@@ -50,8 +66,10 @@ namespace Game.Pings
             uint playerId = connected ? network.MyPlayerId : 0;
             if (network != previousNetwork || connected != previousConnected || playerId != previousPlayerId)
             {
+                if (previousNetwork != null) previousNetwork.TeamPingReceived -= ReceivePing;
+                if (network != null) network.TeamPingReceived += ReceivePing;
                 SetLocalPlayer(null);
-                manager.ConfigureNetwork(manager.NetworkMode, -1);
+                manager.ConfigureNetwork(connected || offlineLocalPlayer == null, -1);
                 previousNetwork = network; previousConnected = connected; previousPlayerId = playerId;
                 nextLookup = 0;
             }
@@ -108,13 +126,27 @@ namespace Game.Pings
             manager.SetLocalTeam(team);
 
             GameController game = GameController.Instance;
+            var round = RoundManager.Instance;
+            var phase = round != null ? round.currentState : RoundManager.RoundState.Waiting;
+            if (phase != previousRoundState)
+            {
+                if (phase == RoundManager.RoundState.Preparation || phase == RoundManager.RoundState.RoundEnd ||
+                    phase == RoundManager.RoundState.GameOver || phase == RoundManager.RoundState.Waiting)
+                { manager.ClearMarkers(); pings.CancelWheel(false); }
+                previousRoundState = phase;
+            }
+            bool matchActive = round != null && round.CanAttack;
             bool uiBlocked = InGameChatUI.BlocksGameplayInput ||
+                VectorVoicePanel.BlocksGameplayInput ||
                 (SettingsMenu.Instance != null && SettingsMenu.Instance.IsOpen) ||
                 (game != null && (game.IsPaused || game.isLoading));
             // 설정/상점 등에서 이미 커서를 풀었으면 핑이 커서를 다시 가두지 않습니다.
             bool freeCursor = Cursor.lockState == CursorLockMode.None;
             canRequest = localAvailable && selected != null && !dead && !spectating &&
-                !uiBlocked && !freeCursor && (!manager.NetworkMode || connected);
+                localPlayer.GetComponent<PlayerSpike>()?.IsInteracting != true &&
+                matchActive && !uiBlocked && !freeCursor && network?.ReconnectBusy != true &&
+                (!manager.NetworkMode || connected);
+            manager.SetVisibility(localAvailable && matchActive && !uiBlocked && network?.ReconnectBusy != true, canRequest);
             if (!canRequest) pings.CancelWheel(false);
         }
 
@@ -132,6 +164,9 @@ namespace Game.Pings
 
         private void OnDisable()
         {
+            if (manager != null) { manager.PingRequested -= SendPing; manager.ClearMarkers(); manager.SetVisibility(false,false); }
+            if (previousNetwork != null) previousNetwork.TeamPingReceived -= ReceivePing;
+            previousNetwork = null;
             canRequest = false;
             if (pings != null)
             {

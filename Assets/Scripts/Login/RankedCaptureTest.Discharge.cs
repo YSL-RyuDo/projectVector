@@ -17,6 +17,10 @@ public sealed partial class RankedCaptureTest
         // Hidden Windows swap chains return black screenshots; this bypasses only that swap chain.
         var camera=NetworkManager.Instance.MyPlayer?.GetComponent<PlayerCameraController>()?.PlayerCamera;
         if(!camera || !camera.enabled)return;
+        // Hidden capture surfaces do not schedule the minimap's normal render.
+        // Warm the main camera first and refresh this small target at 5 Hz.
+        if(PingEvidence && frame>0 && frame%3==0 && MiniMapCamera.Instance && MiniMapCamera.Instance.Camera)
+            MiniMapCamera.Instance.Camera.Render();
         if(!dischargeTarget)dischargeTarget=new RenderTexture(960,540,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB);
         var canvases=FindObjectsByType<Canvas>(FindObjectsSortMode.None).Where(c=>c.isRootCanvas && c.renderMode==RenderMode.ScreenSpaceOverlay).ToArray();
         var oldCameras=canvases.Select(c=>c.worldCamera).ToArray();

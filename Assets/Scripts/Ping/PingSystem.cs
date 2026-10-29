@@ -8,7 +8,7 @@ namespace Game.Pings
      * 마우스 이동 = 종류 선택, Z 떼기 = 해당 프레임 최종 조준 위치에 핑 요청.
      * 휠이 열린 뒤 중앙 X 원에서 Z 떼기 = 취소. ESC는 사용하지 않습니다.
      * 생성한 핑은 월드 좌표에 고정되고 3초 후 제거됩니다.
-     * 표면을 못 맞히면 ray.GetPoint(maxDistance)에 표시. 적 추적/Follow Mask 없음.
+     * 지형을 못 맞히면 전송하지 않고 안내합니다. 적 추적/Follow Mask 없음.
      * 적 콜라이더도 무시하려면 Hit Mask에서 적 레이어를 제외하세요.
      *
      * projectVector에서는 PingBridge가 아래 연결/해제를 자동 처리합니다.
@@ -90,9 +90,8 @@ namespace Game.Pings
         private void Awake()
         {
             manager = GetComponent<PingManager>(); cameras = GetComponent<PingCameraProvider>();
-            var parent = manager.CanvasRoot;
-            wheel = PingUI.Rect("PingWheel", parent, Vector2.one * wheelRadius * 2)
-                .gameObject.AddComponent<PingWheel>();
+            wheel = manager.wheel;
+            if (!wheel || !manager.CanvasRoot) { Debug.LogError("Ping UI must be authored before Play", this); enabled=false; return; }
             wheel.Initialize(manager.Options, wheelRadius, deadZone);
         }
 
@@ -153,12 +152,12 @@ namespace Game.Pings
             if (commitPending) CommitWheel();
         }
 
-        private void CaptureAim()
+        private bool CaptureAim()
         {
             Ray ray = openedCamera.ViewportPointToRay(new Vector3(
                 Mathf.Clamp01(aimViewport.x), Mathf.Clamp01(aimViewport.y), 0));
             float closest = Mathf.Max(1, maxDistance);
-            capturedPosition = ray.GetPoint(closest);
+            bool found = false;
             // 한 번의 요청에만 할당. NonAlloc 고정 버퍼가 가득 차서 가까운 벽을 놓치는 경우 방지.
             foreach (RaycastHit hit in Physics.RaycastAll(ray, closest, hitMask, QueryTriggerInteraction.Ignore))
             {
@@ -169,8 +168,10 @@ namespace Game.Pings
                     (hit.collider.GetComponentInParent<global::PlayerIdentity>() != null ||
                      hit.collider.GetComponentInParent<global::Drone>() != null)) continue;
                 if (hit.distance >= closest) continue;
-                closest = hit.distance; capturedPosition = hit.point;
+                closest = hit.distance; capturedPosition = hit.point; found = true;
             }
+            if (!found) manager.Notice("표시할 지형을 가리켜 주세요");
+            return found;
         }
 
         private void OpenWheel()
@@ -192,7 +193,7 @@ namespace Game.Pings
         private void CommitWheel()
         {
             int index = pendingSelection;
-            if (index >= 0) CaptureAim();
+            if (index >= 0 && !CaptureAim()) index = -1;
             Vector3 position = capturedPosition;
             CloseWheel();
             if (index >= 0) manager.RequestPing(manager.Options[index].type, position);

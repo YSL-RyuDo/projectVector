@@ -367,10 +367,19 @@ public class ScoreboardMemberData
     public int assists;
 
     public int credits;
+    public bool hasLifeState;
+    public bool hasLoadout;
+    public int primaryWeaponId = -1, pistolWeaponId = -1, knifeWeaponId = -1;
+    public int armor, maxArmor, ultimatePoints, ultimateRequired, ultimatePointPrice;
+    public bool ultimateUsed;
+    public bool hasEquipment;
+    public int ownedWeaponId = -1;
+    public bool equipmentAlive;
 }
 
 public class ScoreboardData
 {
+    public int firstHalfRounds, secondHalfRounds;
     public uint roomId;
     public byte myTeam;
     public List<ScoreboardMemberData> members = new();
@@ -1125,6 +1134,13 @@ public partial class NetworkManager : MonoBehaviour
     void HandlePacket(ushort type, byte[] body)
     {
         if (HandleReconnectPacket(type, body)) return;
+        if (type == (ushort)PacketType.PKT_SC_TEAM_PURCHASES) { HandleTeamPurchases(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_TEAM_PURCHASE_RESULT) { HandleTeamPurchaseResult(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_KILL_FEED) { HandleKillFeed(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_ROUND_RULES) { HandleRoundRules(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_TEAM_LOADOUT) { HandleTeamLoadout(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_TEAM_EQUIPMENT) { HandleTeamEquipment(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_TEAM_PING) { HandleTeamPing(body); return; }
         switch (type)
         {
             case (ushort)PacketType.PKT_SC_REGISTER_RESULT:
@@ -3854,6 +3870,14 @@ public partial class NetworkManager : MonoBehaviour
 
         PlayerIdentity target = FindPlayerIdentityById(playerId);
 
+        var loadout = latestScoreboardData?.members.Find(m=>m.playerId==playerId);
+        if (loadout != null) {
+            loadout.hasLifeState=true;loadout.equipmentAlive=hp>0;
+            if(loadout.hasLoadout){loadout.armor=barrier;loadout.maxArmor=maxBarrier;}
+            InGameScoreboardUI.Instance?.OnRecvScoreboardUpdate(latestScoreboardData);
+            StorePanelUI.Instance?.RefreshPlayerInfo();
+        }
+
         if (target != null)
         {
             PlayerHP hpComponent = target.GetComponent<PlayerHP>();
@@ -4139,7 +4163,7 @@ public partial class NetworkManager : MonoBehaviour
         RoundWinReason winReason = (RoundWinReason)body[offset];
         offset += 1;
 
-        SpikeInteractionPresentation.StopAll();
+        SpikeInteractionPresentation.StopAll(false);
         if (Spike.PlantedSpike)
         {
             var visual = Spike.PlantedSpike.GetComponent<SpikePresentation>();
@@ -4214,6 +4238,7 @@ public partial class NetworkManager : MonoBehaviour
         currentCombatLifeId = 0;
         ReportUI.Instance?.CloseAndReset();
 
+        teamPurchaseRequests.Clear();TeamPurchaseNotice="";
         ScannerNetworkManager.Instance?.ClearAll();
         DischargeDirector.Instance?.ClearAll();
         ScannerFeedbackUI.Instance?.ResetFeedback();
@@ -5094,9 +5119,12 @@ public partial class NetworkManager : MonoBehaviour
             member.credits = BitConverter.ToInt32(body, offset);
             offset += 4;
 
+            if(playerCombatSnapshots.TryGetValue(member.playerId,out var state) && state.hasHpState){member.hasLifeState=true;member.equipmentAlive=state.hp>0;}
             data.members.Add(member);
         }
 
+        if(latestScoreboardData!=null && latestScoreboardData.roomId==data.roomId)
+        { data.firstHalfRounds=latestScoreboardData.firstHalfRounds;data.secondHalfRounds=latestScoreboardData.secondHalfRounds; }
         latestScoreboardData = data;
 
         if (InGameScoreboardUI.Instance != null)
@@ -5236,16 +5264,17 @@ public partial class NetworkManager : MonoBehaviour
         float z = BitConverter.ToSingle(body, offset); offset += 4;
 
         Vector3 pos = new Vector3(x, y, z);
-        SpikeInteractionPresentation.StopAll();
+        SpikeInteractionPresentation.StopAll(false);
 
         Debug.Log($"[SPIKE PLANTED] pos={pos}");
 
         if (SpikeSpawner.Instance != null)
             SpikeSpawner.Instance.SpawnPlanted(pos);
 
-        PlayerSpike mySpike = FindMyPlayerSpike();
-        if (mySpike != null)
-            mySpike.SetHasSpikeFromServer(false);
+        // The placement broadcast clears possession on every replicated actor,
+        // including the remote planter's held inventory model.
+        foreach(var actor in FindObjectsByType<PlayerSpike>(FindObjectsSortMode.None))
+            if(actor.hasSpike) actor.SetHasSpikeFromServer(false);
 
         if (TopInfoUI.Instance != null)
         {
@@ -5342,7 +5371,7 @@ public partial class NetworkManager : MonoBehaviour
     private void HandleSpikeDefused(byte[] body)
     {
         if (body == null || body.Length != 4) return;
-        SpikeInteractionPresentation.StopAll();
+        SpikeInteractionPresentation.StopAll(false);
         int offset = 0;
 
         uint defuserPlayerId = BitConverter.ToUInt32(body, offset);
@@ -5416,6 +5445,7 @@ public partial class NetworkManager : MonoBehaviour
 
     private void HandleDie(byte[] body)
     {
+        if(body == null || body.Length != 58) return;
         int offset = 0;
 
         uint killerPlayerId =
@@ -5470,8 +5500,8 @@ public partial class NetworkManager : MonoBehaviour
             bool isOurKill =
                 killerTeam == myTeam;
 
-            KillLogManager.Instance.ShowKillLog(
-                isOurKill,
+            KillLogManager.Instance.ShowDeath(
+                killerPlayerId, deadPlayerId, isOurKill,
                 killerCharacterId,
                 deadCharacterId,
                 killerNickname,

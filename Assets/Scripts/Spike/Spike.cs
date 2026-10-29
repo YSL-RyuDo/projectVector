@@ -4,6 +4,7 @@ using UnityEngine.UI;
 public class Spike : Item
 {
     private bool isPlayerInside;
+    private readonly System.Collections.Generic.HashSet<Collider> localContacts = new();
     private PlayerSpike playerSpike;
     private AudioSource audioSource;
 
@@ -15,6 +16,7 @@ public class Spike : Item
     public float defuseTime = 5f;
 
     private float currentDefuseTime;
+    private float defuseStartedAt, defuseStartProgress;
     private bool isDefusing;
     public bool IsDefusing => IsLocalDefuser() && isDefusing;
     public float DefuseProgress => Mathf.Clamp01(currentDefuseTime / Mathf.Max(.01f, defuseTime));
@@ -65,6 +67,7 @@ public class Spike : Item
 
     private void OnTriggerEnter(Collider other)
     {
+        if (!isPlanted) return;
         PlayerSpike ps = other.GetComponent<PlayerSpike>();
 
         if (ps == null)
@@ -77,6 +80,7 @@ public class Spike : Item
         if (!ps.IsLocalPlayer())
             return;
 
+        localContacts.Add(other);
         playerSpike = ps;
         isPlayerInside = true;
 
@@ -100,6 +104,9 @@ public class Spike : Item
         if (ps == null || ps != playerSpike)
             return;
 
+        localContacts.Remove(other);
+        localContacts.RemoveWhere(c => !c || !c.enabled || !c.gameObject.activeInHierarchy);
+        if (localContacts.Count > 0) return;
         CancelDefuse();
 
         playerSpike.SetSpike(null);
@@ -152,7 +159,7 @@ public class Spike : Item
         }
 
         var presentation = GetComponent<SpikePresentation>();
-        if (presentation) presentation.Arm(explosionTime);
+        if (presentation) presentation.Arm(explosionTime, NetworkManager.Instance?.ReconnectBusy == true);
         else PlaySpikeSound();
 
         Debug.Log("[SPIKE] Planted and registered as PlantedSpike");
@@ -191,7 +198,7 @@ public class Spike : Item
         if (!isDefusing || !IsLocalDefuser())
             return;
 
-        currentDefuseTime += Time.deltaTime;
+        currentDefuseTime = Mathf.Max(currentDefuseTime, defuseStartProgress + Time.unscaledTime - defuseStartedAt);
 
         float progress = defuseTime > 0f
             ? Mathf.Clamp01(currentDefuseTime / defuseTime)
@@ -276,10 +283,11 @@ public class Spike : Item
     public void SetHalfDefusedFromServer(bool value)
     {
         isHalfDefused = value;
-
-        currentDefuseTime = isHalfDefused
-            ? defuseTime * 0.5f
-            : 0f;
+        halfSentToServer = value;
+        float checkpoint = value ? defuseTime * 0.5f : 0f;
+        // A delayed half acknowledgement confirms progress; it must not rewind
+        // an already-running local channel by the network round-trip time.
+        currentDefuseTime = isDefusing ? Mathf.Max(currentDefuseTime, checkpoint) : checkpoint;
 
         float progress = defuseTime > 0f
             ? Mathf.Clamp01(currentDefuseTime / defuseTime)
@@ -316,6 +324,9 @@ public class Spike : Item
         currentDefuseTime = isHalfDefused
             ? defuseTime * 0.5f
             : 0f;
+
+        defuseStartedAt = Time.unscaledTime;
+        defuseStartProgress = currentDefuseTime;
 
         if (!IsLocalDefuser())
             return;
@@ -372,6 +383,7 @@ public class Spike : Item
     public void ForceCancelInteraction()
     {
         bool localDefuser = IsLocalDefuser();
+        bool wasInteracting = isDefusing || defuseStartRequested;
 
         isDefusing = false;
         defuseStartRequested = false;
@@ -379,7 +391,7 @@ public class Spike : Item
         isHalfDefused = false;
         halfSentToServer = false;
 
-        if (playerSpike != null && localDefuser)
+        if (wasInteracting && playerSpike != null && localDefuser)
             playerSpike.SetPlayerControl(true);
 
         if (sliderObject != null && localDefuser)

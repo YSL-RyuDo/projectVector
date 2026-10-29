@@ -12,6 +12,8 @@ public class InteractionPromptUI : MonoBehaviour
     [Header("UI")]
     [SerializeField] private Image keyImage;
     [SerializeField] private TMP_Text promptText;
+    [SerializeField] private TMP_Text keyText;
+    [SerializeField] private TMP_Text actionHint;
 
     private void Awake()
     {
@@ -35,7 +37,7 @@ public class InteractionPromptUI : MonoBehaviour
             Instance = null;
     }
 
-    public void Show(string message)
+    public void Show(string message, bool hold = false)
     {
         if (root != null)
         {
@@ -46,8 +48,9 @@ public class InteractionPromptUI : MonoBehaviour
         if (keyImage != null)
             keyImage.gameObject.SetActive(true);
 
-        if (promptText != null)
-            promptText.text = message;
+        if (keyText) keyText.text = "F";
+        if (actionHint) actionHint.text = hold ? "길게 누르기" : "누르기";
+        if (promptText != null) promptText.text = message;
     }
 
     public void Hide()

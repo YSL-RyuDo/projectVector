@@ -20,6 +20,7 @@ public class PlayerSpike : MonoBehaviour
     public float plantTime = 3f;
 
     private float currentPlantTime;
+    private float plantStartedAt;
     private bool isPlanting;
 
     [Header("Zone")]
@@ -143,7 +144,7 @@ public class PlayerSpike : MonoBehaviour
             RoundManager.Instance.currentState == RoundManager.RoundState.Preparation)
         {
             if (playerItem != null && playerItem.IsLookingAtPickupItem())
-                InteractionPromptUI.Instance.Show("무기 변경");
+                InteractionPromptUI.Instance.Show("무기 줍기");
             else
                 InteractionPromptUI.Instance.Hide();
 
@@ -152,19 +153,19 @@ public class PlayerSpike : MonoBehaviour
 
         if (playerItem != null && playerItem.IsLookingAtPickupItem())
         {
-            InteractionPromptUI.Instance.Show("무기 변경");
+            InteractionPromptUI.Instance.Show("무기 줍기");
             return;
         }
 
         if (hasSpike && isInsidePlantZone && !isPlanting)
         {
-            InteractionPromptUI.Instance.Show("디바이스 연결");
+            InteractionPromptUI.Instance.Show("디바이스 설치", true);
             return;
         }
 
         if (!hasSpike && spikeInRange != null)
         {
-            InteractionPromptUI.Instance.Show("디바이스 접속 차단");
+            InteractionPromptUI.Instance.Show("디바이스 해체", true);
             return;
         }
 
@@ -314,6 +315,7 @@ public class PlayerSpike : MonoBehaviour
 
         isPlanting = true;
         currentPlantTime = 0f;
+        plantStartedAt = Time.unscaledTime;
         NetworkManager.Instance?.SendSpikePlantStart();
 
         SetPlayerControl(false);
@@ -338,7 +340,7 @@ public class PlayerSpike : MonoBehaviour
             return;
         }
 
-        currentPlantTime += Time.deltaTime;
+        currentPlantTime = Mathf.Max(0, Time.unscaledTime - plantStartedAt);
 
         float progress = plantTime > 0f
             ? Mathf.Clamp01(currentPlantTime / plantTime)

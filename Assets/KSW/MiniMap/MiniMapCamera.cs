@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[DefaultExecutionOrder(10000)]
 [RequireComponent(typeof(Camera))]
 public class MiniMapCamera : MonoBehaviour
 {
@@ -37,6 +38,11 @@ public class MiniMapCamera : MonoBehaviour
     private byte currentSpawnTeam; // 0 = 공격, 1 = 수비
 
     private Transform targetPlayer;
+    private Camera viewCamera;
+
+    // Follow the rendered view, not the animated body (which can turn independently).
+    public void SetViewCamera(Camera view) { viewCamera = view; ApplyCameraTransform(); }
+    public float ViewHeading => viewCamera ? viewCamera.transform.eulerAngles.y : targetPlayer ? targetPlayer.eulerAngles.y : 0f;
     private Camera miniMapCamera;
 
     private bool isOverlayMode;
@@ -229,7 +235,7 @@ public class MiniMapCamera : MonoBehaviour
         transform.rotation =
             Quaternion.Euler(
                 90f,
-                targetPlayer.eulerAngles.y,
+                ViewHeading,
                 0f
             );
 

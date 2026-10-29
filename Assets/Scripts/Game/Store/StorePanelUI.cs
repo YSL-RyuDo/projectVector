@@ -34,6 +34,7 @@ public class StorePanelUI : MonoBehaviour
     [SerializeField] private StoreItemButton[] itemButtons;
     [SerializeField] private StoreSkillButton[] skillButtons;
 
+    [SerializeField] private LoadoutSummaryUI loadoutSummary;
     private int currentCredits = 0;
 
     private void Awake()
@@ -84,7 +85,7 @@ public class StorePanelUI : MonoBehaviour
         }
     }
 
-    private bool IsOpen()
+    public bool IsOpen()
     {
         return storePanelRoot != null && storePanelRoot.activeSelf;
     }
@@ -124,9 +125,11 @@ public class StorePanelUI : MonoBehaviour
         blockGameplayInputThroughFrame =
             Mathf.Max(blockGameplayInputThroughFrame, Time.frameCount);
 
+        InGameScoreboardUI.Instance?.Close();
         RefreshPlayerInfo();
         RefreshItemButtons();
 
+        NetworkManager.Instance?.SendTeamPurchase(3);
         storePanelRoot.SetActive(true);
         storePanelRoot.transform.SetAsLastSibling();
 
@@ -168,6 +171,7 @@ public class StorePanelUI : MonoBehaviour
             playerNicknameText.text = myData.nickname;
 
         currentCredits = myData.credits;
+        if(loadoutSummary)loadoutSummary.SetData(myData);
 
         if (playerCreditText != null)
             playerCreditText.text = currentCredits.ToString();
@@ -393,109 +397,7 @@ public class StorePanelUI : MonoBehaviour
 
     private void ResolveSkillButtons()
     {
-        if (storePanelRoot == null)
-            return;
-
-        StoreSkillButton[] resolved = new StoreSkillButton[4];
-        Button[] buttons =
-            storePanelRoot.GetComponentsInChildren<Button>(true);
-
-        foreach (Button candidate in buttons)
-        {
-            if (candidate == null || candidate == closeButton)
-                continue;
-
-            if (!TryGetSkillSlot(candidate.gameObject.name, out SkillSlot slot))
-                continue;
-
-            StoreSkillButton skillButton =
-                candidate.GetComponent<StoreSkillButton>();
-
-            if (skillButton == null)
-                skillButton = candidate.gameObject.AddComponent<StoreSkillButton>();
-
-            skillButton.Configure(slot);
-            resolved[(int)slot] = skillButton;
-        }
-
-        // Freshly created Button (1)~(3) objects also work before they are renamed.
-        if (CountResolved(resolved) < 4)
-        {
-            List<Button> unnamedButtons = new List<Button>();
-
-            foreach (Button candidate in buttons)
-            {
-                if (candidate == null || candidate == closeButton)
-                    continue;
-
-                if (candidate.transform.parent != storePanelRoot.transform)
-                    continue;
-
-                if (!candidate.gameObject.name.StartsWith("Button"))
-                    continue;
-
-                if (candidate.GetComponent<StoreItemButton>() != null ||
-                    candidate.GetComponent<StoreSkillButton>() != null)
-                {
-                    continue;
-                }
-
-                unnamedButtons.Add(candidate);
-            }
-
-            unnamedButtons.Sort((left, right) =>
-                GetAnchoredX(left).CompareTo(GetAnchoredX(right))
-            );
-
-            int candidateIndex = 0;
-            for (int slotIndex = 0;
-                 slotIndex < resolved.Length && candidateIndex < unnamedButtons.Count;
-                 slotIndex++)
-            {
-                if (resolved[slotIndex] != null)
-                    continue;
-
-                Button candidate = unnamedButtons[candidateIndex++];
-                StoreSkillButton skillButton =
-                    candidate.gameObject.AddComponent<StoreSkillButton>();
-                skillButton.Configure((SkillSlot)slotIndex);
-                resolved[slotIndex] = skillButton;
-            }
-        }
-
-        skillButtons = resolved;
-    }
-
-    private bool TryGetSkillSlot(string objectName, out SkillSlot slot)
-    {
-        switch (objectName)
-        {
-            case "CSkillButton": slot = SkillSlot.C; return true;
-            case "QSkillButton": slot = SkillSlot.Q; return true;
-            case "ESkillButton": slot = SkillSlot.E; return true;
-            case "XSkillButton": slot = SkillSlot.X; return true;
-            default:
-                slot = SkillSlot.C;
-                return false;
-        }
-    }
-
-    private int CountResolved(StoreSkillButton[] buttons)
-    {
-        int count = 0;
-
-        foreach (StoreSkillButton button in buttons)
-        {
-            if (button != null)
-                count++;
-        }
-
-        return count;
-    }
-
-    private float GetAnchoredX(Button button)
-    {
-        RectTransform rect = button.transform as RectTransform;
-        return rect != null ? rect.anchoredPosition.x : 0f;
+        if(skillButtons==null || skillButtons.Length!=4 || System.Array.Exists(skillButtons,b=>b==null))
+            Debug.LogError("Store skill buttons must be authored and saved in the scene.");
     }
 }

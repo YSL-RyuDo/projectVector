@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
+[DefaultExecutionOrder(10010)]
 public class MiniMapManager : MonoBehaviour
 {
     public static MiniMapManager Instance;
@@ -227,6 +228,8 @@ public class MiniMapManager : MonoBehaviour
 
         _localPlayerCamera =
             playerCamera;
+        if (MiniMapCamera.Instance != null)
+            MiniMapCamera.Instance.SetViewCamera(playerCamera);
 
         _localPlayerIdentity =
             playerTransform.GetComponent<PlayerIdentity>();
@@ -350,7 +353,7 @@ public class MiniMapManager : MonoBehaviour
                 _miniMapCamera.transform.eulerAngles.y;
 
             float playerYaw =
-                _localPlayerTransform.eulerAngles.y;
+                _localPlayerCamera != null ? _localPlayerCamera.transform.eulerAngles.y : _localPlayerTransform.eulerAngles.y;
 
             _overlayPlayerMarker.localRotation =
                 Quaternion.Euler(

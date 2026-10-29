@@ -145,6 +145,7 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
         int position = members.FindIndex(m => m.isMe);
         var characters = Field<PickCharacterData[]>(pick, "characters");
         int character = characters[Mathf.Max(position, 0) % characters.Length].characterId;
+        if(DeviceEvidence)character=(Mathf.Max(position,0)+(state.myTeam==0?1:0))%4;
         if (SentinelEvidence) {
             uint pilot=uint.Parse(File.ReadAllText(Path.Combine(root,"qwer.id")));
             bool withPilot=members.Any(m=>m.playerId==pilot);
@@ -189,6 +190,8 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
         yield return Wait(() => RoundManager.Instance != null && RoundManager.Instance.currentState == RoundManager.RoundState.MainRound && net.MyPlayer != null,
             "waiting for combat round", 40);
         if (finished) yield break;
+        if(PingEvidence){yield return CapturePingEncounter();if(!finished)Finish("PASS: real Z/wheel input, all four kinds, team isolation, authored markers, ESC, expiry and reconnect");yield break;}
+        if(DeviceEvidence){yield return CaptureDeviceEncounter();if(!finished)Finish("PASS: live device cancellation, weapon recovery, remote poses, half defuse/reconnect, defuse result and normal 45-second release");yield break;}
         if (DroneEvidence) { yield return CaptureDroneEncounter(); if(!finished) Finish(DischargeEvidence ? "PASS: actual X input, server discharge hit and first-person weapon recovery" : Environment.GetEnvironmentVariable("VECTOR_CAPTURE_SCANNER")=="1" ? "PASS: scanner throw, authoritative shock, weapon restoration and cleanup" : Environment.GetEnvironmentVariable("VECTOR_CAPTURE_DRONE_CANCEL")=="1" ? "PASS: queued deploy cancellation and weapon input lock" : "PASS: actual drone flight, taser victim status and enemy weapon destruction"); yield break; }
         if (SentinelEvidence) { yield return CaptureSentinelEncounter(); if(!finished)Finish("PASS: live Sentinel inputs, server detection/status/damage and client movement/recovery"); yield break; }
         if (EntryEvidence) { yield return CaptureEntryEncounter(); if(!finished)Finish(EntryDashOnly ? "PASS: live Entry C, opponent path continuity, endpoint agreement, firearm recovery and normal movement" : "PASS: live Entry C Q E X, replicated effects, health, ammunition and firearm recovery"); yield break; }
@@ -534,7 +537,7 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
         {
             yield return end;
             if (!recording) break;
-            if(DischargeEvidence || SentinelEvidence || EntryEvidence){
+            if(DischargeEvidence || SentinelEvidence || EntryEvidence || DeviceEvidence || PingEvidence){
                 if(!dischargeCaptureReady){yield return null;continue;}
                 CaptureDischargeFrame(image);
                 // A 0.28 s dash needs every rendered frame, not alternate frames.

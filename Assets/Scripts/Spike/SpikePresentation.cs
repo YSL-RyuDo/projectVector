@@ -19,11 +19,11 @@ public sealed class SpikePresentation : MonoBehaviour
     public static Color Amber => new Color(1f, .32f, .08f);
     public float Remaining => Mathf.Max(0, deadline - Time.unscaledTime);
     public static float BeatInterval(float remaining) => remaining > 20 ? 1f : remaining > 10 ? .65f : remaining > 5 ? .36f : .18f;
-    public void Arm(float seconds)
+    public void Arm(float seconds, bool restoring = false)
     {
         armed = true; terminal = false; half = false; defusing = false;
-        deployedAt = Time.unscaledTime; deadline = deployedAt + seconds; lastBeat = -1;
-        if (source && armSound) source.PlayOneShot(armSound, .7f);
+        deployedAt = Time.unscaledTime - (restoring ? 1f : 0f); deadline = Time.unscaledTime + seconds; lastBeat = -1;
+        if (!restoring && source && armSound) source.PlayOneShot(armSound, .7f);
         // Only the art follows the floor. The authoritative interaction position
         // and the existing defuse trigger are deliberately left unchanged.
         RaycastHit? floor = null;
@@ -48,9 +48,10 @@ public sealed class SpikePresentation : MonoBehaviour
     {
         if (!armed || terminal) return;
         bool wasHalf = half; half = reachedHalf;
-        if (state == 1 && !defusing && source && defuseSound) source.PlayOneShot(defuseSound, .7f);
+        bool restoring = NetworkManager.Instance?.ReconnectBusy == true;
+        if (state == 1 && !defusing && !restoring && source && defuseSound) source.PlayOneShot(defuseSound, .7f);
         defusing = state == 1 || (state == 2 && defusing);
-        if (!wasHalf && half && source && halfSound) source.PlayOneShot(halfSound, .7f);
+        if (!wasHalf && half && !restoring && source && halfSound) source.PlayOneShot(halfSound, .7f);
     }
     public void Resolve(bool exploded)
     {

@@ -75,12 +75,14 @@ public static class SentinelPlacementVerification
         if(!(bool)sightMethod.Invoke(logic,sightArgs))throw new Exception("Player body incorrectly blocks C wave");
         wall.SetActive(true);Physics.SyncTransforms();
         var outline=wall.AddComponent<Outline>();outline.OutlineMode=Outline.Mode.OutlineVisible;
-        outline.OutlineColor=Color.red;outline.OutlineWidth=2;outline.enabled=false;
+        var playerOutline=wall.AddComponent<PlayerOutline>();playerOutline.Configure(false,false);
+        Color originalColor=outline.OutlineColor;float originalWidth=outline.OutlineWidth;
         var outlineFlags=BindingFlags.Instance|BindingFlags.NonPublic;
-        typeof(Sentinel_Trap).GetMethod("BackupOutline",outlineFlags).Invoke(logic,new object[]{outline});
-        outline.enabled=true;outline.OutlineMode=Outline.Mode.OutlineAndSilhouette;outline.OutlineColor=Color.yellow;outline.OutlineWidth=5;
+        playerOutline.BeginConfirmedSkillReveal(logic,2.5f);
+        ((System.Collections.Generic.HashSet<PlayerOutline>)typeof(Sentinel_Trap).GetField("revealedPlayers",outlineFlags).GetValue(logic)).Add(playerOutline);
+        if(!playerOutline.HasConfirmedSkillReveal||outline.OutlineMode!=Outline.Mode.OutlineAndSilhouette)throw new Exception("C reveal did not start");
         typeof(Sentinel_Trap).GetMethod("RestoreAllOutlines",outlineFlags).Invoke(logic,null);
-        if(outline.enabled||outline.OutlineMode!=Outline.Mode.OutlineVisible||outline.OutlineColor!=Color.red||outline.OutlineWidth!=2)throw new Exception("C reveal did not restore original outline state");
+        if(playerOutline.HasConfirmedSkillReveal||!outline.enabled||outline.OutlineMode!=Outline.Mode.OutlineVisible||outline.OutlineColor!=originalColor||outline.OutlineWidth!=originalWidth)throw new Exception("C reveal did not restore original outline state");
         var model=GameObject.CreatePrimitive(PrimitiveType.Cube);model.name="Model";model.transform.SetParent(actor.transform);
         var cameraObject=new GameObject("FirstPersonCamera");cameraObject.transform.SetParent(actor.transform);var camera=cameraObject.AddComponent<Camera>();
         var view=actor.AddComponent<PlayerCameraController>();typeof(PlayerCameraController).GetField("playerCamera",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(view,camera);
