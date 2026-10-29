@@ -19,6 +19,7 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
     int encounterRound = 1;
     bool Lifecycle => Environment.GetEnvironmentVariable("VECTOR_CAPTURE_LIFECYCLE") == "1";
     bool DroneEvidence => Environment.GetEnvironmentVariable("VECTOR_CAPTURE_DRONE") == "1";
+    bool NativeReportCapture => (ReportEvidence || PickEvidence) && Environment.GetEnvironmentVariable("VECTOR_CAPTURE_NATIVE") == "1";
     StreamWriter timeline;
     static readonly BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
     static T Field<T>(object obj, string name) => (T)obj.GetType().GetField(name, Private).GetValue(obj);
@@ -61,8 +62,8 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
     }
     IEnumerator Run()
     {
-        Application.runInBackground = true; QualitySettings.vSyncCount = 0; Application.targetFrameRate = 30;
-        if (!Application.isEditor) Screen.SetResolution(960, 540, false);
+        Application.runInBackground = true; QualitySettings.vSyncCount = 0; Application.targetFrameRate = NativeReportCapture ? 60 : 30;
+        if (!Application.isEditor) Screen.SetResolution(NativeReportCapture ? 1920 : 960, NativeReportCapture ? 1080 : 540, false);
         yield return Wait(() => NetworkManager.Instance != null && NetworkManager.Instance.IsConnected, "connecting");
         if (finished) yield break;
         var net = NetworkManager.Instance;
@@ -173,9 +174,11 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
         yield return Wait(() => Field<PickStateData>(pick, "currentState").members.Any(m => m.isMe && m.isLocked && m.lockedCharacterId == character), "server confirms selected character", 5);
         if (finished) yield break;
         File.WriteAllText(Path.Combine(root, account + ".selected"), character.ToString());
+        if(PickEvidence){yield return CapturePickActions();if(finished)yield break;}
         yield return Wait(() => GameController.Instance != null && GameController.Instance.CurrentState == GameController.GameFlowState.Playing, "loading actual match", 90);
         if (finished) yield break;
         Stage("in game"); File.WriteAllText(Path.Combine(root, account + ".playing"), "verified");
+        if (ReportEvidence) net.SendStoreBuyRequest(1,0);
         if ((SentinelEvidence || EntryEvidence) && account=="qwer") {
             foreach(var slot in new[]{SkillSlot.C,SkillSlot.Q,SkillSlot.E,SkillSlot.X})net.SendStoreBuyRequest(2,(int)slot);
         }
@@ -190,6 +193,8 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
         yield return Wait(() => RoundManager.Instance != null && RoundManager.Instance.currentState == RoundManager.RoundState.MainRound && net.MyPlayer != null,
             "waiting for combat round", 40);
         if (finished) yield break;
+        if(PickEvidence){yield return VerifyPickSpawn();yield break;}
+        if(ReportEvidence){yield return CaptureReportEncounter();if(!finished)Finish("PASS: live report, spectator switching, menu isolation, dead reconnect and ordinary round reset");yield break;}
         if(PingEvidence){yield return CapturePingEncounter();if(!finished)Finish("PASS: real Z/wheel input, all four kinds, team isolation, authored markers, ESC, expiry and reconnect");yield break;}
         if(DeviceEvidence){yield return CaptureDeviceEncounter();if(!finished)Finish("PASS: live device cancellation, weapon recovery, remote poses, half defuse/reconnect, defuse result and normal 45-second release");yield break;}
         if (DroneEvidence) { yield return CaptureDroneEncounter(); if(!finished) Finish(DischargeEvidence ? "PASS: actual X input, server discharge hit and first-person weapon recovery" : Environment.GetEnvironmentVariable("VECTOR_CAPTURE_SCANNER")=="1" ? "PASS: scanner throw, authoritative shock, weapon restoration and cleanup" : Environment.GetEnvironmentVariable("VECTOR_CAPTURE_DRONE_CANCEL")=="1" ? "PASS: queued deploy cancellation and weapon input lock" : "PASS: actual drone flight, taser victim status and enemy weapon destruction"); yield break; }
@@ -528,6 +533,8 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
 
     IEnumerator Capture()
     {
+        if(Environment.GetEnvironmentVariable("VECTOR_CAPTURE_SKIP_RECORD")=="1")yield break;
+        if(NativeReportCapture){yield return CaptureNativeReport();yield break;}
         var end = new WaitForEndOfFrame();
         // ScreenCapture already contains display-encoded pixels. An sRGB render target
         // would encode them again during the resize blit, washing out the recording.
@@ -537,11 +544,11 @@ public sealed partial class RankedCaptureTest : MonoBehaviour
         {
             yield return end;
             if (!recording) break;
-            if(DischargeEvidence || SentinelEvidence || EntryEvidence || DeviceEvidence || PingEvidence){
+            if(DischargeEvidence || SentinelEvidence || EntryEvidence || DeviceEvidence || PingEvidence || ReportEvidence){
                 if(!dischargeCaptureReady){yield return null;continue;}
                 CaptureDischargeFrame(image);
                 // A 0.28 s dash needs every rendered frame, not alternate frames.
-                if (!EntryDashOnly) yield return new WaitForSecondsRealtime(.025f);
+                if (!EntryDashOnly) yield return new WaitForSecondsRealtime(ReportEvidence?.125f:.025f);
                 continue;
             }
             var shot = ScreenCapture.CaptureScreenshotAsTexture();

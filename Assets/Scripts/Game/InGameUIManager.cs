@@ -457,6 +457,16 @@ public class InGameUIManager : MonoBehaviour
             }
         }
 
+        var spectator=SpectatorManager.Instance;
+        var net=NetworkManager.Instance;
+        var member=spectator && spectator.IsSpectating && net?
+            net.CurrentScoreboard?.members.Find(m=>m.playerId==spectator.CurrentTargetPlayerId && m.team==net.CurrentScoreboard.myTeam):null;
+        if(member!=null && member.hasLoadout && WeaponDropSpawner.Instance) {
+            SetMainWeapon(member.primaryWeaponId>=0?WeaponDropSpawner.Instance.GetWeaponData(member.primaryWeaponId):null);
+            SetSubWeaponData(member.pistolWeaponId>=0?WeaponDropSpawner.Instance.GetWeaponData(member.pistolWeaponId):null);
+            SetKnifeData(member.knifeWeaponId>=0?WeaponDropSpawner.Instance.GetWeaponData(member.knifeWeaponId):null);
+        }
+
         // 관전 대상을 변경했을 때 이미 ADS 중인 대상이면 즉시 크로스헤어를 숨긴다.
         RefreshSpectatorCrosshair();
     }

@@ -17,6 +17,8 @@ public class SpectatorManager : MonoBehaviour
 
     private bool currentTargetDroneView;
     public bool IsSpectating => isSpectating;
+    public int TargetCount => targets.Count;
+    public bool IsDroneView => currentTargetDroneView;
     public uint CurrentTargetPlayerId => currentSpectatorTarget != null ? currentSpectatorTarget.PlayerId : 0;
 
     private Transform savedCameraParent;
@@ -69,10 +71,10 @@ public class SpectatorManager : MonoBehaviour
 
         // Keep following the target while menus are open, but don't interpret
         // settings/voice/chat clicks as spectator target-selection input.
-        if (!GameplayActionPolicy.MenuBlocksInput && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        if (!ReportUI.OverlayBlocked && (UnityEngine.EventSystems.EventSystem.current == null || !UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             NextTarget();
 
-        if (!GameplayActionPolicy.MenuBlocksInput && Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
+        if (!ReportUI.OverlayBlocked && (UnityEngine.EventSystems.EventSystem.current == null || !UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) && Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
             PrevTarget();
 
         FollowTarget();
@@ -80,6 +82,7 @@ public class SpectatorManager : MonoBehaviour
 
     public void StartSpectating()
     {
+        if (isSpectating) return;
         RestoreSpectatorTarget();
 
         myPlayer = FindMyPlayer();
@@ -215,6 +218,8 @@ public class SpectatorManager : MonoBehaviour
             targets.Add(player);
         }
 
+        targets.Sort((a,b)=>a.PlayerId.CompareTo(b.PlayerId));
+
         if (targets.Count == 0)
         {
             currentIndex = 0;
@@ -242,6 +247,10 @@ public class SpectatorManager : MonoBehaviour
             return null;
 
         uint myPlayerId = NetworkManager.Instance.MyPlayerId;
+
+        // Reauthentication temporarily clears the id; retain the last view
+        // without reporting an expected reconnect state as a game error.
+        if (myPlayerId == 0) return null;
 
         PlayerIdentity[] players = FindObjectsByType<PlayerIdentity>(
             FindObjectsInactive.Include,
@@ -361,11 +370,6 @@ public class SpectatorManager : MonoBehaviour
 
         SaveLastSpectatorView();
 
-        Debug.Log(
-            $"[SPECTATOR FOLLOW] " +
-            $"targetPlayerId={target.PlayerId}, " +
-            $"followingDrone={followingDrone}"
-        );
     }
 
     private void ApplySpectatorTarget(
@@ -613,6 +617,8 @@ public class SpectatorManager : MonoBehaviour
             // 관전 대상의 1인칭 표시만 원래 상태로 복구
             // myCamera는 부모에서 분리되어 있으므로 위치는 바뀌지 않는다.
             RestoreSpectatorTarget();
+            if (DroneModeUIController.Instance) DroneModeUIController.Instance.SetSpectatorDroneViewUI(false);
+            InGameUIManager.Instance?.SetSpectatorPlayerUI(myPlayer.CharacterId,null,0,0,100,0,-1,0,0);
 
             Debug.Log(
                 $"[SPECTATOR HOLD] 마지막 카메라 위치 유지. " +

@@ -254,13 +254,41 @@ public static partial class SpikePresentationAuthoring
         }
         finally{PrefabUtility.UnloadPrefabContents(root);}
     }
+    public static void RebuildFirstPersonRigs()
+    {
+        if(!Application.isBatchMode)throw new Exception("Use batch with the project closed");
+        shell=AssetDatabase.LoadAssetAtPath<Material>(Folder+"/Ceramic.mat");
+        dark=AssetDatabase.LoadAssetAtPath<Material>(Folder+"/Graphite.mat");
+        steel=AssetDatabase.LoadAssetAtPath<Material>(Folder+"/Titanium.mat");
+        light=AssetDatabase.LoadAssetAtPath<Material>(Folder+"/CoreCyan.mat");
+        glass=AssetDatabase.LoadAssetAtPath<Material>(Folder+"/Display.mat");
+        bevel=AssetDatabase.LoadAssetAtPath<Mesh>(Folder+"/Bevel.asset");
+        cylinder=AssetDatabase.LoadAssetAtPath<Mesh>(Folder+"/Prism.asset");
+        foreach(var role in Characters)
+        {
+            string path=$"Assets/Prefab/Character/{role}/{role}.prefab";
+            var root=PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                var fp=root.transform.Find("CameraRoot/Controller Model_Riging (1)");
+                root.GetComponent<SpikeInteractionPresentation>().firstPerson=BuildRig(fp,root.GetComponentInChildren<Camera>(true).transform,true,role);
+                var transition=root.GetComponent<FirstPersonEquipmentTransition>();
+                if(!transition)transition=root.AddComponent<FirstPersonEquipmentTransition>();
+                transition.model=fp;
+                if(!root.GetComponent<FirstPersonEquipmentPose>())root.AddComponent<FirstPersonEquipmentPose>();
+                PrefabUtility.SaveAsPrefabAsset(root,path);
+            }
+            finally{PrefabUtility.UnloadPrefabContents(root);}
+        }
+        AssetDatabase.SaveAssets();
+    }
     static SpikeInteractionPresentation.Rig BuildRig(Transform model,Transform frame,bool fp,string character)
     {
         foreach(string name in new[]{"Spike interaction device","Spike defuse probe"}){var old=model.Find(name);if(old)Object.DestroyImmediate(old.gameObject);}
         var device=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath),model);device.name="Spike interaction device";
         var tool=new GameObject("Spike defuse probe");tool.transform.SetParent(model,false);
         var inverseScale=new Vector3(1/model.lossyScale.x,1/model.lossyScale.y,1/model.lossyScale.z);
-        device.transform.localScale=inverseScale*(fp?.85f:1f);tool.transform.localScale=inverseScale;
+        device.transform.localScale=inverseScale*(fp?.72f:1f);tool.transform.localScale=inverseScale;
         BuildProbeV2(tool.transform);
         int layer=LayerMask.NameToLayer(fp?"FirstPersonArms":"PlayerBody");if(layer<0)layer=0;Layer(device,layer);Layer(tool,layer);
         // First person owns arms only; the world interaction owns a complete grounded pose.
@@ -269,7 +297,11 @@ public static partial class SpikePresentationAuthoring
         if(armBones.Length<6)throw new Exception("Missing arm bones: "+character);
         var allBones=new HashSet<Transform>(skeleton);
         foreach(var b in skeleton)for(var p=b.parent;p&&p!=model;p=p.parent)allBones.Add(p);
-        var bones=(fp?armBones.AsEnumerable():allBones.AsEnumerable()).Concat(new[]{model,device.transform,tool.transform}).Distinct().ToArray();
+        // The firearm Animator also keys the shoulders/spine. An arm-only sample
+        // leaves those parent transforms in the gun pose and detaches both grips.
+        var fpBones=new HashSet<Transform>(armBones);
+        foreach(var b in armBones)for(var p=b.parent;p&&p!=model;p=p.parent)fpBones.Add(p);
+        var bones=(fp?fpBones.AsEnumerable():allBones.AsEnumerable()).Concat(new[]{model,device.transform,tool.transform}).Distinct().ToArray();
         var positions=bones.Select(t=>t.localPosition).ToArray();var rotations=bones.Select(t=>t.localRotation).ToArray();
         Transform Bone(string n)
         {
@@ -281,7 +313,7 @@ public static partial class SpikePresentationAuthoring
         var leftShoulder=InFrame(Bone("LeftArm").position);
         var rightShoulder=InFrame(Bone("RightArm").position);
         float armLength=Vector3.Distance(Bone("LeftArm").position,Bone("LeftForeArm").position)+Vector3.Distance(Bone("LeftForeArm").position,Bone("LeftHand").position);
-        float fpDepth=.46f;
+        float fpDepth=.52f;
         float carryHeight=(leftShoulder.y+rightShoulder.y)*.5f-armLength*.48f;
         void Reset(){for(int i=0;i<bones.Length;i++){bones[i].localPosition=positions[i];bones[i].localRotation=rotations[i];}}
         var palmFrames=new Dictionary<string,Quaternion>();
@@ -354,7 +386,7 @@ public static partial class SpikePresentationAuthoring
                     // Center the whole viewmodel; preserve the character's shoulder spacing
                     // and bone lengths rather than stretching its left arm across a gun pose.
                     float center=(leftShoulder.x+rightShoulder.x)*.5f;
-                    model.position+=frame.rotation*new Vector3(-center,-.27f-(leftShoulder.y+rightShoulder.y)*.5f,.19f);
+                    model.position+=frame.rotation*new Vector3(-center,-.27f-(leftShoulder.y+rightShoulder.y)*.5f,.25f);
                 }
                 else if(pelvis&&leftFoot&&rightFoot)
                 {
@@ -399,7 +431,7 @@ public static partial class SpikePresentationAuthoring
                     if(head)head.rotation=Quaternion.AngleAxis(-lean*.35f,frame.right)*head.rotation;
                 }
                 float worldY=(Bone("LeftArm").position.y+Bone("RightArm").position.y)*.5f-frame.position.y-armLength*.5f;
-                Vector3 basePosition=fp?new Vector3(-.055f,Mathf.Lerp(-.66f,-.27f,lift)-lower*.30f,fpDepth-lower*.04f):new Vector3(0,0,.43f);
+                Vector3 basePosition=fp?new Vector3(0,Mathf.Lerp(-.66f,-.24f,lift)-lower*.30f,fpDepth-lower*.04f):new Vector3(0,0,.43f);
                 var shoulderCenter=(Bone("LeftArm").position+Bone("RightArm").position)*.5f;
                 var heldPosition=shoulderCenter+frame.forward*.25f-Vector3.up*.27f;
                 var placedPosition=frame.position+frame.forward*PlayerSpike.PlantForwardOffset+Vector3.up*.012f;

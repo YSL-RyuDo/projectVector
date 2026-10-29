@@ -472,6 +472,7 @@ public class Weapon : Item
 
         if (practice != null) practice.GetComponent<PracticeWeaponInput>()?.RecordShot();
 
+        if (weaponData.weaponType == WeaponData.WeaponType.Knife) GetComponent<KnifeMotion>()?.PlayAttack();
         PlayAttackRecoilVisual();
         FireCurrentWeapon();
         PlayLocalGunSound();

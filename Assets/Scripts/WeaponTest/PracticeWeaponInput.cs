@@ -15,7 +15,12 @@ public sealed class PracticeWeaponInput : MonoBehaviour
     private void Update()
     {
         var weapon=inventory.GetCurrentWeapon();
-        if(weapon==null || weapon.Data==null)return;
+        if(weapon==null || weapon.Data==null)
+        {
+            ammo.text=inventory.CurrentIndex==4?"디바이스":"";
+            hitMarker.gameObject.SetActive(false);
+            return;
+        }
         ammo.text=inventory.IsReloading ? "재장전 중" : $"{weapon.Data.name}   {(range.infiniteAmmo ? "∞" : $"{weapon.CurrentAmmo} / {weapon.ReserveAmmo}")}";
         hitMarker.gameObject.SetActive(Time.time<hitUntil);
     }

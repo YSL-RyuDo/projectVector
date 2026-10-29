@@ -36,6 +36,7 @@ public class PlayerItem : MonoBehaviour
     private GameObject reloadingWeaponObject;
 
     public bool IsReloading => isReloading;
+    public bool IsRemoteReloading => remoteIsReloading;
 
     public Item[] Items => items;
     public int CurrentIndex => currentIndex;
@@ -95,7 +96,7 @@ public class PlayerItem : MonoBehaviour
         if (slot < 0 || slot > 2 || items[slot] == null) return false;
         if (_playerIdentity == null || NetworkManager.Instance == null ||
             _playerIdentity.PlayerId != NetworkManager.Instance.MyPlayerId) return false;
-        Switch(slot);
+        RequestWeaponSwitch(slot);
         return true;
     }
 
@@ -153,25 +154,25 @@ public class PlayerItem : MonoBehaviour
 
         if (Keyboard.current.digit1Key.wasPressedThisFrame)
         {
-            Switch(0);
+            RequestWeaponSwitch(0);
             return;
         }
 
         if (Keyboard.current.digit2Key.wasPressedThisFrame)
         {
-            Switch(1);
+            RequestWeaponSwitch(1);
             return;
         }
 
         if (Keyboard.current.digit3Key.wasPressedThisFrame)
         {
-            Switch(2);
+            RequestWeaponSwitch(2);
             return;
         }
 
         if (Keyboard.current.digit4Key.wasPressedThisFrame)
         {
-            Switch(4);
+            RequestWeaponSwitch(4);
             return;
         }
 
@@ -356,6 +357,16 @@ public class PlayerItem : MonoBehaviour
             dropPosition,
             dropDirection
         );
+    }
+
+    private void RequestWeaponSwitch(int index)
+    {
+        if(index<0 || index>=items.Length || !items[index] || currentIndex==index)return;
+        if(index==4 && (playerSpike==null || !playerSpike.hasSpike))return;
+        if(isReloading)CancelReload(false);
+        var transition=GetComponent<FirstPersonEquipmentTransition>();
+        if(transition)transition.Request(index,()=>Switch(index));
+        else Switch(index);
     }
 
     void Switch(int index)
@@ -735,6 +746,7 @@ public class PlayerItem : MonoBehaviour
             Destroy(tpWeaponObjects[4]);
 
         GameObject obj = Instantiate(spikePrefab, itemHolder);
+        DisableHeldWeaponPhysics(obj);
         obj.transform.localPosition = new Vector3(0.75f, -0.2f, 1f);
         obj.transform.localRotation = Quaternion.identity;
 

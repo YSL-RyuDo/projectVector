@@ -178,6 +178,12 @@ public class PlayerCameraController : MonoBehaviour
             deathController != null &&
             deathController.IsDead;
 
+        // The arms contain the first-person weapon holder. Toggle the whole
+        // authored rig, otherwise remote weapons stay hidden and a dead local
+        // player's detached sleeves remain visible in the world.
+        GetComponent<PlayerMovement>()?.SetFirstPersonArmsVisible(
+            firstPersonView && !isDead && !isDroneBodyView);
+
         if (isDroneBodyView && !isDead)
         {
             // Show the authored world body, never a duplicate prefab or FPS arms.

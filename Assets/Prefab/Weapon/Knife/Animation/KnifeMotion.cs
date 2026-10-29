@@ -50,17 +50,6 @@ public class KnifeMotion : MonoBehaviour
         isAttacking = false;
     }
 
-    private void Update()
-    {
-        if (!IsLocalOwner())
-            return;
-
-        if (Input.GetMouseButtonDown(0))
-        {
-            PlayAttack();
-        }
-    }
-
     private bool IsLocalOwner()
     {
         if (ownerIdentity == null)
@@ -102,6 +91,14 @@ public class KnifeMotion : MonoBehaviour
     private IEnumerator AttackRoutine()
     {
         isAttacking = true;
+        var grip = GetComponent<FirstPersonKnifeGrip>();
+        if (grip != null && grip.Ready)
+        {
+            grip.BeginSwing();
+            yield return new WaitForSeconds(attackCooldown);
+            isAttacking = false; attackCoroutine = null;
+            yield break;
+        }
 
         if (animator == null)
         {

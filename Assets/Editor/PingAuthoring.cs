@@ -114,7 +114,7 @@ public static class PingAuthoring
             p.fullGlyph=Graphic(p.fullIcon,"Kind",0,0,24,1);
             p.Hide();
         }
-        var hint=Rect(root.transform,"InputHint",0,0,260,34);hint.anchorMin=hint.anchorMax=new Vector2(0,1);hint.pivot=new Vector2(0,1);hint.anchoredPosition=new Vector2(38,-244);
+        var hint=Rect(root.transform,"InputHint",0,0,260,34);hint.anchorMin=hint.anchorMax=new Vector2(0,1);hint.pivot=new Vector2(0,1);hint.anchoredPosition=new Vector2(38,-310);
         Box(hint,"Key",-108,0,30,28,ink);Label(hint,"KeyLabel","Z",-108,0,30,28,19);
         Label(hint,"Help","핑, 길게 눌러 선택",20,0,212,28,18).color=new Color(.80f,.87f,.92f);manager.inputHint=hint.gameObject;
         manager.statusText=Label(root.transform,"Status","",0,-260,600,32,20);manager.statusText.gameObject.SetActive(false);

@@ -425,16 +425,16 @@ public class OpponentCombatSummary
     public bool isKiller;
 
     // 내가 준 총 피해 & 부위별 타격수
-    public uint damageDealt;
-    public uint hitsDealtHead;
-    public uint hitsDealtBody;
-    public uint hitsDealtLeg;
+    public ulong damageDealt;
+    public ulong hitsDealtHead;
+    public ulong hitsDealtBody;
+    public ulong hitsDealtLeg;
 
     // 내가 받은 총 피해 & 부위별 피격수
-    public uint damageTaken;
-    public uint hitsTakenHead;
-    public uint hitsTakenBody;
-    public uint hitsTakenLeg;
+    public ulong damageTaken;
+    public ulong hitsTakenHead;
+    public ulong hitsTakenBody;
+    public ulong hitsTakenLeg;
 
     // 무기/스킬별 상세 내역
     public List<CombatReportRawEntry> details = new();
@@ -490,11 +490,6 @@ public partial class NetworkManager : MonoBehaviour
 
     public event Action<int> WeaponSkinLoadoutChanged;
 
-    // KSW: Report UI 관련
-    private uint combatReportRequestId = 0;
-    private uint currentCombatLifeId = 0;
-    private ushort expectedReportPage = 0;
-    private readonly List<CombatReportRawEntry> accumulatedReportEntries = new();
 
     public bool HasWeaponSkinLoadout(int characterId)
     {
@@ -700,6 +695,7 @@ public partial class NetworkManager : MonoBehaviour
         reconnectAccount = id.Trim();
         reconnectPassword = pw; // Process memory only; never PlayerPrefs, files or logs.
         IsAuthenticated = false;
+        ResetLocalCombatReport();
         ResetSocialState();
         myUserId = id.Trim();
         equippedWeaponSkinsByCharacter.Clear();
@@ -1134,6 +1130,9 @@ public partial class NetworkManager : MonoBehaviour
     void HandlePacket(ushort type, byte[] body)
     {
         if (HandleReconnectPacket(type, body)) return;
+        if (type == (ushort)PacketType.PKT_SC_PICK_ACTIONS) { HandlePickActions(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_PICK_ACTION_RESULT) { HandlePickActionResult(body); return; }
+        if (type == (ushort)PacketType.PKT_SC_PICK_SHOWCASE) { HandlePickShowcase(body); return; }
         if (type == (ushort)PacketType.PKT_SC_TEAM_PURCHASES) { HandleTeamPurchases(body); return; }
         if (type == (ushort)PacketType.PKT_SC_TEAM_PURCHASE_RESULT) { HandleTeamPurchaseResult(body); return; }
         if (type == (ushort)PacketType.PKT_SC_KILL_FEED) { HandleKillFeed(body); return; }
@@ -4234,9 +4233,7 @@ public partial class NetworkManager : MonoBehaviour
 
     private void HandleRoundReset(byte[] body)
     {
-        accumulatedReportEntries.Clear();
-        currentCombatLifeId = 0;
-        ReportUI.Instance?.CloseAndReset();
+        ResetLocalCombatReport();
 
         teamPurchaseRequests.Clear();TeamPurchaseNotice="";
         ScannerNetworkManager.Instance?.ClearAll();
@@ -5598,9 +5595,7 @@ public partial class NetworkManager : MonoBehaviour
             );
         }
 
-        uint roomId = latestScoreboardData != null ? latestScoreboardData.roomId : 0;
-        SendCombatReportRequest(roomId, 0, 0);
-        ReportUI.Instance?.Open();
+        BeginLocalCombatReport();
     }
 
     public void SendSpikeDropRequest(Vector3 position, Vector3 direction)
@@ -10189,121 +10184,4 @@ public partial class NetworkManager : MonoBehaviour
         DialogueManager.Instance?.OnRecvFavorLevels(favorDict);
     }
 
-    // KSW : Report UI 처리
-    public void SendCombatReportRequest(uint roomId, uint lifeId = 0, ushort pageIndex = 0)
-    {
-        combatReportRequestId++;
-        if (pageIndex == 0)
-        {
-            currentCombatLifeId = 0;
-            accumulatedReportEntries.Clear();
-        }
-
-        byte[] buffer = new byte[18];
-        BitConverter.GetBytes((ushort)18).CopyTo(buffer, 0);
-        BitConverter.GetBytes((ushort)370).CopyTo(buffer, 2);
-        BitConverter.GetBytes(combatReportRequestId).CopyTo(buffer, 4);
-        BitConverter.GetBytes(roomId).CopyTo(buffer, 8);
-        BitConverter.GetBytes(lifeId).CopyTo(buffer, 12);
-        BitConverter.GetBytes(pageIndex).CopyTo(buffer, 16);
-
-        client.Send(buffer);
-        Debug.Log($"[SEND COMBAT REPORT REQ] reqId={combatReportRequestId}, roomId={roomId}, lifeId={lifeId}, page={pageIndex}");
-    }
-
-
-    private void HandleCombatReport(byte[] body)
-    {
-        const int HeaderSize = 28;
-        const int EntrySize = 60;
-        const int MaxEntries = 8;
-        const int ExpectedSize = HeaderSize + EntrySize * MaxEntries;
-
-        if (body == null || body.Length < ExpectedSize)
-        {
-            Debug.LogWarning(
-                $"[COMBAT REPORT] invalid body size={body?.Length ?? 0}, expected={ExpectedSize}");
-            return;
-        }
-
-        uint reqId = BitConverter.ToUInt32(body, 0);
-        byte version = body[4];
-        byte status = body[5];
-        byte flags = body[6];
-        byte entryCount = body[7];
-        uint roomId = BitConverter.ToUInt32(body, 8);
-        uint lifeId = BitConverter.ToUInt32(body, 12);
-        uint killerId = BitConverter.ToUInt32(body, 16);
-        ushort pageIndex = BitConverter.ToUInt16(body, 20);
-        ushort pageCount = BitConverter.ToUInt16(body, 22);
-        ushort totalEntries = BitConverter.ToUInt16(body, 24);
-
-        Debug.Log(
-            $"[COMBAT REPORT] reqId={reqId}, currentReqId={combatReportRequestId}, " +
-            $"version={version}, status={status}, roomId={roomId}, lifeId={lifeId}, " +
-            $"page={pageIndex}/{pageCount}, entries={entryCount}, total={totalEntries}");
-
-        if (version != 1 || reqId != combatReportRequestId)
-        {
-            Debug.LogWarning(
-                $"[COMBAT REPORT] response ignored: version={version}, " +
-                $"reqId={reqId}, expectedReqId={combatReportRequestId}");
-            return;
-        }
-
-        if (status != 0)
-        {
-            Debug.LogWarning($"[COMBAT REPORT] failed: status={status}");
-            ReportUI.Instance?.ShowFailed();
-            return;
-        }
-
-        currentCombatLifeId = lifeId;
-
-        int count = Math.Min((int)entryCount, MaxEntries);
-
-        for (int i = 0; i < count; i++)
-        {
-            int offset = HeaderSize + i * EntrySize;
-
-            CombatReportRawEntry entry = new CombatReportRawEntry
-            {
-                opponentId = BitConverter.ToUInt32(body, offset),
-                characterId = BitConverter.ToInt32(body, offset + 4),
-                nickname = Packet.ReadFixedString(body, offset + 8, 20),
-                sourceKind = body[offset + 28],
-                direction = body[offset + 29],
-                sourceId = BitConverter.ToInt32(body, offset + 32),
-                hpDamage = BitConverter.ToUInt32(body, offset + 36),
-                barrierDamage = BitConverter.ToUInt32(body, offset + 40),
-                bodyHits = BitConverter.ToUInt32(body, offset + 44),
-                headHits = BitConverter.ToUInt32(body, offset + 48),
-                legHits = BitConverter.ToUInt32(body, offset + 52),
-                unlocalizedHits = BitConverter.ToUInt32(body, offset + 56)
-            };
-
-            accumulatedReportEntries.Add(entry);
-        }
-
-        if (pageIndex + 1 < pageCount)
-        {
-            SendCombatReportRequest(
-                roomId,
-                currentCombatLifeId,
-                (ushort)(pageIndex + 1));
-        }
-        else
-        {
-            bool isLimitReached = (flags & 0x02) != 0;
-
-            Debug.Log(
-                $"[COMBAT REPORT] all pages received: " +
-                $"accumulated={accumulatedReportEntries.Count}, killerId={killerId}");
-
-            ReportUI.Instance?.ApplyData(
-                accumulatedReportEntries,
-                killerId,
-                isLimitReached);
-        }
-    }
 }

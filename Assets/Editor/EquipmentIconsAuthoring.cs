@@ -165,12 +165,19 @@ public static class EquipmentIconsAuthoring
         camera.cullingMask=1<<30;canvasGO.layer=30;canvas.worldCamera=camera;canvas.planeDistance=1;
         var scale=canvasGO.GetComponent<CanvasScaler>();scale.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scale.referenceResolution=new Vector2(1920,1080);
         var clone=UnityEngine.Object.Instantiate(source,canvasGO.transform,false);clone.SetActive(true);
-        configure?.Invoke(clone);
         foreach(var t in clone.GetComponentsInChildren<Transform>(true))t.gameObject.layer=30;
         var rect=(RectTransform)clone.transform;rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=rect.offsetMax=Vector2.zero;
         var rt=new RenderTexture(1920,1080,24);camera.targetTexture=rt;
+        // The capture has a fixed reference-size target; the batch editor's
+        // desktop/GameView dimensions must not scale its Canvas down.
+        scale.enabled=false;canvas.scaleFactor=1;
         cameraSetup?.Invoke(camera);
         canvas.planeDistance=camera.nearClipPlane+.02f; // World geometry must not occlude the HUD capture.
+        // Geometry assertions must see the final target size, not the temporary 100x100 clone.
+        Canvas.ForceUpdateCanvases();
+        camera.Render(); // Resolve camera-space Canvas geometry against the RenderTexture.
+        Canvas.ForceUpdateCanvases();
+        configure?.Invoke(clone);
         Canvas.ForceUpdateCanvases();foreach(var t in clone.GetComponentsInChildren<TMP_Text>(true))t.ForceMeshUpdate(true);Canvas.ForceUpdateCanvases();camera.Render();
         var area=crop??new Rect(0,0,1920,1080);
         var previous=RenderTexture.active;RenderTexture.active=rt;var tex=new Texture2D((int)area.width,(int)area.height,TextureFormat.RGB24,false);

@@ -26,6 +26,7 @@ public static class GameplayActionPolicy
              GameController.Instance.CurrentState == GameController.GameFlowState.Loading)) return false;
         if (action == GameplayAction.Look) return !InitiatorSkill_Q.IsLocalDroneMode;
         if (action == GameplayAction.Move) return !InitiatorSkill_Q.IsLocalDroneMode;
+        if (action != GameplayAction.WeaponChange && owner.GetComponentInParent<FirstPersonEquipmentTransition>()?.Busy == true) return false;
         if (owner.GetComponentInParent<PlayerSpike>()?.IsInteracting == true && action != GameplayAction.Interact) return false;
         if (owner.GetComponentInParent<PlayerMovement>()?.IsServerStunned == true ||
             owner.GetComponentInParent<ElectricShock>()?.IsStunned == true) return false;

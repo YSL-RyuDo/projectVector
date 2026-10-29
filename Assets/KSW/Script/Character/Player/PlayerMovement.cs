@@ -316,7 +316,7 @@ public class PlayerMovement : MonoBehaviour
             TrySetCrouching(!_isCrouching);
         }
 
-        if (!chatOpen &&
+        if (!chatOpen && GameplayActionPolicy.CanAct(this, GameplayAction.Fire) &&
             !StorePanelUI.IsBlockingGameplayInput &&
             Mouse.current != null &&
             Mouse.current.leftButton
@@ -946,6 +946,13 @@ public class PlayerMovement : MonoBehaviour
         _verticalVelocity = force;
     }
 
+    // Ownership does not define visibility while following a teammate.
+    public void SetFirstPersonArmsVisible(bool visible)
+    {
+        if (firstPersonArmModel != null && firstPersonArmModel.activeSelf != visible)
+            firstPersonArmModel.SetActive(visible);
+    }
+
     public void SetLocalPlayer(bool isMine)
     {
         _isMine = isMine;
@@ -955,8 +962,7 @@ public class PlayerMovement : MonoBehaviour
 
         GetComponent<FirstPersonViewSetup>()?.Setup(isMine);
 
-        if (firstPersonArmModel != null)
-            firstPersonArmModel.SetActive(isMine);
+        SetFirstPersonArmsVisible(isMine);
 
         Debug.Log(
             $"[외부 호출] SetLocalPlayer 호출. " +

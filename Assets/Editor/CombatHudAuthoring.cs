@@ -44,7 +44,7 @@ public static class CombatHudAuthoring
         {
             // Hidden in the saved scene as well as at runtime: no login/pick-frame F10 flash.
             voice.openButton.gameObject.SetActive(false);voice.panel.SetActive(false);voice.speakingText.text="";foreach(var row in voice.hudRows)row.SetActive(false);
-            R(voice.openButton.transform,-838,-330,168,34);var im=voice.openButton.GetComponent<Image>();if(im){im.sprite=null;im.color=Dark;}
+            R(voice.openButton.transform,-838,-380,168,34);Anchor(voice.openButton.transform,Vector2.zero);var im=voice.openButton.GetComponent<Image>();if(im){im.sprite=null;im.color=Dark;}
             var label=voice.openButton.GetComponentInChildren<TMP_Text>(true);Style(label,16,Muted);label.text="F10   팀 음성";
         }
         EditorSceneManager.MarkSceneDirty(scene);EditorSceneManager.SaveScene(scene);AssetDatabase.SaveAssets();
@@ -91,6 +91,7 @@ public static class CombatHudAuthoring
     static void AuthorTop(TopInfoUI top,MatchManager match)
     {
         var root=top.transform;Full(root);
+        foreach(string name in new[]{"OurTeamListRoot/Viewport","EnemyTeamListRoot/Viewport"}){var t=root.Find(name);if(t){ClearFace(t);var mask=t.GetComponent<Mask>();if(mask)mask.showMaskGraphic=false;}}
         foreach(string n in new[]{"Timer","OurTeamScoreImage","EnemyTeamScoreImage","GameDescription","OurTeamList","EnemyTeamList"}){var t=root.Find(n);if(t)ClearFace(t);}
         var clock=Get<TMP_Text>(top,"timerText").transform.parent;Move(clock,root,0,488,144,66);ClearFace(clock);
         Shape(clock,"ClockPlate",0,0,144,66,Dark).transform.SetAsFirstSibling();MoveText(top,"timerText",clock,0,-5,130,46,34,Color.white);
@@ -151,7 +152,7 @@ public static class CombatHudAuthoring
         var backs=Refs<Image>(hud,"weaponSlotBackgrounds");
         for(int i=0;i<backs.Length;i++)
         {
-            var row=backs[i];Move(row.transform,weapons,813,-454+i*58,228,50);row.sprite=null;row.material=null;row.color=new Color(.06f,.10f,.15f,.72f);row.raycastTarget=false;
+            var row=backs[i];Move(row.transform,weapons,813,-214+i*58,228,50);row.sprite=null;row.material=null;row.color=new Color(.06f,.10f,.15f,.72f);row.raycastTarget=false;
             var art=Get<Image>(hud,new[]{"mainWeaponImage","subWeaponImage","knifeImage","spikeImage"}[i]);Move(art.transform,row.transform,-14,0,167,42);art.material=ink;art.preserveAspect=true;
             var oldLabel=row.GetComponentsInChildren<TMP_Text>(true).FirstOrDefault();
             var badge=Box(row.transform,"SlotKey",92,0,24,24,new Color(.13f,.19f,.25f,.9f));

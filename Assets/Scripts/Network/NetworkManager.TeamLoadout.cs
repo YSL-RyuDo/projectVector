@@ -10,6 +10,8 @@ public partial class NetworkManager
         if(me!=null)SkillInventoryState.ApplyUltimateState(me.ultimatePoints,me.ultimateRequired,me.ultimatePointPrice,me.ultimateUsed);
         InGameScoreboardUI.Instance?.OnRecvScoreboardUpdate(latestScoreboardData);
         StorePanelUI.Instance?.RefreshPlayerInfo();
+        var spectator=SpectatorManager.Instance;
+        if(spectator && spectator.IsSpectating)spectator.NotifyPlayerStateChanged(spectator.CurrentTargetPlayerId);
     }
     public static bool ApplyTeamLoadout(byte[] body,ScoreboardData board)
     {

@@ -43,12 +43,13 @@ public sealed class SpikeInteractionPresentation : MonoBehaviour
     PlayerItem inventory;
     public bool IsPresenting { get; private set; }
     public bool IsRecovering => recovering;
+    public bool IsCarryingDevice { get; private set; }
     void Awake() { spike = GetComponent<PlayerSpike>(); inventory = GetComponent<PlayerItem>(); }
     void Update() { Restore(firstPerson); Restore(thirdPerson); }
     void LateUpdate()
     {
         if (!spike) return;
-        bool local = spike.IsLocalPlayer();
+        bool local = spike.IsLocalPlayer() || PracticePlayerContext.For(spike)!=null;
         byte action = local ? (spike.IsPlanting ? (byte)1 : spike.IsDefusing ? (byte)2 : (byte)0) : remoteAction;
         bool interrupted = GetComponent<PlayerHP>()?.IsDead == true || GetComponent<PlayerDeathController>()?.IsDead == true ||
             (RoundManager.Instance && (RoundManager.Instance.currentState == RoundManager.RoundState.Preparation || RoundManager.Instance.currentState == RoundManager.RoundState.GameOver));
@@ -86,6 +87,16 @@ public sealed class SpikeInteractionPresentation : MonoBehaviour
                 inventory.SetWeaponVisibility(true);
             remoteAction = 0;
             lastInput = -1;
+        }
+        // Slot 4 uses the authored two-hand carry pose. The inventory's old
+        // world-model offset is not a first-person pose and can sit off-screen.
+        IsCarryingDevice = action == 0 && local && spike.hasSpike && inventory && inventory.CurrentIndex == 4 && firstPerson?.device && firstPerson.model &&
+            GameplayActionPolicy.CanAct(inventory, GameplayAction.WeaponChange, false);
+        if(IsCarryingDevice)
+        {
+            inventory.SetWeaponVisibility(false);
+            Sample(firstPerson, 1, .65f);
+            firstPerson.device.GetComponent<SpikeDeviceVisual>()?.RenderHeld(Time.unscaledTime);
         }
         IsPresenting = action != 0; shown = IsPresenting;suppressRecovery=false;
     }
@@ -209,6 +220,6 @@ public sealed class SpikeInteractionPresentation : MonoBehaviour
         Hide(firstPerson); Hide(thirdPerson);
         if(shown && inventory && GetComponent<PlayerHP>()?.IsDead != true && GetComponent<PlayerDeathController>()?.IsDead != true)
             inventory.SetWeaponVisibility(true);
-        remoteAction=0; recovering=false;suppressRecovery=false;lastInput=-1; shown=false;IsPresenting=false;
+        remoteAction=0; recovering=false;suppressRecovery=false;lastInput=-1; shown=false;IsPresenting=false;IsCarryingDevice=false;
     }
 }

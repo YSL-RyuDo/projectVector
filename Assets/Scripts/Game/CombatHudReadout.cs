@@ -47,6 +47,18 @@ public sealed class CombatHudReadout : MonoBehaviour
             if(i<skillStateBackings.Length && skillStateBackings[i])skillStateBackings[i].enabled=skillStates[i].text.Length>0;
             skillStates[i].color=ready && !blocked?Ice:new Color(.68f,.72f,.77f);
         }
+        var spectate=SpectatorManager.Instance;
+        var net=NetworkManager.Instance;
+        var member=spectating && spectate && net?net.CurrentScoreboard?.members.Find(m=>m.playerId==spectate.CurrentTargetPlayerId && m.team==net.CurrentScoreboard.myTeam):null;
+        if(spectating) {
+            bool known=member!=null && member.hasLoadout;
+            int points=known?member.ultimatePoints:0, required=known?member.ultimateRequired:7;
+            if(ultimateArc){ultimateArc.SetCharge(points,required);ultimateArc.color=known && points>=required?Gold:Ice;}
+            if(chargeText)chargeText.text=known?$"{points} / {required}":"—";
+            if(skillStates.Length>3 && skillStates[3])skillStates[3].text=known?(points>=required?"준비 완료":"충전 중"):"관전";
+            if(skillGroup)skillGroup.alpha=.72f;
+            return;
+        }
         if(ultimateArc){ultimateArc.SetCharge(spectating?0:SkillInventoryState.UltimatePoints,SkillInventoryState.UltimateRequired);ultimateArc.color=SkillInventoryState.CanUse(SkillSlot.X)?Gold:Ice;}
         if(chargeText)chargeText.text=spectating||!SkillInventoryState.HasUltimateState?"—":$"{SkillInventoryState.UltimatePoints} / {SkillInventoryState.UltimateRequired}";
         if(skillGroup)skillGroup.alpha=(spectating||blocked) ? .5f : 1;
@@ -62,7 +74,7 @@ public sealed class CombatHudReadout : MonoBehaviour
         var item=subject.GetComponent<PlayerItem>();
         var weapon=item?item.GetCurrentWeapon():null;
         if(ammoRoot)ammoRoot.SetActive(weapon && weapon.GetWeaponType()!=WeaponData.WeaponType.Knife);
-        PresentReload(!spectating && item && item.IsReloading);
+        PresentReload(item && (spectating?item.IsRemoteReloading:item.IsReloading));
         bool blocked=!spectating && !GameplayActionPolicy.CanAct(subject,GameplayAction.Skill,false);
         PresentSkills(spectating,blocked);
     }

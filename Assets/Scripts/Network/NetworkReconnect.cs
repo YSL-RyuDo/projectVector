@@ -91,6 +91,7 @@ public partial class NetworkManager
     {
         if (reconnectRoutine != null) StopCoroutine(reconnectRoutine);
         string host=client.LastHost; int port=client.LastPort;
+        ResetLocalCombatReport();
         client.Close(); ReconnectBusy = false; IsAuthenticated = false;
         reconnectRoster = null; reconnectPassword = null; reconnectAccount = null;
         lock (packetQueue) packetQueue.Clear();
@@ -142,6 +143,7 @@ public partial class NetworkManager
             if (reconnectPhase==0) GameController.Instance?.EnterPickPhase();
             else if (SceneManager.GetActiveScene().name == "Game_TestVersion") GameController.Instance?.EnterPlayingPhase();
             else GameController.Instance?.EnterOutsideGamePhase();
+            if (MyPlayer && MyPlayer.GetComponent<PlayerHP>()?.IsDead == true) BeginLocalCombatReport();
             Debug.Log("[RECONNECT] Complete; same identity and authoritative state restored.");
             return true;
         }
