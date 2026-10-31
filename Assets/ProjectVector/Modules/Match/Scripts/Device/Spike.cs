@@ -1,0 +1,428 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+public class Spike : Item
+{
+    private bool isPlayerInside;
+    private readonly System.Collections.Generic.HashSet<Collider> localContacts = new();
+    private PlayerSpike playerSpike;
+    private AudioSource audioSource;
+
+    public bool isPlanted = false;
+
+    public AudioClip spikeSound;
+
+    [Header("Defuse")]
+    public float defuseTime = 5f;
+
+    private float currentDefuseTime;
+    private float defuseStartedAt, defuseStartProgress;
+    private bool isDefusing;
+    public bool IsDefusing => IsLocalDefuser() && isDefusing;
+    public float DefuseProgress => Mathf.Clamp01(currentDefuseTime / Mathf.Max(.01f, defuseTime));
+    private bool isHalfDefused;
+
+    [Header("Explosion")]
+    public float explosionTime = 45f;
+
+    private bool isExploded;
+
+    [Header("UI")]
+    private Slider defuseSlider;
+    private GameObject sliderObject;
+
+    private bool halfSentToServer;
+    private bool defuseStartRequested;
+    public bool IsLocalInteraction => IsLocalDefuser() && (isDefusing || defuseStartRequested);
+    private bool CanDefuse => isPlanted && !isExploded && isPlayerInside && playerSpike != null && playerSpike.CanInteract;
+    private float requestTime;
+
+    private void Update()
+    {
+        if (IsLocalInteraction && (!CanDefuse || (defuseStartRequested && Time.unscaledTime - requestTime > 3f))) CancelDefuse();
+    }
+
+    public static Spike PlantedSpike { get; private set; }
+
+    [Header("Spectator")]
+    [SerializeField] private Transform spectatePoint;
+
+    public Transform SpectatePoint => spectatePoint;
+
+    private void Awake()
+    {
+        playerSpike = GetComponentInParent<PlayerSpike>();
+        audioSource = GetComponent<AudioSource>();
+    }
+
+    private void OnDestroy()
+    {
+        if (Application.isPlaying && IsLocalInteraction) ForceCancelInteraction();
+        if (IsLocalDefuser())
+            CombatFeedbackUI.Instance?.HideSpikeProgress();
+
+        if (PlantedSpike == this)
+            PlantedSpike = null;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (!isPlanted) return;
+        PlayerSpike ps = other.GetComponent<PlayerSpike>();
+
+        if (ps == null)
+            ps = other.GetComponentInParent<PlayerSpike>();
+
+        if (ps == null)
+            return;
+
+        // 각 클라이언트에서는 자기 플레이어만 해체 입력 대상으로 등록한다.
+        if (!ps.IsLocalPlayer())
+            return;
+
+        localContacts.Add(other);
+        playerSpike = ps;
+        isPlayerInside = true;
+
+        playerSpike.SetSpike(this);
+
+        sliderObject = playerSpike.spikeSlider;
+
+        if (sliderObject != null)
+            defuseSlider = sliderObject.GetComponent<Slider>();
+
+        Debug.Log($"[SPIKE] Local player entered defuse range. player={other.name}");
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        PlayerSpike ps = other.GetComponent<PlayerSpike>();
+
+        if (ps == null)
+            ps = other.GetComponentInParent<PlayerSpike>();
+
+        if (ps == null || ps != playerSpike)
+            return;
+
+        localContacts.Remove(other);
+        localContacts.RemoveWhere(c => !c || !c.enabled || !c.gameObject.activeInHierarchy);
+        if (localContacts.Count > 0) return;
+        CancelDefuse();
+
+        playerSpike.SetSpike(null);
+
+        isPlayerInside = false;
+        playerSpike = null;
+        sliderObject = null;
+        defuseSlider = null;
+
+        CombatFeedbackUI.Instance?.HideSpikeProgress();
+
+        Debug.Log($"[SPIKE] Local player left defuse range. player={other.name}");
+    }
+
+    private bool IsLocalDefuser()
+    {
+        return playerSpike != null && playerSpike.IsLocalPlayer();
+    }
+
+    public override void OnUse()
+    {
+    }
+
+    public override void OnDrop()
+    {
+        if (playerSpike != null)
+            playerSpike.RequestDrop();
+
+        OnUnequip();
+    }
+
+    public void OnDeploy()
+    {
+        isPlanted = true;
+        isExploded = false;
+
+        isHalfDefused = false;
+        halfSentToServer = false;
+        defuseStartRequested = false;
+        currentDefuseTime = 0f;
+
+        PlantedSpike = this;
+
+        if (spectatePoint == null)
+        {
+            Transform found = transform.Find("SpectatePoint");
+
+            if (found != null)
+                spectatePoint = found;
+        }
+
+        var presentation = GetComponent<SpikePresentation>();
+        if (presentation) presentation.Arm(explosionTime, NetworkManager.Instance?.ReconnectBusy == true);
+        else PlaySpikeSound();
+
+        Debug.Log("[SPIKE] Planted and registered as PlantedSpike");
+
+        if (RoundManager.Instance != null)
+            RoundManager.Instance.OnSpikePlanted();
+    }
+
+    public void TryStartDefuse()
+    {
+        if (!CanDefuse) return;
+        if (!isPlayerInside)
+            return;
+
+        if (isExploded)
+            return;
+
+        if (playerSpike == null || !IsLocalDefuser())
+            return;
+
+        if (isDefusing || defuseStartRequested)
+            return;
+
+        defuseStartRequested = true;
+        requestTime = Time.unscaledTime;
+
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SendSpikeDefuseStart();
+
+        Debug.Log("[SPIKE] Defuse start request sent");
+    }
+
+    public void Defusing()
+    {
+        if (!CanDefuse) { CancelDefuse(); return; }
+        if (!isDefusing || !IsLocalDefuser())
+            return;
+
+        currentDefuseTime = Mathf.Max(currentDefuseTime, defuseStartProgress + Time.unscaledTime - defuseStartedAt);
+
+        float progress = defuseTime > 0f
+            ? Mathf.Clamp01(currentDefuseTime / defuseTime)
+            : 0f;
+
+        if (defuseSlider != null)
+            defuseSlider.value = progress;
+
+        CombatFeedbackUI.Instance?.ShowSpikeProgress(
+            "디바이스의 접속을 차단 중입니다.",
+            progress
+        );
+
+        if (!isHalfDefused && currentDefuseTime >= defuseTime * 0.5f)
+        {
+            isHalfDefused = true;
+            currentDefuseTime = defuseTime * 0.5f;
+
+            if (!halfSentToServer)
+            {
+                halfSentToServer = true;
+
+                if (NetworkManager.Instance != null)
+                    NetworkManager.Instance.SendSpikeDefuseHalf();
+            }
+
+            Debug.Log("[SPIKE] Half defuse request sent");
+        }
+
+        if (currentDefuseTime >= defuseTime)
+            CompleteDefuse();
+    }
+
+    public void CancelDefuse()
+    {
+        if (!isDefusing && !defuseStartRequested)
+            return;
+
+        bool localDefuser = IsLocalDefuser();
+
+        isDefusing = false;
+        defuseStartRequested = false;
+
+        if (NetworkManager.Instance != null && localDefuser)
+            NetworkManager.Instance.SendSpikeDefuseCancel();
+
+        if (playerSpike != null && localDefuser)
+            playerSpike.SetPlayerControl(true);
+
+        if (sliderObject != null && localDefuser)
+            sliderObject.SetActive(false);
+
+        if (localDefuser)
+            CombatFeedbackUI.Instance?.HideSpikeProgress();
+
+        Debug.Log("[SPIKE] Defuse cancelled");
+    }
+
+    private void CompleteDefuse()
+    {
+        if (!CanDefuse || !isDefusing) { CancelDefuse(); return; }
+        if (isExploded || !IsLocalDefuser())
+            return;
+
+        isDefusing = false;
+        defuseStartRequested = false;
+
+        if (playerSpike != null)
+            playerSpike.SetPlayerControl(true);
+
+        if (sliderObject != null)
+            sliderObject.SetActive(false);
+
+        CombatFeedbackUI.Instance?.HideSpikeProgress();
+
+        if (NetworkManager.Instance != null)
+            NetworkManager.Instance.SendSpikeDefuseComplete();
+
+        Debug.Log("[SPIKE] Defuse complete request sent");
+    }
+
+    public void SetHalfDefusedFromServer(bool value)
+    {
+        isHalfDefused = value;
+        halfSentToServer = value;
+        float checkpoint = value ? defuseTime * 0.5f : 0f;
+        // A delayed half acknowledgement confirms progress; it must not rewind
+        // an already-running local channel by the network round-trip time.
+        currentDefuseTime = isDefusing ? Mathf.Max(currentDefuseTime, checkpoint) : checkpoint;
+
+        float progress = defuseTime > 0f
+            ? Mathf.Clamp01(currentDefuseTime / defuseTime)
+            : 0f;
+
+        if (defuseSlider != null)
+            defuseSlider.value = progress;
+
+        if (isDefusing && IsLocalDefuser())
+        {
+            CombatFeedbackUI.Instance?.ShowSpikeProgress(
+                "디바이스의 접속을 차단 중입니다.",
+                progress
+            );
+        }
+
+        Debug.Log($"[SPIKE] half defused from server={isHalfDefused}");
+    }
+
+    public void StartDefuseFromServer(bool halfDefused)
+    {
+        if (!defuseStartRequested || !CanDefuse || UnityEngine.InputSystem.Keyboard.current?.fKey.isPressed != true)
+        {
+            NetworkManager.Instance?.SendSpikeDefuseCancel();
+            CancelDefuseFromServer(halfDefused);
+            return;
+        }
+        defuseStartRequested = false;
+
+        isDefusing = true;
+        isHalfDefused = halfDefused;
+        halfSentToServer = halfDefused;
+
+        currentDefuseTime = isHalfDefused
+            ? defuseTime * 0.5f
+            : 0f;
+
+        defuseStartedAt = Time.unscaledTime;
+        defuseStartProgress = currentDefuseTime;
+
+        if (!IsLocalDefuser())
+            return;
+
+        if (playerSpike != null)
+            playerSpike.SetPlayerControl(false);
+
+        if (sliderObject != null)
+            sliderObject.SetActive(true);
+
+        float progress = defuseTime > 0f
+            ? Mathf.Clamp01(currentDefuseTime / defuseTime)
+            : 0f;
+
+        if (defuseSlider != null)
+            defuseSlider.value = progress;
+
+        CombatFeedbackUI.Instance?.ShowSpikeProgress(
+            "디바이스의 접속을 차단 중입니다.",
+            progress
+        );
+    }
+
+    public void CancelDefuseFromServer(bool halfDefused)
+    {
+        bool wasInteracting = isDefusing || defuseStartRequested;
+        defuseStartRequested = false;
+
+        isDefusing = false;
+        isHalfDefused = halfDefused;
+        halfSentToServer = halfDefused;
+
+        currentDefuseTime = isHalfDefused
+            ? defuseTime * 0.5f
+            : 0f;
+
+        if (!wasInteracting || !IsLocalDefuser())
+            return;
+
+        if (playerSpike != null)
+            playerSpike.SetPlayerControl(true);
+
+        if (sliderObject != null)
+            sliderObject.SetActive(false);
+
+        if (defuseSlider != null)
+            defuseSlider.value = defuseTime > 0f
+                ? currentDefuseTime / defuseTime
+                : 0f;
+
+        CombatFeedbackUI.Instance?.HideSpikeProgress();
+    }
+
+    public void ForceCancelInteraction()
+    {
+        bool localDefuser = IsLocalDefuser();
+        bool wasInteracting = isDefusing || defuseStartRequested;
+
+        isDefusing = false;
+        defuseStartRequested = false;
+        currentDefuseTime = 0f;
+        isHalfDefused = false;
+        halfSentToServer = false;
+
+        if (wasInteracting && playerSpike != null && localDefuser)
+            playerSpike.SetPlayerControl(true);
+
+        if (sliderObject != null && localDefuser)
+            sliderObject.SetActive(false);
+
+        if (defuseSlider != null && localDefuser)
+            defuseSlider.value = 0f;
+
+        if (localDefuser)
+            CombatFeedbackUI.Instance?.HideSpikeProgress();
+
+        Debug.Log("[SPIKE] Force cancel interaction");
+    }
+
+    private void PlaySpikeSound()
+    {
+        if(audioSource == null)
+            audioSource = GetComponent<AudioSource>();
+
+        if(audioSource == null)
+        {
+            Debug.LogError("[SPIKE] AudioSource component is missing. Cannot play spike sound.");
+            return;
+        }
+
+        if(spikeSound == null)
+        {
+            Debug.LogError("[SPIKE] Spike sound AudioClip is not assigned. Cannot play spike sound.");
+            return;
+        }
+
+        audioSource.PlayOneShot(spikeSound, 0.5f);
+    }
+}

@@ -41,7 +41,7 @@ C++サーバー機能、Unityの試合進行、プロフィールとソーシャ
 
 サーバーでルーム作成、入退室、スロット変更・交換応答、リーダー移譲、退出処理を実装しました。キャラクター確定とロード完了を試合開始前の別段階として扱い、PickManagerで選択入力と受信状態をUnity画面に接続しました。
 
-[RoomManager.cpp (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/RoomManager.cpp), [担当変更 20f7bde](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/a2ab47ba2f3eff317df5ce0e2a056e7dd0926f17), [PickManager.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Scripts/Pick/PickManager.cs), [担当変更 8fcd6f1](https://github.com/YSL-RyuDo/projectVector/commit/8fcd6f1e91fbcd627a852de66db88b444884ccea)
+[RoomManager.cpp (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/RoomManager.cpp), [担当変更 20f7bde](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/a2ab47ba2f3eff317df5ce0e2a056e7dd0926f17), [PickManager.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Match/Pick/PickManager.cs), [担当変更 8fcd6f1](https://github.com/YSL-RyuDo/projectVector/commit/8fcd6f1e91fbcd627a852de66db88b444884ccea)
 
 ### 戦闘と目標の通信処理
 
@@ -53,55 +53,55 @@ C++サーバー機能、Unityの試合進行、プロフィールとソーシャ
 
 Sentinelスキルを拡張して装置・領域の状態を同期し、Cスキル専用の通信マネージャーを実装しました。サーバーでは他のキャラクター系統の能力要求とイベントも処理しました。
 
-[SentinelCNetworkManager.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Scripts/Skill/SentinelCNetworkManager.cs), [担当変更 756c9a0](https://github.com/YSL-RyuDo/projectVector/commit/756c9a09f32ed4a073d5d3d60008b1aaa44f0f60), [SentinelSkill_E.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/KSW/Script/Character/Sentinel/SentinelSkill_E.cs), [担当変更 5e5c3c5](https://github.com/YSL-RyuDo/projectVector/commit/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350)
+[SentinelCNetworkManager.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Characters/Sentinel/SentinelCNetworkManager.cs), [担当変更 756c9a0](https://github.com/YSL-RyuDo/projectVector/commit/756c9a09f32ed4a073d5d3d60008b1aaa44f0f60), [SentinelSkill_E.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Characters/Sentinel/SentinelSkill_E.cs), [担当変更 5e5c3c5](https://github.com/YSL-RyuDo/projectVector/commit/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350)
 
 ### 選択とロードの演出
 
 試合開始の流れに合わせ、キャラクター選択、マップ紹介、ロードの演出を実装しました。選択キャラクター、チームスロット、遷移画面を通信の準備段階に合わせて維持するクライアント機能も担当しました。
 
-[PickSelectionPresentation.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Scripts/Pick/PickSelectionPresentation.cs), [担当変更 76d985b](https://github.com/YSL-RyuDo/projectVector/commit/76d985b6bd9dff1fb7b4f08002e64f98d9bb8bc3), [MatchLoadingPresentation.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Scripts/Pick/MatchLoadingPresentation.cs), [担当変更 8fcd6f1](https://github.com/YSL-RyuDo/projectVector/commit/8fcd6f1e91fbcd627a852de66db88b444884ccea)
+[PickSelectionPresentation.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Match/Pick/PickSelectionPresentation.cs), [担当変更 76d985b](https://github.com/YSL-RyuDo/projectVector/commit/76d985b6bd9dff1fb7b4f08002e64f98d9bb8bc3), [MatchLoadingPresentation.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Match/Pick/MatchLoadingPresentation.cs), [担当変更 8fcd6f1](https://github.com/YSL-RyuDo/projectVector/commit/8fcd6f1e91fbcd627a852de66db88b444884ccea)
 
 ### 戦績と成長の画面
 
 戦績表示とプロフィールの戦績データを実装し、サーバーの試合履歴、順位、成長状態と連携しました。レベル報酬は見た目の解放だけでなく、受取条件と保存状態をクライアント画面に接続しました。
 
-[CareerPanelController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/KSW/Script/CareerPanelController.cs), [担当変更 76d985b](https://github.com/YSL-RyuDo/projectVector/commit/76d985b6bd9dff1fb7b4f08002e64f98d9bb8bc3), [MyPageLevelRewardController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/KSW/Script/MyPageLevelRewardController.cs), [担当変更 955101d](https://github.com/YSL-RyuDo/projectVector/commit/955101d782e975c1812ed94de893e4b263a266e3), [CareerManager.cpp (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/CareerManager.cpp), [担当変更 39de6fd](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/b6d1fe1f5c794f027e93025a8d03e748365d5f59)
+[CareerPanelController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Lobby/Career/CareerPanelController.cs), [担当変更 76d985b](https://github.com/YSL-RyuDo/projectVector/commit/76d985b6bd9dff1fb7b4f08002e64f98d9bb8bc3), [MyPageLevelRewardController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Lobby/Profile/MyPageLevelRewardController.cs), [担当変更 955101d](https://github.com/YSL-RyuDo/projectVector/commit/955101d782e975c1812ed94de893e4b263a266e3), [CareerManager.cpp (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/CareerManager.cpp), [担当変更 39de6fd](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/b6d1fe1f5c794f027e93025a8d03e748365d5f59)
 
 ### プロフィール編集とChipCraft
 
 表示戦績のドラッグスロットとChipCraftメダル配置を含むプロフィール編集を実装しました。サーバーは位置・回転・大きさと所有確認を扱い、Unity側は直接操作と表示を担当します。
 
-[MyPageChipCraftController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/KSW/Script/MyPageChipCraftController.cs), [担当変更 06f82cc](https://github.com/YSL-RyuDo/projectVector/commit/06f82cc44d00c33af781710f0f2ace3d10353969), [MyPageStatDropSlot.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/KSW/Script/MyPageStatDropSlot.cs), [担当変更 632e516](https://github.com/YSL-RyuDo/projectVector/commit/632e516b428b768b7eabed586afc89bfcd154af3), [ProfileManager.cpp (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/ProfileManager.cpp), [担当変更 f65f26d](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/edc2517f7c4cfdfee0594a869e5bdacdd544cccb)
+[MyPageChipCraftController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Lobby/Profile/MyPageChipCraftController.cs), [担当変更 06f82cc](https://github.com/YSL-RyuDo/projectVector/commit/06f82cc44d00c33af781710f0f2ace3d10353969), [MyPageStatDropSlot.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Lobby/Profile/MyPageStatDropSlot.cs), [担当変更 632e516](https://github.com/YSL-RyuDo/projectVector/commit/632e516b428b768b7eabed586afc89bfcd154af3), [ProfileManager.cpp (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/ProfileManager.cpp), [担当変更 f65f26d](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/edc2517f7c4cfdfee0594a869e5bdacdd544cccb)
 
 ### フレンドとプレイヤー間の関係
 
 フレンドパネルと一覧モデル、サーバーの申請・承認・取消・ブロック・メモ・接続状態を実装しました。双方で共有する友人関係と、片側からの申請やブロックを別のデータ関係として扱いました。
 
-[FriendPanelController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/KSW/Script/FriendPanelController.cs), [担当変更 06f82cc](https://github.com/YSL-RyuDo/projectVector/commit/06f82cc44d00c33af781710f0f2ace3d10353969), [FriendManager.cpp (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/FriendManager.cpp), [担当変更 675d37f](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/07860d73d4ee93b800e32de05300832d8c0a6cc8)
+[FriendPanelController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Social/Friends/FriendPanelController.cs), [担当変更 06f82cc](https://github.com/YSL-RyuDo/projectVector/commit/06f82cc44d00c33af781710f0f2ace3d10353969), [FriendManager.cpp (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/FriendManager.cpp), [担当変更 675d37f](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/07860d73d4ee93b800e32de05300832d8c0a6cc8)
 
 ### 名誉と親密度
 
 名誉画面と報酬受取に必要な活動記録、親密度状態と会話完了処理を実装しました。報酬表示をサーバー条件と保存済み進行に接続し、画面だけで所有を決めない構成にしました。
 
-[MyPageHonorController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/KSW/Script/MyPageHonorController.cs), [担当変更 f4457e2](https://github.com/YSL-RyuDo/projectVector/commit/f4457e2d77c251b9e0da5d976927303d04a64b43), [HonorActivity.h (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/HonorActivity.h), [担当変更 39de6fd](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/b6d1fe1f5c794f027e93025a8d03e748365d5f59), [AffinityService.h (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/AffinityService.h), [担当変更 39de6fd](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/b6d1fe1f5c794f027e93025a8d03e748365d5f59)
+[MyPageHonorController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Lobby/Profile/MyPageHonorController.cs), [担当変更 f4457e2](https://github.com/YSL-RyuDo/projectVector/commit/f4457e2d77c251b9e0da5d976927303d04a64b43), [HonorActivity.h (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/HonorActivity.h), [担当変更 39de6fd](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/b6d1fe1f5c794f027e93025a8d03e748365d5f59), [AffinityService.h (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/AffinityService.h), [担当変更 39de6fd](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/b6d1fe1f5c794f027e93025a8d03e748365d5f59)
 
 ### 購入処理と報酬演出
 
 取引再送処理とUnity抽選演出、スキップとリソース解放を実装しました。後述の設計説明では失敗・重複要求も含め、確定報酬と中断可能な演出の境界を説明します。
 
-[ShopService.h (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/ShopService.h), [担当変更 39de6fd](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/b6d1fe1f5c794f027e93025a8d03e748365d5f59), [GachaManager.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/KSW/Script/Shop/GachaManager.cs), [担当変更 8563836](https://github.com/YSL-RyuDo/projectVector/commit/856383681df4b817b62db98cbf8c4f01b98ba270)
+[ShopService.h (main)](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/8b52b5f17e25d329f9e624e0543e0bfac4c07c5e/ProjectVectorServer/ProjectVectorServer/ShopService.h), [担当変更 39de6fd](https://github.com/YSL-RyuDo/ProjectVectorServer-public/commit/b6d1fe1f5c794f027e93025a8d03e748365d5f59), [GachaManager.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Lobby/Shop/GachaManager.cs), [担当変更 8563836](https://github.com/YSL-RyuDo/projectVector/commit/856383681df4b817b62db98cbf8c4f01b98ba270)
 
 ### ワールドデータ出力とビルドツール
 
 サーバー用のコライダー、地面、高さ領域を出力するUnityエディターツールとビルドツールを実装しました。制作シーンを実行時データにつなぎ、形状値を繰り返し手で転記する工程を減らす担当も含みます。
 
-[ServerColliderExporter.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Editor/ServerColliderExporter.cs), [担当変更 70d856f](https://github.com/YSL-RyuDo/projectVector/commit/70d856fcd5b1502db05f90d25c5dacdb90315d76), [ServerGroundExporter.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Editor/ServerGroundExporter.cs), [担当変更 70d856f](https://github.com/YSL-RyuDo/projectVector/commit/70d856fcd5b1502db05f90d25c5dacdb90315d76), [SafePlayerBuild.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Editor/SafePlayerBuild.cs), [担当変更 632e516](https://github.com/YSL-RyuDo/projectVector/commit/632e516b428b768b7eabed586afc89bfcd154af3)
+[ServerColliderExporter.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Editor/Export/ServerColliderExporter.cs), [担当変更 70d856f](https://github.com/YSL-RyuDo/projectVector/commit/70d856fcd5b1502db05f90d25c5dacdb90315d76), [ServerGroundExporter.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Editor/Export/ServerGroundExporter.cs), [担当変更 70d856f](https://github.com/YSL-RyuDo/projectVector/commit/70d856fcd5b1502db05f90d25c5dacdb90315d76), [SafePlayerBuild.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Editor/Build/SafePlayerBuild.cs), [担当変更 632e516](https://github.com/YSL-RyuDo/projectVector/commit/632e516b428b768b7eabed586afc89bfcd154af3)
 
 ### 射撃訓練場と条件別記録
 
 キャラクター・武器選択、5種類の訓練モード、距離・防具設定、射撃統計を実装しました。発射、反動、弾薬、リロードはゲーム本体の武器処理を共有します。武器・キャラクター・難易度・標的条件で記録を分け、途中で装備を変更したプレイは最高記録の対象から除外します。
 
-[PracticeRangeController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Scripts/WeaponTest/PracticeRangeController.cs), [担当変更 f4457e2](https://github.com/YSL-RyuDo/projectVector/commit/f4457e2d77c251b9e0da5d976927303d04a64b43), [PracticeLoadout.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Scripts/WeaponTest/PracticeLoadout.cs), [担当変更 f4457e2](https://github.com/YSL-RyuDo/projectVector/commit/f4457e2d77c251b9e0da5d976927303d04a64b43), [PracticeWeaponInput.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Scripts/WeaponTest/PracticeWeaponInput.cs), [担当変更 f4457e2](https://github.com/YSL-RyuDo/projectVector/commit/f4457e2d77c251b9e0da5d976927303d04a64b43)
+[PracticeRangeController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Practice/PracticeRangeController.cs), [担当変更 f4457e2](https://github.com/YSL-RyuDo/projectVector/commit/f4457e2d77c251b9e0da5d976927303d04a64b43), [PracticeLoadout.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Practice/PracticeLoadout.cs), [担当変更 f4457e2](https://github.com/YSL-RyuDo/projectVector/commit/f4457e2d77c251b9e0da5d976927303d04a64b43), [PracticeWeaponInput.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Practice/PracticeWeaponInput.cs), [担当変更 f4457e2](https://github.com/YSL-RyuDo/projectVector/commit/f4457e2d77c251b9e0da5d976927303d04a64b43)
 
 ## 貢献の根拠
 
@@ -185,7 +185,7 @@ Unityクライアントはサーバー結果を受けてからGachaManagerの演
 
 コルーチンでは流れをコードで追えますが、段階の順序と中断時の解放を明示的に管理します。TimelineやTweenに移しても、シークやスキップが購入を再実行しない境界は必要です。Unityのガベージコレクションだけで描画リソースの明示的な解放を置き換えることもできません。
 
-[projectVector/GachaManager.cs](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/KSW/Script/Shop/GachaManager.cs), [projectVector/ShopGachaImplementation.md](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Docs/ShopGachaImplementation.md)
+[projectVector/GachaManager.cs](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Lobby/Shop/GachaManager.cs), [projectVector/ShopGachaImplementation.md](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Docs/ShopGachaImplementation.md)
 
 ### ソケットの再接続だけでは復帰が終わらない
 
@@ -205,7 +205,7 @@ Unityクライアントはサーバー結果を受けてからGachaManagerの演
 
 セッション保持は期限まで資源を消費します。段階的復元にはタイムアウトとプロトコル版の処理が加わり、新しい持続効果ごとに復元規則が必要です。
 
-[ProjectVectorServer/Session.cpp](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/7224b09befff5905b81e643648e1ffb90caac4d9/ProjectVectorServer/ProjectVectorServer/Session.cpp), [ProjectVectorServer/ReconnectJournal.h](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/7224b09befff5905b81e643648e1ffb90caac4d9/ProjectVectorServer/ProjectVectorServer/ReconnectJournal.h), [projectVector/NetworkReconnect.cs](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Scripts/Network/NetworkReconnect.cs)
+[ProjectVectorServer/Session.cpp](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/7224b09befff5905b81e643648e1ffb90caac4d9/ProjectVectorServer/ProjectVectorServer/Session.cpp), [ProjectVectorServer/ReconnectJournal.h](https://github.com/YSL-RyuDo/ProjectVectorServer-public/blob/7224b09befff5905b81e643648e1ffb90caac4d9/ProjectVectorServer/ProjectVectorServer/ReconnectJournal.h), [projectVector/NetworkReconnect.cs](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Networking/NetworkReconnect.cs)
 
 ### 死亡レポートを固定し閲覧条件を確認する理由
 
@@ -245,7 +245,7 @@ ServerColliderExporterはServerCollisionレイヤーのBoxColliderを選び、�
 
 出力器は回転した箱の全頂点を変換しません。回転形状には変換後の境界計算が必要で、地域設定に依存しない数値形式とマップ版の確認も必要です。
 
-[projectVector/ServerColliderExporter.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Editor/ServerColliderExporter.cs)
+[projectVector/ServerColliderExporter.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Editor/Export/ServerColliderExporter.cs)
 
 ### 訓練場でも実際の武器処理を使う理由
 
@@ -265,7 +265,7 @@ PracticeWeaponInputは発射をWeapon.OnUseに委ね、発射・命中イベン�
 
 記録は端末内のPlayerPrefsに保存します。端末上の練習フィードバックには使えますが、サーバー検証や端末間同期はありません。武器処理の共有によりゲーム側の変更が訓練場にも影響するため、両方を確認する必要があります。
 
-[projectVector/PracticeWeaponInput.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Scripts/WeaponTest/PracticeWeaponInput.cs), [projectVector/PracticeRangeController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/Scripts/WeaponTest/PracticeRangeController.cs), [projectVector f4457e2d](https://github.com/YSL-RyuDo/projectVector/commit/f4457e2d77c251b9e0da5d976927303d04a64b43)
+[projectVector/PracticeWeaponInput.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Practice/PracticeWeaponInput.cs), [projectVector/PracticeRangeController.cs (YSL)](https://github.com/YSL-RyuDo/projectVector/blob/5e5c3c53b010fb2807f6b53c0eb0f5ceec8d1350/Assets/ProjectVector/Runtime/Practice/PracticeRangeController.cs), [projectVector f4457e2d](https://github.com/YSL-RyuDo/projectVector/commit/f4457e2d77c251b9e0da5d976927303d04a64b43)
 
 ## 実行・コードの確認
 
