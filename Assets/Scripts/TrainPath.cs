@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -25,6 +24,8 @@ public class TrainPath : MonoBehaviour
     private float[] cumulativeDistances;
 
     public float TotalLength { get; private set; }
+    public Transform[] Points => points;
+    public int PointCount => points != null ? points.Length : 0;
 
     private void Awake()
     {
@@ -35,7 +36,7 @@ public class TrainPath : MonoBehaviour
     {
         if (points == null || points.Length < 2)
         {
-            Debug.LogError("TrainPath: Æ÷ÀÎÆ®°¡ ÃÖ¼Ò 2°³ ÇÊ¿äÇÕ´Ï´Ù.", this);
+            Debug.LogError("TrainPath: í¬ì¸íŠ¸ê°€ ìµœì†Œ 2ê°œ í•„ìš”í•©ë‹ˆë‹¤.", this);
             return;
         }
 
@@ -51,7 +52,7 @@ public class TrainPath : MonoBehaviour
         {
             if (points[segment] == null || points[segment + 1] == null)
             {
-                Debug.LogError("TrainPath: ºñ¾î ÀÖ´Â Æ÷ÀÎÆ®°¡ ÀÖ½À´Ï´Ù.", this);
+                Debug.LogError("TrainPath: ë¹„ì–´ìˆëŠ” í¬ì¸íŠ¸ê°€ ìˆìŠµë‹ˆë‹¤.", this);
                 sampledPositions = null;
                 cumulativeDistances = null;
                 TotalLength = 0f;
@@ -84,6 +85,9 @@ public class TrainPath : MonoBehaviour
 
     public Vector3 GetPosition(float distance)
     {
+        if (sampledPositions == null || sampledPositions.Length == 0)
+            BuildPath();
+
         if (sampledPositions == null || sampledPositions.Length == 0)
             return transform.position;
 
@@ -123,6 +127,57 @@ public class TrainPath : MonoBehaviour
         return direction.normalized;
     }
 
+    // í¬ì¸íŠ¸ Transformì˜ ì¸ë±ìŠ¤ ê²€ìƒ‰
+    public int GetPointIndex(Transform targetPoint)
+    {
+        if (points == null || targetPoint == null)
+            return -1;
+
+        for (int i = 0; i < points.Length; i++)
+        {
+            if (points[i] == targetPoint)
+                return i;
+        }
+        return -1;
+    }
+
+    // íŠ¹ì • ì¸ë±ìŠ¤ì˜ Transform ë°˜í™˜
+    public Transform GetPoint(int index)
+    {
+        if (points == null || index < 0 || index >= points.Length)
+            return null;
+
+        return points[index];
+    }
+
+    // íŠ¹ì • í¬ì¸íŠ¸ ì¸ë±ìŠ¤ì˜ ìŠ¤í”Œë¼ì¸ ëˆ„ì  ê±°ë¦¬ ë°˜í™˜
+    public float GetDistanceAtPointIndex(int pointIndex)
+    {
+        if (sampledPositions == null || sampledPositions.Length == 0)
+            BuildPath();
+
+        if (points == null || points.Length < 2 || cumulativeDistances == null)
+            return 0f;
+
+        pointIndex = Mathf.Clamp(pointIndex, 0, points.Length - 1);
+        int sampleIndex = pointIndex * samplesPerSegment;
+
+        if (sampleIndex >= cumulativeDistances.Length)
+            return TotalLength;
+
+        return cumulativeDistances[sampleIndex];
+    }
+
+    // íŠ¹ì • Transform í¬ì¸íŠ¸ì˜ ëˆ„ì  ê±°ë¦¬ ë°˜í™˜
+    public float GetDistanceAtPoint(Transform targetPoint)
+    {
+        int index = GetPointIndex(targetPoint);
+        if (index < 0)
+            return 0f;
+
+        return GetDistanceAtPointIndex(index);
+    }
+
     private int FindSegment(float distance)
     {
         int low = 0;
@@ -153,7 +208,7 @@ public class TrainPath : MonoBehaviour
         }
 
 #if UNITY_EDITOR
-        // °æ·Î ¼± Ç¥½Ã
+        // ê²½ë¡œ ì„  í‘œì‹œ
         int segmentCount = points.Length - 1;
         int resolution = Mathf.Max(10, samplesPerSegment);
 
@@ -179,7 +234,7 @@ public class TrainPath : MonoBehaviour
         Handles.color = pathColor;
         Handles.DrawAAPolyLine(lineThickness, drawPositions);
 
-        // °¢ Point¸¦ »ö»óÀÌ ÀÖ´Â ¿øÀ¸·Î Ç¥½Ã
+        // ê° Point ìœ„ì¹˜ í‘œì‹œ
         Handles.color = pointColor;
 
         foreach (Transform point in points)
