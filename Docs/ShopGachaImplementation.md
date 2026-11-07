@@ -12,6 +12,8 @@
 
 ## 요청 → 확정 → 연출
 
+획득 기록 화면은 최신 20건만 보여줍니다(페이지당 10건, 최대 2페이지). 서버가 페이지 요청을 제한하며 클라이언트도 세 번째 페이지를 요청하지 않습니다. 오래된 거래 원장은 같은 요청의 재결제/중복 지급 방지에 사용하므로 삭제하지 않습니다. 이 변경은 표시·전송 범위 제한이며 저장 용량 상한은 아닙니다. 저장 용량 제한은 거래 ID 중복 방지 규칙을 유지하는 별도 보관 설계가 필요합니다.
+
 `VectorShopPanel.Transact` → `NetworkManager.SendShopRequest` → 서버 `CareerManager.ExecuteShop` → `ShopService.Engine.Execute` → 지갑·소유권·기록 원자적 저장 → 응답 → MoneyManager 갱신 → `GachaManager.Play` → 결과 UI.
 
 서버만 추첨하고 재화를 차감합니다. 연출에서 난수를 돌려 보상을 바꾸지 않습니다. 재요청에는 최초 요청 ID와 재화 종류를 그대로 사용하며, 서버는 저장된 동일 결과를 반환합니다. 건너뛰기/상점 닫기는 확정 결과를 취소하지 않습니다.
@@ -67,7 +69,7 @@ Shader Graph로 같은 효과를 제작할 때: Universal Unlit Graph, Surface T
 
 ## 보상 상세 / 확률
 
-UI는 `Assets/Scenes/Lobby.unity`의 기존 `Store Panel` 아래에 저장됩니다. 플레이 전에도 하이어라키에서 패널을 켜고 배치·색상·폰트·버튼 연결을 편집할 수 있습니다. `VectorShopPanel`은 저장된 참조의 텍스트/상태만 갱신하며 런타임에 UI를 생성하거나 재배치하지 않습니다. `GachaManager` 역시 저장된 `GachaSequencePanel`을 사용합니다. 런타임 생성 대상은 미리보기 모델과 3D 연출용 임시 스테이지뿐입니다.
+UI는 `Assets/ProjectVector/Development/Legacy/Scenes/Lobby.unity`의 기존 `Store Panel` 아래에 저장됩니다. 플레이 전에도 하이어라키에서 패널을 켜고 배치·색상·폰트·버튼 연결을 편집할 수 있습니다. `VectorShopPanel`은 저장된 참조의 텍스트/상태만 갱신하며 런타임에 UI를 생성하거나 재배치하지 않습니다. `GachaManager` 역시 저장된 `GachaSequencePanel`을 사용합니다. 런타임 생성 대상은 미리보기 모델과 3D 연출용 임시 스테이지뿐입니다.
 
 - `RewardDetailsPanel`: 왼쪽 등급별 카드 목록, 중앙 `SelectedRewardModel`, 오른쪽 `RewardDescription`.
 - `DrawHistoryPanel`, `DetailedProbabilityPanel`, `DrawResultPanel`, `PurchaseConfirmPanel`: 저장된 팝업.
