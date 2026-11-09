@@ -1,3 +1,4 @@
+
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -25,6 +26,9 @@ public class ScenarioManager : MonoBehaviour
     [SerializeField] private TutorialManager tutorialManager;
     [SerializeField] private TESTPlayerItem playerItem;
     [SerializeField] private WeaponData ep2WeaponData;
+
+    // ÄÆ½Å
+    [SerializeField] private CutsceneManager cutsceneManager;
 
     [SerializeField] private float ingameTime = 4f;
 
@@ -100,17 +104,45 @@ public class ScenarioManager : MonoBehaviour
 
     public void PlaySection(string section)
     {
-
         if (section.Equals("EP2", System.StringComparison.OrdinalIgnoreCase))
         {
-            playerItem.ApplyPickedWeaponLocal(
-                ep2WeaponData,
-                ep2WeaponData.magSize,
-                ep2WeaponData.maxReserveAmmo
-            );
+            StartCoroutine(PlayEP2());
+            return;
+        }
+
+        if (section.Equals("EP3", System.StringComparison.OrdinalIgnoreCase))
+        {
+            StartCoroutine(PlayEP3());
+            return;
         }
 
         PlaySectionFromTo(section, 0, int.MaxValue);
+    }
+
+    // ¹«±â Áö±Þ ÈÄ EP2 ÄÆ½Å Àç»ý
+    private IEnumerator PlayEP2()
+    {
+        playerItem.ApplyPickedWeaponLocal(
+            ep2WeaponData,
+            ep2WeaponData.magSize,
+            ep2WeaponData.maxReserveAmmo
+        );
+
+        cutsceneManager.PlayCutscene("EP2Camera");
+
+        yield return new WaitUntil(() => !cutsceneManager.IsPlaying);
+
+        PlaySectionFromTo("EP2", 0, int.MaxValue);
+    }
+
+    // EP3 ÄÆ½Å Àç»ý
+    private IEnumerator PlayEP3()
+    {
+        cutsceneManager.PlayCutscene("EP3Camera");
+
+        yield return new WaitUntil(() => !cutsceneManager.IsPlaying);
+
+        PlaySectionFromTo("EP3", 0, int.MaxValue);
     }
 
     public void PlaySectionFromTo(string section, int startOrder, int endOrder)
