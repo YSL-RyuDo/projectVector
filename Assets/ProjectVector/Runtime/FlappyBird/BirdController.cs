@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -19,6 +18,22 @@ public class BirdController : MonoBehaviour
             Keyboard.current.spaceKey.wasPressedThisFrame)
         {
             rb.linearVelocity = new Vector2(0f, jumpForce);
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.gameObject.name == "PipePass")
+        {
+            FlappyGameManager gameManager =
+                FindFirstObjectByType<FlappyGameManager>();
+
+            if (gameManager != null)
+            {
+                gameManager.AddPipeCount();
+            }
+
+            other.enabled = false;
         }
     }
 }
