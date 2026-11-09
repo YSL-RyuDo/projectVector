@@ -56,7 +56,6 @@ public class StorePanelUI : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        ClientMatchContext.State.Changed += OnMatchPolicyChanged;
         blockGameplayInputThroughFrame = -1;
 
         if (storePanelRoot != null)
@@ -72,7 +71,6 @@ public class StorePanelUI : MonoBehaviour
     private void OnDestroy()
     {
         // Hidden shops still receive purchase results; scene destruction detaches them.
-        ClientMatchContext.State.Changed -= OnMatchPolicyChanged;
         UnbindPurchases();
         if (Instance == this)
             Instance = null;
@@ -83,9 +81,6 @@ public class StorePanelUI : MonoBehaviour
 
     private void Update()
     {
-        // 키보드 장치가 없어도 상태가 바뀌어 이용할 수 없게 되면 상점을 닫는다.
-        if (IsOpen() && !CanOpenStore()) Close();
-
         if (Keyboard.current == null)
             return;
 
@@ -118,8 +113,10 @@ public class StorePanelUI : MonoBehaviour
         if (SettingsMenu.Instance != null && SettingsMenu.Instance.IsOpen)
             return false;
 
-        return ClientMatchContext.CanOpenStore(
-            RoundManager.Instance != null && RoundManager.Instance.IsBuyPhase);
+        if (RoundManager.Instance == null)
+            return false;
+
+        return RoundManager.Instance.IsBuyPhase;
     }
 
     public void TryOpen()
@@ -130,14 +127,13 @@ public class StorePanelUI : MonoBehaviour
             return;
         }
 
-        if (GameController.Instance != null) GameController.Instance.isLoading = true;
+        GameController.Instance.isLoading = true;
 
         Open();
     }
 
     public void Open()
     {
-        if (ClientMatchContext.State.IsDeathmatch && !CanOpenStore()) return;
         if (SettingsMenu.Instance != null && SettingsMenu.Instance.IsOpen)
             return;
 
@@ -151,8 +147,7 @@ public class StorePanelUI : MonoBehaviour
         RefreshPlayerInfo();
         RefreshItemButtons();
 
-        if (ClientMatchContext.State.AllowsTeamPurchases)
-            NetworkManager.Instance?.SendTeamPurchase(3);
+        NetworkManager.Instance?.SendTeamPurchase(3);
         storePanelRoot.SetActive(true);
         storePanelRoot.transform.SetAsLastSibling();
 
@@ -169,7 +164,7 @@ public class StorePanelUI : MonoBehaviour
         blockGameplayInputThroughFrame =
             Mathf.Max(blockGameplayInputThroughFrame, Time.frameCount + 1);
 
-        if (GameController.Instance != null) GameController.Instance.isLoading = false;
+        GameController.Instance.isLoading = false;
 
         storePanelRoot.SetActive(false);
 
@@ -220,22 +215,8 @@ public class StorePanelUI : MonoBehaviour
         RefreshItemButtons();
     }
 
-    private void OnMatchPolicyChanged()
-    {
-        if (IsOpen() && !CanOpenStore()) Close();
-        RefreshPlayerInfo();
-        RefreshItemButtons();
-    }
-
     private void RefreshItemButtons()
     {
-        // 다음 부활용 선택 초안을 표시하며 서버가 확정한 인벤토리를 변경하지 않는다.
-        var state = ClientMatchContext.State;
-        if (playerCreditText) playerCreditText.text = state.IsDeathmatch ? "무료" : currentCredits.ToString();
-        if (state.IsDeathmatch)
-        {
-            if (loadoutSummary) loadoutSummary.SetDeathmatchSelection(state);
-        }
         bool buyPhase = CanOpenStore();
 
         if (itemButtons != null)

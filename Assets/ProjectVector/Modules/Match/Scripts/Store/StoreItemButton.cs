@@ -36,7 +36,7 @@ public class StoreItemButton : MonoBehaviour, IPointerEnterHandler, ISelectHandl
     public bool TryGetRequestAction(TeamPurchaseRequest current,bool buying,out byte action,out ulong token)
     {
         action=0;token=0;
-        if(!ClientMatchContext.State.AllowsTeamPurchases || !buying || !IsWeaponButton() || !purchasable || price<=0)return false;
+        if(!buying || !IsWeaponButton() || !purchasable || price<=0)return false;
         if(current!=null && current.weaponId==itemId && current.status==1){action=1;token=current.requestId;return true;}
         return !owned;
     }
@@ -44,7 +44,7 @@ public class StoreItemButton : MonoBehaviour, IPointerEnterHandler, ISelectHandl
     {
         if(Time.unscaledTime<nextRequestRefresh)return;nextRequestRefresh=Time.unscaledTime+.15f;
         var net=NetworkManager.Instance;TeamPurchaseRequest current=null;if(net)net.TeamPurchaseRequests?.TryGetValue(net.MyPlayerId,out current);
-        SetRequestState(ClientMatchContext.State.AllowsTeamPurchases && current!=null && current.status==1 && current.weaponId==itemId && IsWeaponButton());
+        SetRequestState(current!=null && current.status==1 && current.weaponId==itemId && IsWeaponButton());
     }
     public void OnPointerClick(PointerEventData eventData)
     {
@@ -73,15 +73,6 @@ public class StoreItemButton : MonoBehaviour, IPointerEnterHandler, ISelectHandl
 
         RefreshDisplay();
     }
-
-    private void OnEnable()
-    {
-        ClientMatchContext.State.Changed += RefreshPolicy;
-        RefreshPolicy();
-    }
-
-    private void OnDisable() => ClientMatchContext.State.Changed -= RefreshPolicy;
-    private void RefreshPolicy() => Refresh(lastCredits, lastBuyPhase);
 
     private void OnDestroy()
     {
@@ -149,13 +140,6 @@ public class StoreItemButton : MonoBehaviour, IPointerEnterHandler, ISelectHandl
         if (priceText == null)
             return;
 
-        if (ClientMatchContext.State.IsDeathmatch)
-        {
-            priceText.text = IsArmorButton() ? "사용 불가" :
-                ClientMatchContext.State.IsSelected(itemId) ? "선택됨" : "무료";
-            return;
-        }
-
         if (owned)
         {
             priceText.text = "보유";
@@ -181,13 +165,6 @@ public class StoreItemButton : MonoBehaviour, IPointerEnterHandler, ISelectHandl
         if (button == null)
             return;
 
-        if (ClientMatchContext.State.IsDeathmatch)
-        {
-            button.interactable = IsWeaponButton() && purchasable && itemId >= 0 && itemId <= 12 &&
-                ClientMatchContext.CanOpenStore(false) && !ClientMatchContext.State.IsSelected(itemId);
-            return;
-        }
-
         bool canBuy =
             buyPhase &&
             purchasable &&
@@ -201,13 +178,6 @@ public class StoreItemButton : MonoBehaviour, IPointerEnterHandler, ISelectHandl
 
     private void OnClickBuy()
     {
-        // 로컬 선택 초안만 갱신하며 무료 선택을 기존 유료 구매 요청으로 보내지 않는다.
-        if (ClientMatchContext.State.IsDeathmatch)
-        {
-            if (IsWeaponButton() && purchasable && ClientMatchContext.CanOpenStore(false))
-                ClientMatchContext.State.TrySelectWeapon(itemId);
-            return;
-        }
         if (owned)
         {
             Debug.Log("[STORE ITEM] 이미 보유 중인 아이템입니다.");

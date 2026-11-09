@@ -11,7 +11,7 @@ public partial class NetworkManager
 
     public void SendTeamPurchase(byte action, int weaponId = 0, ulong requestId = 0)
     {
-        if (!ClientMatchContext.State.AllowsTeamPurchases || client == null || ReconnectBusy) return;
+        if (client == null || ReconnectBusy) return;
         var bytes = new byte[17];
         Buffer.BlockCopy(BitConverter.GetBytes((ushort)17), 0, bytes, 0, 2);
         Buffer.BlockCopy(BitConverter.GetBytes((ushort)PacketType.PKT_CS_TEAM_PURCHASE), 0, bytes, 2, 2);

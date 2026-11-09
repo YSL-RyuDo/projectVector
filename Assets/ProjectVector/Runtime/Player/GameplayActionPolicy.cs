@@ -21,14 +21,6 @@ public static class GameplayActionPolicy
             owner.GetComponentInParent<PlayerDeathController>()?.IsDead == true) return false;
         var net = NetworkManager.Instance;
         if (practice == null && net != null && (net.ReconnectBusy || !net.IsConnected || !net.IsAuthenticated)) return false;
-        // 로컬 입력만 제한하며 서버 상태 수신과 복원 처리는 차단하지 않는다.
-        if (practice == null && ClientMatchContext.State.IsDeathmatch)
-        {
-            var state = ClientMatchContext.State;
-            if (action == GameplayAction.Skill || state.Life == ClientLifeState.WaitingForRespawn ||
-                state.Phase == ClientMatchPhase.Inactive || state.Phase == ClientMatchPhase.Ended) return false;
-            if (action == GameplayAction.Fire && state.Phase != ClientMatchPhase.Playing) return false;
-        }
         if (practice == null && GameController.Instance != null &&
             (GameController.Instance.CurrentState == GameController.GameFlowState.Pick ||
              GameController.Instance.CurrentState == GameController.GameFlowState.Loading)) return false;
@@ -39,7 +31,7 @@ public static class GameplayActionPolicy
         if (owner.GetComponentInParent<PlayerMovement>()?.IsServerStunned == true ||
             owner.GetComponentInParent<ElectricShock>()?.IsStunned == true) return false;
         if (practice == null && InitiatorSkill_Q.IsLocalDroneMode) return false;
-        if (practice == null && !ClientMatchContext.State.IsDeathmatch && RoundManager.Instance != null &&
+        if (practice == null && RoundManager.Instance != null &&
             (RoundManager.Instance.currentState == RoundManager.RoundState.RoundEnd ||
              RoundManager.Instance.currentState == RoundManager.RoundState.GameOver)) return false;
         if (InitiatorSkill_Q.IsLocalReturning) return false;

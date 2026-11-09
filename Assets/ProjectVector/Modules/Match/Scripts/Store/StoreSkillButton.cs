@@ -27,14 +27,12 @@ public class StoreSkillButton : MonoBehaviour
     private void OnEnable()
     {
         SkillInventoryState.Changed += Refresh;
-        ClientMatchContext.State.Changed += Refresh;
         Refresh();
     }
 
     private void OnDisable()
     {
         SkillInventoryState.Changed -= Refresh;
-        ClientMatchContext.State.Changed -= Refresh;
     }
 
     private void OnDestroy()
@@ -74,15 +72,9 @@ public class StoreSkillButton : MonoBehaviour
             (SkillInventoryState.HasUltimateState ? SkillInventoryState.UltimatePoints+" / "+SkillInventoryState.UltimateRequired+" 충전" : "충전 확인 중") :
             (used ? "다음 라운드 구매" : purchased ? "사용 가능" : "1회 사용");
 
-        if (!ClientMatchContext.State.AllowsSkills)
-        {
-            if (priceLabel) priceLabel.text = "사용 불가";
-            if (stateLabel) stateLabel.text = "스킬 사용 불가";
-        }
-
         if (button != null)
         {
-            button.interactable = ClientMatchContext.State.AllowsSkills &&
+            button.interactable =
                 buyPhase && (slot != SkillSlot.X || SkillInventoryState.HasUltimateState) &&
                 !purchased &&
                 currentCredits >= price;
@@ -91,7 +83,6 @@ public class StoreSkillButton : MonoBehaviour
 
     private void OnClickBuy()
     {
-        if (!ClientMatchContext.State.AllowsSkills) return;
         int price = SkillInventoryState.GetPrice(slot);
 
         if (!buyPhase || (slot == SkillSlot.X && !SkillInventoryState.HasUltimateState) ||
