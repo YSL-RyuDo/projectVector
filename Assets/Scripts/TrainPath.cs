@@ -114,12 +114,47 @@ public class TrainPath : MonoBehaviour
 
     public Vector3 GetDirection(float distance)
     {
-        const float sampleOffset = 0.15f;
+        if (sampledPositions == null || sampledPositions.Length < 2)
+            BuildPath();
 
-        Vector3 before = GetPosition(distance - sampleOffset);
-        Vector3 after = GetPosition(distance + sampleOffset);
+        if (sampledPositions == null || sampledPositions.Length < 2 || TotalLength <= 0.0001f)
+            return transform.forward;
 
+        const float sampleOffset = 0.2f;
+        float clampedDist = Mathf.Clamp(distance, 0f, TotalLength);
+
+        // 스플라인 양 끝 지점에서도 올바른 접선 방향을 반환하도록 샘플 범위 보정
+        float distBefore = Mathf.Clamp(clampedDist - sampleOffset, 0f, TotalLength);
+        float distAfter = Mathf.Clamp(clampedDist + sampleOffset, 0f, TotalLength);
+
+        if (distAfter - distBefore < sampleOffset)
+        {
+            if (clampedDist <= sampleOffset)
+            {
+                distBefore = 0f;
+                distAfter = Mathf.Min(TotalLength, sampleOffset * 2f);
+            }
+            else
+            {
+                distBefore = Mathf.Max(0f, TotalLength - sampleOffset * 2f);
+                distAfter = TotalLength;
+            }
+        }
+
+        Vector3 before = GetPosition(distBefore);
+        Vector3 after = GetPosition(distAfter);
         Vector3 direction = after - before;
+
+        if (direction.sqrMagnitude < 0.000001f)
+        {
+            if (points != null && points.Length >= 2)
+            {
+                if (clampedDist <= 0.5f * TotalLength)
+                    direction = points[1].position - points[0].position;
+                else
+                    direction = points[points.Length - 1].position - points[points.Length - 2].position;
+            }
+        }
 
         if (direction.sqrMagnitude < 0.000001f)
             return transform.forward;

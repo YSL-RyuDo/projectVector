@@ -8,7 +8,7 @@ public class PayloadTrainController : MonoBehaviour
         Idle,       // 정지 (범위 내 플레이어 없음)
         MovingToA,  // PlayerA에 의해 A 거점으로 이동 중
         MovingToB,  // PlayerB에 의해 B 거점으로 이동 중
-        Contested,  // 경합 상태 (양 팀 플레이어가 모두 있을 때 정지)
+        Contested,  // 경합 상태 (양 팀 플레이어가 모두 있어 정지)
         ReachedA,   // A 거점 종착지에 도달
         ReachedB    // B 거점 종착지에 도달
     }
@@ -26,11 +26,12 @@ public class PayloadTrainController : MonoBehaviour
     [SerializeField] private bool startAtCenter = true;
     [SerializeField] private Transform startPoint;
     [SerializeField] private int startIndex = -1;
+    [SerializeField] private bool stopAtDestination = true;
 
     [Header("Player Tags")]
     [SerializeField] private string playerATag = "PlayerA";
     [SerializeField] private string playerBTag = "PlayerB";
-    [SerializeField] private string playerTag = "Player"; // 기존 호환용
+    [SerializeField] private string playerTag = "Player";
 
     [Header("Train Models")]
     [SerializeField] private Transform locomotiveA;
@@ -64,6 +65,8 @@ public class PayloadTrainController : MonoBehaviour
 
     private float distanceA;
     private float distanceB;
+    private float stopDistA;
+    private float stopDistB;
 
     private Quaternion modelOffsetRotA;
     private Quaternion modelOffsetRotB;
@@ -73,6 +76,8 @@ public class PayloadTrainController : MonoBehaviour
     public PushState State => currentState;
     public float GoalDistanceA => distanceA;
     public float GoalDistanceB => distanceB;
+    public float StopDistanceA => stopDistA;
+    public float StopDistanceB => stopDistB;
 
     public Transform LocomotiveA => locomotiveA != null ? locomotiveA : locomotive;
     public Transform LocomotiveB => locomotiveB;
@@ -122,6 +127,7 @@ public class PayloadTrainController : MonoBehaviour
 
         path.BuildPath();
         InitializeGoalDistances();
+        CalculateStopDistances();
 
         // 머리별 회전 오프셋 설정
         Vector3 rotA = modelRotationOffsetA != Vector3.zero ? modelRotationOffsetA : modelRotationOffset;
@@ -145,10 +151,10 @@ public class PayloadTrainController : MonoBehaviour
             }
         }
 
-        // 초기 시작 위치
+        // 초기 시작 위치 (오버워치 밀기 모드: 기본 중앙 시작)
         if (startAtCenter)
         {
-            progress = (distanceA + distanceB) * 0.5f;
+            progress = (stopDistA + stopDistB) * 0.5f;
         }
         else if (startPoint != null)
         {
@@ -160,10 +166,10 @@ public class PayloadTrainController : MonoBehaviour
         }
         else
         {
-            progress = (distanceA + distanceB) * 0.5f;
+            progress = (stopDistA + stopDistB) * 0.5f;
         }
 
-        progress = Mathf.Clamp(progress, 0f, path.TotalLength);
+        ClampProgressToStops();
 
         UpdateTrainFormation(true);
         isMoving = false;
@@ -196,6 +202,53 @@ public class PayloadTrainController : MonoBehaviour
         distanceB = path.GetDistanceAtPointIndex(finalIndexB);
     }
 
+    // 기차 머리가 종착지에 정확히 닿았을 때의 progress 정지 거리 계산
+    private void CalculateStopDistances()
+    {
+        bool isForwardTowardB = (distanceB >= distanceA);
+        int cargoCount = cargoCars != null ? cargoCars.Length : 0;
+        bool hasTwoHeads = (locomotiveA != null && locomotiveB != null);
+        float halfSpan = hasTwoHeads ? (cargoCount + 1) * carSpacing * 0.5f : 0f;
+
+        if (isForwardTowardB)
+        {
+            // A 거점이 작은 거리 쪽, B 거점이 큰 거리 쪽
+            stopDistA = distanceA + halfSpan;
+            stopDistB = distanceB - halfSpan;
+
+            if (stopDistA > stopDistB)
+            {
+                float mid = (distanceA + distanceB) * 0.5f;
+                stopDistA = mid;
+                stopDistB = mid;
+            }
+        }
+        else
+        {
+            // A 거점이 큰 거리 쪽, B 거점이 작은 거리 쪽
+            stopDistA = distanceA - halfSpan;
+            stopDistB = distanceB + halfSpan;
+
+            if (stopDistA < stopDistB)
+            {
+                float mid = (distanceA + distanceB) * 0.5f;
+                stopDistA = mid;
+                stopDistB = mid;
+            }
+        }
+
+        // 스플라인 길이 내로 안전하게 클램프
+        stopDistA = Mathf.Clamp(stopDistA, 0f, path.TotalLength);
+        stopDistB = Mathf.Clamp(stopDistB, 0f, path.TotalLength);
+    }
+
+    private void ClampProgressToStops()
+    {
+        float minStop = Mathf.Min(stopDistA, stopDistB);
+        float maxStop = Mathf.Max(stopDistA, stopDistB);
+        progress = Mathf.Clamp(progress, minStop, maxStop);
+    }
+
     private void Update()
     {
         Transform head = LocomotiveA;
@@ -205,7 +258,10 @@ public class PayloadTrainController : MonoBehaviour
         // 탑승자 이동 전 차량 위치 기록
         List<PassengerInfo> passengers = CollectRidingPassengers();
 
+        // 밀기 모드 로직 갱신
         UpdatePushMovement();
+
+        // 기차 머리들 및 화물칸 위치/회전 갱신
         UpdateTrainFormation(false);
 
         // 탑승자 위치 동기화
@@ -218,6 +274,13 @@ public class PayloadTrainController : MonoBehaviour
     // 플레이어 감지 및 열차 이동 로직
     private void UpdatePushMovement()
     {
+        // 이미 목적지에 도달한 경우 정지 유지 (다시 돌아서 반대로 가지 않음)
+        if (stopAtDestination && (currentState == PushState.ReachedA || currentState == PushState.ReachedB))
+        {
+            isMoving = false;
+            return;
+        }
+
         bool hasPlayerA = HasPlayerInRange(playerATag);
         bool hasPlayerB = HasPlayerInRange(playerBTag);
 
@@ -232,40 +295,54 @@ public class PayloadTrainController : MonoBehaviour
 
         if (hasPlayerA && hasPlayerB)
         {
-            // 양 팀 모두 범위 내에 있을 때 정지
+            // 양 팀 모두 범위 내에 있음: 경합 (정지)
             isMoving = false;
             currentState = PushState.Contested;
         }
         else if (hasPlayerA)
         {
             // PlayerA만 있음: A 종착지로 이동
-            if (Mathf.Abs(progress - distanceA) <= 0.01f)
+            if (Mathf.Abs(progress - stopDistA) <= 0.02f)
             {
-                progress = distanceA;
+                progress = stopDistA;
                 isMoving = false;
                 currentState = PushState.ReachedA;
             }
             else
             {
-                progress = Mathf.MoveTowards(progress, distanceA, moveSpeed * Time.deltaTime);
+                progress = Mathf.MoveTowards(progress, stopDistA, moveSpeed * Time.deltaTime);
                 isMoving = true;
                 currentState = PushState.MovingToA;
+
+                if (Mathf.Abs(progress - stopDistA) <= 0.001f)
+                {
+                    progress = stopDistA;
+                    isMoving = false;
+                    currentState = PushState.ReachedA;
+                }
             }
         }
         else if (hasPlayerB)
         {
             // PlayerB만 있음: B 종착지로 이동
-            if (Mathf.Abs(progress - distanceB) <= 0.01f)
+            if (Mathf.Abs(progress - stopDistB) <= 0.02f)
             {
-                progress = distanceB;
+                progress = stopDistB;
                 isMoving = false;
                 currentState = PushState.ReachedB;
             }
             else
             {
-                progress = Mathf.MoveTowards(progress, distanceB, moveSpeed * Time.deltaTime);
+                progress = Mathf.MoveTowards(progress, stopDistB, moveSpeed * Time.deltaTime);
                 isMoving = true;
                 currentState = PushState.MovingToB;
+
+                if (Mathf.Abs(progress - stopDistB) <= 0.001f)
+                {
+                    progress = stopDistB;
+                    isMoving = false;
+                    currentState = PushState.ReachedB;
+                }
             }
         }
         else
@@ -275,7 +352,7 @@ public class PayloadTrainController : MonoBehaviour
             currentState = PushState.Idle;
         }
 
-        progress = Mathf.Clamp(progress, 0f, path.TotalLength);
+        ClampProgressToStops();
     }
 
     // 양쪽 머리와 화물칸들의 위치 및 회전 갱신
@@ -300,10 +377,10 @@ public class PayloadTrainController : MonoBehaviour
                 distA = progress - totalSpan * 0.5f;
                 distB = progress + totalSpan * 0.5f;
 
-                // locomotiveA: A 거점 방향 바라봄
+                // locomotiveA: A 거점 방향 바라봄 (-tangent)
                 UpdateVehicle(locomotiveA, distA, -path.GetDirection(distA), modelOffsetRotA, instant);
 
-                // 화물칸 배치
+                // 화물칸 배치 (A에서 B 방향으로 정렬)
                 if (cargoCars != null)
                 {
                     for (int i = 0; i < cargoCars.Length; i++)
@@ -314,7 +391,7 @@ public class PayloadTrainController : MonoBehaviour
                     }
                 }
 
-                // locomotiveB: B 거점 방향 바라봄
+                // locomotiveB: B 거점 방향 바라봄 (+tangent)
                 UpdateVehicle(locomotiveB, distB, path.GetDirection(distB), modelOffsetRotB, instant);
             }
             else
@@ -323,7 +400,7 @@ public class PayloadTrainController : MonoBehaviour
                 distA = progress + totalSpan * 0.5f;
                 distB = progress - totalSpan * 0.5f;
 
-                // locomotiveA: A 거점 방향 바라봄
+                // locomotiveA: A 거점 방향 바라봄 (+tangent)
                 UpdateVehicle(locomotiveA, distA, path.GetDirection(distA), modelOffsetRotA, instant);
 
                 // 화물칸 배치
@@ -337,7 +414,7 @@ public class PayloadTrainController : MonoBehaviour
                     }
                 }
 
-                // locomotiveB: B 거점 방향 바라봄
+                // locomotiveB: B 거점 방향 바라봄 (-tangent)
                 UpdateVehicle(locomotiveB, distB, -path.GetDirection(distB), modelOffsetRotB, instant);
             }
         }
@@ -526,6 +603,13 @@ public class PayloadTrainController : MonoBehaviour
     public void SetMoving(bool moving)
     {
         isMoving = moving;
+    }
+
+    // 목적지 도달 상태 리셋 (다시 테스트하거나 게임 재시작 시 사용)
+    public void ResetDestinationState()
+    {
+        currentState = PushState.Idle;
+        isMoving = false;
     }
 
     private void OnDrawGizmosSelected()
