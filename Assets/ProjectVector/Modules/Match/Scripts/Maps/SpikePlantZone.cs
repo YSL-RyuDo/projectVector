@@ -8,6 +8,9 @@ public class SpikePlantZone : MonoBehaviour
     private void OnDisable() { Active.Remove(this); }
     public static bool Contains(Vector3 position)
     {
+        // 데스매치에서는 맵에 설치 구역이 저장되어 있어도 설치를 허용하지 않는다.
+        if (ClientMatchContext.State.IsDeathmatch) return false;
+
         foreach (var zone in Active)
         {
             if (zone == null || zone.box == null || !zone.box.enabled) continue;

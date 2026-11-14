@@ -159,9 +159,9 @@ public class MatchManager : MonoBehaviour
         }
 
         // 1라운드 시작 시 바닥 스파이크 생성
-        if (SpikeSpawner.Instance != null && currentMapInfo.spikeSpawnPoint != null)
+        if (SpikeSpawner.Instance != null && currentMapInfo.ActiveSpikeSpawnPoint != null)
         {
-            SpikeSpawner.Instance.ResetSpike(currentMapInfo.spikeSpawnPoint);
+            SpikeSpawner.Instance.ResetSpike(currentMapInfo.ActiveSpikeSpawnPoint);
             Debug.Log("[MATCH MANAGER] First round dropped spike spawned.");
         }
 

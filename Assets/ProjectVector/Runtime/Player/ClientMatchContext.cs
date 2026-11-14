@@ -24,9 +24,8 @@ public static class ClientMatchContext
 
     private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // 데스매치 테스트 씬과 기존 경기 씬에서는 상태를 유지한다.
+        // 데스매치도 기존 경기 씬인 Game_TestVersion에서 상태를 유지한다.
         // 맵 추가 로드는 유지하고, 그 외 단일 씬으로 이동할 때는 초기화한다.
-        if (mode == LoadSceneMode.Single &&
-            scene.name != "SystemSample" && scene.name != "Game_TestVersion") State.Reset();
+        if (mode == LoadSceneMode.Single && scene.name != "Game_TestVersion") State.Reset();
     }
 }

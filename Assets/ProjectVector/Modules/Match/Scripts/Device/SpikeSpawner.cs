@@ -14,6 +14,9 @@ public class SpikeSpawner : MonoBehaviour
 
     public void SpawnDropped(Transform pos)
     {
+        // 데스매치에서는 폭파전 장치를 생성하거나 초기화하지 않는다.
+        if (ClientMatchContext.State.IsDeathmatch || pos == null) return;
+
         GameObject obj = Instantiate(DroppedSpikePrefab, pos.position, Quaternion.identity);
         obj.GetComponent<Rigidbody>()?.AddForce(pos.forward * 3f, ForceMode.Impulse);
     }
@@ -42,6 +45,9 @@ public class SpikeSpawner : MonoBehaviour
 
     public void SpawnDroppedAt(Vector3 position, Vector3 direction, uint dropperPlayerId = 0)
     {
+        // 데스매치에서는 폭파전 장치를 생성하거나 초기화하지 않는다.
+        if (ClientMatchContext.State.IsDeathmatch) return;
+
         DestroyExistingDroppedSpikes();
 
         GameObject obj = Instantiate(
@@ -77,6 +83,9 @@ public class SpikeSpawner : MonoBehaviour
 
     public Spike SpawnPlanted(Vector3 pos)
     {
+        // 잘못 도착한 폭파전 이벤트로 데스매치에 장치가 생기지 않도록 한다.
+        if (ClientMatchContext.State.IsDeathmatch) return null;
+
         // Reconnect and duplicate delivery must not create two ticking devices.
         if (Spike.PlantedSpike != null && Spike.PlantedSpike.isPlanted)
             return Spike.PlantedSpike;
@@ -104,6 +113,9 @@ public class SpikeSpawner : MonoBehaviour
 
     public void ResetSpike(Transform pos)
     {
+        // 데스매치에서는 폭파전 장치를 생성하거나 초기화하지 않는다.
+        if (ClientMatchContext.State.IsDeathmatch || pos == null) return;
+
         DestroyExistingDroppedSpikes();
 
         Instantiate(DroppedSpikePrefab, pos.position, Quaternion.identity);
