@@ -42,14 +42,22 @@ public class FlappyGun : MonoBehaviour
             if (hit.collider.CompareTag("Pipe"))
                 continue;
 
-            endPoint = hit.point;
+            FlappyEnemy enemy =
+                hit.collider.GetComponentInParent<FlappyEnemy>();
 
-            FlappyEnemy enemy = hit.collider.GetComponentInParent<FlappyEnemy>();
+            FlappyBoss boss =
+                hit.collider.GetComponentInParent<FlappyBoss>();
 
             if (enemy != null)
             {
                 enemy.TakeDamage(damage);
             }
+            else if (boss != null)
+            {
+                boss.TakeDamage(damage);
+            }
+
+            endPoint = hit.point;
 
             Debug.Log("ИэСп: " + hit.collider.name);
             break;

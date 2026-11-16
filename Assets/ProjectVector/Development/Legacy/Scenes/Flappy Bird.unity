@@ -119,6 +119,37 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &596039587
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 596039588}
+  m_Layer: 0
+  m_Name: BossSpawnPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &596039588
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 596039587}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 6.41, y: 1, z: -0.01}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &780434846
 GameObject:
   m_ObjectHideFlags: 0
@@ -497,12 +528,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0149ab4b656e85545a00bd224c41cf55, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlappyGameManager
-  enemyPrefab: {fileID: 1529102388577916190, guid: 53c0dadb0889f8040b8f97f5f146ea37, type: 3}
   pipeCount: 0
+  pipesPerPhase: 5
+  currentPhase: 0
+  enemyPrefab: {fileID: 1529102388577916190, guid: 53c0dadb0889f8040b8f97f5f146ea37, type: 3}
   enemySpawnInterval: 5
   minY: -3
   maxY: 3
   spawnPoint: {fileID: 897657895}
+  bossPrefab: {fileID: 1605216927316190647, guid: a8a2d9534e207ab4fb26c5f56482098d, type: 3}
+  bossSpawnPoint: {fileID: 596039588}
+  bossPhaseInterval: 3
 --- !u!4 &1144981918
 Transform:
   m_ObjectHideFlags: 0
@@ -955,3 +991,4 @@ SceneRoots:
   - {fileID: 1433724377}
   - {fileID: 1144981918}
   - {fileID: 897657895}
+  - {fileID: 596039588}
