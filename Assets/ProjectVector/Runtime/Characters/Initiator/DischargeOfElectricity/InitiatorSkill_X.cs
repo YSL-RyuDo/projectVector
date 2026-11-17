@@ -23,8 +23,8 @@ public class InitiatorSkill_X : CharacterSkill
         var key = Keyboard.current;
         if (IsCasting && key != null && !GameplayActionPolicy.MenuBlocksInput)
         {
-            int slot = key.digit1Key.wasPressedThisFrame ? 0 : key.digit2Key.wasPressedThisFrame ? 1 : key.digit3Key.wasPressedThisFrame ? 2 : -1;
-            if (slot >= 0 || key.xKey.wasPressedThisFrame || Mouse.current?.rightButton.wasPressedThisFrame == true)
+            int slot = VectorInput.Down("Primary") ? 0 : VectorInput.Down("Secondary") ? 1 : VectorInput.Down("Melee") ? 2 : -1;
+            if (slot >= 0 || VectorInput.Down("Ultimate") || VectorInput.Down("Aim"))
             {
                 _queuedSlot = slot;
                 if (_preparing) { _preparing = false; NetworkManager.Instance.SendDischargeGesture(false); _gesture?.Cancel(); }
@@ -39,7 +39,7 @@ public class InitiatorSkill_X : CharacterSkill
             _preparing = false; _pending = true; _requestedAt = Time.unscaledTime;
             NetworkManager.Instance.SendUltimateCast(direction.normalized);
         }
-        if (!IsCasting && key != null && key.xKey.wasPressedThisFrame) UseSkill();
+        if (!IsCasting && key != null && VectorInput.Down("Ultimate")) UseSkill();
     }
     protected override void UseSkill()
     {

@@ -33,7 +33,7 @@ public class ControllerSkill_Q : CharacterSkill
             if (_age >= .9f) Cancel();
             return;
         }
-        if (Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame) UseSkill();
+        if (Keyboard.current != null && VectorInput.Down("SkillQ")) UseSkill();
     }
     protected override void UseSkill()
     {

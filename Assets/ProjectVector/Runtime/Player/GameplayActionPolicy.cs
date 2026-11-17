@@ -7,6 +7,7 @@ public enum GameplayAction { Move, Look, Fire, WeaponChange, Reload, Skill, Inte
 public static class GameplayActionPolicy
 {
     public static bool MenuBlocksInput =>
+        VectorSettingsPanel.BlocksInput ||
         (SettingsMenu.Instance != null && SettingsMenu.Instance.IsOpen) ||
         (GameController.Instance != null && GameController.Instance.IsPaused) ||
         InGameChatUI.BlocksGameplayInput || VectorVoicePanel.BlocksGameplayInput;

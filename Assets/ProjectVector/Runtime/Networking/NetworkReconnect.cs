@@ -94,6 +94,7 @@ public partial class NetworkManager
         ResetLocalCombatReport();
         client.Close(); ReconnectBusy = false; IsAuthenticated = false;
         reconnectRoster = null; reconnectPassword = null; reconnectAccount = null;
+        AccountSettings?.Detach();
         lock (packetQueue) packetQueue.Clear();
         SceneNavigation.Load(ProjectVector.Core.ProjectScene.Login);
         var connection=NewReconnectTransport();

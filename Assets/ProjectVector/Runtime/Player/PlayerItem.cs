@@ -154,31 +154,31 @@ public class PlayerItem : MonoBehaviour
         if (Keyboard.current == null)
             return;
 
-        if (Keyboard.current.digit1Key.wasPressedThisFrame)
+        if (VectorInput.Down("Primary"))
         {
             RequestWeaponSwitch(0);
             return;
         }
 
-        if (Keyboard.current.digit2Key.wasPressedThisFrame)
+        if (VectorInput.Down("Secondary"))
         {
             RequestWeaponSwitch(1);
             return;
         }
 
-        if (Keyboard.current.digit3Key.wasPressedThisFrame)
+        if (VectorInput.Down("Melee"))
         {
             RequestWeaponSwitch(2);
             return;
         }
 
-        if (Keyboard.current.digit4Key.wasPressedThisFrame)
+        if (VectorInput.Down("Spike"))
         {
             RequestWeaponSwitch(4);
             return;
         }
 
-        if (Keyboard.current.rKey.wasPressedThisFrame)
+        if (VectorInput.Down("Reload"))
         {
             TryStartReload();
             return;
@@ -188,7 +188,7 @@ public class PlayerItem : MonoBehaviour
             return;
 
         if (practice != null) return; // Practice weapon changes use the authored armory, not server drop requests.
-        if (Keyboard.current.gKey.wasPressedThisFrame)
+        if (VectorInput.Down("Drop"))
         {
             DropCurrentItem();
             Debug.Log("g");

@@ -64,7 +64,7 @@ public class PlayerSpike : MonoBehaviour
     private void Update()
     {
         if (IsLocalPlayer()) SetPlantZone(SpikePlantZone.Contains(transform.position));
-        if (IsInteracting && (!CanInteract || Keyboard.current == null || !Keyboard.current.fKey.isPressed ||
+        if (IsInteracting && (!CanInteract || Keyboard.current == null || !VectorInput.Held("Interact") ||
             InGameChatUI.IsChatOpen || (GameController.Instance != null && GameController.Instance.IsPaused)))
         {
             ForceCancelPlant();
@@ -90,13 +90,13 @@ public class PlayerSpike : MonoBehaviour
         if (RoundManager.Instance != null &&
             RoundManager.Instance.currentState == RoundManager.RoundState.Preparation)
         {
-            if (Keyboard.current.fKey.wasPressedThisFrame)
+            if (VectorInput.Down("Interact"))
                 playerItem?.TryPickupLookedItem();
 
             return;
         }
 
-        if (Keyboard.current.fKey.wasPressedThisFrame)
+        if (VectorInput.Down("Interact"))
         {
             if (playerItem != null && playerItem.TryPickupLookedItem())
                 return;
@@ -114,7 +114,7 @@ public class PlayerSpike : MonoBehaviour
             }
         }
 
-        if (Keyboard.current.fKey.isPressed)
+        if (VectorInput.Held("Interact"))
         {
             if (playerItem != null && playerItem.IsLookingAtPickupItem())
                 return;
@@ -126,7 +126,7 @@ public class PlayerSpike : MonoBehaviour
                 spikeInRange.Defusing();
         }
 
-        if (Keyboard.current.fKey.wasReleasedThisFrame)
+        if (VectorInput.Up("Interact"))
         {
             CancelPlant();
 

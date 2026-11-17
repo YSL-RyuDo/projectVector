@@ -52,12 +52,12 @@ public class ControllerSkill_E : CharacterSkill
         if (_ownsInput && Interrupted()) { CloseImmediate(); return; }
         if (Keyboard.current == null || Mouse.current == null) return;
         if (GameplayActionPolicy.MenuBlocksInput) { if (_selecting) Close(); return; }
-        if (Keyboard.current.eKey.wasPressedThisFrame) { UseSkill(); return; }
+        if (VectorInput.Down("SkillE")) { UseSkill(); return; }
         if (!_selecting) return;
         if (Keyboard.current.escapeKey.wasPressedThisFrame) { Close(); return; }
         if (!_selected) PreviewAt(Mouse.current.position.ReadValue());
-        if (Mouse.current.leftButton.wasPressedThisFrame) SelectAt(Mouse.current.position.ReadValue());
-        if (Mouse.current.rightButton.wasPressedThisFrame && _selected) Confirm();
+        if (VectorInput.Down("Fire")) SelectAt(Mouse.current.position.ReadValue());
+        if (VectorInput.Down("Aim") && _selected) Confirm();
     }
     private void LateUpdate()
     {
@@ -154,7 +154,7 @@ public class ControllerSkill_E : CharacterSkill
     private IEnumerator ReleaseInput()
     {
         yield return null;
-        while ((_motion && _motion.Active) || (Mouse.current != null && (Mouse.current.leftButton.isPressed || Mouse.current.rightButton.isPressed))) yield return null;
+        while ((_motion && _motion.Active) || (Mouse.current != null && (VectorInput.Held("Fire") || VectorInput.Held("Aim")))) yield return null;
         _ownsInput = false; IsBlockingWeaponInput = false; _release = null;
     }
     public void ForceCloseMiniMapImmediate() => CloseImmediate();

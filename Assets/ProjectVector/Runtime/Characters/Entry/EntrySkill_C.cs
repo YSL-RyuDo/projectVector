@@ -72,7 +72,7 @@ public class EntrySkill_C : CharacterSkill
             _electricShock.IsStunned)
             return;
 
-        if (Keyboard.current.cKey.wasPressedThisFrame)
+        if (VectorInput.Down("SkillC"))
         {
             UseSkill();
         }

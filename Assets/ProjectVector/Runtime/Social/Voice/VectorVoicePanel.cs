@@ -35,7 +35,7 @@ public sealed class VectorVoicePanel : MonoBehaviour
     private bool previousCursor;
     private static int closedFrame = -1;
     public static bool IsAnyOpen => activePanels.Any(p => p != null && p.panel != null && p.panel.activeInHierarchy);
-    public static bool BlocksGameplayInput => IsAnyOpen || Time.frameCount <= closedFrame;
+    public static bool BlocksGameplayInput => VectorSettingsPanel.BlocksInput || IsAnyOpen || Time.frameCount <= closedFrame;
     public static bool HasBlockingPopup => activePanels.Any(p => p != null && p.blockingPopups.Any(g => g != null && g.activeInHierarchy));
 
     private void Awake()
@@ -62,7 +62,7 @@ public sealed class VectorVoicePanel : MonoBehaviour
     private void OnDisable() { Close(); activePanels.Remove(this); }
     private void Update()
     {
-        if (!RefreshVisibility()) return;
+        if (!RefreshVisibility() || VectorSettingsPanel.BlocksInput) return;
         if (Keyboard.current?.f10Key.wasPressedThisFrame == true) Toggle();
         if (panel.activeSelf && Keyboard.current?.escapeKey.wasPressedThisFrame == true) Close();
         if (Time.unscaledTime < nextRefresh) return;
@@ -118,7 +118,7 @@ public sealed class VectorVoicePanel : MonoBehaviour
     public void Toggle()
     {
         if (panel.activeSelf) { Close(); return; }
-        if (!RefreshVisibility()) return;
+        if (!RefreshVisibility() || VectorSettingsPanel.BlocksInput) return;
         if (HasBlockingPopup || InGameChatUI.IsChatOpen) return;
         previousLock = Cursor.lockState; previousCursor = Cursor.visible;
         panel.SetActive(true); Cursor.lockState = CursorLockMode.None; Cursor.visible = true;

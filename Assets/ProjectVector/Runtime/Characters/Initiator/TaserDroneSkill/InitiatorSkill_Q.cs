@@ -80,22 +80,22 @@ public class InitiatorSkill_Q : CharacterSkill
 
         if (BlocksWeaponPresentation)
         {
-            if (Keyboard.current.digit1Key.wasPressedThisFrame) { ReturnToWeapon(0); return; }
-            if (Keyboard.current.digit2Key.wasPressedThisFrame) { ReturnToWeapon(1); return; }
-            if (Keyboard.current.digit3Key.wasPressedThisFrame) { ReturnToWeapon(2); return; }
+            if (VectorInput.Down("Primary")) { ReturnToWeapon(0); return; }
+            if (VectorInput.Down("Secondary")) { ReturnToWeapon(1); return; }
+            if (VectorInput.Down("Melee")) { ReturnToWeapon(2); return; }
         }
         if (_returnPending) return;
 
-        if (_isPreparing && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        if (_isPreparing && Mouse.current != null && VectorInput.Down("Fire"))
         {
             if (CanUsePurchasedSkill(SkillSlot.Q)) RequestDroneDeploy();
             else CancelPreparation();
             return;
         }
-        if ((_isPreparing || _deployPending) && Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
+        if ((_isPreparing || _deployPending) && Mouse.current != null && VectorInput.Down("Aim"))
         { ReturnToWeapon(_playerItem != null ? _playerItem.CurrentIndex : -1); return; }
 
-        if (Keyboard.current.qKey.wasPressedThisFrame)
+        if (VectorInput.Down("SkillQ"))
         {
             UseSkill();
         }

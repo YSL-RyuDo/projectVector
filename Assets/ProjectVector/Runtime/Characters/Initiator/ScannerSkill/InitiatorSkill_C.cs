@@ -33,11 +33,11 @@ public class InitiatorSkill_C : CharacterSkill
         if(GameplayActionPolicy.MenuBlocksInput || Keyboard.current==null || Mouse.current==null)return;
         var key=Keyboard.current;
         if(BlocksActions){
-            int slot=key.digit1Key.wasPressedThisFrame?0:key.digit2Key.wasPressedThisFrame?1:key.digit3Key.wasPressedThisFrame?2:-1;
+            int slot=VectorInput.Down("Primary")?0:VectorInput.Down("Secondary")?1:VectorInput.Down("Melee")?2:-1;
             if(slot>=0){_queuedSlot=slot;if(!_throwing)CancelAiming();return;}
-            if(_aiming && (key.cKey.wasPressedThisFrame || Mouse.current.rightButton.wasPressedThisFrame)){CancelAiming();return;}
-            if(_aiming && Ready && Mouse.current.leftButton.wasPressedThisFrame)UseSkill();
-        }else if(key.cKey.wasPressedThisFrame && GameplayActionPolicy.CanAct(this,GameplayAction.Skill))StartAiming();
+            if(_aiming && (VectorInput.Down("SkillC") || VectorInput.Down("Aim"))){CancelAiming();return;}
+            if(_aiming && Ready && VectorInput.Down("Fire"))UseSkill();
+        }else if(VectorInput.Down("SkillC") && GameplayActionPolicy.CanAct(this,GameplayAction.Skill))StartAiming();
     }
     private void StartAiming()
     {

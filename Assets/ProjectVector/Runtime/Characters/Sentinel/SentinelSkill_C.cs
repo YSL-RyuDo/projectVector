@@ -38,15 +38,15 @@ public class SentinelSkill_C : CharacterSkill
 
         if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) { if(isReady)CancelReady(); return; }
 
-        if (Input.GetKeyDown(KeyCode.C))
+        if (VectorInput.Down("SkillC"))
             UseSkill();
 
         if (!isReady)
             return;
 
-        if (Input.GetMouseButtonDown(0))
+        if (VectorInput.Down("Fire"))
             RequestThrow(longThrowForce);
-        else if (Input.GetMouseButtonDown(1))
+        else if (VectorInput.Down("Aim"))
             RequestThrow(shortThrowForce);
         else if (Input.GetKeyDown(KeyCode.Escape))
             CancelReady();

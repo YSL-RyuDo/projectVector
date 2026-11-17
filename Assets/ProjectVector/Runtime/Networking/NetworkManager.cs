@@ -93,6 +93,7 @@ public partial class NetworkManager : MonoBehaviour
         }
 
         Instance = this;
+        InitializeAccountSettings();
         DontDestroyOnLoad(gameObject);
     }
 
@@ -127,6 +128,7 @@ public partial class NetworkManager : MonoBehaviour
 
             HandlePacket(packet.Item1, packet.Item2);
         }
+        AccountSettings?.Tick(IsConnected && IsAuthenticated && !ReconnectBusy, Time.unscaledTime);
     }
 
 
@@ -203,6 +205,8 @@ public partial class NetworkManager : MonoBehaviour
 
     void HandlePacket(ushort type, byte[] body)
     {
+        if (type == 433) { HandleAccountSettings(body); return; }
+        if (type == 431) { HandleLobbyUtility(body); return; }
         if (HandleReconnectPacket(type, body)) return;
         if (type == (ushort)PacketType.PKT_SC_PICK_ACTIONS) { HandlePickActions(body); return; }
         if (type == (ushort)PacketType.PKT_SC_PICK_ACTION_RESULT) { HandlePickActionResult(body); return; }
@@ -2215,6 +2219,9 @@ public partial class NetworkManager : MonoBehaviour
 
     private void OnApplicationQuit()
     {
+        AccountSettings?.Flush();
+        AccountSettings?.Tick(IsConnected && IsAuthenticated && !ReconnectBusy, Time.unscaledTime);
+        AccountSettings?.Store();
         Debug.Log("[NETWORK] OnApplicationQuit");
         client?.Close();
     }
