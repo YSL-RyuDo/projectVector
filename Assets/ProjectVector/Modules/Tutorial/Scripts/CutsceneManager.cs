@@ -22,6 +22,7 @@ public class CutsceneManager : MonoBehaviour
 
     private bool playing;
     private bool previousCanMove;
+    public bool IsPlaying => playing;
 
     private Transform cameraTransform;
     private Transform lookTransform;

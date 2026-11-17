@@ -1,4 +1,4 @@
-#if UNITY_EDITOR
+﻿#if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -25,9 +25,13 @@ public static class ScannerOcclusionExport
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
         var triangles=new List<string>();var boxes=new List<string>();var meshes=new List<string>();
         var checks=new List<string>();
-        foreach(string mapName in new[]{"TestMap","Desert","Construction"})
+        foreach(string mapName in new[]{"TestMap","Desert","Construction","City"})
         {
-            var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/ProjectVector/Shared/Maps/Prefabs/{mapName}.prefab"));
+            // 제작 중인 City도 실제 프리팹의 충돌 정보를 서버에 내보낸다.
+            string prefabPath = mapName == "City"
+                ? "Assets/ProjectVector/Development/Maps/CityPrototype/City.prefab"
+                : $"Assets/ProjectVector/Shared/Maps/Prefabs/{mapName}.prefab";
+            var root=(GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath));
             root.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
             var info=root.GetComponent<MapInfo>();info.SetBarriersActive(true);Physics.SyncTransforms();
             int count=0;

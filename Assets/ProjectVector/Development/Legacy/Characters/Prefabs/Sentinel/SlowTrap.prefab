@@ -313,6 +313,7 @@ GameObject:
   - component: {fileID: 2419494985016119680}
   - component: {fileID: 7403447089623870327}
   - component: {fileID: 2156282839786061949}
+  - component: {fileID: 2854812113685992074}
   m_Layer: 0
   m_Name: SlowTrap
   m_TagString: Untagged
@@ -371,7 +372,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6472310157036607655}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a3b3d6bdadbeb164f9a73e514e71c1cc, type: 3}
   m_Name: 
@@ -383,6 +384,27 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 833
   _warningDistance: 12
+--- !u!114 &2854812113685992074
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6472310157036607655}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4520239a92a4a344fb687a90a3fa0d4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TutoSentinel_SlowTrap
+  _health: 40
+  _slowRadius: 10
+  _slowAmount: 0.5
+  _enemyLayer:
+    serializedVersion: 2
+    m_Bits: 833
+  _warningDistance: 12
+  _zoneRadius: 5
+  _zoneDuration: 5
 --- !u!1 &7269985735190110033
 GameObject:
   m_ObjectHideFlags: 0
