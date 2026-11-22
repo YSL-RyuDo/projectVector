@@ -43,9 +43,21 @@ public class PayloadTrainController : MonoBehaviour
     [SerializeField] private float moveSpeed = 3f;
     [SerializeField] private float carSpacing = 20f;
 
-    [Header("Player Detection")]
-    [SerializeField] private Vector3 detectBoxSize = new Vector3(10f, 6f, 70f);
-    [SerializeField] private Vector3 detectBoxOffset = new Vector3(0f, 2f, -20f);
+    [Header("Player Detection - Dual Zones")]
+    [Tooltip("감지 기준이 될 열차 앞쪽 Transform (비어있으면 LocomotiveA 사용)")]
+    [SerializeField] private Transform forwardReference;
+
+    [Header("Left Detection Zone (왼쪽 범위)")]
+    [Tooltip("열차 앞쪽 기준 왼쪽 감지 범위의 로컬 위치 오프셋")]
+    [SerializeField] private Vector3 leftZoneOffset = new Vector3(-2.5f, 1.5f, 5f);
+    [Tooltip("왼쪽 감지 범위의 크기 (가로 X, 높이 Y, 길이 Z)")]
+    [SerializeField] private Vector3 leftZoneSize = new Vector3(3f, 3f, 6f);
+
+    [Header("Right Detection Zone (오른쪽 범위)")]
+    [Tooltip("열차 앞쪽 기준 오른쪽 감지 범위의 로컬 위치 오프셋")]
+    [SerializeField] private Vector3 rightZoneOffset = new Vector3(2.5f, 1.5f, 5f);
+    [Tooltip("오른쪽 감지 범위의 크기 (가로 X, 높이 Y, 길이 Z)")]
+    [SerializeField] private Vector3 rightZoneSize = new Vector3(3f, 3f, 6f);
 
     [Header("Passenger Riding")]
     [SerializeField] private LayerMask trainLayer = ~0;
@@ -81,6 +93,7 @@ public class PayloadTrainController : MonoBehaviour
 
     public Transform LocomotiveA => locomotiveA != null ? locomotiveA : locomotive;
     public Transform LocomotiveB => locomotiveB;
+    public Transform DetectionTransform => forwardReference != null ? forwardReference : LocomotiveA;
 
     private struct PassengerInfo
     {
@@ -281,8 +294,9 @@ public class PayloadTrainController : MonoBehaviour
             return;
         }
 
-        bool hasPlayerA = HasPlayerInRange(playerATag);
-        bool hasPlayerB = HasPlayerInRange(playerBTag);
+        // PlayerA / Player A, PlayerB / Player B 태그 모두 지원
+        bool hasPlayerA = HasPlayerGroupInRange(playerATag, playerATag == "PlayerA" ? "Player A" : "PlayerA");
+        bool hasPlayerB = HasPlayerGroupInRange(playerBTag, playerBTag == "PlayerB" ? "Player B" : "PlayerB");
 
         // playerATag/BTag로 아무도 없을 때 기존 playerTag 오브젝트 검사
         if (!hasPlayerA && !hasPlayerB && !string.IsNullOrEmpty(playerTag) && playerTag != playerATag && playerTag != playerBTag)
@@ -301,30 +315,7 @@ public class PayloadTrainController : MonoBehaviour
         }
         else if (hasPlayerA)
         {
-            // PlayerA만 있음: A 종착지로 이동
-            if (Mathf.Abs(progress - stopDistA) <= 0.02f)
-            {
-                progress = stopDistA;
-                isMoving = false;
-                currentState = PushState.ReachedA;
-            }
-            else
-            {
-                progress = Mathf.MoveTowards(progress, stopDistA, moveSpeed * Time.deltaTime);
-                isMoving = true;
-                currentState = PushState.MovingToA;
-
-                if (Mathf.Abs(progress - stopDistA) <= 0.001f)
-                {
-                    progress = stopDistA;
-                    isMoving = false;
-                    currentState = PushState.ReachedA;
-                }
-            }
-        }
-        else if (hasPlayerB)
-        {
-            // PlayerB만 있음: B 종착지로 이동
+            // Player A는 상대팀 진영인 B 종착지로 열차를 밈
             if (Mathf.Abs(progress - stopDistB) <= 0.02f)
             {
                 progress = stopDistB;
@@ -342,6 +333,29 @@ public class PayloadTrainController : MonoBehaviour
                     progress = stopDistB;
                     isMoving = false;
                     currentState = PushState.ReachedB;
+                }
+            }
+        }
+        else if (hasPlayerB)
+        {
+            // Player B는 상대팀 진영인 A 종착지로 열차를 밈
+            if (Mathf.Abs(progress - stopDistA) <= 0.02f)
+            {
+                progress = stopDistA;
+                isMoving = false;
+                currentState = PushState.ReachedA;
+            }
+            else
+            {
+                progress = Mathf.MoveTowards(progress, stopDistA, moveSpeed * Time.deltaTime);
+                isMoving = true;
+                currentState = PushState.MovingToA;
+
+                if (Mathf.Abs(progress - stopDistA) <= 0.001f)
+                {
+                    progress = stopDistA;
+                    isMoving = false;
+                    currentState = PushState.ReachedA;
                 }
             }
         }
@@ -466,35 +480,71 @@ public class PayloadTrainController : MonoBehaviour
         vehicle.position = position;
     }
 
-    // 특정 태그의 플레이어가 감지 박스 안에 있는지 확인
+    // 특정 태그의 플레이어가 좌/우 감지 범위 안에 있는지 확인
     private bool HasPlayerInRange(string tag)
     {
         if (string.IsNullOrEmpty(tag)) return false;
 
-        GameObject[] players = GameObject.FindGameObjectsWithTag(tag);
-        for (int i = 0; i < players.Length; i++)
+        try
         {
-            if (players[i] != null && IsPositionInRange(players[i].transform.position))
+            GameObject[] players = GameObject.FindGameObjectsWithTag(tag);
+            for (int i = 0; i < players.Length; i++)
             {
-                return true;
+                if (players[i] != null && IsPositionInRange(players[i].transform.position))
+                {
+                    return true;
+                }
             }
+        }
+        catch (UnityException)
+        {
+            // 태그가 프로젝트에 정의되지 않았을 때 발생하는 예외 방지
         }
         return false;
     }
 
-    // 감지 박스 기준 위치 판정
-    private bool IsPositionInRange(Vector3 worldPos)
+    private bool HasPlayerGroupInRange(string primaryTag, string fallbackTag)
     {
-        Transform center = LocomotiveA;
+        if (HasPlayerInRange(primaryTag)) return true;
+        if (!string.IsNullOrEmpty(fallbackTag) && fallbackTag != primaryTag)
+        {
+            return HasPlayerInRange(fallbackTag);
+        }
+        return false;
+    }
+
+    // 왼쪽 또는 오른쪽 범위 내에 위치하는지 검사
+    public bool IsPositionInRange(Vector3 worldPos)
+    {
+        return IsPositionInLeftZone(worldPos) || IsPositionInRightZone(worldPos);
+    }
+
+    public bool IsPositionInLeftZone(Vector3 worldPos)
+    {
+        Transform center = DetectionTransform;
         if (center == null) return false;
 
-        Vector3 relativePos = Quaternion.Inverse(center.rotation) * (worldPos - center.position);
-        Vector3 offsetPos = relativePos - detectBoxOffset;
-        Vector3 halfSize = detectBoxSize * 0.5f;
+        Vector3 localPos = center.InverseTransformPoint(worldPos);
+        return IsPointInBox(localPos, leftZoneOffset, leftZoneSize);
+    }
 
-        return Mathf.Abs(offsetPos.x) <= halfSize.x &&
-               Mathf.Abs(offsetPos.y) <= halfSize.y &&
-               Mathf.Abs(offsetPos.z) <= halfSize.z;
+    public bool IsPositionInRightZone(Vector3 worldPos)
+    {
+        Transform center = DetectionTransform;
+        if (center == null) return false;
+
+        Vector3 localPos = center.InverseTransformPoint(worldPos);
+        return IsPointInBox(localPos, rightZoneOffset, rightZoneSize);
+    }
+
+    private bool IsPointInBox(Vector3 localPoint, Vector3 boxOffset, Vector3 boxSize)
+    {
+        Vector3 delta = localPoint - boxOffset;
+        Vector3 halfSize = boxSize * 0.5f;
+
+        return Mathf.Abs(delta.x) <= halfSize.x &&
+               Mathf.Abs(delta.y) <= halfSize.y &&
+               Mathf.Abs(delta.z) <= halfSize.z;
     }
 
     // 탑승자 수집
@@ -614,16 +664,24 @@ public class PayloadTrainController : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        Transform center = LocomotiveA;
+        Transform center = DetectionTransform;
         if (center != null)
         {
-            Gizmos.color = currentState == PushState.Contested ? Color.magenta :
-                           currentState == PushState.MovingToA ? Color.cyan :
-                           currentState == PushState.MovingToB ? Color.red : Color.yellow;
-
             Matrix4x4 oldMatrix = Gizmos.matrix;
             Gizmos.matrix = Matrix4x4.TRS(center.position, center.rotation, Vector3.one);
-            Gizmos.DrawWireCube(detectBoxOffset, detectBoxSize);
+
+            // 왼쪽 감지 범위 (청록색 WireCube)
+            Gizmos.color = new Color(0f, 0.9f, 1f, 0.85f);
+            Gizmos.DrawWireCube(leftZoneOffset, leftZoneSize);
+
+            // 오른쪽 감지 범위 (주황색 WireCube)
+            Gizmos.color = new Color(1f, 0.55f, 0f, 0.85f);
+            Gizmos.DrawWireCube(rightZoneOffset, rightZoneSize);
+
+            // 열차 앞쪽 방향 표시선 (파란색)
+            Gizmos.color = Color.blue;
+            Gizmos.DrawRay(Vector3.zero, Vector3.forward * 4f);
+
             Gizmos.matrix = oldMatrix;
         }
 

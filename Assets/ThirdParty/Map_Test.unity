@@ -60754,8 +60754,11 @@ MonoBehaviour:
   - {fileID: 924256326}
   moveSpeed: 2
   carSpacing: 20
-  detectBoxSize: {x: 10, y: 6, z: 70}
-  detectBoxOffset: {x: 0, y: 2, z: -20}
+  forwardReference: {fileID: 0}
+  leftZoneOffset: {x: 0, y: 1.5, z: -39}
+  leftZoneSize: {x: 6, y: 3, z: 25}
+  rightZoneOffset: {x: 0, y: 1.5, z: 0.1}
+  rightZoneSize: {x: 6, y: 3, z: 25}
   trainLayer:
     serializedVersion: 2
     m_Bits: 0
@@ -84878,6 +84881,10 @@ PrefabInstance:
     - {fileID: 2416591515546677025, guid: 1d71d34d9e82cc040a326c5362c0e904, type: 3}
     - {fileID: 5505506347929914847, guid: 1d71d34d9e82cc040a326c5362c0e904, type: 3}
     - {fileID: 2893430795598057379, guid: 1d71d34d9e82cc040a326c5362c0e904, type: 3}
+    - {fileID: 98506046453550724, guid: 1d71d34d9e82cc040a326c5362c0e904, type: 3}
+    - {fileID: 2129447518876714369, guid: 1d71d34d9e82cc040a326c5362c0e904, type: 3}
+    - {fileID: 7807586499819388093, guid: 1d71d34d9e82cc040a326c5362c0e904, type: 3}
+    - {fileID: 4386426920851151418, guid: 1d71d34d9e82cc040a326c5362c0e904, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1d71d34d9e82cc040a326c5362c0e904, type: 3}

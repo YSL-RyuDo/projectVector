@@ -8,16 +8,16 @@ using static UnityEngine.Rendering.DebugUI;
 [DefaultExecutionOrder(-100)]
 public class PlayerMovement : MonoBehaviour
 {
-    #region º¯¼ö, ÇÁ·ÎÆÛÆ¼
+    #region ë³€ìˆ˜, í”„ë¡œí¼í‹°
     // Movement
     [SerializeField] private float _speed = 5f;
     [SerializeField] private float _gravity = -20f;
     [SerializeField] private float _jumpPower = 8f;
 
-    // ¿ÜºÎ º¯°æ¿ë
+    // ì™¸ë¶€ ë³€ê²½ìš©
     public bool CanMove = true;
 
-    // Network (Receive - ¿ø°İ ÇÃ·¹ÀÌ¾î µ¿±âÈ­¿ë º¯¼ö)
+    // Network (Receive - ì›ê²© í”Œë ˆì´ì–´ ë™ê¸°í™”ìš© ë³€ìˆ˜)
     private Vector3 _targetPosition;
     private readonly RemoteMotionBuffer remoteMotion = new RemoteMotionBuffer();
     private float _targetYaw;
@@ -25,7 +25,7 @@ public class PlayerMovement : MonoBehaviour
     private float lastSentPitch;
 
     [SerializeField] private float pitchSendThreshold = 1.0f;
-    [SerializeField] private float _lerpSpeed = 15f; // ¿ø°İ Ä³¸¯ÅÍ ÀÌµ¿ ºÎµå·¯¿ò °­µµ
+    [SerializeField] private float _lerpSpeed = 15f; // ì›ê²© ìºë¦­í„° ì´ë™ ë¶€ë“œëŸ¬ì›€ ê°•ë„
 
     private CharacterController _cc;
     private FPSCameraLook _cam;
@@ -35,7 +35,7 @@ public class PlayerMovement : MonoBehaviour
     private FootstepManager _footstepManager;
 
     private float _verticalVelocity;
-    [SerializeField] private bool _isMine; // ³» Ä³¸¯ÅÍÀÎÁö ¿©ºÎ ÀúÀå
+    [SerializeField] private bool _isMine; // ë‚´ ìºë¦­í„°ì¸ì§€ ì—¬ë¶€ ì €ì¥
 
     public event Action OnJumpEvent;
 
@@ -56,14 +56,14 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _standingPos;
     private Vector3 _crouchingPos;
 
-    [Header("Ä«¸Ş¶ó ³ôÀÌ ¼³Á¤")]
-    [SerializeField] private float _crouchHeightOffset = 0.5f; // ¾ó¸¶³ª ³»¸±Áö
-    [SerializeField] private float _crouchSpeed = 8f;         // Ä«¸Ş¶ó ¿òÁ÷ÀÓ ¼Óµµ
+    [Header("ì¹´ë©”ë¼ ë†’ì´ ì„¤ì •")]
+    [SerializeField] private float _crouchHeightOffset = 0.5f; // ì–¼ë§ˆë‚˜ ë‚´ë¦´ì§€
+    [SerializeField] private float _crouchSpeed = 8f;         // ì¹´ë©”ë¼ ì›€ì§ì„ ì†ë„
 
-    [Header("1ÀÎÄª ÆÈ ¸ğµ¨")]
+    [Header("1ì¸ì¹­ íŒ” ëª¨ë¸")]
     [SerializeField] private GameObject firstPersonArmModel;
 
-    [Header("3ÀÎÄª ¸ğµ¨")]
+    [Header("3ì¸ì¹­ ëª¨ë¸")]
     [SerializeField] private GameObject modelTransform;
 
     private int _currentAnimIndex = -1;
@@ -172,7 +172,7 @@ public class PlayerMovement : MonoBehaviour
             _targetPitch = 0f;
 
             Debug.LogError(
-                $"[PLAYER MOVEMENT] FPSCameraLook°¡ ¾ø½À´Ï´Ù. object={name}"
+                $"[PLAYER MOVEMENT] FPSCameraLookê°€ ì—†ìŠµë‹ˆë‹¤. object={name}"
             );
         }
     }
@@ -182,13 +182,13 @@ public class PlayerMovement : MonoBehaviour
         // Menus block local input, never remote simulation or state replication.
         if (_isMine)
         {
-            // "³» Ä³¸¯ÅÍ"¶ó¸é Á÷Á¢ Á¶Á¾ÇÏ°í ¼­¹ö·Î ÆĞÅ¶ Àü¼Û
+            // "ë‚´ ìºë¦­í„°"ë¼ë©´ ì§ì ‘ ì¡°ì¢…í•˜ê³  ì„œë²„ë¡œ íŒ¨í‚· ì „ì†¡
             movement();
             TrySendMoveState();
         }
         else
         {
-            // "¿ø°İ Ä³¸¯ÅÍ"¶ó¸é ¼­¹ö¿¡¼­ ¹ŞÀº Á¤º¸·Î ºÎµå·´°Ô ÀÌµ¿
+            // "ì›ê²© ìºë¦­í„°"ë¼ë©´ ì„œë²„ì—ì„œ ë°›ì€ ì •ë³´ë¡œ ë¶€ë“œëŸ½ê²Œ ì´ë™
             SyncRemotePlayerMovement();
         }
     }
@@ -235,7 +235,7 @@ public class PlayerMovement : MonoBehaviour
                     _gravity * Time.deltaTime;
             }
 
-            // ¼öÆò ÀÌµ¿Àº ¸·°í, °øÁßÀÌ¸é Áß·Â¸¸ Àû¿ë
+            // ìˆ˜í‰ ì´ë™ì€ ë§‰ê³ , ê³µì¤‘ì´ë©´ ì¤‘ë ¥ë§Œ ì ìš©
             MoveAndResolveCeiling(
                 Vector3.up *
                 _verticalVelocity *
@@ -270,7 +270,7 @@ public class PlayerMovement : MonoBehaviour
         );
     }
 
-    // ·ÎÄÃ ÇÃ·¹ÀÌ¾î(³ª)ÀÇ Á÷Á¢ÀûÀÎ Á¶Á¾ ·ÎÁ÷
+    // ë¡œì»¬ í”Œë ˆì´ì–´(ë‚˜)ì˜ ì§ì ‘ì ì¸ ì¡°ì¢… ë¡œì§
     private void movement()
     {
         PlanarSpeed = 0f;
@@ -491,13 +491,13 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        // Ä® ¾Ö´Ï¸ŞÀÌ¼Ç ±¸¿ªÀ¸·Î ¸ÂÃã
+        // ì¹¼ ì• ë‹ˆë©”ì´ì…˜ êµ¬ì—­ìœ¼ë¡œ ë§ì¶¤
         _animator.SetInteger(
             "WeaponType",
             2
         );
 
-        // ÀÌÀü Trigger°¡ ³²¾Æ ÀÖÀ» °æ¿ì Á¤¸®
+        // ì´ì „ Triggerê°€ ë‚¨ì•„ ìˆì„ ê²½ìš° ì •ë¦¬
         _animator.ResetTrigger(
             "Knife_Attack"
         );
@@ -514,7 +514,7 @@ public class PlayerMovement : MonoBehaviour
         );
     }
 
-    // ¿ÜºÎ(NetworkManager µî ÆĞÅ¶ ¼ö½ÅºÎ)¿¡¼­ È£ÃâÇØ ÁÙ ÇÔ¼ö
+    // ì™¸ë¶€(NetworkManager ë“± íŒ¨í‚· ìˆ˜ì‹ ë¶€)ì—ì„œ í˜¸ì¶œí•´ ì¤„ í•¨ìˆ˜
     public void OnReceiveRemoteMove(
     Vector3 serverPos,
     float serverYaw,
@@ -575,7 +575,7 @@ public class PlayerMovement : MonoBehaviour
         // Animation follows the buffered pose in SyncRemotePlayerMovement only.
         // Applying fresh packets here replays jump triggers against older poses.
 
-        // ¹ß¼Ò¸® Ã³¸®
+        // ë°œì†Œë¦¬ ì²˜ë¦¬
         bool remoteIsGrounded = (serverAnimIndex % 6 != 5);
 
         if (remoteIsGrounded && _remoteIsMoving)
@@ -605,23 +605,23 @@ public class PlayerMovement : MonoBehaviour
         int weaponTypeForAnimator;
         int rawMoveState;
 
-        // ¾Ö´Ï¸ŞÀÌ¼Ç ÀÎµ¦½º ÀÚÃ¼¿¡¼­
-        // ¹«±â Á¾·ù¿Í ÀÌµ¿ »óÅÂ¸¦ ºĞ¸®ÇÑ´Ù.
+        // ì• ë‹ˆë©”ì´ì…˜ ì¸ë±ìŠ¤ ìì²´ì—ì„œ
+        // ë¬´ê¸° ì¢…ë¥˜ì™€ ì´ë™ ìƒíƒœë¥¼ ë¶„ë¦¬í•œë‹¤.
         if (animIndex <= 5)
         {
-            // 0 ~ 5: ±ÇÃÑ
+            // 0 ~ 5: ê¶Œì´
             weaponTypeForAnimator = 0;
             rawMoveState = animIndex;
         }
         else if (animIndex <= 11)
         {
-            // 6 ~ 11: ±ä ÃÑ
+            // 6 ~ 11: ê¸´ ì´
             weaponTypeForAnimator = 1;
             rawMoveState = animIndex - 6;
         }
         else
         {
-            // 12 ~ 17: Ä®
+            // 12 ~ 17: ì¹¼
             weaponTypeForAnimator = 2;
             rawMoveState = animIndex - 12;
         }
@@ -637,10 +637,10 @@ public class PlayerMovement : MonoBehaviour
             weaponTypeForAnimator
         );
 
-        // ÀÓ½Ã ÁÖ¼® Ã³¸®: ÆÈ ¸ğµ¨±îÁö ¾Ö´Ï¸ŞÀÌ¼ÇÀÌ º¯°æµÇ¾î Á¶ÁØ ½Ã À§Ä¡°¡ ¸ÂÁö ¾Ê´Â ¹®Á¦ ¹ß»ı.
+        // ì„ì‹œ ì£¼ì„ ì²˜ë¦¬: íŒ” ëª¨ë¸ê¹Œì§€ ì• ë‹ˆë©”ì´ì…˜ì´ ë³€ê²½ë˜ì–´ ì¡°ì¤€ ì‹œ ìœ„ì¹˜ê°€ ë§ì§€ ì•ŠëŠ” ë¬¸ì œ ë°œìƒ.
         //_armAnimator?.SetInteger("WeaponType", weaponTypeForAnimator);
 
-        // ÇöÀç ±¸Á¶¿¡¼­ 10¹øÀº ±ä ÃÑ Á¶ÁØ »óÅÂ
+        // í˜„ì¬ êµ¬ì¡°ì—ì„œ 10ë²ˆì€ ê¸´ ì´ ì¡°ì¤€ ìƒíƒœ
         bool isAiming = animIndex == 10;
 
         _animator.SetBool(
@@ -674,12 +674,12 @@ public class PlayerMovement : MonoBehaviour
             }
             else
             {
-                // ¿ø°İ ÇÃ·¹ÀÌ¾î¿¡°Ô ³» Å°º¸µå ÀÔ·ÂÀ» »ç¿ëÇÏ¸é ¾È µÈ´Ù.
+                // ì›ê²© í”Œë ˆì´ì–´ì—ê²Œ ë‚´ í‚¤ë³´ë“œ ì…ë ¥ì„ ì‚¬ìš©í•˜ë©´ ì•ˆ ëœë‹¤.
                 rawMoveState = _remoteIsMoving ? 1 : 0;
             }
         }
 
-        // 5´Â °¢ ¹«±â ±¸¿ªÀÇ Á¡ÇÁ »óÅÂ´Ù.
+        // 5ëŠ” ê° ë¬´ê¸° êµ¬ì—­ì˜ ì í”„ ìƒíƒœë‹¤.
         if (rawMoveState == 5)
         {
             if (isIndexChanged)
@@ -720,7 +720,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (isWeaponChanged)
         {
-            // ¹«±â°¡ º¯°æµÈ ¼ø°£¿¡´Â Áï½Ã º¯°æ
+            // ë¬´ê¸°ê°€ ë³€ê²½ëœ ìˆœê°„ì—ëŠ” ì¦‰ì‹œ ë³€ê²½
             _animator.SetFloat(
                 "MoveState",
                 targetMoveStateValue
@@ -728,7 +728,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            // °°Àº ¹«±â ³» ÀÌµ¿ º¯°æÀº ºÎµå·´°Ô Ã³¸®
+            // ê°™ì€ ë¬´ê¸° ë‚´ ì´ë™ ë³€ê²½ì€ ë¶€ë“œëŸ½ê²Œ ì²˜ë¦¬
             _animator.SetFloat(
                 "MoveState",
                 targetMoveStateValue,
@@ -806,12 +806,12 @@ public class PlayerMovement : MonoBehaviour
 
         if (_currentAnimIndex % 6 != newIndex)
         {
-            string stateName = "Á¤Áö";
-            if (newIndex == 1) stateName = "°È±â";
-            if (newIndex == 2) stateName = "¾É±â";
-            if (newIndex == 3) stateName = "¾É¾Æ¼­ °È±â";
+            string stateName = "ì •ì§€";
+            if (newIndex == 1) stateName = "ê±·ê¸°";
+            if (newIndex == 2) stateName = "ì•‰ê¸°";
+            if (newIndex == 3) stateName = "ì•‰ì•„ì„œ ê±·ê¸°";
 
-            Debug.Log($"[{gameObject.name}] ¾Ö´Ï¸ŞÀÌ¼Ç »óÅÂ º¯°æ -> {stateName} | IsMine: {_isMine}");
+            Debug.Log($"[{gameObject.name}] ì• ë‹ˆë©”ì´ì…˜ ìƒíƒœ ë³€ê²½ -> {stateName} | IsMine: {_isMine}");
         }
     }
 
@@ -822,7 +822,7 @@ public class PlayerMovement : MonoBehaviour
             int weaponOffset =
                 GetWeaponAnimOffset();
 
-            // ½ºÅÏ Áß¿¡´Â ÇöÀç ¹«±â ±âÁØ Idle ¾Ö´Ï¸ŞÀÌ¼Ç °íÁ¤
+            // ìŠ¤í„´ ì¤‘ì—ëŠ” í˜„ì¬ ë¬´ê¸° ê¸°ì¤€ Idle ì• ë‹ˆë©”ì´ì…˜ ê³ ì •
             if (IsStunned())
                 return weaponOffset + 0;
 
@@ -962,7 +962,7 @@ public class PlayerMovement : MonoBehaviour
         SetFirstPersonArmsVisible(isMine);
 
         Debug.Log(
-            $"[¿ÜºÎ È£Ãâ] SetLocalPlayer È£Ãâ. " +
+            $"[ì™¸ë¶€ í˜¸ì¶œ] SetLocalPlayer í˜¸ì¶œ. " +
             $"object={gameObject.name}, " +
             $"isMine={isMine}"
         );
@@ -1142,7 +1142,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (_cam != null)
         {
-            // °üÀü Áß º¯°æµÈ Ä«¸Ş¶ó À§Ä¡ Á¦°Å
+            // ê´€ì „ ì¤‘ ë³€ê²½ëœ ì¹´ë©”ë¼ ìœ„ì¹˜ ì œê±°
             _cam.transform.localPosition =
                 _standingPos;
 
@@ -1161,11 +1161,13 @@ public class PlayerMovement : MonoBehaviour
 
     public void ResetMoveSpeedState()
     {
-        // »ç¸Á Àü¿¡ ADS ÁßÀÌ¾ú´õ¶óµµ ¹«Á¶°Ç ÇØÁ¦
+        ClearSpeedBuff();
+
+        // ì‚¬ë§ ì „ì— ADS ì¤‘ì´ì—ˆë”ë¼ë„ ë¬´ì¡°ê±´ í•´ì œ
         isADS = false;
 
-        // ÇöÀç ÀåÂø ¹«±âÀÇ ¹«°Ô´Â À¯ÁöÇÏ°í
-        // ADS °¨¼Ó¸¸ Á¦°ÅÇØ¼­ ´Ù½Ã °è»ê
+        // í˜„ì¬ ì¥ì°© ë¬´ê¸°ì˜ ë¬´ê²ŒëŠ” ìœ ì§€í•˜ê³ 
+        // ADS ê°ì†ë§Œ ì œê±°í•´ì„œ ë‹¤ì‹œ ê³„ì‚°
         if (weaponWeight < 1f)
             weaponWeight = 1f;
 
@@ -1233,6 +1235,46 @@ public class PlayerMovement : MonoBehaviour
             $"multiplier={_externalSpeedMultiplier}, " +
             $"currentMoveSpeed={currentMoveSpeed}"
         );
+    }
+
+    private Coroutine _speedBuffCoroutine;
+
+    /// <summary>
+    /// ì¼ì • ì‹œê°„ ë™ì•ˆ ì™¸ë¶€ ì´ë™ ì†ë„ ë°°ìœ¨ ë²„í”„ë¥¼ ì ìš©í•©ë‹ˆë‹¤.
+    /// </summary>
+    /// <param name="multiplier">ì†ë„ ë°°ìœ¨ (ì˜ˆ: 2ë°°)</param>
+    /// <param name="duration">ì§€ì† ì‹œê°„(ì´ˆ)</param>
+    public void ApplySpeedBuff(float multiplier, float duration)
+    {
+        if (duration <= 0f) return;
+
+        if (_speedBuffCoroutine != null)
+        {
+            StopCoroutine(_speedBuffCoroutine);
+        }
+
+        _speedBuffCoroutine = StartCoroutine(SpeedBuffRoutine(multiplier, duration));
+    }
+
+    private IEnumerator SpeedBuffRoutine(float multiplier, float duration)
+    {
+        SetExternalSpeedMultiplier(multiplier);
+
+        yield return new WaitForSeconds(duration);
+
+        SetExternalSpeedMultiplier(1f);
+        _speedBuffCoroutine = null;
+    }
+
+    public void ClearSpeedBuff()
+    {
+        if (_speedBuffCoroutine != null)
+        {
+            StopCoroutine(_speedBuffCoroutine);
+            _speedBuffCoroutine = null;
+        }
+
+        SetExternalSpeedMultiplier(1f);
     }
 
     public void SetExternalJumpMultiplier(float multiplier)

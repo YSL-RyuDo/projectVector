@@ -21,13 +21,52 @@ public abstract class UsableItem : MonoBehaviour
     {
         if (isCollected) return;
 
-        // 임시: A팀, B팀 플레이어 캐릭터와 충돌했을 때
-        if (other.CompareTag("Player A") || other.CompareTag("Player B"))
+        if (IsPlayer(other, out GameObject playerRoot))
         {
             isCollected = true;
-            OnCollected(other.gameObject);
+            OnCollected(playerRoot);
             DeactivateAndScheduleRespawn();
         }
+    }
+
+    /// <summary>
+    /// 충돌한 대상이 플레이어인지 확인하고 루트 오브젝트를 반환합니다.
+    /// </summary>
+    protected virtual bool IsPlayer(Collider other, out GameObject playerRoot)
+    {
+        playerRoot = null;
+        if (other == null) return false;
+
+        // 1. PlayerMovement 컴포넌트 우선 확인 (본인 또는 부모)
+        PlayerMovement pm = other.GetComponentInParent<PlayerMovement>();
+        if (pm != null)
+        {
+            playerRoot = pm.gameObject;
+            return true;
+        }
+
+        // 2. 태그 확인 (Player A, Player B, PlayerA, PlayerB, Player)
+        if (CheckPlayerTag(other.gameObject))
+        {
+            playerRoot = other.gameObject;
+            return true;
+        }
+
+        if (other.transform.parent != null && CheckPlayerTag(other.transform.parent.gameObject))
+        {
+            playerRoot = other.transform.parent.gameObject;
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool CheckPlayerTag(GameObject obj)
+    {
+        if (obj == null) return false;
+        return obj.CompareTag("Player A") || obj.CompareTag("Player B") ||
+               obj.CompareTag("PlayerA") || obj.CompareTag("PlayerB") ||
+               obj.CompareTag("Player");
     }
 
     /// <summary>
