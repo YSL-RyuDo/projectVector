@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class ItemSpawnPoint : MonoBehaviour
+public class SpawnPoint : MonoBehaviour
 {
     [Header("Spawn Settings")]
     [Tooltip("스폰 지점 이름")]
@@ -23,10 +23,6 @@ public class ItemSpawnPoint : MonoBehaviour
         Gizmos.color = gizmoColor;
         Gizmos.DrawSphere(transform.position, 0.25f);
         Gizmos.DrawWireSphere(transform.position, 0.4f);
-
-        // 씬 뷰에서 전방 방향 확인용 표시선
-        Gizmos.color = Color.blue;
-        Gizmos.DrawRay(transform.position, transform.forward * 0.8f);
     }
 
     private void OnDrawGizmosSelected()
