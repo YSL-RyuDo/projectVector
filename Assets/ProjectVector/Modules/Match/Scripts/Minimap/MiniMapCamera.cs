@@ -44,6 +44,7 @@ public class MiniMapCamera : MonoBehaviour
     public void SetViewCamera(Camera view) { viewCamera = view; ApplyCameraTransform(); }
     public float ViewHeading => viewCamera ? viewCamera.transform.eulerAngles.y : targetPlayer ? targetPlayer.eulerAngles.y : 0f;
     private Camera miniMapCamera;
+    private int authoredCullingMask;
 
     private bool isOverlayMode;
     private float? smokeHeading;
@@ -63,6 +64,7 @@ public class MiniMapCamera : MonoBehaviour
 
         miniMapCamera =
             GetComponent<Camera>();
+        authoredCullingMask = miniMapCamera.cullingMask;
 
         gameObject.tag = "Untagged";
 
@@ -276,8 +278,10 @@ public class MiniMapCamera : MonoBehaviour
         );
     }
 
-    public void SetMapFraming(float hudSize, float fullSize, float hudHeight, float fullHeight)
+    public void SetMapFraming(float hudSize, float fullSize, float hudHeight, float fullHeight, int additionalVisibleLayers = 0)
     {
+        // Every map starts from the saved camera mask, so City layers do not leak into the next map.
+        miniMapCamera.cullingMask = authoredCullingMask | additionalVisibleLayers;
         hudOrthographicSize = Mathf.Max(1f, hudSize);
         overlayOrthographicSize = Mathf.Max(1f, fullSize);
         cameraHeight = Mathf.Max(1f, hudHeight);

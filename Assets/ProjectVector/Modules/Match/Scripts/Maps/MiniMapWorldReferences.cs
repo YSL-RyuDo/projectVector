@@ -13,6 +13,7 @@ public class MiniMapWorldReferences : MonoBehaviour
     [SerializeField, Min(1f)] private float fullMapSize = 70f;
     [SerializeField, Min(1f)] private float hudHeight = 50f;
     [SerializeField, Min(1f)] private float fullMapHeight = 100f;
+    [SerializeField] private LayerMask additionalVisibleLayers;
 
     private IEnumerator Start()
     {
@@ -30,7 +31,7 @@ public class MiniMapWorldReferences : MonoBehaviour
         MiniMapCamera.Instance.SetOverlayMapCenter(
             fullMapCenter
         );
-        MiniMapCamera.Instance.SetMapFraming(hudSize, fullMapSize, hudHeight, fullMapHeight);
+        MiniMapCamera.Instance.SetMapFraming(hudSize, fullMapSize, hudHeight, fullMapHeight, additionalVisibleLayers.value);
 
         Debug.Log(
             $"[MINIMAP WORLD REGISTER] " +
