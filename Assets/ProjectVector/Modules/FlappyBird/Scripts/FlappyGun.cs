@@ -73,10 +73,31 @@ public class FlappyGun : MonoBehaviour
     {
         bulletLine.enabled = true;
 
-        bulletLine.SetPosition(0, firePoint.position);
-        bulletLine.SetPosition(1, endPoint);
+        Vector3 startPoint = firePoint.position;
+        Vector3 direction = (endPoint - startPoint).normalized;
 
-        yield return new WaitForSeconds(0.1f);
+        float distance = Vector3.Distance(startPoint, endPoint);
+
+        float bulletSpeed = 40f;
+        float bulletLength = 0.4f;
+        float traveled = 0f;
+
+        while (traveled < distance)
+        {
+            traveled = Mathf.Min(
+                traveled + bulletSpeed * Time.deltaTime,
+                distance
+            );
+
+            Vector3 front = startPoint + direction * traveled;
+            Vector3 back = startPoint + direction *
+                Mathf.Max(0f, traveled - bulletLength);
+
+            bulletLine.SetPosition(0, back);
+            bulletLine.SetPosition(1, front);
+
+            yield return null;
+        }
 
         bulletLine.enabled = false;
         shotEffect = null;
