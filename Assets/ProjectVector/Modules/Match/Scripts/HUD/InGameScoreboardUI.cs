@@ -67,7 +67,7 @@ public class InGameScoreboardUI : MonoBehaviour
         bool tabPressed =
             IsTabPressed();
 
-        if ((StorePanelUI.Instance != null && StorePanelUI.Instance.IsOpen()) || InGameChatUI.IsChatOpen ||
+        if (VectorSettingsPanel.BlocksInput || (StorePanelUI.Instance != null && StorePanelUI.Instance.IsOpen()) || InGameChatUI.IsChatOpen ||
             InGameChatUI.WasTabConsumedThisFrame)
         {
             suppressTabUntilReleased = true;

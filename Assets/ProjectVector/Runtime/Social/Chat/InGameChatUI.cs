@@ -153,6 +153,7 @@ public class InGameChatUI : MonoBehaviour
 
     private void Update()
     {
+        if (VectorSettingsPanel.BlocksInput) return;
         Keyboard keyboard = Keyboard.current;
 
         if (keyboard == null)

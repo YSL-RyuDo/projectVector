@@ -129,7 +129,7 @@ public class ArmADS : MonoBehaviour
         // 재장전
 
         if (Keyboard.current != null &&
-            Keyboard.current.rKey.wasPressedThisFrame)
+            VectorInput.Down("Reload"))
         {
             Reload();
         }
@@ -141,7 +141,7 @@ public class ArmADS : MonoBehaviour
         // 칼 공격
 
         if (Mouse.current != null &&
-            Mouse.current.leftButton.wasPressedThisFrame)
+            VectorInput.Down("Fire"))
         {
             // FirstPersonKnifeGrip is triggered only by Weapon.OnUse after gameplay locks.
             // Do not layer the legacy raw-input arm clip over that accepted swing.

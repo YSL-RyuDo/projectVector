@@ -46,9 +46,10 @@ public sealed class PracticeRangeController : MonoBehaviour
     {
         if (HasCampus && !MenuOpen) CheckWalkInZone();
         if(spawner.Running && inventory.GetCurrentWeapon()?.Data != runWeapon) recordEligible = false;
-        if (Keyboard.current?.escapeKey.wasPressedThisFrame == true) { if (MenuOpen) Resume(); else OpenMenu(); }
+        if (VectorSettingsPanel.BlocksInput) { Refresh(); return; }
+        if (VectorSettingsPanel.Instance == null && Keyboard.current?.escapeKey.wasPressedThisFrame == true) { if (MenuOpen) Resume(); else OpenMenu(); }
         if (Keyboard.current?.f3Key.wasPressedThisFrame == true) { if (MenuOpen) Resume(); else OpenMenu(); }
-        if (!MenuOpen && Keyboard.current?.fKey.wasPressedThisFrame == true && console != null && Vector3.Distance(player.position, console.position) < 3f) OpenMenu();
+        if (!MenuOpen && VectorInput.Down("Interact") && console != null && Vector3.Distance(player.position, console.position) < 3f) OpenMenu();
         Refresh();
     }
     public void OpenMenu() { menu.SetActive(true); spawner.Paused = true; Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }

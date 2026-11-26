@@ -210,8 +210,8 @@ public class Weapon : Item
 
         bool isFiringInput =
             IsAutomatic()
-                ? Mouse.current.leftButton.isPressed
-                : Mouse.current.leftButton.wasPressedThisFrame;
+                ? VectorInput.Held("Fire")
+                : VectorInput.Down("Fire");
 
         if (isFiringInput)
         {
@@ -387,7 +387,7 @@ public class Weapon : Item
             return;
 
         bool adsInput =
-            Mouse.current.rightButton.isPressed;
+            VectorInput.Held("Aim");
 
         if (adsInput != isADS)
         {
@@ -1013,8 +1013,8 @@ public class Weapon : Item
 
         // Legacy practice rigs without PlayerMovement still cancel opposite keys.
         if (Keyboard.current == null) return false;
-        return Keyboard.current.wKey.isPressed != Keyboard.current.sKey.isPressed ||
-            Keyboard.current.aKey.isPressed != Keyboard.current.dKey.isPressed;
+        return VectorInput.Held("Forward") != VectorInput.Held("Back") ||
+            VectorInput.Held("Left") != VectorInput.Held("Right");
     }
 
     Vector3 GetSpreadDirection(Vector3 baseDirection)

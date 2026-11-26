@@ -13,7 +13,8 @@ public sealed class PickMapBackdrop : MonoBehaviour
     {
         SelectedMap = string.Equals(mapName, "TestMap", StringComparison.OrdinalIgnoreCase) ? 0
             : string.Equals(mapName, "Desert", StringComparison.OrdinalIgnoreCase) ? 1
-            : string.Equals(mapName, "Construction", StringComparison.OrdinalIgnoreCase) ? 2 : -1;
+            : string.Equals(mapName, "Construction", StringComparison.OrdinalIgnoreCase) ? 2
+            : string.Equals(mapName, "City", StringComparison.OrdinalIgnoreCase) ? 3 : -1;
         ApplyVisibility();
     }
 

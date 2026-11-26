@@ -310,8 +310,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (isGrounded && !chatOpen &&
                  Keyboard.current != null &&
-                 Keyboard.current.leftCtrlKey
-                     .wasPressedThisFrame)
+                 VectorInput.Down("Crouch"))
         {
             TrySetCrouching(!_isCrouching);
         }
@@ -319,8 +318,7 @@ public class PlayerMovement : MonoBehaviour
         if (!chatOpen && GameplayActionPolicy.CanAct(this, GameplayAction.Fire) &&
             !StorePanelUI.IsBlockingGameplayInput &&
             Mouse.current != null &&
-            Mouse.current.leftButton
-                .wasPressedThisFrame)
+            VectorInput.Down("Fire"))
         {
             if (_playerItem != null)
             {
@@ -354,8 +352,7 @@ public class PlayerMovement : MonoBehaviour
 
             if (!chatOpen &&
                 Keyboard.current != null &&
-                Keyboard.current.spaceKey
-                    .wasPressedThisFrame && TrySetCrouching(false))
+                VectorInput.Down("Jump") && TrySetCrouching(false))
             {
                 _verticalVelocity =
                     CalculateJumpSpeed();
@@ -923,16 +920,16 @@ public class PlayerMovement : MonoBehaviour
         Vector2 input =
             Vector2.zero;
 
-        if (keyboard.aKey.isPressed)
+        if (VectorInput.Held("Left"))
             input.x -= 1f;
 
-        if (keyboard.dKey.isPressed)
+        if (VectorInput.Held("Right"))
             input.x += 1f;
 
-        if (keyboard.sKey.isPressed)
+        if (VectorInput.Held("Back"))
             input.y -= 1f;
 
-        if (keyboard.wKey.isPressed)
+        if (VectorInput.Held("Forward"))
             input.y += 1f;
 
         return input;

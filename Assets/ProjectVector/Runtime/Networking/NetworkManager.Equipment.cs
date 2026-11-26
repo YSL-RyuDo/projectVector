@@ -524,6 +524,8 @@ public partial class NetworkManager
 
     public void SendStoreBuyRequest(byte itemType, int itemId)
     {
+        // 데스매치 서버 프로토콜이 연결되기 전까지 무기 선택은 로컬 초안으로만 유지한다.
+        if (ClientMatchContext.State.IsDeathmatch) return;
         ushort size = 4 + 1 + 4;
         ushort type = (ushort)PacketType.PKT_CS_STORE_BUY_REQUEST;
 

@@ -30,8 +30,8 @@ public class InitiatorSkill_E : CharacterSkill
         var key=Keyboard.current;
         if(BlocksActions && !GameplayActionPolicy.MenuBlocksInput && key!=null)
         {
-            int slot=key.digit1Key.wasPressedThisFrame?0:key.digit2Key.wasPressedThisFrame?1:key.digit3Key.wasPressedThisFrame?2:-1;
-            if(slot>=0 || key.eKey.wasPressedThisFrame || Mouse.current?.rightButton.wasPressedThisFrame==true)
+            int slot=VectorInput.Down("Primary")?0:VectorInput.Down("Secondary")?1:VectorInput.Down("Melee")?2:-1;
+            if(slot>=0 || VectorInput.Down("SkillE") || VectorInput.Down("Aim"))
             {
                 _queuedSlot=slot;
                 if(_preparing){_preparing=false;NetworkManager.Instance.SendEmpGesture(false);_gesture?.Cancel();}
@@ -44,7 +44,7 @@ public class InitiatorSkill_E : CharacterSkill
             NetworkManager.Instance.SendEmpCast();
         }
         if(BlocksActions || key==null || Time.unscaledTime<_nextRequest)return;
-        if(Keyboard.current.eKey.wasPressedThisFrame && GameplayActionPolicy.CanAct(this,GameplayAction.Skill))UseSkill();
+        if(VectorInput.Down("SkillE") && GameplayActionPolicy.CanAct(this,GameplayAction.Skill))UseSkill();
     }
     protected override void UseSkill()
     {

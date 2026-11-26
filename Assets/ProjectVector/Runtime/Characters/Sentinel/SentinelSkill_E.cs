@@ -42,7 +42,7 @@ public class SentinelSkill_E : CharacterSkill
 
         if (!GameplayActionPolicy.CanAct(this, GameplayAction.Skill)) { if(isPlanning)SetPlanning(false); return; }
 
-        if (Input.GetKeyDown(KeyCode.E))
+        if (VectorInput.Down("SkillE"))
             UseSkill();
 
         if (isPlanning)
@@ -85,8 +85,8 @@ public class SentinelSkill_E : CharacterSkill
         if (Camera.main == null)
             return;
 
-        bool placeFront = Input.GetMouseButtonDown(0);
-        bool placeBeyond = Input.GetMouseButtonDown(1);
+        bool placeFront = VectorInput.Down("Fire");
+        bool placeBeyond = VectorInput.Down("Aim");
 
         if (!placeFront && !placeBeyond)
         {

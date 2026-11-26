@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using TMPro;
 using Unity.Services.Core;
@@ -40,6 +41,8 @@ public sealed class VectorVoiceChat : MonoBehaviour, IVivoxTokenProvider
     private float nextPoll, nextReconcile, contextTime = -100, operationStarted;
     private uint sessionPlayer;
     private int contextGeneration;
+    private int devicePreferenceGeneration;
+    private readonly SemaphoreSlim deviceGate = new(1, 1);
     // Cosmetic lookup only; membership/mute/volume are always keyed by Vivox account IDs.
     private readonly Dictionary<string, int> profileIcons = new(StringComparer.Ordinal);
     private float nextParticipantSettings;
@@ -78,7 +81,7 @@ public sealed class VectorVoiceChat : MonoBehaviour, IVivoxTokenProvider
             else if (!canHear && !Voice.IsOutputDeviceMuted) Voice.MuteOutputDevice();
         }
         if (!reconciling && Time.unscaledTime >= nextReconcile) _ = ReconcileAsync();
-        bool held = Keyboard.current?.backquoteKey.isPressed == true;
+        bool held = VectorInput.Control("Voice")?.isPressed == true;
         if (!held) requireKeyRelease = false;
         bool blocked = InputBlocked();
         if (blocked && held) requireKeyRelease = true;
@@ -102,7 +105,7 @@ public sealed class VectorVoiceChat : MonoBehaviour, IVivoxTokenProvider
         channelReady && !muted && hasFocus && !inputBlocked && hasMicrophone && (automatic || (held && !needsRelease));
     private static bool InputBlocked()
     {
-        if (VectorVoicePanel.IsAnyOpen || InGameChatUI.IsChatOpen ||
+        if (VectorSettingsPanel.BlocksInput || VectorVoicePanel.IsAnyOpen || InGameChatUI.IsChatOpen ||
             (LobbySocialController.Instance != null && LobbySocialController.Instance.HasModal) ||
             (SettingsMenu.Instance != null && SettingsMenu.Instance.IsOpen)) return true;
         var selected = EventSystem.current?.currentSelectedGameObject;
@@ -252,16 +255,27 @@ public sealed class VectorVoiceChat : MonoBehaviour, IVivoxTokenProvider
 
     public void ToggleMode()
     {
+        if(!NetworkManager.CanEditAccountSettings)return;
         SetTransmitting(false); requireKeyRelease = true;
         Automatic = !Automatic; PlayerPrefs.SetInt("VectorVoice.Automatic", Automatic ? 1 : 0); PlayerPrefs.Save();
     }
     public void ToggleMicrophone()
     {
+        if(!NetworkManager.CanEditAccountSettings)return;
         MicrophoneMuted = !MicrophoneMuted; SetTransmitting(false);
         PlayerPrefs.SetInt("VectorVoice.Muted", MicrophoneMuted ? 1 : 0); PlayerPrefs.Save();
     }
-    public void SetInputVolume(float value) { InputVolume = Mathf.RoundToInt(value); PlayerPrefs.SetInt("VectorVoice.Input", InputVolume); if (Ready) Voice.SetInputDeviceVolume(InputVolume); }
-    public void SetOutputVolume(float value) { OutputVolume = Mathf.RoundToInt(value); PlayerPrefs.SetInt("VectorVoice.Output", OutputVolume); if (Ready) Voice.SetOutputDeviceVolume(OutputVolume); }
+    public void SetInputVolume(float value) { if(!NetworkManager.CanEditAccountSettings)return;InputVolume = Mathf.RoundToInt(value); PlayerPrefs.SetInt("VectorVoice.Input", InputVolume); if (Ready) Voice.SetInputDeviceVolume(InputVolume); }
+    public void SetOutputVolume(float value) { if(!NetworkManager.CanEditAccountSettings)return;OutputVolume = Mathf.RoundToInt(value); PlayerPrefs.SetInt("VectorVoice.Output", OutputVolume); if (Ready) Voice.SetOutputDeviceVolume(OutputVolume); }
+    public async void ReloadAccountPreferences()
+    {
+        ++devicePreferenceGeneration;
+        SetTransmitting(false);requireKeyRelease=true;
+        Automatic=PlayerPrefs.GetInt("VectorVoice.Automatic",0)==1;MicrophoneMuted=PlayerPrefs.GetInt("VectorVoice.Muted",0)==1;
+        InputVolume=Mathf.Clamp(PlayerPrefs.GetInt("VectorVoice.Input",0),-50,50);OutputVolume=Mathf.Clamp(PlayerPrefs.GetInt("VectorVoice.Output",0),-50,50);
+        if(!Ready)return;
+        try{Voice.SetInputDeviceVolume(InputVolume);Voice.SetOutputDeviceVolume(OutputVolume);await RestoreDevicesAsync();}catch{Status="오디오 장치를 확인해 주세요";}
+    }
     public void ToggleParticipant(string account)
     {
         if (!CanAdjustParticipant(account)) return;
@@ -308,34 +322,44 @@ public sealed class VectorVoiceChat : MonoBehaviour, IVivoxTokenProvider
         ? Resources.Load<Sprite>("PlayerIcon/" + icon) : null;
     public async void CycleDevice(bool input)
     {
-        if (!Ready || changingDevice || reconciling) return;
+        if (!Ready || changingDevice || reconciling || !NetworkManager.CanEditAccountSettings) return;
         changingDevice = true; SetTransmitting(false);
+        int generation = devicePreferenceGeneration;
+        string account = NetworkManager.Instance?.AccountSettings?.Account;
+        await deviceGate.WaitAsync();
         try
         {
+            if(disposed||!Ready||generation!=devicePreferenceGeneration||account!=NetworkManager.Instance?.AccountSettings?.Account)return;
             if (input && Voice.AvailableInputDevices.Count > 0)
             {
                 var devices = Voice.AvailableInputDevices;
                 int index = devices.ToList().FindIndex(d => d.DeviceID == Voice.ActiveInputDevice?.DeviceID);
                 var device = devices[(index + 1) % devices.Count];
-                await Voice.SetActiveInputDeviceAsync(device); PlayerPrefs.SetString("VectorVoice.InputDevice", device.DeviceID);
+                await Voice.SetActiveInputDeviceAsync(device);
+                if(generation==devicePreferenceGeneration&&account==NetworkManager.Instance?.AccountSettings?.Account)PlayerPrefs.SetString("VectorVoice.InputDevice", device.DeviceID);
             }
             else if (!input && Voice.AvailableOutputDevices.Count > 0)
             {
                 var devices = Voice.AvailableOutputDevices;
                 int index = devices.ToList().FindIndex(d => d.DeviceID == Voice.ActiveOutputDevice?.DeviceID);
                 var device = devices[(index + 1) % devices.Count];
-                await Voice.SetActiveOutputDeviceAsync(device); PlayerPrefs.SetString("VectorVoice.OutputDevice", device.DeviceID);
+                await Voice.SetActiveOutputDeviceAsync(device);
+                if(generation==devicePreferenceGeneration&&account==NetworkManager.Instance?.AccountSettings?.Account)PlayerPrefs.SetString("VectorVoice.OutputDevice", device.DeviceID);
             }
             PlayerPrefs.Save();
         }
         catch { Status = "장치를 연결한 뒤 다시 선택해 주세요"; }
-        finally { changingDevice = false; requireKeyRelease = true; }
+        finally { deviceGate.Release(); changingDevice = false; requireKeyRelease = true; }
     }
     private async Task RestoreDevicesAsync()
     {
-        var input = Voice.AvailableInputDevices.FirstOrDefault(d => d.DeviceID == PlayerPrefs.GetString("VectorVoice.InputDevice", ""));
-        var output = Voice.AvailableOutputDevices.FirstOrDefault(d => d.DeviceID == PlayerPrefs.GetString("VectorVoice.OutputDevice", ""));
+        await deviceGate.WaitAsync();
+        try{
+        if(disposed||!Ready)return;
+        var input = Voice.AvailableInputDevices.FirstOrDefault(d => d.DeviceID == PlayerPrefs.GetString("VectorVoice.InputDevice", "")) ?? Voice.AvailableInputDevices.FirstOrDefault();
+        var output = Voice.AvailableOutputDevices.FirstOrDefault(d => d.DeviceID == PlayerPrefs.GetString("VectorVoice.OutputDevice", "")) ?? Voice.AvailableOutputDevices.FirstOrDefault();
         if (input != null) await Voice.SetActiveInputDeviceAsync(input);
         if (output != null) await Voice.SetActiveOutputDeviceAsync(output);
+        }finally{deviceGate.Release();}
     }
 }

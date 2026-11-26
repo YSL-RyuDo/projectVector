@@ -69,7 +69,7 @@ public class TaserGun : MonoBehaviour
         if (_singleUse && _used)
             return;
 
-        if (Mouse.current.leftButton.wasPressedThisFrame)
+        if (VectorInput.Down("Fire"))
         {
             FireTaserRequest();
         }

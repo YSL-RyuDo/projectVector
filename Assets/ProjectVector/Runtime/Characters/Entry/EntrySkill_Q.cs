@@ -53,7 +53,7 @@ public class EntrySkill_Q : CharacterSkill
         if (shock != null && shock.IsStunned)
             return;
 
-        if (Keyboard.current.qKey.wasPressedThisFrame)
+        if (VectorInput.Down("SkillQ"))
         {
             UseSkill();
         }

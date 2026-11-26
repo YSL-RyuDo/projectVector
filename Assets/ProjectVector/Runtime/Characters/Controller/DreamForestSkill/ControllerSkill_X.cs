@@ -29,7 +29,7 @@ public class ControllerSkill_X : CharacterSkill
             if (_age >= 1.4f) Cancel();
             return;
         }
-        if (Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame) UseSkill();
+        if (Keyboard.current != null && VectorInput.Down("Ultimate")) UseSkill();
     }
     protected override void UseSkill()
     {

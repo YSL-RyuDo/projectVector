@@ -26,6 +26,7 @@ public partial class NetworkManager
 
     public void SendLogin(string id, string pw)
     {
+        AccountSettings?.Begin(id.Trim(), ReconnectBusy);
         reconnectAccount = id.Trim();
         reconnectPassword = pw; // Process memory only; never PlayerPrefs, files or logs.
         IsAuthenticated = false;
@@ -493,6 +494,7 @@ public partial class NetworkManager
 
         if (!success)
         {
+            AccountSettings?.Detach();
             myUserId = "";
 
             string msg = result switch

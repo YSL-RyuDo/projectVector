@@ -143,7 +143,7 @@ public class EntrySkill_X : CharacterSkill
 
         if (!_isBladeMode)
         {
-            if (Keyboard.current.xKey.wasPressedThisFrame)
+            if (VectorInput.Down("Ultimate"))
             {
                 ActivateBladeUltimate();
             }
@@ -151,8 +151,8 @@ public class EntrySkill_X : CharacterSkill
             return;
         }
 
-        if (Mouse.current.rightButton.wasPressedThisFrame) TryFireBlade(true);
-        else if (Mouse.current.leftButton.wasPressedThisFrame) TryFireBlade(false);
+        if (VectorInput.Down("Aim")) TryFireBlade(true);
+        else if (VectorInput.Down("Fire")) TryFireBlade(false);
     }
 
     private bool IsMine()

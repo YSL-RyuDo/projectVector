@@ -145,8 +145,8 @@ public class DroneMovement : MonoBehaviour
             ? Vector2.zero
             : Mouse.current.delta.ReadValue();
 
-        _yaw += mouseDelta.x * _mouseSensitivity;
-        _pitch -= mouseDelta.y * _mouseSensitivity;
+        _yaw += mouseDelta.x * _mouseSensitivity * MouseSettings.GetSensitivity(SensitivityType.General) * MouseSettings.GetSensitivity(SensitivityType.Horizontal);
+        _pitch -= mouseDelta.y * _mouseSensitivity * MouseSettings.GetSensitivity(SensitivityType.General) * MouseSettings.GetSensitivity(SensitivityType.Vertical) * (VectorSettingsData.Get("InvertY") == 1 ? -1f : 1f);
         _pitch = Mathf.Clamp(_pitch, _minPitch, _maxPitch);
 
         transform.rotation = Quaternion.Euler(0f, _yaw, 0f);
@@ -171,13 +171,13 @@ public class DroneMovement : MonoBehaviour
         camForward.Normalize();
         camRight.Normalize();
 
-        if (Keyboard.current.wKey.isPressed) moveDir += camForward;
-        if (Keyboard.current.sKey.isPressed) moveDir -= camForward;
-        if (Keyboard.current.dKey.isPressed) moveDir += camRight;
-        if (Keyboard.current.aKey.isPressed) moveDir -= camRight;
+        if (VectorInput.Held("Forward")) moveDir += camForward;
+        if (VectorInput.Held("Back")) moveDir -= camForward;
+        if (VectorInput.Held("Right")) moveDir += camRight;
+        if (VectorInput.Held("Left")) moveDir -= camRight;
 
-        if (Keyboard.current.spaceKey.isPressed) moveDir += Vector3.up;
-        if (Keyboard.current.leftCtrlKey.isPressed) moveDir += Vector3.down;
+        if (VectorInput.Held("Jump")) moveDir += Vector3.up;
+        if (VectorInput.Held("Crouch")) moveDir += Vector3.down;
 
         _targetVelocity = moveDir.sqrMagnitude > 0.001f
             ? Vector3.Scale(moveDir.normalized,new Vector3(_moveSpeed,_verticalSpeed,_moveSpeed))

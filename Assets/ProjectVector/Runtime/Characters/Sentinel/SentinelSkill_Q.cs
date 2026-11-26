@@ -22,7 +22,7 @@ public class SentinelSkill_Q : CharacterSkill
         if (!IsMine())
             return;
 
-        if (Input.GetKeyDown(KeyCode.Q))
+        if (VectorInput.Down("SkillQ"))
             UseSkill();
     }
 

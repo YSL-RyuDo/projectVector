@@ -142,7 +142,7 @@ public class RoundManager : MonoBehaviour
         ResetTeam("Enemy");
 
         if (SpikeSpawner.Instance != null && currentMapInfo != null)
-            SpikeSpawner.Instance.ResetSpike(currentMapInfo.spikeSpawnPoint);
+            SpikeSpawner.Instance.ResetSpike(currentMapInfo.ActiveSpikeSpawnPoint);
     }
 
     private void ResetTeam(string targetTag)
@@ -263,7 +263,7 @@ public class RoundManager : MonoBehaviour
         CleanUpSentinelCTraps();
 
         if (SpikeSpawner.Instance != null && currentMapInfo != null)
-            SpikeSpawner.Instance.ResetSpike(currentMapInfo.spikeSpawnPoint);
+            SpikeSpawner.Instance.ResetSpike(currentMapInfo.ActiveSpikeSpawnPoint);
     }
 
     private void CleanUpSentinelCTraps()

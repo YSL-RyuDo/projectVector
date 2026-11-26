@@ -7,7 +7,8 @@ public enum GameMapId : byte
 {
     TestMap = 0,
     Desert = 1,
-    Construction = 2
+    Construction = 2,
+    City = 3
 }
 
 public class RoomRulesPanelUI : MonoBehaviour
@@ -17,6 +18,7 @@ public class RoomRulesPanelUI : MonoBehaviour
     [SerializeField] private Button testMapButton;
     [SerializeField] private Button desertButton;
     [SerializeField] private Button constructionButton;
+    [SerializeField] private Button cityButton;
     [SerializeField] private TMP_Text selectedMapText;
 
     [Header("Selection Colors")]
@@ -49,6 +51,11 @@ public class RoomRulesPanelUI : MonoBehaviour
             constructionButton.onClick.RemoveAllListeners();
             constructionButton.onClick.AddListener(() => OnMapSelected?.Invoke(GameMapId.Construction));
         }
+        if (cityButton != null)
+        {
+            cityButton.onClick.RemoveAllListeners();
+            cityButton.onClick.AddListener(() => OnMapSelected?.Invoke(GameMapId.City));
+        }
     }
 
     public void Show(string currentMapName)
@@ -67,12 +74,14 @@ public class RoomRulesPanelUI : MonoBehaviour
     {
         bool isDesert = string.Equals(mapName, "Desert", StringComparison.OrdinalIgnoreCase);
         bool isConstruction = string.Equals(mapName, "Construction", StringComparison.OrdinalIgnoreCase);
-        SetButtonSelected(testMapButton, !isDesert && !isConstruction);
+        bool isCity = string.Equals(mapName, "City", StringComparison.OrdinalIgnoreCase);
+        SetButtonSelected(testMapButton, !isDesert && !isConstruction && !isCity);
         SetButtonSelected(desertButton, isDesert);
         SetButtonSelected(constructionButton, isConstruction);
+        SetButtonSelected(cityButton, isCity);
 
         if (selectedMapText != null)
-            selectedMapText.text = isConstruction ? "현재 선택: 공사장" : isDesert ? "현재 선택: Desert" : "현재 선택: TestMap";
+            selectedMapText.text = isCity ? "현재 선택: 도시" : isConstruction ? "현재 선택: 공사장" : isDesert ? "현재 선택: Desert" : "현재 선택: TestMap";
     }
 
     private void SetButtonSelected(Button button, bool selected)

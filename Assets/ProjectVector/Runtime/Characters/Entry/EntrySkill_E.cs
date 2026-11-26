@@ -96,7 +96,7 @@ public class EntrySkill_E : CharacterSkill
             return;
 
         if (!_isStealth &&
-            Keyboard.current.eKey.wasPressedThisFrame)
+            VectorInput.Down("SkillE"))
         {
             UseSkill();
             return;
@@ -121,20 +121,20 @@ public class EntrySkill_E : CharacterSkill
     {
         bool attackPressed =
             Mouse.current != null &&
-            (Mouse.current.leftButton.wasPressedThisFrame ||
-             (EntrySkill_X.IsLocalBladeMode && Mouse.current.rightButton.wasPressedThisFrame));
+            (VectorInput.Down("Fire") ||
+             (EntrySkill_X.IsLocalBladeMode && VectorInput.Down("Aim")));
 
         bool qPressed =
             Keyboard.current != null &&
-            Keyboard.current.qKey.wasPressedThisFrame;
+            VectorInput.Down("SkillQ");
 
         bool cPressed =
             Keyboard.current != null &&
-            Keyboard.current.cKey.wasPressedThisFrame;
+            VectorInput.Down("SkillC");
 
         bool xPressed =
             Keyboard.current != null &&
-            Keyboard.current.xKey.wasPressedThisFrame;
+            VectorInput.Down("Ultimate");
 
         return attackPressed ||
                qPressed ||

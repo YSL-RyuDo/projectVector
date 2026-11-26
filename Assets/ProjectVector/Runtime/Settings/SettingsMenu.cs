@@ -48,7 +48,7 @@ public class SettingsMenu : MonoBehaviour
     {
         get
         {
-            return settingsPanel != null &&
+            return (VectorSettingsPanel.Instance != null && VectorSettingsPanel.Instance.IsOpen) || settingsPanel != null &&
                    settingsPanel.activeSelf;
         }
     }
@@ -56,7 +56,7 @@ public class SettingsMenu : MonoBehaviour
     // Respawn/view/skill resets restore gameplay, not the user's menu ownership.
     public static bool PreserveOpenMenuCursor()
     {
-        if (Instance == null || !Instance.IsOpen)
+        if (!(VectorSettingsPanel.Instance != null && VectorSettingsPanel.Instance.IsOpen) && (Instance == null || !Instance.IsOpen))
             return false;
 
         Cursor.lockState = CursorLockMode.None;
@@ -78,6 +78,7 @@ public class SettingsMenu : MonoBehaviour
 
     private void Start()
     {
+        if (VectorSettingsPanel.Instance != null) { if (settingsPanel != null) settingsPanel.SetActive(false); return; }
         if (!IsCurrentGameScene())
         {
             if (settingsPanel != null)
@@ -112,6 +113,7 @@ public class SettingsMenu : MonoBehaviour
 
     private void Update()
     {
+        if (VectorSettingsPanel.Instance != null) { return; }
         if (VectorVoicePanel.BlocksGameplayInput) return;
         if (!CanUseSettingsMenu())
             return;
@@ -187,6 +189,7 @@ public class SettingsMenu : MonoBehaviour
 
     public void ToggleSettingsMenu()
     {
+        if (VectorSettingsPanel.Instance != null) { if (VectorSettingsPanel.Instance.IsOpen) VectorSettingsPanel.Instance.Close(); else VectorSettingsPanel.Instance.OpenSettings(); return; }
         if (!CanUseSettingsMenu())
             return;
 
@@ -198,6 +201,7 @@ public class SettingsMenu : MonoBehaviour
 
     public void OpenSettingsMenu()
     {
+        if (VectorSettingsPanel.Instance != null) { VectorSettingsPanel.Instance.OpenSettings(); return; }
         if (!CanUseSettingsMenu())
             return;
 
@@ -245,6 +249,7 @@ public class SettingsMenu : MonoBehaviour
 
     public void CloseSettingsMenu()
     {
+        if (VectorSettingsPanel.Instance != null) { VectorSettingsPanel.Instance.Close(); return; }
         MouseSettings.SaveSettings();
 
         if (EventSystem.current != null)

@@ -81,7 +81,7 @@ public class SentinelSkill_X : CharacterSkill
         if (chargingSlider == null)
             TryResolveChargingSlider();
 
-        if (Input.GetKeyDown(KeyCode.X))
+        if (VectorInput.Down("Ultimate"))
         {
             if (isCharging)
             {
@@ -96,7 +96,7 @@ public class SentinelSkill_X : CharacterSkill
         if (!isReady || isCharging || (GetComponent<SentinelCastMotion>() is { } motion && !motion.ReadyToCast))
             return;
 
-        if (Input.GetMouseButtonDown(0))
+        if (VectorInput.Down("Fire"))
         {
             consumedCastInputFrame = Time.frameCount;
             chargingRoutine = StartCoroutine(XSkillRoutine());
@@ -140,7 +140,7 @@ public class SentinelSkill_X : CharacterSkill
         while (timer < chargingTime)
         {
             if(!isCharging || !isReady || !GameplayActionPolicy.CanAct(this,GameplayAction.Skill)){chargingRoutine=null;CancelCharging();SetReady(false);yield break;}
-            if (!Input.GetMouseButton(0))
+            if (!VectorInput.Held("Fire"))
             {
                 CancelCharging();
                 yield break;

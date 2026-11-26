@@ -143,7 +143,7 @@ public class FPSCameraLook : MonoBehaviour
             : Mouse.current.delta.ReadValue();
 
         float mouseX = mouseDelta.x;
-        float mouseY = mouseDelta.y;
+        float mouseY = mouseDelta.y * (VectorSettingsData.Get("InvertY") == 1 ? -1f : 1f);
 
         float generalSens =
             MouseSettings.GetSensitivity(
@@ -162,7 +162,7 @@ public class FPSCameraLook : MonoBehaviour
 
         float adsMultiplier =
             _isADS
-                ? _adsSensitivityMultiplier
+                ? _adsSensitivityMultiplier * VectorSettingsData.Get("ADSSensitivity")
                 : 1f;
 
         float finalHorizontalDelta =
