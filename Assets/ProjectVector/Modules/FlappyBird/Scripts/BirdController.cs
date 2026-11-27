@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 public class BirdController : MonoBehaviour
 {
@@ -12,9 +13,20 @@ public class BirdController : MonoBehaviour
     [SerializeField] private float effectDuration = 0.08f;
     [SerializeField] private float stretchAmount = 0.15f;
 
+    [Header("Health")]
+    [SerializeField] private int maxHP = 3;
+    [SerializeField] private float invincibleTime = 1.5f;
+    [SerializeField] private float blinkInterval = 0.1f;
+    [SerializeField] private Image[] hearts;
+
     private Rigidbody rb;
     private Vector3 originalScale;
     private Coroutine jumpEffect;
+
+    private int currentHP;
+    private bool isInvincible;
+    private bool isDead;
+    private Renderer[] renderers;
 
     private void Awake()
     {
@@ -22,6 +34,10 @@ public class BirdController : MonoBehaviour
 
         if (birdModel != null)
             originalScale = birdModel.localScale;
+
+        currentHP = maxHP;
+        renderers = (birdModel != null ? birdModel : transform).GetComponentsInChildren<Renderer>();
+        UpdateHearts();
     }
 
     private void Update()
@@ -104,6 +120,75 @@ public class BirdController : MonoBehaviour
                 gameManager.AddPipeCount();
 
             other.enabled = false;
+            return;
         }
+
+        CheckHit(other.gameObject);
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        CheckHit(collision.gameObject);
+    }
+
+    private void CheckHit(GameObject other)
+    {
+        if (other.CompareTag("Pipe"))
+        {
+            TakeDamage(1);
+            return;
+        }
+
+        FlappyEnemy obstacle = other.GetComponentInParent<FlappyEnemy>();
+        if (obstacle != null && obstacle.isObstacle)
+            TakeDamage(1);
+    }
+
+    public void TakeDamage(int damage)
+    {
+        if (isInvincible || isDead) return;
+
+        currentHP = Mathf.Max(0, currentHP - damage);
+        UpdateHearts();
+
+        if (currentHP <= 0)
+        {
+            isDead = true;
+            Debug.Log("ÇÃ·¹ÀÌ¾î »ç¸Á");
+            return;
+        }
+
+        StartCoroutine(InvincibleRoutine());
+    }
+
+    // ¹«Àû µ¿¾È ±ôºýÀÓ
+    private IEnumerator InvincibleRoutine()
+    {
+        isInvincible = true;
+        float t = 0f;
+        bool visible = true;
+
+        while (t < invincibleTime)
+        {
+            visible = !visible;
+            SetVisible(visible);
+            yield return new WaitForSeconds(blinkInterval);
+            t += blinkInterval;
+        }
+
+        SetVisible(true);
+        isInvincible = false;
+    }
+
+    private void SetVisible(bool on)
+    {
+        foreach (var r in renderers)
+            r.enabled = on;
+    }
+
+    private void UpdateHearts()
+    {
+        for (int i = 0; i < hearts.Length; i++)
+            hearts[i].enabled = i < currentHP;
     }
 }

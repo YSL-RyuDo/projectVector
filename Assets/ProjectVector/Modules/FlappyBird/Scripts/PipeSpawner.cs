@@ -1,9 +1,10 @@
-
 using UnityEngine;
 
 public class PipeSpawner : MonoBehaviour
 {
     [SerializeField] private GameObject pipePrefab;
+    [SerializeField] private GameObject breakablePipePrefab;
+    [Range(0f, 1f)][SerializeField] private float breakableChance = 0.3f;
     [SerializeField] private float spawnInterval = 2f;
     [SerializeField] private float spawnX = 10f;
     [SerializeField] private float minY = -1.5f;
@@ -19,8 +20,13 @@ public class PipeSpawner : MonoBehaviour
         {
             float randomY = Random.Range(minY, maxY);
 
+            GameObject prefab =
+                breakablePipePrefab != null && Random.value < breakableChance
+                ? breakablePipePrefab
+                : pipePrefab;
+
             Instantiate(
-                pipePrefab,
+                prefab,
                 new Vector3(spawnX, randomY, 0f),
                 Quaternion.identity
             );

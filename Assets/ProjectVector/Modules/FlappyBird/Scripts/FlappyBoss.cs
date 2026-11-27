@@ -41,6 +41,7 @@ public class FlappyBoss : MonoBehaviour
         // »ç¸Á Ã³¸®
         if (currentHP <= 0)
         {
+            ScoreManager.Instance.AddEnemyKill();
             Die();
         }
     }
