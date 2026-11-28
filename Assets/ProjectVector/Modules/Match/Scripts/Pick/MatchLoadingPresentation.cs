@@ -1,3 +1,4 @@
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,17 +18,25 @@ public sealed class MatchLoadingPresentation : MonoBehaviour
         var net=NetworkManager.Instance;
         var pick=FindFirstObjectByType<PickMapBackdrop>(FindObjectsInactive.Include);
         mapTitle.text=(pick!=null && pick.SelectedMap==1?"DESERT":"TEST MAP")+"  /  3 대 3";
+        bool solo = ClientMatchContext.State.IsDeathmatch;
+        var roster = solo ? data.attackMembers.Concat(data.defenseMembers)
+            .OrderByDescending(p => net != null && p.playerId == net.MyPlayerId).ToArray() : null;
+        if (solo)
+        {
+            var intro = FindFirstObjectByType<MapIntroPresentation>(FindObjectsInactive.Include);
+            mapTitle.text = string.IsNullOrEmpty(intro?.MapName) ? "데스매치  /  개인전" : intro.MapName + "  /  데스매치";
+        }
         status.text="전투 정보 확인 중";
         for(int i=0;i<cards.Length;i++)
         {
             var team=i<3?data.attackMembers:data.defenseMembers; int slot=i%3;
-            var member=slot<team.Count?team[slot]:null;
+            var member=solo ? (i<roster.Length?roster[i]:null) : slot<team.Count?team[slot]:null;
             MatchAppearanceData appearance=null;
             if(member!=null && net!=null) net.ReadyCardAppearances.TryGetValue(member.playerId,out appearance);
             cards[i].Present(member?.nickname??"",appearance,true,member!=null && net!=null && member.playerId==net.MyPlayerId);
             // Custom rooms/old servers may have no cosmetics snapshot. Never invent one.
             cards[i].nickname.text=member?.nickname??"빈 자리";
-            cards[i].caption.text=member==null?"":i<3?"선 공격":"선 수비";
+            cards[i].caption.text=member==null?"":solo ? (net!=null && member.playerId==net.MyPlayerId?"나":"적") : i<3?"선 공격":"선 수비";
             cards[i].concealed.SetActive(false);
             int id=member?.characterId??-1;
             portraits[i].sprite=id>=0&&id<characterArt.Length?characterArt[id]:null;

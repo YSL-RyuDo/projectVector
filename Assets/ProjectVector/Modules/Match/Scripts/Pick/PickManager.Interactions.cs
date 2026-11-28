@@ -57,7 +57,7 @@ public partial class PickManager
     }
     public void OnRecvPickActions(PickActionsState state)
     {
-        if (interactionFinished || currentState == null || currentState.roomId != state.roomId || (actionState != null && state.revision < actionState.revision)) return;
+        if (ClientMatchContext.State.IsDeathmatch || interactionFinished || currentState == null || currentState.roomId != state.roomId || (actionState != null && state.revision < actionState.revision)) return;
         // Reject identities not in our server-supplied allied selection roster.
         if (state.members.Exists(x => !currentState.members.Exists(m => m.playerId == x.playerId))) return;
         int oldCharacter = GetMe()?.lockedCharacterId ?? -1;

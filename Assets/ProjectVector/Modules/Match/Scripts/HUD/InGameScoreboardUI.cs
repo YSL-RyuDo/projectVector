@@ -227,6 +227,12 @@ public class InGameScoreboardUI : MonoBehaviour
         foreach (ScoreboardMemberData member
                  in currentData.members)
         {
+            if (ClientMatchContext.State.IsDeathmatch)
+            {
+                if (member.playerId == NetworkManager.Instance?.MyPlayerId) ourTeam.Add(member);
+                else enemyTeam.Add(member);
+                continue;
+            }
             if (member.team > 1 || member.slotIndex >= 3) continue;
             if (member.team == myTeam)
                 ourTeam.Add(member);
@@ -241,6 +247,21 @@ public class InGameScoreboardUI : MonoBehaviour
             NetworkManager.Instance != null
                 ? NetworkManager.Instance.MyPlayerId
                 : 0;
+
+        if (ClientMatchContext.State.IsDeathmatch)
+        {
+            // 저장된 여섯 행을 사용하고 적에게는 아군 장비 정보를 표시하지 않는다.
+            ourTeam.AddRange(enemyTeam);
+            int index = 0;
+            foreach (var rows in new[] { ourTeamRows, enemyTeamRows })
+                foreach (var row in rows)
+                {
+                    if (!row || index >= ourTeam.Count) continue;
+                    var member = ourTeam[index++];
+                    row.SetData(member, GetCharacterSprite(member.characterId), myPlayerId, member.playerId == myPlayerId);
+                }
+            return;
+        }
 
         for (int i = 0;
              i < ourTeamRows.Length &&

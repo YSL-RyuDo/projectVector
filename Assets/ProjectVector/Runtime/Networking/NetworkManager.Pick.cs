@@ -58,7 +58,16 @@ public partial class NetworkManager
         state.mapName = Packet.ReadFixedString(body, offset, 32);
         offset += 32;
 
-        state.myTeam = (RoomSlotTeam)body[offset];
+        byte team = body[offset];
+        if (team == 128 || team == 129)
+        {
+            // 같은 경기의 상태 재전송으로 장비 선택 등을 초기화하지 않는다.
+            var match = ClientMatchContext.State;
+            if (!match.IsDeathmatch || match.MatchId != state.roomId)
+                match.BeginMatch(ClientMatchMode.Deathmatch, state.roomId);
+            team &= 0x7f;
+        }
+        state.myTeam = (RoomSlotTeam)team;
         offset += 1;
 
         state.firstRole = (PickRole)body[offset];

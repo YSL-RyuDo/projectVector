@@ -11,6 +11,7 @@ public sealed class MapIntroPresentation : MonoBehaviour
     public float duration=3.4f;
     public CanvasGroup captionReveal;
     public bool IsPlaying { get; private set; }
+    public string MapName { get; private set; }
     uint room;
     int map;
     float elapsed;
@@ -18,10 +19,11 @@ public sealed class MapIntroPresentation : MonoBehaviour
     {
         if(state==null || state.roomId==0 || room==state.roomId) return;
         room=state.roomId;
+        MapName=state.mapName;
         map=state.mapName=="Desert"?1:state.mapName=="TestMap"?0:state.mapName=="Construction"?2:-1;
         if(map<0) { Finish(); return; }
         elapsed=0; IsPlaying=true; mapTitle.text=state.mapName=="Construction"?"CONSTRUCTION":state.mapName=="Desert"?"DESERT":"TEST MAP";
-        modeTitle.text=NetworkManager.Instance!=null && NetworkManager.Instance.LastMatchmakingMode==1?"랭크전  /  3 대 3":"팀 전투  /  3 대 3";
+        modeTitle.text=ClientMatchContext.State.IsDeathmatch ? "데스매치  /  개인전" : NetworkManager.Instance!=null && NetworkManager.Instance.LastMatchmakingMode==1?"랭크전  /  3 대 3":"팀 전투  /  3 대 3";
         overlay.SetActive(true); overlay.transform.SetAsLastSibling(); overviewCamera.enabled=true; Evaluate(0);
     }
     public void Evaluate(float t)

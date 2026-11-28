@@ -107,6 +107,7 @@ public class CareerMatchPlayerData
 public class CareerMatchData
 {
     public ulong matchId;
+    public bool isDeathmatch;
     public string mapName;
     public long startedAtUnix;
     public int durationSeconds;

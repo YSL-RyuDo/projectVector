@@ -977,15 +977,23 @@ public class CareerPanelController : MonoBehaviour
 
         foreach (CareerMatchPlayerData player in match.players ?? new List<CareerMatchPlayerData>())
         {
-            if (player.team == match.myTeam)
+            if (match.isDeathmatch ? player.userId == NetworkManager.Instance?.MyUserId : player.team == match.myTeam)
                 friendly.Add(player);
             else
                 opponent.Add(player);
         }
 
-        BindPlayerRows(_friendlyPlayerRows, friendly);
-        BindPlayerRows(_opponentPlayerRows, opponent);
-        _tabsPresentation?.SelectMatch(match, index, _friendlyPlayerRows, _opponentPlayerRows);
+        if (match.isDeathmatch)
+        {
+            // 이름과 초상이 같은 순서로 기존 여섯 행에 표시되도록 한다.
+            friendly.AddRange(opponent);
+            int split = System.Math.Min(friendly.Count, _friendlyPlayerRows.Count);
+            opponent = friendly.GetRange(split, friendly.Count - split);
+            friendly.RemoveRange(split, opponent.Count);
+        }
+        BindPlayerRows(_friendlyPlayerRows, friendly, match.isDeathmatch);
+        BindPlayerRows(_opponentPlayerRows, opponent, match.isDeathmatch);
+        _tabsPresentation?.SelectMatch(match, index, _friendlyPlayerRows, _opponentPlayerRows, friendly, opponent);
     }
 
     private void ClearMatchDetails()
@@ -999,7 +1007,7 @@ public class CareerPanelController : MonoBehaviour
 
     private static void BindPlayerRows(
         List<Transform> rows,
-        List<CareerMatchPlayerData> players)
+        List<CareerMatchPlayerData> players, bool solo = false)
     {
         for (int i = 0; i < rows.Count; ++i)
         {
@@ -1009,7 +1017,7 @@ public class CareerPanelController : MonoBehaviour
                 continue;
 
             CareerMatchPlayerData player = players[i];
-            SetDirectChildText(rows[i], "Text (TMP)", player.nickname);
+            SetDirectChildText(rows[i], "Text (TMP)", solo ? (player.userId == NetworkManager.Instance?.MyUserId ? "[나] " : "[적] ") + player.nickname : player.nickname);
             SetDirectChildText(rows[i], "Text (TMP) (1)", player.combatScore.ToString());
             SetDirectChildText(rows[i], "Text (TMP) (2)", player.attackScore.ToString());
             SetDirectChildText(

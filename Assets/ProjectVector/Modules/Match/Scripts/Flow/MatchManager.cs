@@ -118,6 +118,9 @@ public class MatchManager : MonoBehaviour
         }
 
         matchStarted = true;
+        // 서버가 실제 경기 시작을 확정하면 소개 카메라를 게임 화면에서 해제한다.
+        if (ClientMatchContext.State.IsDeathmatch)
+            FindFirstObjectByType<MapIntroPresentation>()?.Finish();
 
         FindMyTeam(data);
 

@@ -202,6 +202,14 @@ public partial class PickManager : MonoBehaviour
         ReconcilePickActions();
         if (mapBackdrop != null) mapBackdrop.ApplyMap(state != null ? state.mapName : null);
         if (mapIntro != null) mapIntro.Begin(state);
+        if (ClientMatchContext.State.IsDeathmatch)
+        {
+            // 맵 소개 카메라와 로딩 수신기는 유지하고 선택 화면만 숨긴다.
+            isInputLockedByPhase = true;
+            if (presentation != null) presentation.gameObject.SetActive(false);
+            ClearPreviewModel();
+            return;
+        }
         if (presentation != null) presentation.SetState(state);
 
         ApplyTopInfo();
@@ -214,6 +222,7 @@ public partial class PickManager : MonoBehaviour
 
     public void OnRecvPickTimer(PickPhase phase, ushort remainSeconds)
     {
+        if (ClientMatchContext.State.IsDeathmatch) return;
         currentPhase = phase;
         ApplyTimer(remainSeconds);
 
@@ -661,11 +670,16 @@ public partial class PickManager : MonoBehaviour
     public void OnRecvMatchLoadingInfo(MatchLoadingInfoData data)
     {
         FinishPickInteractions();
-        if (mapIntro != null) mapIntro.Finish();
+        // 개인전에서는 로딩 명단이 먼저 도착해도 진행 중인 맵 소개를 끝까지 재생한다.
+        if (mapIntro != null && !ClientMatchContext.State.IsDeathmatch) mapIntro.Finish();
         Debug.Log("[PICK MANAGER] Match loading info received");
 
         if (matchLoadingPanelUI != null)
+        {
             matchLoadingPanelUI.Show(data);
+            if (ClientMatchContext.State.IsDeathmatch && mapIntro != null && mapIntro.IsPlaying)
+                mapIntro.overlay.transform.SetAsLastSibling();
+        }
         else
             Debug.LogError("[PICK MANAGER] matchLoadingPanelUI is null");
     }

@@ -45,7 +45,8 @@ public class ScoreboardRowUI : MonoBehaviour
 
         if (nickNameText != null)
         {
-            nickNameText.text = data.nickname;
+            nickNameText.text = ClientMatchContext.State.IsDeathmatch
+                ? (data.playerId == myPlayerId ? "[나] " : "[적] ") + data.nickname : data.nickname;
 
             nickNameText.color = data.playerId == myPlayerId ? new Color(.62f,.9f,1f) : Color.white;
         }

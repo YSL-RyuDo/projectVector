@@ -1009,6 +1009,8 @@ public partial class NetworkManager
             match.scoreB = body[offset++];
             match.winnerTeam = body[offset++];
             match.myTeam = body[offset++];
+            match.isDeathmatch = match.myTeam == 128 || match.myTeam == 129;
+            if (match.isDeathmatch) match.myTeam &= 0x7f;
             int playerCount = Math.Min((int)body[offset++], PlayersPerMatch);
 
             for (int playerIndex = 0; playerIndex < PlayersPerMatch; ++playerIndex)

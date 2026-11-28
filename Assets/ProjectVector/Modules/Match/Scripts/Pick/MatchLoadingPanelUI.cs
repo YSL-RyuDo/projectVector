@@ -107,7 +107,9 @@ public class MatchLoadingPanelUI : MonoBehaviour
         slot.SetData(
             characterSprite,
             characterName,
-            member.nickname,
+            ClientMatchContext.State.IsDeathmatch
+                ? (member.playerId == NetworkManager.Instance?.MyPlayerId ? "[³ª] " : "[Àû] ") + member.nickname
+                : member.nickname,
             rankSprite
         );
     }

@@ -181,15 +181,15 @@ public sealed class CareerTabsPresentation : MonoBehaviour
             matchArtwork.enabled = false; matchResult.text = "경기 기록 없음"; matchDate.text = "경기를 완료하면 전적을 확인할 수 있습니다.";
         }
     }
-    public void SelectMatch(CareerMatchData match, int index, List<Transform> friendly, List<Transform> opponents)
+    public void SelectMatch(CareerMatchData match, int index, List<Transform> friendly, List<Transform> opponents, List<CareerMatchPlayerData> friendlyPlayers, List<CareerMatchPlayerData> enemyPlayers)
     {
         matchResult.text = $"{Outcome(match)}   {(match.myTeam == 0 ? match.scoreA : match.scoreB)} : {(match.myTeam == 0 ? match.scoreB : match.scoreA)}";
         matchResult.color = match.winnerTeam == match.myTeam ? new Color32(55, 101, 88, 255) : accent;
         matchDate.text = Date(match.startedAtUnix);
         matchArtwork.sprite = MapArt(match.mapName); matchArtwork.enabled = matchArtwork.sprite != null;
         for (int i = 0; i < matchCards.Length; ++i) matchCards[i].surface.color = i == index ? Color.white : new Color32(209, 212, 211, 230);
-        BindPortraits(friendly, match.players?.Where(p => p.team == match.myTeam).ToList());
-        BindPortraits(opponents, match.players?.Where(p => p.team != match.myTeam).ToList());
+        BindPortraits(friendly, friendlyPlayers);
+        BindPortraits(opponents, enemyPlayers);
     }
     void BindPortraits(List<Transform> rows, List<CareerMatchPlayerData> players)
     {
